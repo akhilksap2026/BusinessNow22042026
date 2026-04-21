@@ -53,6 +53,15 @@ import { Layout } from "@/components/layout";
 
 const STAGES = ["Discovery", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
+const STAGE_PROBABILITY: Record<string, number> = {
+  Discovery: 10,
+  Qualified: 30,
+  Proposal: 50,
+  Negotiation: 75,
+  Won: 100,
+  Lost: 0,
+};
+
 const STAGE_COLORS: Record<string, string> = {
   Discovery: "bg-slate-100 text-slate-700",
   Qualified: "bg-blue-100 text-blue-700",
@@ -82,7 +91,7 @@ export default function OpportunitiesPage() {
   const [selected, setSelected] = useState<Opportunity | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
-  const [form, setForm] = useState({ accountId: "", name: "", stage: "Discovery", value: "", description: "", closeDate: "" });
+  const [form, setForm] = useState({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "" });
   const [projectForm, setProjectForm] = useState({ name: "", billingType: "Fixed Fee", startDate: "", dueDate: "" });
 
   const { data: opportunities = [] } = useQuery({
@@ -100,6 +109,7 @@ export default function OpportunitiesPage() {
       accountId: Number(form.accountId),
       name: form.name,
       stage: form.stage,
+      probability: Number(form.probability) || STAGE_PROBABILITY[form.stage] || 0,
       value: Number(form.value) || 0,
       description: form.description || undefined,
       closeDate: form.closeDate || undefined,
@@ -108,7 +118,8 @@ export default function OpportunitiesPage() {
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, stage }: { id: number; stage: string }) => updateOpportunity(id, { stage }),
+    mutationFn: ({ id, stage, probability }: { id: number; stage: string; probability?: number }) =>
+      updateOpportunity(id, { stage, ...(probability !== undefined ? { probability } : {}) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["opportunities"] }),
   });
 
@@ -133,7 +144,7 @@ export default function OpportunitiesPage() {
   });
 
   function resetForm() {
-    setForm({ accountId: "", name: "", stage: "Discovery", value: "", description: "", closeDate: "" });
+    setForm({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "" });
   }
 
   const totalPipeline = opportunities.filter(o => o.stage !== "Won" && o.stage !== "Lost").reduce((s, o) => s + o.value, 0);
@@ -221,9 +232,10 @@ export default function OpportunitiesPage() {
                   <Select
                     value={selected.stage}
                     onValueChange={val => {
-                      const updated = { ...selected, stage: val };
+                      const autoProbability = STAGE_PROBABILITY[val];
+                      const updated = { ...selected, stage: val, probability: autoProbability };
                       setSelected(updated);
-                      updateMut.mutate({ id: selected.id, stage: val });
+                      updateMut.mutate({ id: selected.id, stage: val, probability: autoProbability });
                     }}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -261,10 +273,14 @@ export default function OpportunitiesPage() {
             </div>
             <div className="space-y-1">
               <Label>Stage</Label>
-              <Select value={form.stage} onValueChange={v => setForm(f => ({ ...f, stage: v }))}>
+              <Select value={form.stage} onValueChange={v => setForm(f => ({ ...f, stage: v, probability: String(STAGE_PROBABILITY[v] ?? f.probability) }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{STAGES.slice(0, 4).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Win Probability (%)</Label>
+              <Input type="number" min="0" max="100" value={form.probability} onChange={e => setForm(f => ({ ...f, probability: e.target.value }))} />
             </div>
             <div className="space-y-1">
               <Label>Value ($)</Label>

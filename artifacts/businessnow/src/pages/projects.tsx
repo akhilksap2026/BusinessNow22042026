@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useListProjects } from "@workspace/api-client-react";
+import { useListProjects, useDeleteProject } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, MoreHorizontal } from "lucide-react";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export function StatusBadge({ status }: { status: string }) {
   const getVariant = (s: string) => {
@@ -34,9 +37,39 @@ export function HealthBadge({ health }: { health: string }) {
   return <span className={`px-2 py-1 rounded-full text-xs font-medium ${getColor(health)}`}>{health}</span>;
 }
 
+function InternalExternalBadge({ value }: { value: string | null }) {
+  if (!value) return null;
+  return (
+    <Badge
+      variant="outline"
+      className={value === "Internal"
+        ? "text-violet-700 border-violet-300 bg-violet-50"
+        : "text-sky-700 border-sky-300 bg-sky-50"}
+    >
+      {value}
+    </Badge>
+  );
+}
+
 export default function Projects() {
   const { data: projects, isLoading } = useListProjects();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const deleteMut = useDeleteProject();
+
+  function handleDelete(id: number, name: string) {
+    if (!confirm(`Archive project "${name}"? It will be hidden but can be recovered by an admin.`)) return;
+    deleteMut.mutate({ id }, {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ["projects"] });
+        toast({ title: "Project archived", description: `"${name}" has been archived.` });
+      },
+      onError: () => toast({ title: "Failed to archive project", variant: "destructive" }),
+    });
+  }
+
+  const visibleProjects = projects?.filter(p => !p.isAdminProject) ?? [];
 
   return (
     <Layout>
@@ -62,19 +95,24 @@ export default function Projects() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Project Name</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Health</TableHead>
                     <TableHead className="text-right">Budget</TableHead>
                     <TableHead className="text-right">Completion</TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {projects?.map((project) => (
+                  {visibleProjects.map((project) => (
                     <TableRow key={project.id}>
                       <TableCell className="font-medium">
                         <Link href={`/projects/${project.id}`} className="text-primary hover:underline">
                           {project.name}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        <InternalExternalBadge value={project.internalExternal ?? "External"} />
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={project.status} />
@@ -84,11 +122,31 @@ export default function Projects() {
                       </TableCell>
                       <TableCell className="text-right">${project.budget.toLocaleString()}</TableCell>
                       <TableCell className="text-right">{project.completion}%</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/projects/${project.id}`}>View Details</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDelete(project.id, project.name)}
+                            >
+                              Archive Project
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))}
-                  {projects?.length === 0 && (
+                  {visibleProjects.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         No projects found.
                       </TableCell>
                     </TableRow>

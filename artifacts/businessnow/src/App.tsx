@@ -2,6 +2,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { setDefaultHeaders } from "@workspace/api-client-react";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
@@ -18,6 +19,8 @@ import Opportunities from "@/pages/opportunities";
 import PortalPage from "@/pages/portal";
 
 const queryClient = new QueryClient();
+
+setDefaultHeaders({ "x-user-role": "Admin" });
 
 function Router() {
   return (

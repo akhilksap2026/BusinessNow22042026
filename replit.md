@@ -18,7 +18,7 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **Resources** — Team capacity grid with skill badges per member + Resource Requests tab (approve/reject/fulfill workflow)
 - **Finance** — Invoice management + Billing Schedules (date/milestone triggered, fire → auto-create draft invoice) + Revenue Recognition (log by period/method, bar chart by period)
 - **Reports** — 5 tabs: Budget vs Actuals (horizontal bar), Burn-Down (per-project line chart with ideal line), Revenue, Utilization, Project Health
-- **Admin** — Users tab + Project Templates tab + Skills Matrix tab (categories + skills CRUD) + Tax Codes + Time Categories + Holiday Calendars + Rate Cards (create/edit with roles[] editor) + Custom Fields (define per project/task entity) + Audit Log (read-only event feed with entity-type filter)
+- **Admin** — Users tab + Project Templates tab + Skills Matrix tab (categories + skills CRUD) + Tax Codes + Time Categories + Holiday Calendars + Rate Cards (create/edit with roles[] editor) + Custom Fields (define per project/task entity) + Audit Log (read-only event feed with entity-type filter) + **Company Settings** (name, address, timezone, currency, fiscal year start, website, phone; backed by `company_settings` table) + **Archived Projects** recovery (soft-deleted project list with Restore action)
 - **Notifications** — Notification feed with mark-as-read
 - **CSAT** — Per-project satisfaction tracking tab with star ratings, distribution chart, recent feedback
 
@@ -32,6 +32,19 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - `lib/api-zod/src/index.ts` must only export `./generated/api` (Zod schemas) — re-exporting `./generated/types` causes duplicate name errors
 - Drizzle returns JS `Date` objects for timestamp columns; all `map*` functions in API routes must convert these to ISO strings via `instanceof Date ? .toISOString() : value`
 - Invoice `id` is a text PK with format "INV-YYYY-NNN"
+- Express route ordering: specific sub-paths (e.g. `/projects/deleted`) MUST be declared before parameterised routes (e.g. `/projects/:id`) or they will be shadowed
+- When adding fields to the API contract, update all four places: `lib/api-zod/src/generated/api.ts` + `types/createXBody.ts`, `lib/api-client-react/src/generated/api.schemas.ts`, then rebuild both dists (`tsc --build --force`)
+- `lib/api-client-react/dist/index.d.ts` is the compiled declaration output — must rebuild after editing `custom-fetch.ts` or any generated schema file
+
+### Sprint 1 Complete (Wave 1)
+- RBAC middleware on projects routes (requirePM for create/update/delete, requireAdmin for restore/deleted list)
+- Soft-delete on projects (deletedAt column; filter on list; restore endpoint)
+- Internal/External flag on projects list (badge) and create wizard (toggle)
+- Admin Project type hidden from standard project list
+- Win probability auto-fill by opportunity stage
+- Standardised 8-role taxonomy seeded
+- Company Settings table + Admin Settings tab (connected to GET/PUT /api/company-settings)
+- Archived Projects recovery tab in Admin
 
 ## Stack
 

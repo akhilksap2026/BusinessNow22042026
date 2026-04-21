@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import {
   useListUsers,
@@ -58,7 +59,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Admin() {
@@ -157,6 +158,76 @@ export default function Admin() {
     auditEntityFilter !== "all" ? { entityType: auditEntityFilter } : undefined,
     { query: { queryKey: getListAuditLogQueryKey(auditEntityFilter !== "all" ? { entityType: auditEntityFilter } : undefined) } }
   );
+
+  const [companyForm, setCompanyForm] = useState({ name: "", address: "", timezone: "", currency: "", fiscalYearStart: "", website: "", phone: "" });
+  const [companyFormDirty, setCompanyFormDirty] = useState(false);
+
+  const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+  const { data: companySettings, refetch: refetchCompany } = useQuery({
+    queryKey: ["company-settings"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/company-settings`);
+      if (!res.ok) throw new Error("Failed to fetch company settings");
+      return res.json() as Promise<{ id: number; name: string; address: string | null; logoUrl: string | null; timezone: string; currency: string; fiscalYearStart: string; website: string | null; phone: string | null }>;
+    },
+  });
+
+  useEffect(() => {
+    if (companySettings && !companyFormDirty) {
+      setCompanyForm({
+        name: companySettings.name ?? "",
+        address: companySettings.address ?? "",
+        timezone: companySettings.timezone ?? "",
+        currency: companySettings.currency ?? "",
+        fiscalYearStart: companySettings.fiscalYearStart ?? "",
+        website: companySettings.website ?? "",
+        phone: companySettings.phone ?? "",
+      });
+    }
+  }, [companySettings, companyFormDirty]);
+
+  const saveCompanyMut = useMutation({
+    mutationFn: async (data: typeof companyForm) => {
+      const res = await fetch(`${BASE}/api/company-settings`, {
+        method: "PUT",
+        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Company settings saved" });
+      setCompanyFormDirty(false);
+      refetchCompany();
+    },
+    onError: () => toast({ title: "Failed to save settings", variant: "destructive" }),
+  });
+
+  const { data: deletedProjects, refetch: refetchDeleted } = useQuery({
+    queryKey: ["deleted-projects"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/projects/deleted`, { headers: { "x-user-role": "Admin" } });
+      if (!res.ok) return [];
+      return res.json() as Promise<{ id: number; name: string; deletedAt: string | null }[]>;
+    },
+  });
+
+  const restoreProjectMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`${BASE}/api/projects/${id}/restore`, {
+        method: "POST",
+        headers: { "x-user-role": "Admin" },
+      });
+      if (!res.ok) throw new Error("Failed to restore");
+    },
+    onSuccess: () => {
+      toast({ title: "Project restored" });
+      refetchDeleted();
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: () => toast({ title: "Failed to restore project", variant: "destructive" }),
+  });
 
   async function handleSaveTaxCode() {
     if (!taxCodeForm.name || !taxCodeForm.rate) return;
@@ -455,6 +526,9 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="auditlog" className="flex items-center gap-2">
               <Activity className="h-4 w-4" /> Audit Log
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" /> Company Settings
             </TabsTrigger>
           </TabsList>
 
@@ -1062,6 +1136,123 @@ export default function Admin() {
                           </TableCell>
                           <TableCell className="text-sm">{entry.actorName ?? "System"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{entry.description ?? "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="m-0 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Company Information</CardTitle>
+                <CardDescription>Used on invoices, reports, and the client portal</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Company Name *</Label>
+                    <Input value={companyForm.name} onChange={e => { setCompanyForm(f => ({ ...f, name: e.target.value })); setCompanyFormDirty(true); }} />
+                  </div>
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Address</Label>
+                    <Textarea rows={2} value={companyForm.address} onChange={e => { setCompanyForm(f => ({ ...f, address: e.target.value })); setCompanyFormDirty(true); }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Website</Label>
+                    <Input placeholder="https://example.com" value={companyForm.website} onChange={e => { setCompanyForm(f => ({ ...f, website: e.target.value })); setCompanyFormDirty(true); }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Phone</Label>
+                    <Input placeholder="+1 416-555-0100" value={companyForm.phone} onChange={e => { setCompanyForm(f => ({ ...f, phone: e.target.value })); setCompanyFormDirty(true); }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Timezone</Label>
+                    <Select value={companyForm.timezone} onValueChange={v => { setCompanyForm(f => ({ ...f, timezone: v })); setCompanyFormDirty(true); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="America/Toronto">America/Toronto (ET)</SelectItem>
+                        <SelectItem value="America/New_York">America/New_York (ET)</SelectItem>
+                        <SelectItem value="America/Chicago">America/Chicago (CT)</SelectItem>
+                        <SelectItem value="America/Denver">America/Denver (MT)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">America/Los_Angeles (PT)</SelectItem>
+                        <SelectItem value="America/Vancouver">America/Vancouver (PT)</SelectItem>
+                        <SelectItem value="Europe/London">Europe/London (GMT/BST)</SelectItem>
+                        <SelectItem value="Asia/Kolkata">Asia/Kolkata (IST)</SelectItem>
+                        <SelectItem value="UTC">UTC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Currency</Label>
+                    <Select value={companyForm.currency} onValueChange={v => { setCompanyForm(f => ({ ...f, currency: v })); setCompanyFormDirty(true); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CAD">CAD — Canadian Dollar</SelectItem>
+                        <SelectItem value="USD">USD — US Dollar</SelectItem>
+                        <SelectItem value="EUR">EUR — Euro</SelectItem>
+                        <SelectItem value="GBP">GBP — British Pound</SelectItem>
+                        <SelectItem value="INR">INR — Indian Rupee</SelectItem>
+                        <SelectItem value="AUD">AUD — Australian Dollar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Fiscal Year Start</Label>
+                    <Select value={companyForm.fiscalYearStart} onValueChange={v => { setCompanyForm(f => ({ ...f, fiscalYearStart: v })); setCompanyFormDirty(true); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="01-01">January 1</SelectItem>
+                        <SelectItem value="04-01">April 1</SelectItem>
+                        <SelectItem value="07-01">July 1</SelectItem>
+                        <SelectItem value="10-01">October 1</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="pt-2 flex justify-end">
+                  <Button onClick={() => saveCompanyMut.mutate(companyForm)} disabled={saveCompanyMut.isPending || !companyFormDirty}>
+                    {saveCompanyMut.isPending ? "Saving…" : "Save Settings"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Archived Projects</CardTitle>
+                <CardDescription>Projects that have been soft-deleted. Restore to make them active again.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(deletedProjects?.length ?? 0) === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <RotateCcw className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p>No archived projects</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Project Name</TableHead>
+                        <TableHead>Archived On</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {deletedProjects?.map(p => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">{p.name}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {p.deletedAt ? new Date(p.deletedAt).toLocaleDateString() : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="outline" onClick={() => restoreProjectMut.mutate(p.id)} disabled={restoreProjectMut.isPending}>
+                              <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Restore
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

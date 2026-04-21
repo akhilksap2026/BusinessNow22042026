@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, taxCodesTable, timeCategoriesTable } from "@workspace/db";
+import { db, taxCodesTable, timeCategoriesTable, companySettingsTable } from "@workspace/db";
+import { requireAdmin } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
@@ -93,6 +94,39 @@ router.delete("/time-categories/:id", async (req, res): Promise<void> => {
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(timeCategoriesTable).where(eq(timeCategoriesTable.id, id));
   res.status(204).send();
+});
+
+router.get("/company-settings", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(companySettingsTable).limit(1);
+  if (rows.length === 0) {
+    const [row] = await db.insert(companySettingsTable).values({}).returning();
+    res.json({ ...row, updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt });
+    return;
+  }
+  const row = rows[0];
+  res.json({ ...row, updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt });
+});
+
+router.put("/company-settings", requireAdmin, async (req, res): Promise<void> => {
+  const { name, address, logoUrl, timezone, currency, fiscalYearStart, website, phone } = req.body;
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (name !== undefined) updates.name = name;
+  if (address !== undefined) updates.address = address;
+  if (logoUrl !== undefined) updates.logoUrl = logoUrl;
+  if (timezone !== undefined) updates.timezone = timezone;
+  if (currency !== undefined) updates.currency = currency;
+  if (fiscalYearStart !== undefined) updates.fiscalYearStart = fiscalYearStart;
+  if (website !== undefined) updates.website = website;
+  if (phone !== undefined) updates.phone = phone;
+
+  const existing = await db.select().from(companySettingsTable).limit(1);
+  let row;
+  if (existing.length === 0) {
+    [row] = await db.insert(companySettingsTable).values(updates as any).returning();
+  } else {
+    [row] = await db.update(companySettingsTable).set(updates as any).where(eq(companySettingsTable.id, existing[0].id)).returning();
+  }
+  res.json({ ...row, updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt });
 });
 
 export default router;

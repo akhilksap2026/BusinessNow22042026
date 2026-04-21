@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { db, projectsTable, invoicesTable, allocationsTable } from "@workspace/db";
+import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
   ListProjectsResponse,
   ListProjectsQueryParams,
@@ -31,20 +32,23 @@ function mapProject(p: typeof projectsTable.$inferSelect) {
 
 router.get("/projects", async (req, res): Promise<void> => {
   const qp = ListProjectsQueryParams.safeParse(req.query);
-  const conditions = [];
+  const conditions: ReturnType<typeof eq>[] = [isNull(projectsTable.deletedAt)];
   if (qp.success && qp.data.status) conditions.push(eq(projectsTable.status, qp.data.status));
   if (qp.success && qp.data.accountId) conditions.push(eq(projectsTable.accountId, qp.data.accountId));
-  const rows = conditions.length
-    ? await db.select().from(projectsTable).where(and(...conditions))
-    : await db.select().from(projectsTable);
+  const rows = await db.select().from(projectsTable).where(and(...conditions));
   res.json(ListProjectsResponse.parse(rows.map(mapProject)));
 });
 
-router.post("/projects", async (req, res): Promise<void> => {
+router.post("/projects", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(projectsTable).values(parsed.data as any).returning();
   res.status(201).json(GetProjectResponse.parse(mapProject(row)));
+});
+
+router.get("/projects/deleted", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await db.select().from(projectsTable).where(isNotNull(projectsTable.deletedAt));
+  res.json(rows.map(mapProject));
 });
 
 router.get("/projects/:id", async (req, res): Promise<void> => {
@@ -55,7 +59,7 @@ router.get("/projects/:id", async (req, res): Promise<void> => {
   res.json(GetProjectResponse.parse(mapProject(row)));
 });
 
-router.patch("/projects/:id", async (req, res): Promise<void> => {
+router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
   const params = UpdateProjectParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateProjectBody.safeParse(req.body);
@@ -65,11 +69,19 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
   res.json(UpdateProjectResponse.parse(mapProject(row)));
 });
 
-router.delete("/projects/:id", async (req, res): Promise<void> => {
+router.delete("/projects/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteProjectParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  await db.delete(projectsTable).where(eq(projectsTable.id, params.data.id));
+  await db.update(projectsTable).set({ deletedAt: new Date() } as any).where(eq(projectsTable.id, params.data.id));
   res.sendStatus(204);
+});
+
+router.post("/projects/:id/restore", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.update(projectsTable).set({ deletedAt: null } as any).where(eq(projectsTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Project not found" }); return; }
+  res.json(mapProject(row));
 });
 
 router.get("/projects/:id/summary", async (req, res): Promise<void> => {

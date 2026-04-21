@@ -37,6 +37,7 @@ const projectSchema = z.object({
   ownerId: z.coerce.number().min(1, "Owner is required"),
   teamMembers: z.array(z.number()).default([]),
   rateCardId: z.coerce.number().optional(),
+  internalExternal: z.enum(["Internal", "External"]).default("External"),
 });
 
 const templateProjectSchema = z.object({
@@ -75,6 +76,7 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
       budget: 0,
       budgetedHours: 0,
       teamMembers: [],
+      internalExternal: "External",
     },
   });
 
@@ -108,6 +110,7 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
           budgetedHours: values.budgetedHours,
           status: "Draft",
           ownerId: values.ownerId,
+          internalExternal: values.internalExternal,
         }
       });
 
@@ -429,6 +432,28 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={blankForm.control}
+                    name="internalExternal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Type</FormLabel>
+                        <div className="flex gap-3">
+                          {(["External", "Internal"] as const).map(opt => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => field.onChange(opt)}
+                              className={`flex-1 py-2 rounded-md border text-sm font-medium transition-colors ${field.value === opt ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
