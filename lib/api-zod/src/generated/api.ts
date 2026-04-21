@@ -164,12 +164,15 @@ export const ListProjectsResponseItem = zod.object({
   completion: zod.number(),
   health: zod.string(),
   description: zod.string().nullish(),
+  customerChampion: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
   opportunityId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  companyName: zod.string().optional(),
+  companyDomain: zod.string().optional(),
 });
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
 
@@ -773,6 +776,8 @@ export const ListAllocationsResponseItem = zod.object({
   hoursPerWeek: zod.number(),
   role: zod.string(),
   isSoftAllocation: zod.boolean().optional().default(false),
+  isTimesheetApprover: zod.boolean().optional().default(false),
+  isLeaveApprover: zod.boolean().optional().default(false),
   createdAt: zod.string(),
 });
 export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);

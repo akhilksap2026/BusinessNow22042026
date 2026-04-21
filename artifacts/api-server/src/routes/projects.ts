@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
-import { db, projectsTable, invoicesTable, allocationsTable } from "@workspace/db";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
@@ -36,8 +36,16 @@ router.get("/projects", async (req, res): Promise<void> => {
   const conditions: ReturnType<typeof eq>[] = [isNull(projectsTable.deletedAt)];
   if (qp.success && qp.data.status) conditions.push(eq(projectsTable.status, qp.data.status));
   if (qp.success && qp.data.accountId) conditions.push(eq(projectsTable.accountId, qp.data.accountId));
-  const rows = await db.select().from(projectsTable).where(and(...conditions));
-  res.json(ListProjectsResponse.parse(rows.map(mapProject)));
+  const rows = await db
+    .select({ project: projectsTable, accountName: accountsTable.name, accountDomain: accountsTable.domain })
+    .from(projectsTable)
+    .leftJoin(accountsTable, eq(projectsTable.accountId, accountsTable.id))
+    .where(and(...conditions));
+  res.json(ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain }) => ({
+    ...mapProject(project),
+    companyName: accountName ?? undefined,
+    companyDomain: accountDomain ?? undefined,
+  }))));
 });
 
 router.post("/projects", requirePM, async (req, res): Promise<void> => {

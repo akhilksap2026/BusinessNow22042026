@@ -228,15 +228,17 @@ export default function ProjectDetail() {
     endDate: "",
     hoursPerWeek: "40",
     isSoftAllocation: false,
+    isTimesheetApprover: false,
+    isLeaveApprover: false,
   });
 
   function openNewAlloc() {
     setEditAllocId(null);
-    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", hoursPerWeek: "40", isSoftAllocation: false });
+    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", hoursPerWeek: "40", isSoftAllocation: false, isTimesheetApprover: false, isLeaveApprover: false });
     setAllocDialogOpen(true);
   }
 
-  function openEditAlloc(alloc: { id: number; userId: number | null; role: string; startDate: string; endDate: string; hoursPerWeek: number; isSoftAllocation?: boolean }) {
+  function openEditAlloc(alloc: { id: number; userId: number | null; role: string; startDate: string; endDate: string; hoursPerWeek: number; isSoftAllocation?: boolean; isTimesheetApprover?: boolean; isLeaveApprover?: boolean }) {
     setEditAllocId(alloc.id);
     setAllocForm({
       userId: alloc.userId?.toString() ?? "",
@@ -245,6 +247,8 @@ export default function ProjectDetail() {
       endDate: alloc.endDate,
       hoursPerWeek: alloc.hoursPerWeek.toString(),
       isSoftAllocation: alloc.isSoftAllocation ?? false,
+      isTimesheetApprover: alloc.isTimesheetApprover ?? false,
+      isLeaveApprover: alloc.isLeaveApprover ?? false,
     });
     setAllocDialogOpen(true);
   }
@@ -259,6 +263,8 @@ export default function ProjectDetail() {
       endDate: allocForm.endDate,
       hoursPerWeek: parseFloat(allocForm.hoursPerWeek) || 40,
       isSoftAllocation: allocForm.isSoftAllocation,
+      isTimesheetApprover: allocForm.isTimesheetApprover,
+      isLeaveApprover: allocForm.isLeaveApprover,
     };
     try {
       if (editAllocId) {
@@ -594,7 +600,7 @@ export default function ProjectDetail() {
                             <TableCell className="text-right font-medium">{allocation.hoursPerWeek}h</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1 justify-end">
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek, isSoftAllocation: (allocation as any).isSoftAllocation ?? false })}>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek, isSoftAllocation: (allocation as any).isSoftAllocation ?? false, isTimesheetApprover: (allocation as any).isTimesheetApprover ?? false, isLeaveApprover: (allocation as any).isLeaveApprover ?? false })}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteAllocId(allocation.id)}>
@@ -1002,6 +1008,30 @@ export default function ProjectDetail() {
               />
               <Label htmlFor="softAllocChk" className="cursor-pointer text-sm">
                 Soft allocation <span className="text-muted-foreground font-normal">(tentative, pre-committed)</span>
+              </Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="timesheetApproverChk"
+                checked={allocForm.isTimesheetApprover}
+                onChange={e => setAllocForm(f => ({ ...f, isTimesheetApprover: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-indigo-500"
+              />
+              <Label htmlFor="timesheetApproverChk" className="cursor-pointer text-sm">
+                Timesheet Approver <span className="text-muted-foreground font-normal">(can approve time submissions)</span>
+              </Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="leaveApproverChk"
+                checked={allocForm.isLeaveApprover}
+                onChange={e => setAllocForm(f => ({ ...f, isLeaveApprover: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-indigo-500"
+              />
+              <Label htmlFor="leaveApproverChk" className="cursor-pointer text-sm">
+                Leave Approver <span className="text-muted-foreground font-normal">(can approve leave requests)</span>
               </Label>
             </div>
           </div>

@@ -162,37 +162,55 @@ export default function Projects() {
                 {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
             ) : (
-              <Table>
+              <div className="overflow-x-auto">
+              <Table className="min-w-[1600px]">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Project Name</TableHead>
-                    <TableHead>Type</TableHead>
+                  <TableRow className="text-xs">
+                    <TableHead className="w-[180px]">Project Name</TableHead>
+                    <TableHead>Company ID</TableHead>
+                    <TableHead>Company Name</TableHead>
+                    <TableHead>Account Owner</TableHead>
+                    <TableHead className="max-w-[200px]">Description</TableHead>
+                    <TableHead className="text-right">Tracked Min</TableHead>
+                    <TableHead className="text-right">Billable Min</TableHead>
+                    <TableHead className="text-right">Actual Revenue</TableHead>
+                    <TableHead className="text-right">Actual Cost</TableHead>
+                    <TableHead className="text-right">Actual Profit</TableHead>
+                    <TableHead className="text-right">Actual Margin</TableHead>
+                    <TableHead>Champions</TableHead>
+                    <TableHead className="text-right">Allocated Min</TableHead>
+                    <TableHead>Account Notes</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Health</TableHead>
-                    <TableHead className="text-right">Budget</TableHead>
-                    <TableHead className="text-right">Completion</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visibleProjects.map((project) => (
-                    <TableRow key={project.id}>
-                      <TableCell className="font-medium">
+                  {visibleProjects.map((project) => {
+                    const trackedMin = Math.round((project.trackedHours ?? 0) * 60);
+                    const allocatedMin = Math.round((project.allocatedHours ?? 0) * 60);
+                    return (
+                    <TableRow key={project.id} className="text-xs">
+                      <TableCell className="font-medium whitespace-nowrap">
                         <Link href={`/projects/${project.id}`} className="text-primary hover:underline">
                           {project.name}
                         </Link>
                       </TableCell>
-                      <TableCell>
-                        <InternalExternalBadge value={project.internalExternal ?? "External"} />
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={project.status} />
-                      </TableCell>
-                      <TableCell>
-                        <HealthBadge health={project.health} />
-                      </TableCell>
-                      <TableCell className="text-right">${project.budget.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{project.completion}%</TableCell>
+                      <TableCell className="text-muted-foreground">{project.accountId}</TableCell>
+                      <TableCell className="whitespace-nowrap">{(project as any).companyName ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell className="max-w-[200px] truncate text-muted-foreground">{project.description ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{trackedMin.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                      <TableCell className="whitespace-nowrap">{(project as any).customerChampion ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{allocatedMin.toLocaleString()}</TableCell>
+                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell><StatusBadge status={project.status} /></TableCell>
+                      <TableCell><HealthBadge health={project.health} /></TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -214,16 +232,18 @@ export default function Projects() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                   {visibleProjects.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
                         No projects found.
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
