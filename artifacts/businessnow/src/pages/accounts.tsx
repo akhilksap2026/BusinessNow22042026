@@ -39,7 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "wouter";
-import { Plus, Search, Building2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Building2, MoreHorizontal, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   Active: "bg-green-100 text-green-700",
@@ -80,6 +80,17 @@ export default function Accounts() {
   const [editTarget, setEditTarget] = useState<Account | null>(null);
   const [form, setForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
   const [editForm, setEditForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
+
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<number>>(new Set());
+
+  function toggleExpand(id: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    setExpandedAccounts(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["accounts"],
@@ -167,58 +178,80 @@ export default function Accounts() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8" />
                     <TableHead>Account Name</TableHead>
                     <TableHead>Domain</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tier</TableHead>
                     <TableHead>Region</TableHead>
                     <TableHead className="text-right">Contract Value</TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map(account => (
-                    <TableRow key={account.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelected(account)}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-slate-400" />
-                          {account.name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{account.domain}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[account.status] ?? "bg-slate-100 text-slate-600"}`}>
-                          {account.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[account.tier] ?? "bg-slate-100 text-slate-600"}`}>
-                          {account.tier}
-                        </span>
-                      </TableCell>
-                      <TableCell>{account.region}</TableCell>
-                      <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
-                      <TableCell onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
+                  {filtered.map(account => {
+                    const isExpanded = expandedAccounts.has(account.id);
+                    return (
+                      <>
+                        <TableRow key={account.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelected(account)}>
+                          <TableCell onClick={e => toggleExpand(account.id, e)} className="p-2">
+                            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10 transition-colors">
+                              {isExpanded
+                                ? <ChevronDown className="h-3.5 w-3.5 text-primary" />
+                                : <ChevronRight className="h-3.5 w-3.5 text-slate-400" />}
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEdit(account)}>
-                              <Pencil className="h-4 w-4 mr-2" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => openDelete(account)}>
-                              <Trash2 className="h-4 w-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-slate-400" />
+                              {account.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{account.domain}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[account.status] ?? "bg-slate-100 text-slate-600"}`}>
+                              {account.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[account.tier] ?? "bg-slate-100 text-slate-600"}`}>
+                              {account.tier}
+                            </span>
+                          </TableCell>
+                          <TableCell>{account.region}</TableCell>
+                          <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
+                          <TableCell onClick={e => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEdit(account)}>
+                                  <Pencil className="h-4 w-4 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600" onClick={() => openDelete(account)}>
+                                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                        {isExpanded && (
+                          <TableRow key={`${account.id}-projects`} className="bg-slate-50/60 hover:bg-slate-50/60">
+                            <TableCell />
+                            <TableCell colSpan={7} className="py-3 px-4">
+                              <AccountProjectsExpanded accountId={account.id} accountName={account.name} />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    );
+                  })}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                         {search ? "No accounts match your search." : "No accounts found."}
                       </TableCell>
                     </TableRow>
@@ -370,6 +403,76 @@ export default function Accounts() {
   );
 }
 
+function AccountProjectsExpanded({ accountId, accountName }: { accountId: number; accountName: string }) {
+  const { data: projects = [], isLoading } = useQuery({
+    queryKey: ["projects", { accountId }],
+    queryFn: () => listProjects({ accountId }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+        <div className="h-3 w-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        Loading projects…
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+        <FolderOpen className="h-4 w-4" />
+        No projects linked to {accountName} yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-slate-200 overflow-hidden">
+      <div className="bg-white">
+        <div className="grid grid-cols-[1fr_100px_110px_100px_80px_100px] text-xs font-medium text-muted-foreground border-b border-slate-100 px-3 py-2 gap-3">
+          <span>Project Name</span>
+          <span>Status</span>
+          <span>Billing Type</span>
+          <span className="text-right">Budget</span>
+          <span className="text-right">Done</span>
+          <span />
+        </div>
+        {projects.map((p: any, i: number) => (
+          <div
+            key={p.id}
+            className={`grid grid-cols-[1fr_100px_110px_100px_80px_100px] items-center text-xs px-3 py-2.5 gap-3 ${i < projects.length - 1 ? "border-b border-slate-50" : ""} hover:bg-slate-50/50 transition-colors`}
+          >
+            <span className="font-medium truncate">{p.name}</span>
+            <span>
+              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                p.status === "Completed" ? "bg-green-100 text-green-700" :
+                p.status === "In Progress" ? "bg-blue-100 text-blue-700" :
+                p.status === "At Risk" ? "bg-red-100 text-red-700" :
+                "bg-slate-100 text-slate-600"
+              }`}>{p.status}</span>
+            </span>
+            <span className="text-muted-foreground">{p.billingType}</span>
+            <span className="text-right tabular-nums font-medium">{fmt(p.budget)}</span>
+            <span className="text-right tabular-nums">
+              <span className={`font-medium ${p.completion >= 80 ? "text-green-600" : p.completion >= 40 ? "text-amber-600" : "text-slate-600"}`}>
+                {p.completion}%
+              </span>
+            </span>
+            <span className="flex justify-end">
+              <Link href={`/projects/${p.id}`}>
+                <Button size="sm" variant="outline" className="h-6 text-xs gap-1 px-2">
+                  <ExternalLink className="h-3 w-3" /> Details
+                </Button>
+              </Link>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AccountDetail({ account, onStatusChange }: { account: Account; onStatusChange: (s: string) => void }) {
   const { data: opportunities = [] } = useQuery({
     queryKey: ["opportunities", { accountId: account.id }],
@@ -459,13 +562,13 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
           <TabsContent value="projects" className="mt-3">
             <div className="space-y-2">
               {projects.map((p: any) => (
-                <Link key={p.id} href="/projects">
-                  <div className="border rounded-md p-3 bg-white hover:bg-slate-50 cursor-pointer transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-primary hover:underline">{p.name}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{p.billingType}</p>
-                      </div>
+                <div key={p.id} className="border rounded-md p-3 bg-white hover:bg-slate-50 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{p.name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{p.billingType} · {p.completion}% complete</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                           p.status === "Completed" ? "bg-green-100 text-green-700" :
@@ -474,9 +577,14 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
                         }`}>{p.status}</span>
                         <p className="text-xs font-semibold mt-1">{fmt(p.budget)}</p>
                       </div>
+                      <Link href={`/projects/${p.id}`}>
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 shrink-0">
+                          <ExternalLink className="h-3 w-3" /> View
+                        </Button>
+                      </Link>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
               {projects.length === 0 && (
                 <p className="text-sm text-slate-400 text-center py-6">No projects yet</p>
