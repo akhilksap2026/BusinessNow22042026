@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, invoicesTable } from "@workspace/db";
+import { requireFinance } from "../middleware/rbac";
 import {
   ListInvoicesResponse,
   ListInvoicesQueryParams,
@@ -37,7 +38,7 @@ router.get("/invoices", async (req, res): Promise<void> => {
   res.json(ListInvoicesResponse.parse(rows.map(mapInvoice)));
 });
 
-router.post("/invoices", async (req, res): Promise<void> => {
+router.post("/invoices", requireFinance, async (req, res): Promise<void> => {
   const parsed = CreateInvoiceBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const invoiceCount = await db.select().from(invoicesTable);
@@ -74,7 +75,7 @@ router.get("/invoices/:id", async (req, res): Promise<void> => {
   res.json(GetInvoiceResponse.parse(mapInvoice(row)));
 });
 
-router.patch("/invoices/:id", async (req, res): Promise<void> => {
+router.patch("/invoices/:id", requireFinance, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = UpdateInvoiceParams.safeParse({ id: raw });
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }

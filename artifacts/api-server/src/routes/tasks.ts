@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, tasksTable } from "@workspace/db";
+import { requirePM } from "../middleware/rbac";
 import {
   ListTasksResponse,
   ListTasksQueryParams,
@@ -36,7 +37,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
   res.json(ListTasksResponse.parse(rows.map(mapTask)));
 });
 
-router.post("/tasks", async (req, res): Promise<void> => {
+router.post("/tasks", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateTaskBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(tasksTable).values({ ...parsed.data as any, assigneeIds: parsed.data.assigneeIds ?? [] }).returning();
@@ -51,7 +52,7 @@ router.get("/tasks/:id", async (req, res): Promise<void> => {
   res.json(GetTaskResponse.parse(mapTask(row)));
 });
 
-router.patch("/tasks/:id", async (req, res): Promise<void> => {
+router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
   const params = UpdateTaskParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateTaskBody.safeParse(req.body);
@@ -61,7 +62,7 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
   res.json(UpdateTaskResponse.parse(mapTask(row)));
 });
 
-router.delete("/tasks/:id", async (req, res): Promise<void> => {
+router.delete("/tasks/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteTaskParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(tasksTable).where(eq(tasksTable.id, params.data.id));

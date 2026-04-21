@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, opportunitiesTable, projectsTable, accountsTable, usersTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { requirePM } from "../middleware/rbac";
 
 const router = Router();
 
@@ -55,7 +56,7 @@ router.get("/opportunities", async (req, res) => {
   return res.json(mapped);
 });
 
-router.post("/opportunities", async (req, res) => {
+router.post("/opportunities", requirePM, async (req, res) => {
   const { accountId, name, stage, probability, value, description, closeDate, ownerId } = req.body;
   if (!accountId || !name) return res.status(400).json({ error: "accountId and name required" });
   const stg = stage || "Discovery";
@@ -80,7 +81,7 @@ router.get("/opportunities/:id", async (req, res) => {
   return res.json(await mapOpportunity(row));
 });
 
-router.patch("/opportunities/:id", async (req, res) => {
+router.patch("/opportunities/:id", requirePM, async (req, res) => {
   const id = Number(req.params.id);
   const { accountId, name, stage, probability, value, description, closeDate, ownerId } = req.body;
   const updates: Partial<typeof opportunitiesTable.$inferInsert> = { updatedAt: new Date() };
@@ -100,13 +101,13 @@ router.patch("/opportunities/:id", async (req, res) => {
   return res.json(await mapOpportunity(row));
 });
 
-router.delete("/opportunities/:id", async (req, res) => {
+router.delete("/opportunities/:id", requirePM, async (req, res) => {
   const id = Number(req.params.id);
   await db.delete(opportunitiesTable).where(eq(opportunitiesTable.id, id));
   return res.status(204).send();
 });
 
-router.post("/opportunities/:id/convert-to-project", async (req, res) => {
+router.post("/opportunities/:id/convert-to-project", requirePM, async (req, res) => {
   const id = Number(req.params.id);
   const { name, billingType, startDate, dueDate, ownerId } = req.body;
   if (!name || !startDate || !dueDate) return res.status(400).json({ error: "name, startDate, dueDate required" });

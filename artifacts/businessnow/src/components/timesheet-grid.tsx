@@ -252,7 +252,7 @@ export function TimesheetGrid({ userId }: { userId: number }) {
                     <TableCell className="font-medium">{users?.find(u => u.id === ts.userId)?.name}</TableCell>
                     <TableCell>{ts.weekStart}</TableCell>
                     <TableCell>{ts.totalHours}h ({ts.billableHours}h billable)</TableCell>
-                    <TableCell>{new Date().toLocaleDateString()}</TableCell>
+                    <TableCell>{ts.submittedAt ? new Date(ts.submittedAt).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button size="sm" variant="outline" onClick={() => setRejectTimesheetId(ts.id)}>Reject</Button>
                       <Button size="sm" onClick={() => onApprove(ts.id)}>Approve</Button>

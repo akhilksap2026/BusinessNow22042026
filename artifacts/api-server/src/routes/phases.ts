@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, phasesTable } from "@workspace/db";
+import { requirePM } from "../middleware/rbac";
 import {
   ListPhasesQueryParams,
   ListPhasesResponse,
@@ -30,7 +31,7 @@ router.get("/phases", async (req, res): Promise<void> => {
   res.json(ListPhasesResponse.parse(rows.map(mapPhase)));
 });
 
-router.post("/phases", async (req, res): Promise<void> => {
+router.post("/phases", requirePM, async (req, res): Promise<void> => {
   const parsed = CreatePhaseBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(phasesTable).values(parsed.data as any).returning();
@@ -45,7 +46,7 @@ router.get("/phases/:id", async (req, res): Promise<void> => {
   res.json(GetPhaseResponse.parse(mapPhase(row)));
 });
 
-router.patch("/phases/:id", async (req, res): Promise<void> => {
+router.patch("/phases/:id", requirePM, async (req, res): Promise<void> => {
   const params = UpdatePhaseParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdatePhaseBody.safeParse(req.body);
@@ -55,7 +56,7 @@ router.patch("/phases/:id", async (req, res): Promise<void> => {
   res.json(UpdatePhaseResponse.parse(mapPhase(row)));
 });
 
-router.delete("/phases/:id", async (req, res): Promise<void> => {
+router.delete("/phases/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeletePhaseParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(phasesTable).where(eq(phasesTable.id, params.data.id));

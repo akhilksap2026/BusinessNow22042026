@@ -19,7 +19,7 @@ import {
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreVertical, ChevronDown, ChevronRight, Calendar } from "lucide-react";
+import { Plus, MoreVertical, ChevronDown, ChevronRight, Calendar, Milestone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -46,6 +46,7 @@ const taskSchema = z.object({
   dueDate: z.string().optional(),
   effort: z.coerce.number().min(0).optional(),
   billable: z.boolean(),
+  isMilestone: z.boolean(),
   phaseId: z.number().nullable(),
 });
 
@@ -81,7 +82,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
 
   const taskForm = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
-    defaultValues: { name: "", status: "Not Started", priority: "Medium", assigneeIds: [], billable: true, phaseId: null },
+    defaultValues: { name: "", status: "Not Started", priority: "Medium", assigneeIds: [], billable: true, isMilestone: false, phaseId: null },
   });
 
   const onAddPhase = async (values: z.infer<typeof phaseSchema>) => {
@@ -133,7 +134,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
 
   const openAddTask = (phaseId: number | null) => {
     setSelectedPhaseId(phaseId);
-    taskForm.reset({ name: "", status: "Not Started", priority: "Medium", assigneeIds: [], billable: true, phaseId });
+    taskForm.reset({ name: "", status: "Not Started", priority: "Medium", assigneeIds: [], billable: true, isMilestone: false, phaseId });
     setIsAddTaskOpen(true);
   };
 
@@ -145,7 +146,8 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const renderTask = (task: any) => (
     <div key={task.id} className="flex items-center justify-between py-2 border-b last:border-0 hover:bg-muted/50 px-4 group">
       <div className="flex items-center gap-4 flex-1">
-        <div className="w-1/3 font-medium cursor-pointer hover:text-indigo-600 hover:underline" onClick={() => openTaskDetail(task)}>
+        <div className="w-1/3 font-medium cursor-pointer hover:text-indigo-600 hover:underline flex items-center gap-1.5" onClick={() => openTaskDetail(task)}>
+          {task.isMilestone && <Milestone className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />}
           {task.name}
         </div>
         <div className="w-32 cursor-pointer" onClick={() => handleTaskStatusClick(task)}>
@@ -199,7 +201,8 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
           const phaseTasks = tasks?.filter(t => t.phaseId === phase.id) || [];
           return (
             <Collapsible key={phase.id} defaultOpen className="border rounded-md">
-              <div className="flex items-center justify-between p-4 bg-muted/20 border-b">
+              <div className="bg-muted/20 border-b">
+                <div className="flex items-center justify-between p-4">
                 <CollapsibleTrigger className="flex items-center gap-2 font-semibold">
                   <ChevronDown className="h-4 w-4" />
                   {phase.name}
@@ -209,7 +212,10 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                   {phase.startDate && phase.dueDate && (
                     <span>{new Date(phase.startDate).toLocaleDateString()} - {new Date(phase.dueDate).toLocaleDateString()}</span>
                   )}
-                  <span>{phaseTasks.length} tasks</span>
+                  {(() => {
+                    const done = phaseTasks.filter(t => t.status === "Done" || t.status === "Completed").length;
+                    return <span className="font-medium">{done}/{phaseTasks.length} done</span>;
+                  })()}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
@@ -220,6 +226,24 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+                </div>
+                {phaseTasks.length > 0 && (() => {
+                  const done = phaseTasks.filter(t => t.status === "Done" || t.status === "Completed").length;
+                  const pct = Math.round((done / phaseTasks.length) * 100);
+                  return (
+                    <div className="px-4 pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
+                          <div
+                            className={`h-1.5 rounded-full transition-all ${pct === 100 ? "bg-green-500" : "bg-indigo-500"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground w-8 text-right">{pct}%</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
               <CollapsibleContent>
                 <div className="py-2">
@@ -367,12 +391,20 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                   </div>
                 </FormItem>
               )} />
-              <FormField control={taskForm.control} name="billable" render={({field}) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange}/></FormControl>
-                  <FormLabel>Billable</FormLabel>
-                </FormItem>
-              )} />
+              <div className="flex items-center gap-6">
+                <FormField control={taskForm.control} name="billable" render={({field}) => (
+                  <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange}/></FormControl>
+                    <FormLabel>Billable</FormLabel>
+                  </FormItem>
+                )} />
+                <FormField control={taskForm.control} name="isMilestone" render={({field}) => (
+                  <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange}/></FormControl>
+                    <FormLabel className="flex items-center gap-1"><Milestone className="h-3.5 w-3.5 text-purple-500" /> Milestone</FormLabel>
+                  </FormItem>
+                )} />
+              </div>
               <DialogFooter><Button type="submit" disabled={createTask.isPending}>Add Task</Button></DialogFooter>
             </form>
           </Form>

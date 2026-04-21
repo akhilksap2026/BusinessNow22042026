@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
+import { requireAdmin } from "../middleware/rbac";
 import {
   ListUsersResponse,
   CreateUserBody,
@@ -28,7 +29,7 @@ router.get("/users", async (_req, res): Promise<void> => {
   res.json(ListUsersResponse.parse(rows.map(mapUser)));
 });
 
-router.post("/users", async (req, res): Promise<void> => {
+router.post("/users", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateUserBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const initials = parsed.data.name.split(' ').map((p: string) => p[0]).join('').toUpperCase().slice(0, 2);
@@ -44,7 +45,7 @@ router.get("/users/:id", async (req, res): Promise<void> => {
   res.json(GetUserResponse.parse(mapUser(row)));
 });
 
-router.patch("/users/:id", async (req, res): Promise<void> => {
+router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = UpdateUserParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateUserBody.safeParse(req.body);
