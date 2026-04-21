@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
+import { useListNotifications } from "@workspace/api-client-react";
 import {
   LayoutDashboard,
   Briefcase,
@@ -34,6 +35,8 @@ const NAV_ITEMS = [
 
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { data: notifications } = useListNotifications();
+  const unreadCount = notifications?.filter(n => !n.read).length ?? 0;
 
   const NavLinks = () => (
     <>
@@ -98,7 +101,11 @@ export function Layout({ children }: { children: ReactNode }) {
           <Link href="/notifications">
             <Button variant="ghost" size="icon" className="relative rounded-full h-8 w-8">
               <Bell className="h-4 w-4 text-muted-foreground" />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center leading-none">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Button>
           </Link>
         </div>

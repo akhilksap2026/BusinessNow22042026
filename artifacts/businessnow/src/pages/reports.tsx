@@ -257,6 +257,64 @@ export default function Reports() {
                 </>
               )}
             </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Health Details</CardTitle>
+                <CardDescription>Individual project health status and key metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingHealth ? (
+                  <div className="space-y-2">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+                ) : !health?.projects?.length ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No project data available.</p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="pb-2 font-medium">Project</th>
+                        <th className="pb-2 font-medium">Health</th>
+                        <th className="pb-2 font-medium text-right">Completion</th>
+                        <th className="pb-2 font-medium text-right">Budget Used</th>
+                        <th className="pb-2 font-medium text-right">Days Remaining</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {health.projects.map(p => (
+                        <tr key={p.projectId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                          <td className="py-3 font-medium">
+                            <a href={`/projects/${p.projectId}`} className="text-primary hover:underline">{p.projectName}</a>
+                          </td>
+                          <td className="py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              p.health === "On Track" ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" :
+                              p.health === "At Risk" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" :
+                              p.health === "Off Track" ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" :
+                              "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                            }`}>{p.health}</span>
+                          </td>
+                          <td className="py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
+                                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.min(p.completion, 100)}%` }} />
+                              </div>
+                              <span className="tabular-nums w-10 text-right">{p.completion}%</span>
+                            </div>
+                          </td>
+                          <td className="py-3 text-right tabular-nums">
+                            <span className={p.budgetUsed > 90 ? "text-red-600 font-medium" : p.budgetUsed > 75 ? "text-amber-600" : ""}>{p.budgetUsed}%</span>
+                          </td>
+                          <td className="py-3 text-right tabular-nums">
+                            <span className={p.daysRemaining < 0 ? "text-red-600 font-medium" : p.daysRemaining < 14 ? "text-amber-600" : ""}>
+                              {p.daysRemaining < 0 ? `${Math.abs(p.daysRemaining)}d overdue` : `${p.daysRemaining}d`}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

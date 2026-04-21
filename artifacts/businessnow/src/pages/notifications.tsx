@@ -30,11 +30,28 @@ export default function Notifications() {
     });
   };
 
+  const unreadNotifications = notifications?.filter(n => !n.read) ?? [];
+
+  const handleMarkAllRead = () => {
+    if (unreadNotifications.length === 0) return;
+    Promise.all(
+      unreadNotifications.map(n => markRead.mutateAsync({ id: n.id }))
+    ).then(() => {
+      queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
+    });
+  };
+
   return (
     <Layout>
       <div className="space-y-6 max-w-3xl mx-auto">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
+          {unreadNotifications.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markRead.isPending}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Mark all read ({unreadNotifications.length})
+            </Button>
+          )}
         </div>
 
         <Card>

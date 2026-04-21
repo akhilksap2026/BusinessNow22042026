@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken } from "@workspace/api-client-react";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge, HealthBadge } from "@/pages/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2 } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectPhases } from "@/components/project-phases";
 import { Button } from "@/components/ui/button";
@@ -73,8 +73,75 @@ export default function ProjectDetail() {
   const createAllocation = useCreateAllocation();
   const updateAllocation = useUpdateAllocation();
   const deleteAllocation = useDeleteAllocation();
+  const updateProject = useUpdateProject();
+  const createResourceRequest = useCreateResourceRequest();
 
   const [shareOpen, setShareOpen] = useState(false);
+
+  const [editProjectOpen, setEditProjectOpen] = useState(false);
+  const [editProjectForm, setEditProjectForm] = useState({
+    name: "", status: "", health: "", budget: "", description: "",
+  });
+
+  function openEditProject() {
+    if (!project) return;
+    setEditProjectForm({
+      name: project.name,
+      status: project.status,
+      health: project.health,
+      budget: project.budget.toString(),
+      description: project.description ?? "",
+    });
+    setEditProjectOpen(true);
+  }
+
+  async function handleSaveProject() {
+    try {
+      await updateProject.mutateAsync({
+        id: projectId,
+        data: {
+          name: editProjectForm.name,
+          status: editProjectForm.status,
+          health: editProjectForm.health,
+          budget: parseFloat(editProjectForm.budget) || project?.budget,
+          description: editProjectForm.description,
+        } as any,
+      });
+      queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
+      toast({ title: "Project updated" });
+      setEditProjectOpen(false);
+    } catch {
+      toast({ title: "Failed to update project", variant: "destructive" });
+    }
+  }
+
+  const [resReqOpen, setResReqOpen] = useState(false);
+  const [resReqForm, setResReqForm] = useState({
+    role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "",
+  });
+
+  async function handleSaveResReq() {
+    if (!resReqForm.role || !resReqForm.startDate || !resReqForm.endDate) return;
+    try {
+      await createResourceRequest.mutateAsync({
+        data: {
+          projectId,
+          requestedByUserId: 1,
+          role: resReqForm.role,
+          startDate: resReqForm.startDate,
+          endDate: resReqForm.endDate,
+          hoursPerWeek: parseFloat(resReqForm.hoursPerWeek) || 40,
+          priority: resReqForm.priority,
+          notes: resReqForm.notes || undefined,
+        },
+      });
+      toast({ title: "Resource request submitted" });
+      setResReqOpen(false);
+      setResReqForm({ role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "" });
+    } catch {
+      toast({ title: "Failed to submit resource request", variant: "destructive" });
+    }
+  }
   const [copied, setCopied] = useState(false);
   const [creatingToken, setCreatingToken] = useState(false);
 
@@ -215,10 +282,16 @@ export default function ProjectDetail() {
             </div>
             <p className="text-muted-foreground">{project.description}</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-2 shrink-0">
-            <Share2 className="h-4 w-4" />
-            Share with Client
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={openEditProject} className="flex items-center gap-2 shrink-0">
+              <Settings2 className="h-4 w-4" />
+              Edit Project
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-2 shrink-0">
+              <Share2 className="h-4 w-4" />
+              Share with Client
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -322,9 +395,14 @@ export default function ProjectDetail() {
                   <CardTitle>Team Allocations</CardTitle>
                   <CardDescription>Resources assigned to this project</CardDescription>
                 </div>
-                <Button size="sm" onClick={openNewAlloc}>
-                  <Plus className="h-4 w-4 mr-2" /> Add Allocation
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setResReqOpen(true)}>
+                    <PackagePlus className="h-4 w-4 mr-2" /> Request Resource
+                  </Button>
+                  <Button size="sm" onClick={openNewAlloc}>
+                    <Plus className="h-4 w-4 mr-2" /> Add Allocation
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoadingAllocations ? (
@@ -651,6 +729,111 @@ export default function ProjectDetail() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteAllocId(null)}>Cancel</Button>
             <Button variant="destructive" onClick={() => deleteAllocId && handleDeleteAlloc(deleteAllocId)}>Remove</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+            <DialogDescription>Update project details, status, and health.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Project Name *</Label>
+              <Input value={editProjectForm.name} onChange={e => setEditProjectForm(f => ({ ...f, name: e.target.value }))} placeholder="Project name" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select value={editProjectForm.status} onValueChange={v => setEditProjectForm(f => ({ ...f, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Not Started", "In Progress", "At Risk", "Completed", "On Hold"].map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Health</Label>
+                <Select value={editProjectForm.health} onValueChange={v => setEditProjectForm(f => ({ ...f, health: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["On Track", "At Risk", "Off Track"].map(h => (
+                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Budget ($)</Label>
+              <Input type="number" min={0} value={editProjectForm.budget} onChange={e => setEditProjectForm(f => ({ ...f, budget: e.target.value }))} placeholder="0" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input value={editProjectForm.description} onChange={e => setEditProjectForm(f => ({ ...f, description: e.target.value }))} placeholder="Project description" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditProjectOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveProject} disabled={!editProjectForm.name || updateProject.isPending}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resReqOpen} onOpenChange={setResReqOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Request Resource</DialogTitle>
+            <DialogDescription>Submit a resource request for this project. It will appear in the Resources pipeline.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Role Needed *</Label>
+              <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Senior Developer, UX Designer" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Start Date *</Label>
+                <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>End Date *</Label>
+                <Input type="date" value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Hours / Week</Label>
+                <Input type="number" min={1} max={80} value={resReqForm.hoursPerWeek} onChange={e => setResReqForm(f => ({ ...f, hoursPerWeek: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Priority</Label>
+                <Select value={resReqForm.priority} onValueChange={v => setResReqForm(f => ({ ...f, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Low", "Medium", "High", "Critical"].map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Notes</Label>
+              <Input value={resReqForm.notes} onChange={e => setResReqForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any specific requirements or context…" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResReqOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveResReq} disabled={!resReqForm.role || !resReqForm.startDate || !resReqForm.endDate || createResourceRequest.isPending}>
+              Submit Request
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

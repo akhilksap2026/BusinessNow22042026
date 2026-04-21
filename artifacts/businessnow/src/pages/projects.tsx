@@ -8,10 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, MoreHorizontal, Search, X } from "lucide-react";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+
+const STATUS_FILTERS = ["All", "Not Started", "In Progress", "At Risk", "Completed"] as const;
+type StatusFilter = typeof STATUS_FILTERS[number];
+const HEALTH_FILTERS = ["All Health", "On Track", "At Risk", "Off Track"] as const;
+type HealthFilter = typeof HEALTH_FILTERS[number];
 
 export function StatusBadge({ status }: { status: string }) {
   const getVariant = (s: string) => {
@@ -54,6 +60,9 @@ function InternalExternalBadge({ value }: { value: string | null }) {
 export default function Projects() {
   const { data: projects, isLoading } = useListProjects();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("All Health");
   const qc = useQueryClient();
   const { toast } = useToast();
   const deleteMut = useDeleteProject();
@@ -69,7 +78,18 @@ export default function Projects() {
     });
   }
 
-  const visibleProjects = projects?.filter(p => !p.isAdminProject) ?? [];
+  const visibleProjects = (projects?.filter(p => !p.isAdminProject) ?? [])
+    .filter(p => statusFilter === "All" || p.status === statusFilter)
+    .filter(p => healthFilter === "All Health" || p.health === healthFilter)
+    .filter(p => !searchText || p.name.toLowerCase().includes(searchText.toLowerCase()));
+
+  const hasActiveFilters = statusFilter !== "All" || healthFilter !== "All Health" || searchText;
+
+  function clearFilters() {
+    setStatusFilter("All");
+    setHealthFilter("All Health");
+    setSearchText("");
+  }
 
   return (
     <Layout>
@@ -81,9 +101,60 @@ export default function Projects() {
           </Button>
         </div>
 
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search projects..."
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {STATUS_FILTERS.map(f => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  statusFilter === f
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {HEALTH_FILTERS.map(f => (
+              <button
+                key={f}
+                onClick={() => setHealthFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  healthFilter === f
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground h-7 px-2 gap-1">
+              <X className="h-3.5 w-3.5" /> Clear
+            </Button>
+          )}
+        </div>
+
         <Card>
           <CardHeader>
-            <CardTitle>All Projects</CardTitle>
+            <CardTitle>
+              {hasActiveFilters
+                ? `${visibleProjects.length} project${visibleProjects.length !== 1 ? "s" : ""} found`
+                : "All Projects"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (

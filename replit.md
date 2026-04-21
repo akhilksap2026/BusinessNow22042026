@@ -10,16 +10,16 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 
 ### Modules
 - **Dashboard** — KPI summary (active projects, revenue, billable hours, utilization), activity feed, needs attention, quick actions
-- **Projects** — Project list with status/health badges; project detail with tasks, allocations, financials
+- **Projects** — Project list with search bar + status/health filter chips; project detail with tasks, allocations, financials; Edit Project modal (name/status/health/budget); Request Resource button in Team tab
 - **Accounts** — Client account management with Status column (Active/Inactive/At Risk/etc.); click-through detail sheet with Opportunities + Projects sub-tabs
 - **Prospects** — Sales prospect list (New/Qualified/Proposal/Negotiation/Lost/Converted); detail sheet with status update; Convert to Customer action (creates Account)
 - **Opportunities** — Deals list with Kanban board (drag-drop by stage) + list view; 6-stage pipeline (Discovery→Won/Lost); Create Project from Won opportunity; linked to Account detail sheet
 - **Time Tracking** — Log time entries, summary by project/user, weekly Timesheet grid, Time Off requests (submit/approve/reject)
 - **Resources** — Team capacity grid with skill badges per member + Resource Requests tab (approve/reject/fulfill workflow)
 - **Finance** — Invoice management + Billing Schedules (date/milestone triggered, fire → auto-create draft invoice) + Revenue Recognition (log by period/method, bar chart by period)
-- **Reports** — 5 tabs: Budget vs Actuals (horizontal bar), Burn-Down (per-project line chart with ideal line), Revenue, Utilization, Project Health
+- **Reports** — 5 tabs: Budget vs Actuals (horizontal bar), Burn-Down (per-project line chart with ideal line), Revenue, Utilization, Project Health (count cards + detailed per-project table with health badge, completion bar, budget used %, days remaining)
 - **Admin** — Users tab + Project Templates tab + Skills Matrix tab (categories + skills CRUD) + Tax Codes + Time Categories + Holiday Calendars + Rate Cards (create/edit with roles[] editor) + Custom Fields (define per project/task entity) + Audit Log (read-only event feed with entity-type filter) + **Company Settings** (name, address, timezone, currency, fiscal year start, website, phone; backed by `company_settings` table) + **Archived Projects** recovery (soft-deleted project list with Restore action)
-- **Notifications** — Notification feed with mark-as-read
+- **Notifications** — Notification feed with mark-as-read; live unread count badge in sidebar bell; "Mark all read" bulk action
 - **CSAT** — Per-project satisfaction tracking tab with star ratings, distribution chart, recent feedback
 
 ### Tech Stack
