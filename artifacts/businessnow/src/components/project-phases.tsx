@@ -65,6 +65,8 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const { data: users } = useListUsers();
 
   const createPhase = useCreatePhase();
+  const updatePhase = useUpdatePhase();
+  const deletePhase = useDeletePhase();
   const updateTask = useUpdateTask();
   const createTask = useCreateTask();
   const deleteTask = useDeleteTask();
@@ -74,6 +76,38 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const [selectedPhaseId, setSelectedPhaseId] = useState<number | null>(null);
   const [taskDetailId, setTaskDetailId] = useState<number | null>(null);
   const [taskDetailOpen, setTaskDetailOpen] = useState(false);
+  const [editPhaseTarget, setEditPhaseTarget] = useState<{ id: number; name: string; status: string; startDate?: string | null; dueDate?: string | null } | null>(null);
+  const [editPhaseForm, setEditPhaseForm] = useState({ name: "", status: "Not Started", startDate: "", dueDate: "" });
+  const [deletePhaseTarget, setDeletePhaseTarget] = useState<{ id: number; name: string } | null>(null);
+
+  function openEditPhase(phase: { id: number; name: string; status: string; startDate?: string | null; dueDate?: string | null }) {
+    setEditPhaseTarget(phase);
+    setEditPhaseForm({ name: phase.name, status: phase.status, startDate: phase.startDate?.substring(0, 10) ?? "", dueDate: phase.dueDate?.substring(0, 10) ?? "" });
+  }
+
+  async function handleEditPhase() {
+    if (!editPhaseTarget) return;
+    try {
+      await updatePhase.mutateAsync({ id: editPhaseTarget.id, data: { name: editPhaseForm.name, status: editPhaseForm.status as any, startDate: editPhaseForm.startDate || undefined, dueDate: editPhaseForm.dueDate || undefined } });
+      queryClient.invalidateQueries({ queryKey: getListPhasesQueryKey({ projectId }) });
+      setEditPhaseTarget(null);
+      toast({ title: "Phase updated" });
+    } catch {
+      toast({ title: "Error updating phase", variant: "destructive" });
+    }
+  }
+
+  async function handleDeletePhase() {
+    if (!deletePhaseTarget) return;
+    try {
+      await deletePhase.mutateAsync({ id: deletePhaseTarget.id });
+      queryClient.invalidateQueries({ queryKey: getListPhasesQueryKey({ projectId }) });
+      setDeletePhaseTarget(null);
+      toast({ title: "Phase deleted" });
+    } catch {
+      toast({ title: "Error deleting phase", variant: "destructive" });
+    }
+  }
 
   const phaseForm = useForm<z.infer<typeof phaseSchema>>({
     resolver: zodResolver(phaseSchema),
@@ -221,8 +255,8 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Edit Phase</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Delete Phase</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openEditPhase(phase)}>Edit Phase</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => setDeletePhaseTarget({ id: phase.id, name: phase.name })}>Delete Phase</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -408,6 +442,61 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
               <DialogFooter><Button type="submit" disabled={createTask.isPending}>Add Task</Button></DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Phase Dialog */}
+      <Dialog open={!!editPhaseTarget} onOpenChange={v => { if (!v) setEditPhaseTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Edit Phase</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Name *</label>
+              <Input value={editPhaseForm.name} onChange={e => setEditPhaseForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={editPhaseForm.status} onValueChange={v => setEditPhaseForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Not Started">Not Started</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Start Date</label>
+                <Input type="date" value={editPhaseForm.startDate} onChange={e => setEditPhaseForm(f => ({ ...f, startDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Due Date</label>
+                <Input type="date" value={editPhaseForm.dueDate} onChange={e => setEditPhaseForm(f => ({ ...f, dueDate: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPhaseTarget(null)}>Cancel</Button>
+            <Button onClick={handleEditPhase} disabled={!editPhaseForm.name || updatePhase.isPending}>
+              {updatePhase.isPending ? "Saving…" : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Phase Confirm Dialog */}
+      <Dialog open={!!deletePhaseTarget} onOpenChange={v => { if (!v) setDeletePhaseTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Phase</DialogTitle>
+            <p className="text-sm text-muted-foreground">Are you sure you want to delete <strong>{deletePhaseTarget?.name}</strong>? This cannot be undone.</p>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletePhaseTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeletePhase} disabled={deletePhase.isPending}>
+              {deletePhase.isPending ? "Deleting…" : "Delete Phase"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

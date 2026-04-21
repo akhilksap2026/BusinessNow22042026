@@ -4,6 +4,7 @@ import {
   useGetFinanceSummary, useListInvoices, useListAccounts, useListProjects, useCreateInvoice, getListInvoicesQueryKey,
   useListBillingSchedules, useCreateBillingSchedule, useDeleteBillingSchedule, useTriggerBillingSchedule, getListBillingSchedulesQueryKey,
   useListRevenueEntries, useCreateRevenueEntry, useDeleteRevenueEntry, useGetRevenueByPeriodReport, getListRevenueEntriesQueryKey,
+  useUpdateInvoice,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -20,7 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search } from "lucide-react";
+import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -70,6 +72,24 @@ export default function Finance() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const updateInvoice = useUpdateInvoice();
+
+  const INVOICE_NEXT_STATUS: Record<string, string> = {
+    "Draft": "In Review",
+    "In Review": "Approved",
+    "Approved": "Paid",
+  };
+
+  async function handleQuickStatusUpdate(e: React.MouseEvent, invoiceId: string, newStatus: string) {
+    e.stopPropagation();
+    try {
+      await updateInvoice.mutateAsync({ id: invoiceId, data: { status: newStatus as any } });
+      queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey() });
+      toast({ title: `Invoice marked as ${newStatus}` });
+    } catch {
+      toast({ title: "Failed to update invoice status", variant: "destructive" });
+    }
+  }
 
   const { data: summary, isLoading: isLoadingSummary } = useGetFinanceSummary();
   const { data: invoices, isLoading: isLoadingInvoices } = useListInvoices();
@@ -288,10 +308,13 @@ export default function Finance() {
                                     <TableHead>Due Date</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
+                                    <TableHead className="w-10"></TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {tabFiltered.map(invoice => (
+                                  {tabFiltered.map(invoice => {
+                                    const nextStatus = INVOICE_NEXT_STATUS[invoice.status];
+                                    return (
                                     <TableRow key={invoice.id} onClick={() => setSelectedInvoice(invoice)} className="cursor-pointer hover:bg-muted/50">
                                       <TableCell className="font-medium">{invoice.id}</TableCell>
                                       <TableCell>{invoice.description}</TableCell>
@@ -299,8 +322,27 @@ export default function Finance() {
                                       <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
                                       <TableCell><InvoiceStatusBadge status={invoice.status} /></TableCell>
                                       <TableCell className="text-right font-medium">${invoice.total.toLocaleString()}</TableCell>
+                                      <TableCell onClick={e => e.stopPropagation()} className="p-1">
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="h-3.5 w-3.5" /></Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => setSelectedInvoice(invoice)}>View Details</DropdownMenuItem>
+                                            {nextStatus && (
+                                              <>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={e => handleQuickStatusUpdate(e, invoice.id, nextStatus)}>
+                                                  <ChevronRight className="h-3.5 w-3.5 mr-1.5" /> Mark as {nextStatus}
+                                                </DropdownMenuItem>
+                                              </>
+                                            )}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </TableCell>
                                     </TableRow>
-                                  ))}
+                                    );
+                                  })}
                                   {tabFiltered.length === 0 && (
                                     <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                                       {invoiceSearch ? `No invoices match "${invoiceSearch}".` : "No invoices found."}

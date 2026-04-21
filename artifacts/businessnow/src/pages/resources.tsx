@@ -3,6 +3,7 @@ import { Layout } from "@/components/layout";
 import {
   useGetCapacityOverview, useListUsers, useListProjects, useListResourceRequests, useUpdateResourceRequestStatus, getListResourceRequestsQueryKey,
   useGetUserSkills,
+  useListSkills,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,7 +18,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 function PriorityBadge({ priority }: { priority: string }) {
   const cls =
@@ -77,6 +79,8 @@ export default function Resources() {
   const queryClient = useQueryClient();
   const updateStatus = useUpdateResourceRequestStatus();
 
+  const [capacitySearch, setCapacitySearch] = useState("");
+  const [deptFilter, setDeptFilter] = useState("all");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
@@ -166,9 +170,36 @@ export default function Resources() {
                 <CardDescription>Current utilization, availability, and skills for all team members</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, role, or skill…"
+                      className="pl-8"
+                      value={capacitySearch}
+                      onChange={e => setCapacitySearch(e.target.value)}
+                    />
+                  </div>
+                  <Select value={deptFilter} onValueChange={setDeptFilter}>
+                    <SelectTrigger className="w-44"><SelectValue placeholder="Department" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {[...new Set(capacity?.map(u => u.department).filter(Boolean))].sort().map(d => (
+                        <SelectItem key={d} value={d!}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 {isLoading ? (
                   <div className="space-y-4">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
-                ) : (
+                ) : (() => {
+                  const q = capacitySearch.toLowerCase();
+                  const filtered = (capacity ?? []).filter(u => {
+                    const matchSearch = !q || u.userName?.toLowerCase().includes(q) || u.role?.toLowerCase().includes(q);
+                    const matchDept = deptFilter === "all" || u.department === deptFilter;
+                    return matchSearch && matchDept;
+                  });
+                  return (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -182,7 +213,7 @@ export default function Resources() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {capacity?.map(user => {
+                      {filtered.map(user => {
                         const isOverallocated = user.utilizationPercent > 100;
                         const isUnderutilized = user.utilizationPercent < 50;
                         return (
@@ -218,7 +249,8 @@ export default function Resources() {
                       })}
                     </TableBody>
                   </Table>
-                )}
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>

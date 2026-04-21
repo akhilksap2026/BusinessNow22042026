@@ -1,0 +1,78 @@
+
+<div id="erd" style="padding: 8px 0;"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+  },
+});
+const { svg } = await mermaid.render('erd-svg', `erDiagram
+  PROSPECT ||--|| CUSTOMER : "becomes"
+  CUSTOMER ||--o{ PROJECT : "has"
+  CUSTOMER ||--|| CUSTOMER_RATE_CARD : "has"
+  CUSTOMER_RATE_CARD ||--o| PROJECT_RATE_CARD : "inherited by"
+  RESOURCE ||--o{ PROJECT_RESOURCE : "assigned via"
+  PROJECT ||--o{ PROJECT_RESOURCE : "has"
+  PROJECT ||--o{ TASK : "has"
+  PROJECT_RESOURCE ||--o{ TASK_RESOURCE : "works on"
+  TASK ||--o{ TASK_RESOURCE : "assigned"
+  TASK_RESOURCE ||--o{ TASK_TIME_ENTRY : "logs"
+  TIME_ENTRY ||--o{ TASK_TIME_ENTRY : "linked to"
+  ROLE ||--o{ RESOURCE : "categorizes"
+  PROJECT_RESOURCE {
+    uuid id PK
+    uuid project_id FK
+    uuid resource_id FK
+    string allocation_type
+    float allocation_pct
+  }
+  TASK {
+    uuid id PK
+    uuid project_id FK
+    uuid parent_task_id FK
+    string type
+    string status
+    date due_date
+  }
+  TASK_TIME_ENTRY {
+    uuid id PK
+    uuid task_resource_id FK
+    uuid time_entry_id FK
+    float hours
+    string status
+  }
+`);
+document.getElementById('erd').innerHTML = svg;
+document.querySelectorAll('#erd svg .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+document.querySelectorAll('#erd svg .row-rect-odd path, #erd svg .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>

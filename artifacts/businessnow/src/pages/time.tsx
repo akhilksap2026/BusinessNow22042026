@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Layout } from "@/components/layout";
 import {
   useListTimeEntries, useGetTimeEntrySummary, useListProjects, useListUsers,
   useListTimeOffRequests, useCreateTimeOffRequest, useUpdateTimeOffRequestStatus, useDeleteTimeOffRequest,
-  useUpdateTimeEntry, useDeleteTimeEntry,
+  useUpdateTimeEntry, useDeleteTimeEntry, useCreateTimeEntry,
   getListTimeOffRequestsQueryKey, getListTimeEntriesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil } from "lucide-react";
+import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimesheetGrid } from "@/components/timesheet-grid";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -57,6 +58,63 @@ export default function TimeTracking() {
 
   const updateTimeEntry = useUpdateTimeEntry();
   const deleteTimeEntry = useDeleteTimeEntry();
+  const createTimeEntry = useCreateTimeEntry();
+  const [showLogTime, setShowLogTime] = useState(false);
+  const [logForm, setLogForm] = useState({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true });
+
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (timerRunning) {
+      timerRef.current = setInterval(() => setTimerSeconds(s => s + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timerRunning]);
+
+  function formatTimer(secs: number) {
+    const h = Math.floor(secs / 3600).toString().padStart(2, "0");
+    const m = Math.floor((secs % 3600) / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  }
+
+  function handleToggleTimer() {
+    if (timerRunning) {
+      setTimerRunning(false);
+      const hours = (timerSeconds / 3600).toFixed(2);
+      setLogForm(f => ({ ...f, hours }));
+      setShowLogTime(true);
+    } else {
+      setTimerSeconds(0);
+      setTimerRunning(true);
+    }
+  }
+
+  async function handleLogTime() {
+    if (!logForm.projectId || !logForm.hours || !logForm.date) return;
+    try {
+      await createTimeEntry.mutateAsync({ data: {
+        projectId: parseInt(logForm.projectId),
+        userId: parseInt(logForm.userId),
+        date: logForm.date,
+        hours: parseFloat(logForm.hours),
+        description: logForm.description,
+        billable: logForm.billable,
+      } as any });
+      queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
+      toast({ title: "Time logged" });
+      setShowLogTime(false);
+      setTimerSeconds(0);
+      setLogForm({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true });
+    } catch {
+      toast({ title: "Failed to log time", variant: "destructive" });
+    }
+  }
+
   const [editEntryId, setEditEntryId] = useState<number | null>(null);
   const [deleteEntryId, setDeleteEntryId] = useState<number | null>(null);
   const [editEntryForm, setEditEntryForm] = useState({ date: "", hours: "", description: "", billable: true });
@@ -154,7 +212,15 @@ export default function TimeTracking() {
             <Button variant="outline" onClick={() => setRequestOpen(true)}>
               <CalendarOff className="mr-2 h-4 w-4" /> Request Time Off
             </Button>
-            <Button>
+            <Button
+              variant={timerRunning ? "destructive" : "outline"}
+              onClick={handleToggleTimer}
+              className="gap-2 font-mono"
+            >
+              {timerRunning ? <StopCircle className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
+              {timerRunning ? formatTimer(timerSeconds) : "Start Timer"}
+            </Button>
+            <Button onClick={() => setShowLogTime(true)}>
               <Plus className="mr-2 h-4 w-4" /> Log Time
             </Button>
           </div>
@@ -435,6 +501,49 @@ export default function TimeTracking() {
             <Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button>
             <Button onClick={handleRequestTimeOff} disabled={!form.startDate || !form.endDate || createTimeOff.isPending}>
               {createTimeOff.isPending ? "Submitting…" : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Log Time Dialog */}
+      <Dialog open={showLogTime} onOpenChange={v => { setShowLogTime(v); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Log Time Entry</DialogTitle>
+            <DialogDescription>Record time spent on a project.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label>Project *</Label>
+              <Select value={logForm.projectId} onValueChange={v => setLogForm(f => ({ ...f, projectId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                <SelectContent>{projects?.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Date *</Label>
+                <Input type="date" value={logForm.date} onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Hours *</Label>
+                <Input type="number" step="0.25" min="0.25" value={logForm.hours} onChange={e => setLogForm(f => ({ ...f, hours: e.target.value }))} placeholder="e.g. 2.5" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input value={logForm.description} onChange={e => setLogForm(f => ({ ...f, description: e.target.value }))} placeholder="What did you work on?" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="log-billable" checked={logForm.billable} onCheckedChange={v => setLogForm(f => ({ ...f, billable: !!v }))} />
+              <Label htmlFor="log-billable">Billable</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogTime(false)}>Cancel</Button>
+            <Button onClick={handleLogTime} disabled={!logForm.projectId || !logForm.hours || !logForm.date || createTimeEntry.isPending}>
+              {createTimeEntry.isPending ? "Logging…" : "Log Time"}
             </Button>
           </DialogFooter>
         </DialogContent>
