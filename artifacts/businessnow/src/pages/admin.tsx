@@ -613,6 +613,9 @@ export default function Admin() {
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" /> Company Settings
             </TabsTrigger>
+            <TabsTrigger value="archived" className="flex items-center gap-2">
+              <RotateCcw className="h-4 w-4" /> Archived Projects
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="m-0">
@@ -1309,7 +1312,9 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
+          <TabsContent value="archived" className="m-0">
             <Card>
               <CardHeader>
                 <CardTitle>Archived Projects</CardTitle>
