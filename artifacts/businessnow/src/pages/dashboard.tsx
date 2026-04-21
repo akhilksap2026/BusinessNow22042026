@@ -1,5 +1,5 @@
 import { Layout } from "@/components/layout";
-import { useGetDashboardSummary, useGetDashboardActivity } from "@workspace/api-client-react";
+import { useGetDashboardSummary, useGetDashboardActivity, useGetProjectHealthReport, useListInvoices } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Briefcase, DollarSign, Clock, Users, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -9,6 +9,28 @@ import { Button } from "@/components/ui/button";
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
   const { data: activities, isLoading: isLoadingActivity } = useGetDashboardActivity();
+  const { data: healthReport } = useGetProjectHealthReport();
+  const { data: invoices } = useListInvoices();
+
+  const atRiskProjects = healthReport?.projects?.filter(p => p.health === "At Risk" || p.health === "Off Track") ?? [];
+  const overdueInvoices = invoices?.filter(inv => inv.status === "Overdue") ?? [];
+  const overdueTotal = overdueInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const attentionItems = [
+    ...( atRiskProjects.length > 0 ? [{
+      type: "projects" as const,
+      label: `${atRiskProjects.length} Project${atRiskProjects.length > 1 ? "s" : ""} At Risk`,
+      detail: atRiskProjects.slice(0, 3).map(p => p.projectName).join(", "),
+      href: "/projects",
+      color: "amber",
+    }] : []),
+    ...( overdueInvoices.length > 0 ? [{
+      type: "invoices" as const,
+      label: `${overdueInvoices.length} Overdue Invoice${overdueInvoices.length > 1 ? "s" : ""}`,
+      detail: `Totaling $${overdueTotal.toLocaleString()}`,
+      href: "/finance",
+      color: "red",
+    }] : []),
+  ];
 
   return (
     <Layout>
@@ -24,78 +46,86 @@ export default function Dashboard() {
 
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{summary?.activeProjects}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {summary?.atRiskProjects} at risk
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">${summary?.totalRevenue.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    ${summary?.outstandingInvoices.toLocaleString()} outstanding
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Billable Hours</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{summary?.billableHoursThisMonth}h</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    This month
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Team Utilization</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{summary?.teamUtilization}%</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Average across {summary?.totalProjects} projects
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <Link href="/projects">
+            <Card className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoadingSummary ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{summary?.activeProjects}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {summary?.atRiskProjects} at risk
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/finance">
+            <Card className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoadingSummary ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">${summary?.totalRevenue.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ${summary?.outstandingInvoices.toLocaleString()} outstanding
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/time">
+            <Card className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Billable Hours</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoadingSummary ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{summary?.billableHoursThisMonth}h</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This month
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/reports">
+            <Card className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Team Utilization</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoadingSummary ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{summary?.teamUtilization}%</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Average across {summary?.totalProjects} projects
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -157,22 +187,39 @@ export default function Dashboard() {
                 <CardTitle>Needs Attention</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900/50">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0" />
+                {attentionItems.length === 0 ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900/50">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-amber-900 dark:text-amber-200">2 Projects Over Budget</p>
-                      <p className="text-xs text-amber-700 dark:text-amber-400">Acme Corp Redesign, Nexus API</p>
+                      <p className="text-sm font-medium text-green-900 dark:text-green-200">All clear!</p>
+                      <p className="text-xs text-green-700 dark:text-green-400">No projects at risk or overdue invoices.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg border border-destructive/20 bg-destructive/10">
-                    <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-destructive">4 Overdue Invoices</p>
-                      <p className="text-xs text-destructive/80">Totaling $45,000</p>
-                    </div>
+                ) : (
+                  <div className="space-y-3">
+                    {attentionItems.map((item, i) => (
+                      <Link key={i} href={item.href}>
+                        <div className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity ${
+                          item.color === "amber"
+                            ? "border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900/50"
+                            : "border-destructive/20 bg-destructive/10"
+                        }`}>
+                          {item.color === "amber"
+                            ? <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0" />
+                            : <AlertCircle className="h-5 w-5 text-destructive shrink-0" />}
+                          <div>
+                            <p className={`text-sm font-medium ${item.color === "amber" ? "text-amber-900 dark:text-amber-200" : "text-destructive"}`}>
+                              {item.label}
+                            </p>
+                            <p className={`text-xs ${item.color === "amber" ? "text-amber-700 dark:text-amber-400" : "text-destructive/80"}`}>
+                              {item.detail}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 

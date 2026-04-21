@@ -3,6 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import {
   useListUsers,
+  useGetUserSkills,
+  useAddUserSkill,
+  useRemoveUserSkill,
   useListProjectTemplates,
   useCreateProjectTemplate,
   useDeleteProjectTemplate,
@@ -62,6 +65,85 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: number; userName: string; allSkills: { id: number; name: string; categoryId: number }[]; onClose: () => void }) {
+  const { data: userSkills, isLoading } = useGetUserSkills({ userId });
+  const addSkill = useAddUserSkill();
+  const removeSkill = useRemoveUserSkill();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [addSkillId, setAddSkillId] = useState("");
+
+  const assignedIds = new Set((userSkills ?? []).map(s => s.skillId));
+  const available = allSkills.filter(s => !assignedIds.has(s.id));
+
+  async function handleAdd() {
+    if (!addSkillId) return;
+    try {
+      await addSkill.mutateAsync({ userId, data: { skillId: parseInt(addSkillId) } });
+      queryClient.invalidateQueries({ queryKey: ["getUserSkills", userId] });
+      setAddSkillId("");
+      toast({ title: "Skill added" });
+    } catch {
+      toast({ title: "Failed to add skill", variant: "destructive" });
+    }
+  }
+
+  async function handleRemove(skillId: number) {
+    try {
+      await removeSkill.mutateAsync({ userId, skillId });
+      queryClient.invalidateQueries({ queryKey: ["getUserSkills", userId] });
+      toast({ title: "Skill removed" });
+    } catch {
+      toast({ title: "Failed to remove skill", variant: "destructive" });
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Skills — {userName}</DialogTitle>
+          <DialogDescription>Manage skills assigned to this team member.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {isLoading ? (
+            <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
+          ) : (userSkills ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No skills assigned yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {(userSkills ?? []).map(s => (
+                <Badge key={s.skillId} variant="secondary" className="flex items-center gap-1 pr-1">
+                  {allSkills.find(sk => sk.id === s.skillId)?.name ?? `Skill #${s.skillId}`}
+                  <button onClick={() => handleRemove(s.skillId)} className="ml-1 rounded hover:bg-muted-foreground/20 p-0.5">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+          {available.length > 0 && (
+            <div className="flex gap-2 pt-2 border-t">
+              <Select value={addSkillId} onValueChange={setAddSkillId}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Add a skill…" /></SelectTrigger>
+                <SelectContent>
+                  {available.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handleAdd} disabled={!addSkillId || addSkill.isPending}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Admin() {
   const { data: users, isLoading: isLoadingUsers } = useListUsers();
   const { data: templates, isLoading: isLoadingTemplates } = useListProjectTemplates();
@@ -89,6 +171,7 @@ export default function Admin() {
   const [deleteSkillId, setDeleteSkillId] = useState<number | null>(null);
 
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
+  const [skillsUser, setSkillsUser] = useState<{ id: number; name: string } | null>(null);
 
   const { data: taxCodes, isLoading: isLoadingTaxCodes } = useListTaxCodes();
   const createTaxCode = useCreateTaxCode();
@@ -553,6 +636,7 @@ export default function Admin() {
                         <TableHead>Role</TableHead>
                         <TableHead>Department</TableHead>
                         <TableHead className="text-right">Cost Rate</TableHead>
+                        <TableHead className="w-[90px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -568,6 +652,11 @@ export default function Admin() {
                           <TableCell><Badge variant="outline" className="font-normal">{user.role}</Badge></TableCell>
                           <TableCell>{user.department}</TableCell>
                           <TableCell className="text-right">${user.costRate}/hr</TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setSkillsUser({ id: user.id, name: user.name })}>
+                              <Star className="h-3.5 w-3.5 mr-1" /> Skills
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1666,6 +1755,15 @@ export default function Admin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {skillsUser && (
+        <UserSkillsDialog
+          userId={skillsUser.id}
+          userName={skillsUser.name}
+          allSkills={(skills ?? []).map(s => ({ id: s.id, name: s.name, categoryId: s.categoryId }))}
+          onClose={() => setSkillsUser(null)}
+        />
+      )}
     </Layout>
   );
 }

@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen } from "lucide-react";
+import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -59,6 +59,7 @@ export default function Finance() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterProjectId, setFilterProjectId] = useState<number | undefined>();
+  const [invoiceSearch, setInvoiceSearch] = useState("");
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [deleteScheduleId, setDeleteScheduleId] = useState<number | null>(null);
   const [isRevenueOpen, setIsRevenueOpen] = useState(false);
@@ -240,50 +241,80 @@ export default function Finance() {
 
           <TabsContent value="invoices" className="m-0">
             <Card>
-              <CardHeader><CardTitle>Invoices</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Invoices</CardTitle>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 pl-9 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Search invoices…"
+                    value={invoiceSearch}
+                    onChange={e => setInvoiceSearch(e.target.value)}
+                  />
+                </div>
+              </CardHeader>
               <CardContent>
-                <Tabs defaultValue="all">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="draft">Draft</TabsTrigger>
-                    <TabsTrigger value="review">In Review</TabsTrigger>
-                    <TabsTrigger value="approved">Approved</TabsTrigger>
-                    <TabsTrigger value="paid">Paid</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="all" className="m-0">
-                    {isLoadingInvoices ? (
-                      <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Invoice ID</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Issue Date</TableHead>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {invoices?.map(invoice => (
-                            <TableRow key={invoice.id} onClick={() => setSelectedInvoice(invoice)} className="cursor-pointer hover:bg-muted/50">
-                              <TableCell className="font-medium">{invoice.id}</TableCell>
-                              <TableCell>{invoice.description}</TableCell>
-                              <TableCell>{new Date(invoice.issueDate).toLocaleDateString()}</TableCell>
-                              <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
-                              <TableCell><InvoiceStatusBadge status={invoice.status} /></TableCell>
-                              <TableCell className="text-right font-medium">${invoice.total.toLocaleString()}</TableCell>
-                            </TableRow>
-                          ))}
-                          {invoices?.length === 0 && (
-                            <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No invoices found.</TableCell></TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                {(() => {
+                  const search = invoiceSearch.toLowerCase();
+                  const filtered = (invoices ?? []).filter(inv =>
+                    !search ||
+                    inv.id.toLowerCase().includes(search) ||
+                    (inv.description ?? "").toLowerCase().includes(search)
+                  );
+                  return (
+                    <Tabs defaultValue="all">
+                      <TabsList className="mb-4">
+                        <TabsTrigger value="all">All ({filtered.length})</TabsTrigger>
+                        <TabsTrigger value="draft">Draft</TabsTrigger>
+                        <TabsTrigger value="review">In Review</TabsTrigger>
+                        <TabsTrigger value="approved">Approved</TabsTrigger>
+                        <TabsTrigger value="paid">Paid</TabsTrigger>
+                        <TabsTrigger value="overdue" className="text-destructive data-[state=active]:text-destructive">Overdue</TabsTrigger>
+                      </TabsList>
+                      {(["all", "draft", "review", "approved", "paid", "overdue"] as const).map(tab => {
+                        const tabMap: Record<string, string> = { draft: "Draft", review: "In Review", approved: "Approved", paid: "Paid", overdue: "Overdue" };
+                        const tabFiltered = tab === "all" ? filtered : filtered.filter(inv => inv.status === tabMap[tab]);
+                        return (
+                          <TabsContent key={tab} value={tab} className="m-0">
+                            {isLoadingInvoices ? (
+                              <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                            ) : (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Invoice ID</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Issue Date</TableHead>
+                                    <TableHead>Due Date</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {tabFiltered.map(invoice => (
+                                    <TableRow key={invoice.id} onClick={() => setSelectedInvoice(invoice)} className="cursor-pointer hover:bg-muted/50">
+                                      <TableCell className="font-medium">{invoice.id}</TableCell>
+                                      <TableCell>{invoice.description}</TableCell>
+                                      <TableCell>{new Date(invoice.issueDate).toLocaleDateString()}</TableCell>
+                                      <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
+                                      <TableCell><InvoiceStatusBadge status={invoice.status} /></TableCell>
+                                      <TableCell className="text-right font-medium">${invoice.total.toLocaleString()}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                  {tabFiltered.length === 0 && (
+                                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                                      {invoiceSearch ? `No invoices match "${invoiceSearch}".` : "No invoices found."}
+                                    </TableCell></TableRow>
+                                  )}
+                                </TableBody>
+                              </Table>
+                            )}
+                          </TabsContent>
+                        );
+                      })}
+                    </Tabs>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>

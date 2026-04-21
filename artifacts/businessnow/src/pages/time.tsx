@@ -3,7 +3,8 @@ import { Layout } from "@/components/layout";
 import {
   useListTimeEntries, useGetTimeEntrySummary, useListProjects, useListUsers,
   useListTimeOffRequests, useCreateTimeOffRequest, useUpdateTimeOffRequestStatus, useDeleteTimeOffRequest,
-  getListTimeOffRequestsQueryKey,
+  useUpdateTimeEntry, useDeleteTimeEntry,
+  getListTimeOffRequestsQueryKey, getListTimeEntriesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimesheetGrid } from "@/components/timesheet-grid";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -53,6 +54,46 @@ export default function TimeTracking() {
 
   const [requestOpen, setRequestOpen] = useState(false);
   const [form, setForm] = useState({ userId: String(CURRENT_USER_ID), type: "PTO", startDate: "", endDate: "", notes: "" });
+
+  const updateTimeEntry = useUpdateTimeEntry();
+  const deleteTimeEntry = useDeleteTimeEntry();
+  const [editEntryId, setEditEntryId] = useState<number | null>(null);
+  const [deleteEntryId, setDeleteEntryId] = useState<number | null>(null);
+  const [editEntryForm, setEditEntryForm] = useState({ date: "", hours: "", description: "", billable: true });
+
+  function openEditEntry(entry: { id: number; date: string; hours: number; description: string; billable: boolean }) {
+    setEditEntryId(entry.id);
+    setEditEntryForm({ date: entry.date, hours: entry.hours.toString(), description: entry.description, billable: entry.billable });
+  }
+
+  async function handleSaveEntry() {
+    if (!editEntryId) return;
+    try {
+      await updateTimeEntry.mutateAsync({ id: editEntryId, data: {
+        date: editEntryForm.date,
+        hours: parseFloat(editEntryForm.hours),
+        description: editEntryForm.description,
+        billable: editEntryForm.billable,
+      } as any });
+      queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
+      toast({ title: "Time entry updated" });
+      setEditEntryId(null);
+    } catch {
+      toast({ title: "Failed to update entry", variant: "destructive" });
+    }
+  }
+
+  async function handleDeleteEntry() {
+    if (!deleteEntryId) return;
+    try {
+      await deleteTimeEntry.mutateAsync({ id: deleteEntryId });
+      queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
+      toast({ title: "Time entry deleted" });
+      setDeleteEntryId(null);
+    } catch {
+      toast({ title: "Failed to delete entry", variant: "destructive" });
+    }
+  }
 
   const getProject = (id: number) => projects?.find(p => p.id === id);
   const getUser = (id: number) => users?.find(u => u.id === id);
@@ -194,6 +235,7 @@ export default function TimeTracking() {
                         <TableHead className="text-center">Billable</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead className="text-right">Hours</TableHead>
+                        <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -213,6 +255,16 @@ export default function TimeTracking() {
                             }
                           </TableCell>
                           <TableCell className="text-right font-medium">{entry.hours}h</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 justify-end">
+                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditEntry(entry as any)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteEntryId(entry.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -383,6 +435,62 @@ export default function TimeTracking() {
             <Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button>
             <Button onClick={handleRequestTimeOff} disabled={!form.startDate || !form.endDate || createTimeOff.isPending}>
               {createTimeOff.isPending ? "Submitting…" : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Time Entry Dialog */}
+      <Dialog open={editEntryId !== null} onOpenChange={open => !open && setEditEntryId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Time Entry</DialogTitle>
+            <DialogDescription>Update the details of this time entry.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Date</Label>
+              <Input type="date" value={editEntryForm.date} onChange={e => setEditEntryForm(f => ({ ...f, date: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hours</Label>
+              <Input type="number" step="0.25" min="0.25" value={editEntryForm.hours} onChange={e => setEditEntryForm(f => ({ ...f, hours: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input value={editEntryForm.description} onChange={e => setEditEntryForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="billable-toggle"
+                checked={editEntryForm.billable}
+                onChange={e => setEditEntryForm(f => ({ ...f, billable: e.target.checked }))}
+                className="h-4 w-4 rounded border-input"
+              />
+              <Label htmlFor="billable-toggle">Billable</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditEntryId(null)}>Cancel</Button>
+            <Button onClick={handleSaveEntry} disabled={updateTimeEntry.isPending}>
+              {updateTimeEntry.isPending ? "Saving…" : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Time Entry Dialog */}
+      <Dialog open={deleteEntryId !== null} onOpenChange={open => !open && setDeleteEntryId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Time Entry</DialogTitle>
+            <DialogDescription>This action cannot be undone. Are you sure you want to delete this entry?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteEntryId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteEntry} disabled={deleteTimeEntry.isPending}>
+              {deleteTimeEntry.isPending ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

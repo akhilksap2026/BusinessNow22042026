@@ -9,16 +9,16 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 A full-stack Professional Services Automation (PSA) platform for KSAP Technology consulting firm. Modeled after Rocketlane-style tools.
 
 ### Modules
-- **Dashboard** — KPI summary (active projects, revenue, billable hours, utilization), activity feed, needs attention, quick actions
+- **Dashboard** — KPI summary cards (all clickable: Projects→/projects, Revenue→/finance, Hours→/time, Utilization→/reports), activity feed, "Needs Attention" section (live data: at-risk projects + overdue invoices from API), quick actions
 - **Projects** — Project list with search bar + status/health filter chips; project detail with tasks, allocations, financials; Edit Project modal (name/status/health/budget); Request Resource button in Team tab
 - **Accounts** — Client account management with Status column (Active/Inactive/At Risk/etc.); click-through detail sheet with Opportunities + Projects sub-tabs
 - **Prospects** — Sales prospect list (New/Qualified/Proposal/Negotiation/Lost/Converted); detail sheet with status update; Convert to Customer action (creates Account)
 - **Opportunities** — Deals list with Kanban board (drag-drop by stage) + list view; 6-stage pipeline (Discovery→Won/Lost); Create Project from Won opportunity; linked to Account detail sheet
-- **Time Tracking** — Log time entries, summary by project/user, weekly Timesheet grid, Time Off requests (submit/approve/reject)
+- **Time Tracking** — Log time entries, summary by project/user, weekly Timesheet grid, Time Off requests (submit/approve/reject); **Time Entries tab** has inline edit (date/hours/description/billable) + delete per row
 - **Resources** — Team capacity grid with skill badges per member + Resource Requests tab (approve/reject/fulfill workflow)
-- **Finance** — Invoice management + Billing Schedules (date/milestone triggered, fire → auto-create draft invoice) + Revenue Recognition (log by period/method, bar chart by period)
-- **Reports** — 5 tabs: Budget vs Actuals (horizontal bar), Burn-Down (per-project line chart with ideal line), Revenue, Utilization, Project Health (count cards + detailed per-project table with health badge, completion bar, budget used %, days remaining)
-- **Admin** — Users tab + Project Templates tab + Skills Matrix tab (categories + skills CRUD) + Tax Codes + Time Categories + Holiday Calendars + Rate Cards (create/edit with roles[] editor) + Custom Fields (define per project/task entity) + Audit Log (read-only event feed with entity-type filter) + **Company Settings** (name, address, timezone, currency, fiscal year start, website, phone; backed by `company_settings` table) + **Archived Projects** recovery (soft-deleted project list with Restore action)
+- **Finance** — Invoice management with **search bar** (filter by ID or description) + status sub-tabs (All/Draft/In Review/Approved/Paid/Overdue) + Billing Schedules (date/milestone triggered) + Revenue Recognition
+- **Reports** — 5 tabs: Budget vs Actuals, Burn-Down, Revenue, Utilization, Project Health (count cards + detailed per-project table)
+- **Admin** — Users tab with **per-user Skills button** (dialog to add/remove skills from skill library) + Project Templates + Skills Matrix + Tax Codes + Time Categories + Holiday Calendars + Rate Cards + Custom Fields + Audit Log + Company Settings + Archived Projects recovery
 - **Notifications** — Notification feed with mark-as-read; live unread count badge in sidebar bell; "Mark all read" bulk action
 - **CSAT** — Per-project satisfaction tracking tab with star ratings, distribution chart, recent feedback
 
@@ -67,3 +67,10 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+### Sprint 4 Complete
+- T001: Dashboard "Needs Attention" → live data from `useGetProjectHealthReport` + `useListInvoices`; shows at-risk project names + overdue invoice totals; "All clear" state when nothing flagged
+- T002: Dashboard KPI cards all wrapped in `<Link>` for clickable navigation (Projects/Finance/Time/Reports)
+- T003: Finance invoice search bar (filter by ID or description); added "Overdue" sub-tab; result count badge on "All" tab
+- T004: Admin Users → per-row "Skills" button opens `UserSkillsDialog` (add/remove skills per user; hooks: `useGetUserSkills`, `useAddUserSkill`, `useRemoveUserSkill`)
+- T005: Time Entries table → inline edit dialog (date/hours/description/billable) + delete confirmation per row
