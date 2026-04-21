@@ -1,0 +1,659 @@
+import { useState } from "react";
+import { Layout } from "@/components/layout";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken } from "@workspace/api-client-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useParams } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { StatusBadge, HealthBadge } from "@/pages/projects";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProjectPhases } from "@/components/project-phases";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { ProjectDocuments } from "@/components/project-documents";
+import { ProjectForms } from "@/components/project-forms";
+import ProjectGantt from "@/components/project-gantt";
+
+export function TaskStatusBadge({ status }: { status: string }) {
+  const getVariant = (s: string) => {
+    switch (s) {
+      case "Completed": return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800";
+      case "In Progress": return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
+      case "Overdue": return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
+      default: return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
+    }
+  };
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${getVariant(status)}`}>{status}</span>;
+}
+
+export function TaskPriorityBadge({ priority }: { priority: string }) {
+  const getVariant = (s: string) => {
+    switch (s) {
+      case "Urgent": return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
+      case "High": return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
+      case "Medium": return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
+      default: return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
+    }
+  };
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${getVariant(priority)}`}>{priority}</span>;
+}
+
+export default function ProjectDetail() {
+  const { id } = useParams();
+  const projectId = parseInt(id || "0", 10);
+  
+  const { data: project, isLoading: isLoadingProject } = useGetProject(projectId, {
+    query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) }
+  });
+  
+  const { data: summary, isLoading: isLoadingSummary } = useGetProjectSummary(projectId, {
+    query: { enabled: !!projectId, queryKey: getGetProjectSummaryQueryKey(projectId) }
+  });
+
+  const { data: tasks, isLoading: isLoadingTasks } = useListTasks({ projectId }, {
+    query: { enabled: !!projectId, queryKey: getListTasksQueryKey({ projectId }) }
+  });
+
+  const { data: allocations, isLoading: isLoadingAllocations } = useListAllocations({ projectId }, {
+    query: { enabled: !!projectId, queryKey: getListAllocationsQueryKey({ projectId }) }
+  });
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const createAllocation = useCreateAllocation();
+  const updateAllocation = useUpdateAllocation();
+  const deleteAllocation = useDeleteAllocation();
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [creatingToken, setCreatingToken] = useState(false);
+
+  const { data: portalTokens, refetch: refetchTokens } = useQuery({
+    queryKey: ["portal-tokens", projectId],
+    queryFn: () => listPortalTokens(projectId),
+    enabled: shareOpen && !!projectId,
+  });
+
+  const activeToken = portalTokens?.find(t => t.isActive);
+  const portalUrl = activeToken
+    ? `${window.location.origin}/portal/${activeToken.token}`
+    : null;
+
+  async function handleCreateToken() {
+    setCreatingToken(true);
+    try {
+      await createPortalToken(projectId, { label: "Client Portal" });
+      refetchTokens();
+    } finally {
+      setCreatingToken(false);
+    }
+  }
+
+  function handleCopyLink() {
+    if (!portalUrl) return;
+    navigator.clipboard.writeText(portalUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const [allocDialogOpen, setAllocDialogOpen] = useState(false);
+  const [editAllocId, setEditAllocId] = useState<number | null>(null);
+  const [deleteAllocId, setDeleteAllocId] = useState<number | null>(null);
+  const [allocForm, setAllocForm] = useState({
+    userId: "",
+    role: "",
+    startDate: "",
+    endDate: "",
+    hoursPerWeek: "40",
+  });
+
+  function openNewAlloc() {
+    setEditAllocId(null);
+    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", hoursPerWeek: "40" });
+    setAllocDialogOpen(true);
+  }
+
+  function openEditAlloc(alloc: { id: number; userId: number | null; role: string; startDate: string; endDate: string; hoursPerWeek: number }) {
+    setEditAllocId(alloc.id);
+    setAllocForm({
+      userId: alloc.userId?.toString() ?? "",
+      role: alloc.role,
+      startDate: alloc.startDate,
+      endDate: alloc.endDate,
+      hoursPerWeek: alloc.hoursPerWeek.toString(),
+    });
+    setAllocDialogOpen(true);
+  }
+
+  async function handleSaveAlloc() {
+    if (!allocForm.role || !allocForm.startDate || !allocForm.endDate) return;
+    const payload = {
+      projectId,
+      userId: allocForm.userId ? parseInt(allocForm.userId) : undefined,
+      role: allocForm.role,
+      startDate: allocForm.startDate,
+      endDate: allocForm.endDate,
+      hoursPerWeek: parseFloat(allocForm.hoursPerWeek) || 40,
+    };
+    try {
+      if (editAllocId) {
+        await updateAllocation.mutateAsync({ id: editAllocId, data: payload });
+      } else {
+        await createAllocation.mutateAsync({ data: payload as any });
+      }
+      queryClient.invalidateQueries({ queryKey: getListAllocationsQueryKey({ projectId }) });
+      toast({ title: editAllocId ? "Allocation updated" : "Allocation added" });
+      setAllocDialogOpen(false);
+    } catch {
+      toast({ title: "Failed to save allocation", variant: "destructive" });
+    }
+  }
+
+  async function handleDeleteAlloc(id: number) {
+    try {
+      await deleteAllocation.mutateAsync({ id });
+      queryClient.invalidateQueries({ queryKey: getListAllocationsQueryKey({ projectId }) });
+      toast({ title: "Allocation removed" });
+      setDeleteAllocId(null);
+    } catch {
+      toast({ title: "Failed to remove allocation", variant: "destructive" });
+    }
+  }
+
+  const { data: csatSummary } = useGetProjectCsatSummary(projectId, {
+    query: { enabled: !!projectId, queryKey: getGetProjectCsatSummaryQueryKey(projectId) }
+  });
+
+  const { data: users } = useListUsers();
+
+  const getUser = (userId: number) => users?.find(u => u.id === userId);
+
+  if (isLoadingProject || isLoadingSummary) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-1/3" />
+          <div className="grid gap-4 md:grid-cols-4">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 w-full" />)}
+          </div>
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!project) {
+    return (
+      <Layout>
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold">Project not found</h2>
+          <p className="text-muted-foreground mt-2">The project you are looking for does not exist or has been removed.</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+              <StatusBadge status={project.status} />
+              <HealthBadge health={project.health} />
+            </div>
+            <p className="text-muted-foreground">{project.description}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-2 shrink-0">
+            <Share2 className="h-4 w-4" />
+            Share with Client
+          </Button>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Budget Used</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary?.budgetUsedPercent}%</div>
+              <Progress value={summary?.budgetUsedPercent} className="h-2 mt-2" />
+              <p className="text-xs text-muted-foreground mt-2">
+                ${summary?.invoicedAmount.toLocaleString()} invoiced of ${project.budget.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Hours Used</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary?.hoursUsedPercent}%</div>
+              <Progress value={summary?.hoursUsedPercent} className="h-2 mt-2" />
+              <p className="text-xs text-muted-foreground mt-2">
+                {project.trackedHours} of {project.budgetedHours} hours tracked
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completion</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{project.completion}%</div>
+              <Progress value={project.completion} className="h-2 mt-2" />
+              <p className="text-xs text-muted-foreground mt-2">
+                Based on task completion
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Timeline</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary?.daysRemaining} days</div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Remaining until {new Date(project.dueDate).toLocaleDateString()}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="tasks" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="team">Team & Allocations</TabsTrigger>
+            <TabsTrigger value="financials">Financials</TabsTrigger>
+            <TabsTrigger value="csat" className="flex items-center gap-1.5">
+              <MessageSquare className="h-4 w-4" />
+              CSAT
+              {csatSummary && csatSummary.totalResponses > 0 && (
+                <span className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 rounded-full text-xs px-1.5 py-0.5 leading-none">
+                  {csatSummary.totalResponses}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-1.5">
+              <FileText className="h-4 w-4" />
+              Documents
+            </TabsTrigger>
+            <TabsTrigger value="forms" className="flex items-center gap-1.5">
+              <FileQuestion className="h-4 w-4" />
+              Forms
+            </TabsTrigger>
+            <TabsTrigger value="gantt" className="flex items-center gap-1.5">
+              <BarChart2 className="h-4 w-4" />
+              Timeline
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="tasks" className="m-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Tasks</CardTitle>
+                <CardDescription>All tasks and phases for this project</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProjectPhases projectId={projectId} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="team" className="m-0">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Team Allocations</CardTitle>
+                  <CardDescription>Resources assigned to this project</CardDescription>
+                </div>
+                <Button size="sm" onClick={openNewAlloc}>
+                  <Plus className="h-4 w-4 mr-2" /> Add Allocation
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLoadingAllocations ? (
+                  <div className="space-y-4">
+                    {[1, 2].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                  </div>
+                ) : allocations?.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium">No team members allocated</p>
+                    <p className="text-sm mt-1">Add allocations to assign team members and track capacity.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Team Member</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Start Date</TableHead>
+                        <TableHead>End Date</TableHead>
+                        <TableHead className="text-right">Hours/Week</TableHead>
+                        <TableHead className="w-20" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allocations?.map(allocation => {
+                        const user = getUser(allocation.userId);
+                        return (
+                          <TableRow key={allocation.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback>{user?.initials ?? "?"}</AvatarFallback>
+                                </Avatar>
+                                <span>{user?.name ?? (allocation.userId ? `User ${allocation.userId}` : "Unassigned")}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{allocation.role}</TableCell>
+                            <TableCell>{new Date(allocation.startDate + "T00:00:00").toLocaleDateString()}</TableCell>
+                            <TableCell>{new Date(allocation.endDate + "T00:00:00").toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right font-medium">{allocation.hoursPerWeek}h</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek })}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteAllocId(allocation.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="financials" className="m-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Total Budget</p>
+                      <p className="text-2xl font-bold">${project.budget.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Invoiced Amount</p>
+                      <p className="text-xl font-semibold">${summary?.invoicedAmount.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Pending Amount</p>
+                      <p className="text-xl font-semibold text-muted-foreground">${summary?.pendingAmount.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Billing Type</p>
+                      <Badge variant="outline">{project.billingType}</Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="csat" className="m-0">
+            {!csatSummary || csatSummary.totalResponses === 0 ? (
+              <Card>
+                <CardContent className="py-14 text-center text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No CSAT responses yet</p>
+                  <p className="text-sm mt-1">Satisfaction responses submitted after milestones will appear here.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-2">
+                        <span className="text-3xl font-bold">{csatSummary.averageRating.toFixed(1)}</span>
+                        <span className="text-muted-foreground text-sm">/ 5</span>
+                        <div className="flex ml-1">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${star <= Math.round(csatSummary.averageRating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Total Responses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold">{csatSummary.totalResponses}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Score Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1.5">
+                        {([5, 4, 3, 2, 1] as const).map(score => {
+                          const dist = csatSummary.ratingDistribution as Record<string, number>;
+                          const count = dist[score.toString()] || 0;
+                          const pct = csatSummary.totalResponses > 0 ? Math.round(count / csatSummary.totalResponses * 100) : 0;
+                          return (
+                            <div key={score} className="flex items-center gap-2 text-xs">
+                              <span className="w-3 text-right text-muted-foreground">{score}</span>
+                              <Star className="h-3 w-3 text-amber-400 fill-amber-400 shrink-0" />
+                              <div className="flex-1 bg-muted rounded-full h-2">
+                                <div
+                                  className="h-2 rounded-full bg-amber-400"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <span className="w-6 text-right text-muted-foreground">{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Feedback</CardTitle>
+                    <CardDescription>Latest satisfaction responses from stakeholders</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {csatSummary.recentResponses.map((resp: any) => (
+                        <div key={resp.id} className="flex items-start gap-3 p-3 rounded-lg border bg-muted/20">
+                          <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarFallback className="text-xs">
+                              {resp.submittedByUserId.toString().substring(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="flex">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                  <Star
+                                    key={star}
+                                    className={`h-3.5 w-3.5 ${star <= resp.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'}`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(resp.submittedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {resp.comment && (
+                              <p className="text-sm text-muted-foreground italic">"{resp.comment}"</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="documents" className="m-0">
+            <ProjectDocuments projectId={projectId} />
+          </TabsContent>
+
+          <TabsContent value="forms" className="m-0">
+            <ProjectForms projectId={projectId} />
+          </TabsContent>
+
+          <TabsContent value="gantt" className="m-0">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className="h-5 w-5 text-muted-foreground" />
+                  Project Timeline
+                </CardTitle>
+                <CardDescription>Visual Gantt chart of all phases and tasks with scheduled dates</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 pb-4">
+                <ProjectGantt projectId={projectId} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Share with Client Dialog */}
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-indigo-600" />
+              Share with Client
+            </DialogTitle>
+            <DialogDescription>
+              Generate a read-only portal link for your client. They can view project status, milestones, and documents without logging in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {portalUrl ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <Input readOnly value={portalUrl} className="font-mono text-xs flex-1 bg-muted" />
+                  <Button size="sm" variant="outline" onClick={handleCopyLink} className="shrink-0">
+                    {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  This link is publicly accessible — anyone with the link can view project details. You can revoke it at any time.
+                </p>
+                <a
+                  href={portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-indigo-600 hover:underline"
+                >
+                  Preview portal →
+                </a>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-4">No active portal link exists for this project yet.</p>
+                <Button onClick={handleCreateToken} disabled={creatingToken}>
+                  {creatingToken ? "Creating…" : "Generate Portal Link"}
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShareOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={allocDialogOpen} onOpenChange={(open) => { setAllocDialogOpen(open); if (!open) setEditAllocId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editAllocId ? "Edit Allocation" : "Add Allocation"}</DialogTitle>
+            <DialogDescription>Assign a team member and define their time commitment to this project.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Team Member</Label>
+              <Select value={allocForm.userId || "none"} onValueChange={v => setAllocForm(f => ({ ...f, userId: v === "none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Select team member (optional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned / Placeholder</SelectItem>
+                  {users?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name} — {u.role}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Role *</Label>
+              <Input placeholder="e.g. Senior Developer, Project Manager" value={allocForm.role} onChange={e => setAllocForm(f => ({ ...f, role: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Start Date *</Label>
+                <Input type="date" value={allocForm.startDate} onChange={e => setAllocForm(f => ({ ...f, startDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>End Date *</Label>
+                <Input type="date" value={allocForm.endDate} onChange={e => setAllocForm(f => ({ ...f, endDate: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hours / Week</Label>
+              <Input type="number" min={1} max={80} value={allocForm.hoursPerWeek} onChange={e => setAllocForm(f => ({ ...f, hoursPerWeek: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAllocDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveAlloc} disabled={!allocForm.role || !allocForm.startDate || !allocForm.endDate || createAllocation.isPending || updateAllocation.isPending}>
+              {editAllocId ? "Save Changes" : "Add Allocation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteAllocId} onOpenChange={() => setDeleteAllocId(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Remove Allocation</DialogTitle><DialogDescription>This will remove the team member's allocation from this project.</DialogDescription></DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteAllocId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteAllocId && handleDeleteAlloc(deleteAllocId)}>Remove</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Layout>
+  );
+}
