@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
+import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
 import {
   useGetCapacityOverview, useListUsers, useListProjects, useListResourceRequests, useUpdateResourceRequestStatus, getListResourceRequestsQueryKey,
   useGetUserSkills,
@@ -153,6 +154,9 @@ export default function Resources() {
             <TabsTrigger value="capacity" className="flex items-center gap-2">
               <Users className="h-4 w-4" /> Capacity
             </TabsTrigger>
+            <TabsTrigger value="heatmap" className="flex items-center gap-2">
+              <CalendarRange className="h-4 w-4" /> Heat Map
+            </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <Briefcase className="h-4 w-4" /> Resource Requests
               {pendingRequests.length > 0 && (
@@ -253,6 +257,10 @@ export default function Resources() {
                 })()}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="heatmap" className="m-0">
+            <UtilisationHeatmap />
           </TabsContent>
 
           <TabsContent value="requests" className="m-0 space-y-4">

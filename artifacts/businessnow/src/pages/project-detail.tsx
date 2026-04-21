@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectDocuments } from "@/components/project-documents";
@@ -84,6 +85,48 @@ export default function ProjectDetail() {
   const [editProjectForm, setEditProjectForm] = useState({
     name: "", status: "", health: "", budget: "", description: "",
   });
+
+  const [coDialogOpen, setCoDialogOpen] = useState(false);
+  const [coForm, setCoForm] = useState({ title: "", description: "", amount: "", requestedDate: "", status: "Pending" });
+
+  async function handleCreateCO() {
+    if (!coForm.title) return;
+    try {
+      await fetch(`/api/projects/${projectId}/change-orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...coForm, amount: parseFloat(coForm.amount) || 0 }),
+      });
+      refetchChangeOrders();
+      setCoDialogOpen(false);
+      setCoForm({ title: "", description: "", amount: "", requestedDate: "", status: "Pending" });
+      toast({ title: "Change order created" });
+    } catch {
+      toast({ title: "Failed to create change order", variant: "destructive" });
+    }
+  }
+
+  async function handleUpdateCOStatus(coId: number, status: string) {
+    try {
+      await fetch(`/api/change-orders/${coId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      refetchChangeOrders();
+    } catch {
+      toast({ title: "Failed to update change order", variant: "destructive" });
+    }
+  }
+
+  async function handleDeleteCO(coId: number) {
+    try {
+      await fetch(`/api/change-orders/${coId}`, { method: "DELETE" });
+      refetchChangeOrders();
+    } catch {
+      toast({ title: "Failed to delete change order", variant: "destructive" });
+    }
+  }
 
   function openEditProject() {
     if (!project) return;
@@ -184,15 +227,16 @@ export default function ProjectDetail() {
     startDate: "",
     endDate: "",
     hoursPerWeek: "40",
+    isSoftAllocation: false,
   });
 
   function openNewAlloc() {
     setEditAllocId(null);
-    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", hoursPerWeek: "40" });
+    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", hoursPerWeek: "40", isSoftAllocation: false });
     setAllocDialogOpen(true);
   }
 
-  function openEditAlloc(alloc: { id: number; userId: number | null; role: string; startDate: string; endDate: string; hoursPerWeek: number }) {
+  function openEditAlloc(alloc: { id: number; userId: number | null; role: string; startDate: string; endDate: string; hoursPerWeek: number; isSoftAllocation?: boolean }) {
     setEditAllocId(alloc.id);
     setAllocForm({
       userId: alloc.userId?.toString() ?? "",
@@ -200,6 +244,7 @@ export default function ProjectDetail() {
       startDate: alloc.startDate,
       endDate: alloc.endDate,
       hoursPerWeek: alloc.hoursPerWeek.toString(),
+      isSoftAllocation: alloc.isSoftAllocation ?? false,
     });
     setAllocDialogOpen(true);
   }
@@ -213,6 +258,7 @@ export default function ProjectDetail() {
       startDate: allocForm.startDate,
       endDate: allocForm.endDate,
       hoursPerWeek: parseFloat(allocForm.hoursPerWeek) || 40,
+      isSoftAllocation: allocForm.isSoftAllocation,
     };
     try {
       if (editAllocId) {
@@ -241,6 +287,16 @@ export default function ProjectDetail() {
 
   const { data: csatSummary } = useGetProjectCsatSummary(projectId, {
     query: { enabled: !!projectId, queryKey: getGetProjectCsatSummaryQueryKey(projectId) }
+  });
+
+  const { data: changeOrders, refetch: refetchChangeOrders } = useQuery<any[]>({
+    queryKey: ["change-orders", projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects/${projectId}/change-orders`);
+      if (!res.ok) throw new Error("Failed to load change orders");
+      return res.json();
+    },
+    enabled: !!projectId,
   });
 
   const { data: users } = useListUsers();
@@ -507,6 +563,7 @@ export default function ProjectDetail() {
                       <TableRow>
                         <TableHead>Team Member</TableHead>
                         <TableHead>Role</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Start Date</TableHead>
                         <TableHead>End Date</TableHead>
                         <TableHead className="text-right">Hours/Week</TableHead>
@@ -527,12 +584,17 @@ export default function ProjectDetail() {
                               </div>
                             </TableCell>
                             <TableCell>{allocation.role}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={(allocation as any).isSoftAllocation ? "border-amber-400 text-amber-700 bg-amber-50" : "border-blue-400 text-blue-700 bg-blue-50"}>
+                                {(allocation as any).isSoftAllocation ? "Soft" : "Hard"}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{new Date(allocation.startDate + "T00:00:00").toLocaleDateString()}</TableCell>
                             <TableCell>{new Date(allocation.endDate + "T00:00:00").toLocaleDateString()}</TableCell>
                             <TableCell className="text-right font-medium">{allocation.hoursPerWeek}h</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1 justify-end">
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek })}>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek, isSoftAllocation: (allocation as any).isSoftAllocation ?? false })}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteAllocId(allocation.id)}>
@@ -550,37 +612,168 @@ export default function ProjectDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="financials" className="m-0">
+          <TabsContent value="financials" className="m-0 space-y-4">
+            {/* Financial Summary + Margin */}
+            {(() => {
+              const approvedCOs = (changeOrders ?? []).filter(co => co.status === "Approved");
+              const coValue = approvedCOs.reduce((s: number, co: any) => s + Number(co.amount), 0);
+              const revenue = project.budget + coValue;
+
+              // Estimated cost from allocations (hours × weeks × costRate)
+              const estimatedCost = (allocations ?? []).reduce((sum, a) => {
+                const user = getUser(a.userId ?? 0);
+                if (!user) return sum;
+                const costRate = Number((user as any).costRate) || 0;
+                const start = new Date(a.startDate + "T00:00:00");
+                const end = new Date(a.endDate + "T00:00:00");
+                const weeks = Math.max(0, (end.getTime() - start.getTime()) / (7 * 86400000));
+                return sum + a.hoursPerWeek * weeks * costRate;
+              }, 0);
+
+              const margin = revenue - estimatedCost;
+              const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
+              const marginColor = marginPct >= 30 ? "text-green-600" : marginPct >= 10 ? "text-amber-600" : "text-red-600";
+
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Financial Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-6 md:grid-cols-3">
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Base Budget</p>
+                          <p className="text-2xl font-bold">${project.budget.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Approved Change Orders</p>
+                          <p className="text-xl font-semibold text-green-700">+${coValue.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
+                          <p className="text-xl font-bold">${revenue.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Invoiced Amount</p>
+                          <p className="text-xl font-semibold">${(summary?.invoicedAmount ?? 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Pending Amount</p>
+                          <p className="text-xl font-semibold text-muted-foreground">${(summary?.pendingAmount ?? 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Billing Type</p>
+                          <Badge variant="outline">{project.billingType}</Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Est. Resource Cost</p>
+                          <p className="text-xl font-semibold text-red-600">${estimatedCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Gross Margin</p>
+                          <p className={`text-xl font-bold ${marginColor}`}>${margin.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Margin %</p>
+                          <p className={`text-2xl font-bold ${marginColor}`}>{marginPct.toFixed(1)}%</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Change Orders */}
             <Card>
-              <CardHeader>
-                <CardTitle>Financial Summary</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle>Change Orders</CardTitle>
+                <Button size="sm" onClick={() => { setCoForm({ title: "", description: "", amount: "", requestedDate: "", status: "Pending" }); setCoDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> New Change Order
+                </Button>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Total Budget</p>
-                      <p className="text-2xl font-bold">${project.budget.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Invoiced Amount</p>
-                      <p className="text-xl font-semibold">${summary?.invoicedAmount.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Pending Amount</p>
-                      <p className="text-xl font-semibold text-muted-foreground">${summary?.pendingAmount.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Billing Type</p>
-                      <Badge variant="outline">{project.billingType}</Badge>
-                    </div>
-                  </div>
-                </div>
+              <CardContent className="p-0">
+                {!changeOrders || changeOrders.length === 0 ? (
+                  <div className="py-10 text-center text-muted-foreground text-sm">No change orders yet.</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Requested</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="w-24" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {changeOrders.map((co: any) => (
+                        <TableRow key={co.id}>
+                          <TableCell className="font-medium">{co.title}</TableCell>
+                          <TableCell>
+                            <Select value={co.status} onValueChange={val => handleUpdateCOStatus(co.id, val)}>
+                              <SelectTrigger className="h-7 w-28 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {["Pending", "Approved", "Rejected"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>{co.requestedDate ? new Date(co.requestedDate + "T00:00:00").toLocaleDateString() : "—"}</TableCell>
+                          <TableCell className="text-right font-medium">${Number(co.amount).toLocaleString()}</TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => handleDeleteCO(co.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Change Order Dialog */}
+          <Dialog open={coDialogOpen} onOpenChange={setCoDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>New Change Order</DialogTitle>
+                <DialogDescription>Document scope changes and budget adjustments.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Title *</Label>
+                  <Input placeholder="e.g. Additional API integrations" value={coForm.title} onChange={e => setCoForm(f => ({ ...f, title: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Description</Label>
+                  <Textarea placeholder="Describe the scope change…" rows={3} value={coForm.description} onChange={e => setCoForm(f => ({ ...f, description: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Amount ($)</Label>
+                    <Input type="number" min={0} placeholder="0" value={coForm.amount} onChange={e => setCoForm(f => ({ ...f, amount: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Requested Date</Label>
+                    <Input type="date" value={coForm.requestedDate} onChange={e => setCoForm(f => ({ ...f, requestedDate: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCoDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateCO} disabled={!coForm.title}>Create</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <TabsContent value="csat" className="m-0">
             {!csatSummary || csatSummary.totalResponses === 0 ? (
@@ -798,6 +991,18 @@ export default function ProjectDetail() {
             <div className="space-y-1.5">
               <Label>Hours / Week</Label>
               <Input type="number" min={1} max={80} value={allocForm.hoursPerWeek} onChange={e => setAllocForm(f => ({ ...f, hoursPerWeek: e.target.value }))} />
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <input
+                type="checkbox"
+                id="softAllocChk"
+                checked={allocForm.isSoftAllocation}
+                onChange={e => setAllocForm(f => ({ ...f, isSoftAllocation: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-amber-500"
+              />
+              <Label htmlFor="softAllocChk" className="cursor-pointer text-sm">
+                Soft allocation <span className="text-muted-foreground font-normal">(tentative, pre-committed)</span>
+              </Label>
             </div>
           </div>
           <DialogFooter>

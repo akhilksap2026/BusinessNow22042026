@@ -48,6 +48,17 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **T009 Holiday Calendar capacity subtraction** — `/resources/capacity` now fetches this week's holidays from `holidayDatesTable` and subtracts 8h per holiday day from each user's weekly capacity
 - **DB** — `milestoneType` column (text) + `task_roles` column (jsonb) added to tasks table and pushed to production DB
 
+### Sprint 8 Complete (Wave 1 BRD gap-closure — 9 features)
+- **BR-RA-01/02 Soft vs Hard allocation** — `isSoftAllocation` boolean now exposed in API response (added to `ListAllocationsResponseItem` Zod schema); Soft/Hard badge (amber/blue) added to Team Allocations table column; "Soft allocation" checkbox added to Create/Edit Allocation dialog; allocation route PATCH/POST now persists `isSoftAllocation` from request body (bypasses auto-generated Zod body)
+- **BR-RA-03 Resource Utilisation Heat Map** — New `UtilisationHeatmap` component (`components/utilisation-heatmap.tsx`); 12-week lookahead, rows = active users, cells = allocated% vs capacity; green/amber/red colour coding; soft-only weeks shown italic; tooltip with details; "Heat Map" tab added to Resources page
+- **BR-OP-08 Probability-triggered soft allocation** — `PATCH /opportunities/:id` now checks if probability crosses ≥70% threshold; when it does and a project is linked, auto-inserts a soft allocation for the opportunity owner + logs audit
+- **BR-PM-05 Change Orders** — New `changeOrdersTable` DB schema (title, description, amount, status, requestedDate, approvedDate); `GET/POST /projects/:id/change-orders` + `PATCH/DELETE /change-orders/:id`; Change Orders section added to project Financials tab with inline status select + delete; New Change Order dialog with title/description/amount/date fields
+- **BR-TM-04 Task Dependencies** — New API routes: `GET /tasks/:id/dependencies`, `POST /tasks/:id/dependencies`, `DELETE /task-dependencies/:id`; Dependencies section added to task-detail-sheet between Checklist and Comments; shows predecessor/successor name, FS/SS/FF/SF type, lag days; Add Dependency form with task picker + type + lag input
+- **PRD-AD-06 Audit Trail write hooks** — New `logAudit()` helper (`artifacts/api-server/src/lib/audit.ts`); called from: task create/update/delete/status-change, project create/update, opportunity stage/probability change, allocation auto-create, milestone invoice auto-create, change order create/update
+- **BR-INV-05 Milestone-triggered invoice** — Task PATCH route now detects `status→Completed` transition on tasks with `isMilestone=true` AND `milestoneType` containing "Payment"; auto-creates draft invoice with the project's budget as total; logged to audit trail
+- **BR-RM-03 Project Margin** — Financials tab enhanced: shows Base Budget + Approved COs + Total Revenue + Est. Resource Cost (from allocations × weeks × user.costRate) + Gross Margin ($ and %) with green/amber/red colour coding based on margin %
+- **DB** — `change_orders` table added and pushed; `isSoftAllocation` field already existed in schema
+
 ### Sprint 1 Complete (Wave 1)
 - RBAC middleware on projects routes (requirePM for create/update/delete, requireAdmin for restore/deleted list)
 - Soft-delete on projects (deletedAt column; filter on list; restore endpoint)

@@ -772,6 +772,7 @@ export const ListAllocationsResponseItem = zod.object({
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
   role: zod.string(),
+  isSoftAllocation: zod.boolean().optional().default(false),
   createdAt: zod.string(),
 });
 export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);

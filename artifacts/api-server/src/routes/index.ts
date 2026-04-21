@@ -30,6 +30,8 @@ import formsRouter from "./forms";
 import prospectsRouter from "./prospects";
 import opportunitiesRouter from "./opportunities";
 import portalRouter from "./portal";
+import changeOrdersRouter from "./changeOrders";
+import taskDependenciesRouter from "./taskDependencies";
 
 const router: IRouter = Router();
 
@@ -64,5 +66,7 @@ router.use(formsRouter);
 router.use(prospectsRouter);
 router.use(opportunitiesRouter);
 router.use(portalRouter);
+router.use(changeOrdersRouter);
+router.use(taskDependenciesRouter);
 
 export default router;

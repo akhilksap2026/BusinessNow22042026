@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { db, projectsTable, invoicesTable, allocationsTable } from "@workspace/db";
+import { logAudit } from "../lib/audit";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
   ListProjectsResponse,
@@ -43,6 +44,7 @@ router.post("/projects", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(projectsTable).values(parsed.data as any).returning();
+  await logAudit({ entityType: "project", entityId: row.id, action: "created", description: `Project "${row.name}" created` });
   res.status(201).json(GetProjectResponse.parse(mapProject(row)));
 });
 
@@ -66,6 +68,7 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.update(projectsTable).set(parsed.data as any).where(eq(projectsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
+  await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
   res.json(UpdateProjectResponse.parse(mapProject(row)));
 });
 

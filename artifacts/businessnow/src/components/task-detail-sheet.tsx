@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   useListTaskComments,
   useCreateTaskComment,
@@ -24,7 +24,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield } from "lucide-react";
+import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch } from "lucide-react";
 import { format } from "date-fns";
 
 interface TaskDetailSheetProps {
@@ -75,6 +75,44 @@ export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetP
   const [newChecklistItem, setNewChecklistItem] = useState("");
   const [addingComment, setAddingComment] = useState(false);
   const [addingChecklist, setAddingChecklist] = useState(false);
+  const [addingDep, setAddingDep] = useState(false);
+  const [depForm, setDepForm] = useState({ predecessorId: "", dependencyType: "FS", lagDays: "0" });
+
+  const { data: dependencies, refetch: refetchDeps } = useQuery<any[]>({
+    queryKey: ["task-deps", taskId],
+    queryFn: async () => {
+      if (!taskId) return [];
+      const res = await fetch(`/api/tasks/${taskId}/dependencies`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!taskId,
+  });
+
+  const projectTasksForDeps = (queryClient.getQueriesData({ predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === "listTasks" }) as any[])
+    .flatMap(([, d]: any) => Array.isArray(d) ? d : [])
+    .filter(Boolean);
+
+  async function handleAddDep() {
+    if (!taskId || !depForm.predecessorId) return;
+    try {
+      await fetch(`/api/tasks/${taskId}/dependencies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ predecessorId: parseInt(depForm.predecessorId), dependencyType: depForm.dependencyType, lagDays: parseInt(depForm.lagDays) || 0 }),
+      });
+      refetchDeps();
+      setAddingDep(false);
+      setDepForm({ predecessorId: "", dependencyType: "FS", lagDays: "0" });
+    } catch { /* ignore */ }
+  }
+
+  async function handleDeleteDep(depId: number) {
+    try {
+      await fetch(`/api/task-dependencies/${depId}`, { method: "DELETE" });
+      refetchDeps();
+    } catch { /* ignore */ }
+  }
 
   const CURRENT_USER_ID = 1;
 
@@ -347,6 +385,88 @@ export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetP
                     />
                     <Button size="sm" className="h-8" onClick={handleAddChecklist} disabled={!newChecklistItem.trim()}>Add</Button>
                     <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingChecklist(false); setNewChecklistItem(""); }}>Cancel</Button>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Dependencies */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Dependencies</span>
+                    {(dependencies?.length ?? 0) > 0 && (
+                      <span className="text-xs text-muted-foreground">{dependencies?.length}</span>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingDep(true)}>
+                    <Plus className="h-3 w-3 mr-1" /> Add
+                  </Button>
+                </div>
+
+                {dependencies && dependencies.length > 0 && (
+                  <div className="space-y-1.5">
+                    {dependencies.map(dep => {
+                      const isSuccessor = dep.successorId === taskId;
+                      const otherName = isSuccessor ? dep.predecessorName : dep.successorName;
+                      return (
+                        <div key={dep.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{dep.dependencyType}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">{isSuccessor ? "Depends on:" : "Blocks:"}</span>
+                            <span className="text-sm truncate">{otherName}</span>
+                            {dep.lagDays > 0 && <span className="text-xs text-muted-foreground shrink-0">+{dep.lagDays}d lag</span>}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0"
+                            onClick={() => handleDeleteDep(dep.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {addingDep && (
+                  <div className="mt-2 space-y-2 p-2 border rounded bg-muted/20">
+                    <div className="flex gap-2">
+                      <Select value={depForm.predecessorId} onValueChange={v => setDepForm(f => ({ ...f, predecessorId: v }))}>
+                        <SelectTrigger className="h-8 text-sm flex-1">
+                          <SelectValue placeholder="Predecessor task…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projectTasksForDeps.filter(t => t.id !== taskId).map(t => (
+                            <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={depForm.dependencyType} onValueChange={v => setDepForm(f => ({ ...f, dependencyType: v }))}>
+                        <SelectTrigger className="h-8 text-sm w-20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["FS", "SS", "FF", "SF"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        className="h-8 text-sm w-24"
+                        placeholder="Lag days"
+                        value={depForm.lagDays}
+                        onChange={e => setDepForm(f => ({ ...f, lagDays: e.target.value }))}
+                      />
+                      <Button size="sm" className="h-8" onClick={handleAddDep} disabled={!depForm.predecessorId}>Add</Button>
+                      <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingDep(false); setDepForm({ predecessorId: "", dependencyType: "FS", lagDays: "0" }); }}>Cancel</Button>
+                    </div>
                   </div>
                 )}
               </div>

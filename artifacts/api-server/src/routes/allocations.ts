@@ -38,7 +38,8 @@ router.get("/allocations", async (req, res): Promise<void> => {
 router.post("/allocations", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateAllocationBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [row] = await db.insert(allocationsTable).values(parsed.data as any).returning();
+  const isSoftAllocation = req.body.isSoftAllocation === true || req.body.isSoftAllocation === "true";
+  const [row] = await db.insert(allocationsTable).values({ ...parsed.data as any, isSoftAllocation }).returning();
   res.status(201).json(mapAllocation(row));
 });
 
@@ -47,7 +48,9 @@ router.patch("/allocations/:id", requirePM, async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateAllocationBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [row] = await db.update(allocationsTable).set(parsed.data as any).where(eq(allocationsTable.id, params.data.id)).returning();
+  const updateData: any = { ...parsed.data };
+  if (req.body.isSoftAllocation !== undefined) updateData.isSoftAllocation = req.body.isSoftAllocation === true || req.body.isSoftAllocation === "true";
+  const [row] = await db.update(allocationsTable).set(updateData).where(eq(allocationsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Allocation not found" }); return; }
   res.json(UpdateAllocationResponse.parse(mapAllocation(row)));
 });

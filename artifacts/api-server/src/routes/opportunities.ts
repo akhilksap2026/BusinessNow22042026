@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { db, opportunitiesTable, projectsTable, accountsTable, usersTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { db, opportunitiesTable, projectsTable, accountsTable, usersTable, allocationsTable } from "@workspace/db";
+import { eq, desc, and } from "drizzle-orm";
 import { requirePM } from "../middleware/rbac";
+import { logAudit } from "../lib/audit";
 
 const router = Router();
 
@@ -83,6 +84,11 @@ router.get("/opportunities/:id", async (req, res) => {
 
 router.patch("/opportunities/:id", requirePM, async (req, res) => {
   const id = Number(req.params.id);
+
+  // Load existing for transition checks
+  const [existing] = await db.select().from(opportunitiesTable).where(eq(opportunitiesTable.id, id));
+  if (!existing) return res.status(404).json({ error: "Not found" });
+
   const { accountId, name, stage, probability, value, description, closeDate, ownerId } = req.body;
   const updates: Partial<typeof opportunitiesTable.$inferInsert> = { updatedAt: new Date() };
   if (accountId !== undefined) updates.accountId = Number(accountId);
@@ -96,8 +102,56 @@ router.patch("/opportunities/:id", requirePM, async (req, res) => {
   if (description !== undefined) updates.description = description;
   if (closeDate !== undefined) updates.closeDate = closeDate;
   if (ownerId !== undefined) updates.ownerId = ownerId ? Number(ownerId) : null;
+
   const [row] = await db.update(opportunitiesTable).set(updates).where(eq(opportunitiesTable.id, id)).returning();
   if (!row) return res.status(404).json({ error: "Not found" });
+
+  // Probability-triggered soft allocation: if probability crosses ≥70 threshold AND a project is linked
+  const SOFT_ALLOC_THRESHOLD = 70;
+  const wasBelow = (existing.probability ?? 0) < SOFT_ALLOC_THRESHOLD;
+  const isNowAbove = (row.probability ?? 0) >= SOFT_ALLOC_THRESHOLD;
+  if (wasBelow && isNowAbove && row.projectId && row.ownerId) {
+    try {
+      // Check for existing soft allocation for owner on this project
+      const existingAllocs = await db.select().from(allocationsTable).where(
+        and(eq(allocationsTable.projectId, row.projectId), eq(allocationsTable.userId, row.ownerId))
+      );
+      if (existingAllocs.length === 0) {
+        const today = new Date().toISOString().slice(0, 10);
+        const threeMonths = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+        await db.insert(allocationsTable).values({
+          projectId: row.projectId,
+          userId: row.ownerId,
+          role: "Owner",
+          startDate: today,
+          endDate: threeMonths,
+          hoursPerWeek: 20,
+          isSoftAllocation: true,
+        });
+        await logAudit({
+          entityType: "allocation",
+          entityId: row.projectId,
+          action: "created",
+          description: `Soft allocation auto-created for opportunity "${row.name}" reaching ${row.probability}% probability`,
+        });
+      }
+    } catch (err) {
+      console.error("Soft alloc auto-creation failed:", err);
+    }
+  }
+
+  // Audit stage/probability changes
+  if (row.stage !== existing.stage || row.probability !== existing.probability) {
+    await logAudit({
+      entityType: "opportunity",
+      entityId: row.id,
+      action: "updated",
+      previousValue: { stage: existing.stage, probability: existing.probability },
+      newValue: { stage: row.stage, probability: row.probability },
+      description: `Opportunity "${row.name}" updated`,
+    });
+  }
+
   return res.json(await mapOpportunity(row));
 });
 
