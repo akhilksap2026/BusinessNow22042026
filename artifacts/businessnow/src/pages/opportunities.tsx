@@ -90,8 +90,10 @@ export default function OpportunitiesPage() {
   const [view, setView] = useState<"list" | "kanban">("kanban");
   const [selected, setSelected] = useState<Opportunity | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
   const [form, setForm] = useState({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "" });
+  const [editForm, setEditForm] = useState({ name: "", stage: "Discovery", probability: "", value: "", description: "", closeDate: "" });
   const [projectForm, setProjectForm] = useState({ name: "", billingType: "Fixed Fee", startDate: "", dueDate: "" });
 
   const { data: opportunities = [] } = useQuery({
@@ -122,6 +124,24 @@ export default function OpportunitiesPage() {
       updateOpportunity(id, { stage, ...(probability !== undefined ? { probability } : {}) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["opportunities"] }),
   });
+
+  const editMut = useMutation({
+    mutationFn: (id: number) => updateOpportunity(id, {
+      name: editForm.name,
+      stage: editForm.stage,
+      probability: Number(editForm.probability),
+      value: Number(editForm.value),
+      description: editForm.description || undefined,
+      closeDate: editForm.closeDate || undefined,
+    }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["opportunities"] }); setShowEdit(false); },
+  });
+
+  function openEditOpp(o: Opportunity) {
+    setSelected(o);
+    setEditForm({ name: o.name, stage: o.stage, probability: String(o.probability), value: String(o.value), description: o.description ?? "", closeDate: o.closeDate ? o.closeDate.substring(0, 10) : "" });
+    setShowEdit(true);
+  }
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteOpportunity(id),
@@ -203,11 +223,16 @@ export default function OpportunitiesPage() {
                 <div className="flex items-center gap-2">
                   <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${STAGE_COLORS[selected.stage] ?? ""}`}>{selected.stage}</span>
                   <span className="text-slate-500 text-sm">{selected.probability}% probability</span>
-                  {selected.stage === "Won" && !selected.projectId && (
-                    <Button size="sm" variant="outline" className="gap-1.5 ml-auto" onClick={() => setShowConvert(true)}>
-                      <FolderPlus className="h-3.5 w-3.5" /> Create Project
+                  <div className="ml-auto flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openEditOpp(selected)}>
+                      Edit
                     </Button>
-                  )}
+                    {selected.stage === "Won" && !selected.projectId && (
+                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowConvert(true)}>
+                        <FolderPlus className="h-3.5 w-3.5" /> Create Project
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-2">
@@ -343,6 +368,47 @@ export default function OpportunitiesPage() {
               disabled={!(projectForm.name || selected?.name) || !projectForm.startDate || !projectForm.dueDate || convertMut.isPending}
             >
               {convertMut.isPending ? "Creating…" : "Create Project"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Opportunity Dialog */}
+      <Dialog open={showEdit} onOpenChange={v => setShowEdit(v)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Edit Opportunity</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="col-span-2 space-y-1">
+              <Label>Opportunity Name *</Label>
+              <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Stage</Label>
+              <Select value={editForm.stage} onValueChange={v => setEditForm(f => ({ ...f, stage: v, probability: String(STAGE_PROBABILITY[v] ?? f.probability) }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Win Probability (%)</Label>
+              <Input type="number" min="0" max="100" value={editForm.probability} onChange={e => setEditForm(f => ({ ...f, probability: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Value ($)</Label>
+              <Input type="number" value={editForm.value} onChange={e => setEditForm(f => ({ ...f, value: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Close Date</Label>
+              <Input type="date" value={editForm.closeDate} onChange={e => setEditForm(f => ({ ...f, closeDate: e.target.value }))} />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label>Description</Label>
+              <Textarea rows={2} value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
+            <Button onClick={() => selected && editMut.mutate(selected.id)} disabled={!editForm.name || editMut.isPending}>
+              {editMut.isPending ? "Saving…" : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

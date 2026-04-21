@@ -74,3 +74,10 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - T003: Finance invoice search bar (filter by ID or description); added "Overdue" sub-tab; result count badge on "All" tab
 - T004: Admin Users → per-row "Skills" button opens `UserSkillsDialog` (add/remove skills per user; hooks: `useGetUserSkills`, `useAddUserSkill`, `useRemoveUserSkill`)
 - T005: Time Entries table → inline edit dialog (date/hours/description/billable) + delete confirmation per row
+
+### Sprint 5 Complete
+- T001: Accounts — per-row `⋯` dropdown (Edit + Delete); Edit dialog (all fields: name/domain/tier/region/status/contractValue); Delete confirm dialog; `deleteAccount` mutation wired
+- T002: Prospects — "Edit" added to row dropdown; Edit dialog (all fields: name/contactName/email/phone/status/source/estimatedValue/notes); `editMut` calls `updateProspect`
+- T003: Opportunities — "Edit" button in detail sheet header; Edit dialog (all fields: name/stage/probability/value/description/closeDate); `editMut` calls `updateOpportunity`
+- T004: Reports — year filter dropdowns in Revenue and Utilization tabs; auto-populated from data months; filters `byMonth` arrays by selected year prefix (YYYY-MM format)
+- T005: Account detail sheet Opportunities and Projects items wrapped in `<Link>` with hover states for navigation

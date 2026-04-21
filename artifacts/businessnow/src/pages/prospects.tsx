@@ -73,8 +73,10 @@ export default function ProspectsPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [selected, setSelected] = useState<Prospect | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
   const [form, setForm] = useState({ name: "", contactName: "", contactEmail: "", contactPhone: "", status: "New", source: "", estimatedValue: "", notes: "" });
+  const [editForm, setEditForm] = useState({ name: "", contactName: "", contactEmail: "", contactPhone: "", status: "New", source: "", estimatedValue: "", notes: "" });
   const [convertForm, setConvertForm] = useState({ tier: "Mid-Market", region: "North America", domain: "", contractValue: "" });
 
   const { data: prospects = [] } = useQuery({
@@ -94,6 +96,26 @@ export default function ProspectsPage() {
     mutationFn: (p: Prospect) => updateProspect(p.id, { status: p.status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["prospects"] }),
   });
+
+  const editMut = useMutation({
+    mutationFn: (id: number) => updateProspect(id, {
+      name: editForm.name,
+      contactName: editForm.contactName || undefined,
+      contactEmail: editForm.contactEmail || undefined,
+      contactPhone: editForm.contactPhone || undefined,
+      status: editForm.status,
+      source: editForm.source || undefined,
+      estimatedValue: editForm.estimatedValue ? Number(editForm.estimatedValue) : undefined,
+      notes: editForm.notes || undefined,
+    }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["prospects"] }); setShowEdit(false); if (selected) setSelected(s => s ? { ...s, ...editForm, estimatedValue: editForm.estimatedValue ? Number(editForm.estimatedValue) : null } : s); },
+  });
+
+  function openEditProspect(p: Prospect) {
+    setSelected(p);
+    setEditForm({ name: p.name, contactName: p.contactName ?? "", contactEmail: p.contactEmail ?? "", contactPhone: p.contactPhone ?? "", status: p.status, source: p.source ?? "", estimatedValue: String(p.estimatedValue ?? ""), notes: p.notes ?? "" });
+    setShowEdit(true);
+  }
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteProspect(id),
@@ -191,6 +213,7 @@ export default function ProspectsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => setSelected(p)}>View Details</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openEditProspect(p)}>Edit</DropdownMenuItem>
                       {p.status !== "Converted" && (
                         <DropdownMenuItem onClick={() => { setSelected(p); setShowConvert(true); }}>
                           Convert to Customer
@@ -376,6 +399,63 @@ export default function ProspectsPage() {
             <Button variant="outline" onClick={() => setShowConvert(false)}>Cancel</Button>
             <Button onClick={() => convertMut.mutate()} disabled={!convertForm.domain || convertMut.isPending}>
               {convertMut.isPending ? "Converting…" : "Convert to Customer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Prospect Dialog */}
+      <Dialog open={showEdit} onOpenChange={v => setShowEdit(v)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Edit Prospect</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="col-span-2 space-y-1">
+              <Label>Name *</Label>
+              <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Contact Name</Label>
+              <Input value={editForm.contactName} onChange={e => setEditForm(f => ({ ...f, contactName: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Contact Email</Label>
+              <Input type="email" value={editForm.contactEmail} onChange={e => setEditForm(f => ({ ...f, contactEmail: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Contact Phone</Label>
+              <Input value={editForm.contactPhone} onChange={e => setEditForm(f => ({ ...f, contactPhone: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Source</Label>
+              <Select value={editForm.source || "__none"} onValueChange={v => setEditForm(f => ({ ...f, source: v === "__none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— None —</SelectItem>
+                  {["Website", "Referral", "Cold Outreach", "LinkedIn", "Event", "Partner"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["New", "Contacted", "Qualified", "Unqualified"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Est. Value ($)</Label>
+              <Input type="number" value={editForm.estimatedValue} onChange={e => setEditForm(f => ({ ...f, estimatedValue: e.target.value }))} />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label>Notes</Label>
+              <Textarea rows={3} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
+            <Button onClick={() => selected && editMut.mutate(selected.id)} disabled={!editForm.name || editMut.isPending}>
+              {editMut.isPending ? "Saving…" : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

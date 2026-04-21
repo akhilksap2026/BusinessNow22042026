@@ -173,6 +173,16 @@ export default function Reports() {
   const { data: revenue, isLoading: isLoadingRevenue } = useGetRevenueReport();
   const { data: health, isLoading: isLoadingHealth } = useGetProjectHealthReport();
 
+  const currentYear = new Date().getFullYear().toString();
+  const [revenueYear, setRevenueYear] = useState(currentYear);
+  const [utilizationYear, setUtilizationYear] = useState(currentYear);
+
+  const revenueYears = [...new Set((revenue?.byMonth ?? []).map(m => m.month.substring(0, 4)))].sort().reverse();
+  const utilizationYears = [...new Set((utilization?.byMonth ?? []).map(m => m.month.substring(0, 4)))].sort().reverse();
+
+  const filteredRevenueData = (revenue?.byMonth ?? []).filter(m => m.month.startsWith(revenueYear));
+  const filteredUtilizationData = (utilization?.byMonth ?? []).filter(m => m.month.startsWith(utilizationYear));
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -200,16 +210,28 @@ export default function Reports() {
 
           <TabsContent value="revenue" className="space-y-6 m-0">
             <Card className="col-span-2">
-              <CardHeader>
-                <CardTitle>Revenue by Month</CardTitle>
-                <CardDescription>Invoiced vs Collected revenue over time</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                  <CardTitle>Revenue by Month</CardTitle>
+                  <CardDescription>Invoiced vs Collected revenue over time</CardDescription>
+                </div>
+                <Select value={revenueYear} onValueChange={setRevenueYear}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(revenueYears.length > 0 ? revenueYears : [currentYear]).map(y => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardHeader>
               <CardContent className="h-[400px]">
                 {isLoadingRevenue ? <ChartSkeleton /> : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={revenue?.byMonth} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <BarChart data={filteredRevenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tickFormatter={v => v.substring(5)} />
                       <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `$${value / 1000}k`} />
                       <RechartsTooltip formatter={(value: number) => [`$${value.toLocaleString()}`, undefined]} cursor={{ fill: '#f1f5f9' }} />
                       <Legend />
@@ -224,16 +246,28 @@ export default function Reports() {
 
           <TabsContent value="utilization" className="space-y-6 m-0">
             <Card>
-              <CardHeader>
-                <CardTitle>Team Utilization Trend</CardTitle>
-                <CardDescription>Average utilization percentage over time</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                  <CardTitle>Team Utilization Trend</CardTitle>
+                  <CardDescription>Average utilization percentage over time</CardDescription>
+                </div>
+                <Select value={utilizationYear} onValueChange={setUtilizationYear}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(utilizationYears.length > 0 ? utilizationYears : [currentYear]).map(y => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardHeader>
               <CardContent className="h-[400px]">
                 {isLoadingUtilization ? <ChartSkeleton /> : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={utilization?.byMonth} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <LineChart data={filteredUtilizationData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tickFormatter={v => v.substring(5)} />
                       <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
                       <RechartsTooltip formatter={(value: number) => [`${value}%`, 'Utilization']} />
                       <Line type="monotone" dataKey="utilization" stroke="#4f46e5" strokeWidth={3} activeDot={{ r: 8 }} />

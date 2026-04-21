@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listAccounts, createAccount, updateAccount, listOpportunities, listProjects } from "@workspace/api-client-react";
+import { listAccounts, createAccount, updateAccount, deleteAccount, listOpportunities, listProjects } from "@workspace/api-client-react";
 import { Account } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -31,7 +32,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Building2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Link } from "wouter";
+import { Plus, Search, Building2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   Active: "bg-green-100 text-green-700",
@@ -67,7 +75,11 @@ export default function Accounts() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Account | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [editTarget, setEditTarget] = useState<Account | null>(null);
   const [form, setForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
+  const [editForm, setEditForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["accounts"],
@@ -90,6 +102,34 @@ export default function Accounts() {
     mutationFn: ({ id, status }: { id: number; status: string }) => updateAccount(id, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
   });
+
+  const editMut = useMutation({
+    mutationFn: (id: number) => updateAccount(id, {
+      name: editForm.name,
+      domain: editForm.domain,
+      tier: editForm.tier,
+      region: editForm.region,
+      status: editForm.status,
+      contractValue: Number(editForm.contractValue) || 0,
+    }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowEdit(false); setEditTarget(null); },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => deleteAccount(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowDelete(false); setEditTarget(null); if (selected?.id === editTarget?.id) setSelected(null); },
+  });
+
+  function openEdit(account: Account) {
+    setEditTarget(account);
+    setEditForm({ name: account.name, domain: account.domain, tier: account.tier, region: account.region, status: account.status, contractValue: String(account.contractValue ?? "") });
+    setShowEdit(true);
+  }
+
+  function openDelete(account: Account) {
+    setEditTarget(account);
+    setShowDelete(true);
+  }
 
   function resetForm() {
     setForm({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
@@ -157,6 +197,23 @@ export default function Accounts() {
                       </TableCell>
                       <TableCell>{account.region}</TableCell>
                       <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(account)}>
+                              <Pencil className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => openDelete(account)}>
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {filtered.length === 0 && (
@@ -237,6 +294,78 @@ export default function Accounts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Account Dialog */}
+      <Dialog open={showEdit} onOpenChange={v => { setShowEdit(v); if (!v) setEditTarget(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Edit Account</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="col-span-2 space-y-1">
+              <Label>Account Name *</Label>
+              <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Domain *</Label>
+              <Input placeholder="company.com" value={editForm.domain} onChange={e => setEditForm(f => ({ ...f, domain: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Contract Value ($)</Label>
+              <Input type="number" value={editForm.contractValue} onChange={e => setEditForm(f => ({ ...f, contractValue: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Tier</Label>
+              <Select value={editForm.tier} onValueChange={v => setEditForm(f => ({ ...f, tier: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Enterprise", "Mid-Market", "SMB", "Startup"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Region</Label>
+              <Select value={editForm.region} onValueChange={v => setEditForm(f => ({ ...f, region: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["North America", "EMEA", "APAC", "LATAM"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Active", "Inactive", "Prospect", "At Risk", "Churned"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
+            <Button onClick={() => editTarget && editMut.mutate(editTarget.id)} disabled={!editForm.name || !editForm.domain || editMut.isPending}>
+              {editMut.isPending ? "Saving…" : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={showDelete} onOpenChange={v => { setShowDelete(v); if (!v) setEditTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{editTarget?.name}</strong>? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDelete(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => editTarget && deleteMut.mutate(editTarget.id)} disabled={deleteMut.isPending}>
+              {deleteMut.isPending ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
@@ -306,18 +435,20 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
             )}
             <div className="space-y-2">
               {opportunities.map(o => (
-                <div key={o.id} className="border rounded-md p-3 bg-white">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{o.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{o.probability}% probability</p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[o.stage] ?? ""}`}>{o.stage}</span>
-                      <p className="text-xs font-semibold mt-1">{fmt(o.value)}</p>
+                <Link key={o.id} href="/opportunities">
+                  <div className="border rounded-md p-3 bg-white hover:bg-slate-50 cursor-pointer transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-primary hover:underline">{o.name}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{o.probability}% probability</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[o.stage] ?? ""}`}>{o.stage}</span>
+                        <p className="text-xs font-semibold mt-1">{fmt(o.value)}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
               {opportunities.length === 0 && (
                 <p className="text-sm text-slate-400 text-center py-6">No opportunities yet</p>
@@ -328,22 +459,24 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
           <TabsContent value="projects" className="mt-3">
             <div className="space-y-2">
               {projects.map((p: any) => (
-                <div key={p.id} className="border rounded-md p-3 bg-white">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{p.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{p.billingType}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        p.status === "Completed" ? "bg-green-100 text-green-700" :
-                        p.status === "In Progress" ? "bg-blue-100 text-blue-700" :
-                        "bg-slate-100 text-slate-600"
-                      }`}>{p.status}</span>
-                      <p className="text-xs font-semibold mt-1">{fmt(p.budget)}</p>
+                <Link key={p.id} href="/projects">
+                  <div className="border rounded-md p-3 bg-white hover:bg-slate-50 cursor-pointer transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-primary hover:underline">{p.name}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{p.billingType}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          p.status === "Completed" ? "bg-green-100 text-green-700" :
+                          p.status === "In Progress" ? "bg-blue-100 text-blue-700" :
+                          "bg-slate-100 text-slate-600"
+                        }`}>{p.status}</span>
+                        <p className="text-xs font-semibold mt-1">{fmt(p.budget)}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
               {projects.length === 0 && (
                 <p className="text-sm text-slate-400 text-center py-6">No projects yet</p>
