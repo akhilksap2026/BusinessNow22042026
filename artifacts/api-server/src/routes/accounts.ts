@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, accountsTable } from "@workspace/db";
+import { requirePM } from "../middleware/rbac";
 import {
   ListAccountsResponse,
   CreateAccountBody,
@@ -28,7 +29,7 @@ router.get("/accounts", async (req, res): Promise<void> => {
   res.json(ListAccountsResponse.parse(rows.map(mapAccount)));
 });
 
-router.post("/accounts", async (req, res): Promise<void> => {
+router.post("/accounts", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateAccountBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -46,7 +47,7 @@ router.get("/accounts/:id", async (req, res): Promise<void> => {
   res.json(GetAccountResponse.parse(mapAccount(row)));
 });
 
-router.patch("/accounts/:id", async (req, res): Promise<void> => {
+router.patch("/accounts/:id", requirePM, async (req, res): Promise<void> => {
   const params = UpdateAccountParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateAccountBody.safeParse(req.body);
@@ -56,7 +57,7 @@ router.patch("/accounts/:id", async (req, res): Promise<void> => {
   res.json(UpdateAccountResponse.parse(mapAccount(row)));
 });
 
-router.delete("/accounts/:id", async (req, res): Promise<void> => {
+router.delete("/accounts/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteAccountParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(accountsTable).where(eq(accountsTable.id, params.data.id));

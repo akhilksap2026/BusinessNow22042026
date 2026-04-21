@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { db, timeEntriesTable, projectsTable, usersTable } from "@workspace/db";
+import { requirePM } from "../middleware/rbac";
 import {
   ListTimeEntriesResponse,
   ListTimeEntriesQueryParams,
@@ -37,14 +38,14 @@ router.get("/time-entries", async (req, res): Promise<void> => {
   res.json(ListTimeEntriesResponse.parse(rows.map(mapEntry)));
 });
 
-router.post("/time-entries", async (req, res): Promise<void> => {
+router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(timeEntriesTable).values({ ...parsed.data, hours: String(parsed.data.hours) } as any).returning();
   res.status(201).json(mapEntry(row));
 });
 
-router.patch("/time-entries/:id", async (req, res): Promise<void> => {
+router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
   const params = UpdateTimeEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateTimeEntryBody.safeParse(req.body);
@@ -56,7 +57,7 @@ router.patch("/time-entries/:id", async (req, res): Promise<void> => {
   res.json(UpdateTimeEntryResponse.parse(mapEntry(row)));
 });
 
-router.delete("/time-entries/:id", async (req, res): Promise<void> => {
+router.delete("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteTimeEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));

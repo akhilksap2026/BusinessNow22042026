@@ -36,6 +36,18 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - When adding fields to the API contract, update all four places: `lib/api-zod/src/generated/api.ts` + `types/createXBody.ts`, `lib/api-client-react/src/generated/api.schemas.ts`, then rebuild both dists (`tsc --build --force`)
 - `lib/api-client-react/dist/index.d.ts` is the compiled declaration output — must rebuild after editing `custom-fetch.ts` or any generated schema file
 
+### Sprint 7 Progress (Wave 1 BRD gap-closure)
+- **T001 RBAC** — `requirePM` added to accounts, prospects, timeEntries, allocations routes
+- **T002 Project Creation Wizard** — 4-step wizard already existed at `create-project-wizard.tsx`
+- **T003 Milestone types + sub-tasks** — `milestoneType` (Payment/Project/External) column in tasks DB + UI selector conditional on isMilestone; sub-tasks rendered indented with `↳` arrow; "Add Sub-task" in task dropdown; `parentTaskId` wired through form
+- **T004 Task Resource with project role** — Assignee list in task form now shows each user's project allocation role badge (role inherited from allocationsTable)
+- **T005 Task comments + @-tagging** — Already built in `task-detail-sheet.tsx`
+- **T006 Kanban board view** — List/Board toggle in project Tasks tab; 4-column Kanban (Not Started → In Progress → Blocked → Completed) with task cards, priority badges, assignee avatars, sub-task counts; quick status advance via hover button
+- **T007 Time categories in Log Time** — Category dropdown added to Log Time dialog using `useListTimeCategories`; `categoryId` passed through to createTimeEntry
+- **T008 Timesheet submit → PM approval → Draft Invoice** — Full workflow: Submit for Approval button in timesheet grid; PM approval queue shows Submitted timesheets; Approved timesheets section with "Generate Invoice" button calls `POST /api/invoices/from-timesheet/:id` → creates draft invoice
+- **T009 Holiday Calendar capacity subtraction** — `/resources/capacity` now fetches this week's holidays from `holidayDatesTable` and subtracts 8h per holiday day from each user's weekly capacity
+- **DB** — `milestoneType` column (text) + `task_roles` column (jsonb) added to tasks table and pushed to production DB
+
 ### Sprint 1 Complete (Wave 1)
 - RBAC middleware on projects routes (requirePM for create/update/delete, requireAdmin for restore/deleted list)
 - Soft-delete on projects (deletedAt column; filter on list; restore endpoint)

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, prospectsTable, accountsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { requirePM } from "../middleware/rbac";
 
 const router = Router();
 
@@ -36,7 +37,7 @@ router.get("/prospects", async (req, res) => {
   return res.json(filtered.map(mapProspect));
 });
 
-router.post("/prospects", async (req, res) => {
+router.post("/prospects", requirePM, async (req, res) => {
   const { name, contactName, contactEmail, contactPhone, status, source, estimatedValue, notes, ownerId } = req.body;
   if (!name) return res.status(400).json({ error: "name required" });
   const [row] = await db.insert(prospectsTable).values({
@@ -60,7 +61,7 @@ router.get("/prospects/:id", async (req, res) => {
   return res.json(mapProspect(row));
 });
 
-router.patch("/prospects/:id", async (req, res) => {
+router.patch("/prospects/:id", requirePM, async (req, res) => {
   const id = Number(req.params.id);
   const { name, contactName, contactEmail, contactPhone, status, source, estimatedValue, notes, ownerId } = req.body;
   const updates: Partial<typeof prospectsTable.$inferInsert> = { updatedAt: new Date() };
@@ -78,13 +79,13 @@ router.patch("/prospects/:id", async (req, res) => {
   return res.json(mapProspect(row));
 });
 
-router.delete("/prospects/:id", async (req, res) => {
+router.delete("/prospects/:id", requirePM, async (req, res) => {
   const id = Number(req.params.id);
   await db.delete(prospectsTable).where(eq(prospectsTable.id, id));
   return res.status(204).send();
 });
 
-router.post("/prospects/:id/convert", async (req, res) => {
+router.post("/prospects/:id/convert", requirePM, async (req, res) => {
   const id = Number(req.params.id);
   const { tier, region, domain, contractValue } = req.body;
   if (!tier || !region || !domain) return res.status(400).json({ error: "tier, region, domain required" });

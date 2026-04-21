@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import {
   useListTimeEntries, useGetTimeEntrySummary, useListProjects, useListUsers,
   useListTimeOffRequests, useCreateTimeOffRequest, useUpdateTimeOffRequestStatus, useDeleteTimeOffRequest,
-  useUpdateTimeEntry, useDeleteTimeEntry, useCreateTimeEntry,
+  useUpdateTimeEntry, useDeleteTimeEntry, useCreateTimeEntry, useListTimeCategories,
   getListTimeOffRequestsQueryKey, getListTimeEntriesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -47,6 +47,7 @@ export default function TimeTracking() {
   const { data: projects } = useListProjects();
   const { data: users } = useListUsers();
   const { data: timeOffRequests, isLoading: isLoadingTimeOff } = useListTimeOffRequests();
+  const { data: timeCategories } = useListTimeCategories();
   const createTimeOff = useCreateTimeOffRequest();
   const updateTimeOff = useUpdateTimeOffRequestStatus();
   const deleteTimeOff = useDeleteTimeOffRequest();
@@ -60,7 +61,7 @@ export default function TimeTracking() {
   const deleteTimeEntry = useDeleteTimeEntry();
   const createTimeEntry = useCreateTimeEntry();
   const [showLogTime, setShowLogTime] = useState(false);
-  const [logForm, setLogForm] = useState({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true });
+  const [logForm, setLogForm] = useState({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "" });
 
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -104,6 +105,7 @@ export default function TimeTracking() {
         hours: parseFloat(logForm.hours),
         description: logForm.description,
         billable: logForm.billable,
+        categoryId: logForm.categoryId ? parseInt(logForm.categoryId) : undefined,
       } as any });
       queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
       toast({ title: "Time logged" });
@@ -530,6 +532,16 @@ export default function TimeTracking() {
                 <Label>Hours *</Label>
                 <Input type="number" step="0.25" min="0.25" value={logForm.hours} onChange={e => setLogForm(f => ({ ...f, hours: e.target.value }))} placeholder="e.g. 2.5" />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Category</Label>
+              <Select value={logForm.categoryId} onValueChange={v => setLogForm(f => ({ ...f, categoryId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select category (optional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {timeCategories?.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>

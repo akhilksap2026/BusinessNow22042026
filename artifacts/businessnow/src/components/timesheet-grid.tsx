@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { 
   useListTimeEntries, 
   useCreateTimeEntry,
@@ -136,6 +136,28 @@ export function TimesheetGrid({ userId }: { userId: number }) {
     }
   };
 
+  const { data: approvedTimesheets } = useListTimesheets({ status: "Approved" });
+
+  const generateInvoice = useMutation({
+    mutationFn: async (timesheetId: number) => {
+      const resp = await fetch(`/api/invoices/from-timesheet/${timesheetId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate invoice");
+      }
+      return resp.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Draft invoice created", description: "Go to Finance to view and send it." });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Invoice generation failed", description: e.message, variant: "destructive" });
+    },
+  });
+
   const onReject = async () => {
     if (!rejectTimesheetId) return;
     try {
@@ -256,6 +278,46 @@ export function TimesheetGrid({ userId }: { userId: number }) {
                     <TableCell className="text-right space-x-2">
                       <Button size="sm" variant="outline" onClick={() => setRejectTimesheetId(ts.id)}>Reject</Button>
                       <Button size="sm" onClick={() => onApprove(ts.id)}>Approve</Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {approvedTimesheets && approvedTimesheets.length > 0 && (
+        <div className="mt-6 space-y-4">
+          <h3 className="text-lg font-medium">Approved Timesheets</h3>
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Week</TableHead>
+                  <TableHead>Billable Hours</TableHead>
+                  <TableHead>Approved</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {approvedTimesheets.map(ts => (
+                  <TableRow key={ts.id}>
+                    <TableCell className="font-medium">{users?.find(u => u.id === ts.userId)?.name}</TableCell>
+                    <TableCell>{ts.weekStart}</TableCell>
+                    <TableCell>{ts.billableHours}h billable of {ts.totalHours}h total</TableCell>
+                    <TableCell>{ts.approvedAt ? new Date(ts.approvedAt).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        disabled={generateInvoice.isPending}
+                        onClick={() => generateInvoice.mutate(ts.id)}
+                      >
+                        Generate Invoice
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

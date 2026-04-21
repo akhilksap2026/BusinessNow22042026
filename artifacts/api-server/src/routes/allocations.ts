@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, allocationsTable, usersTable } from "@workspace/db";
+import { eq, and, gte, lte } from "drizzle-orm";
+import { requirePM } from "../middleware/rbac";
+import { db, allocationsTable, usersTable, holidayDatesTable } from "@workspace/db";
 import {
   ListAllocationsResponse,
   ListAllocationsQueryParams,
@@ -34,14 +35,14 @@ router.get("/allocations", async (req, res): Promise<void> => {
   res.json(ListAllocationsResponse.parse(rows.map(mapAllocation)));
 });
 
-router.post("/allocations", async (req, res): Promise<void> => {
+router.post("/allocations", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateAllocationBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(allocationsTable).values(parsed.data as any).returning();
   res.status(201).json(mapAllocation(row));
 });
 
-router.patch("/allocations/:id", async (req, res): Promise<void> => {
+router.patch("/allocations/:id", requirePM, async (req, res): Promise<void> => {
   const params = UpdateAllocationParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateAllocationBody.safeParse(req.body);
@@ -51,7 +52,7 @@ router.patch("/allocations/:id", async (req, res): Promise<void> => {
   res.json(UpdateAllocationResponse.parse(mapAllocation(row)));
 });
 
-router.delete("/allocations/:id", async (req, res): Promise<void> => {
+router.delete("/allocations/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteAllocationParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(allocationsTable).where(eq(allocationsTable.id, params.data.id));
@@ -61,12 +62,30 @@ router.delete("/allocations/:id", async (req, res): Promise<void> => {
 router.get("/resources/capacity", async (_req, res): Promise<void> => {
   const users = await db.select().from(usersTable);
   const allocations = await db.select().from(allocationsTable);
-  const now = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const nowStr = now.toISOString().slice(0, 10);
+
+  // Calculate current week bounds (Mon–Sun)
+  const dayOfWeek = now.getDay(); // 0 = Sun
+  const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() + diffToMon);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const weekEndStr = weekEnd.toISOString().slice(0, 10);
+
+  // Count holidays this week (affects all users equally for MVP)
+  const holidays = await db.select().from(holidayDatesTable).where(
+    and(gte(holidayDatesTable.date, weekStartStr), lte(holidayDatesTable.date, weekEndStr))
+  );
+  const uniqueHolidayDays = new Set(holidays.map(h => h.date)).size;
+  const holidayHoursThisWeek = uniqueHolidayDays * 8;
 
   const capacity = users.map(u => {
-    const active = allocations.filter(a => a.userId === u.id && a.endDate >= now);
+    const active = allocations.filter(a => a.userId === u.id && a.endDate >= nowStr);
     const allocated = active.reduce((s, a) => s + Number(a.hoursPerWeek), 0);
-    const cap = u.capacity;
+    const cap = Math.max(0, u.capacity - holidayHoursThisWeek);
     const available = Math.max(0, cap - allocated);
     const utilizationPercent = cap > 0 ? Math.min(100, Math.round((allocated / cap) * 100)) : 0;
     return {

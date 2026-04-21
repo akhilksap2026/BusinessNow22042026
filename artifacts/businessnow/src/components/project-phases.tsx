@@ -13,8 +13,10 @@ import {
   useUpdateTask,
   useDeleteTask,
   useListUsers,
+  useListAllocations,
   getListPhasesQueryKey,
-  getListTasksQueryKey
+  getListTasksQueryKey,
+  getListAllocationsQueryKey,
 } from "@workspace/api-client-react";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -47,7 +49,9 @@ const taskSchema = z.object({
   effort: z.coerce.number().min(0).optional(),
   billable: z.boolean(),
   isMilestone: z.boolean(),
+  milestoneType: z.enum(["Payment", "Project", "External"]).optional(),
   phaseId: z.number().nullable(),
+  parentTaskId: z.number().nullable().optional(),
 });
 
 export function ProjectPhases({ projectId }: { projectId: number }) {
@@ -63,6 +67,9 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   });
   
   const { data: users } = useListUsers();
+  const { data: allocations } = useListAllocations({ projectId }, {
+    query: { enabled: !!projectId, queryKey: getListAllocationsQueryKey({ projectId }) }
+  });
 
   const createPhase = useCreatePhase();
   const updatePhase = useUpdatePhase();
@@ -116,7 +123,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
 
   const taskForm = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
-    defaultValues: { name: "", status: "Not Started", priority: "Medium", assigneeIds: [], billable: true, isMilestone: false, phaseId: null },
+    defaultValues: { name: "", status: "Not Started", priority: "Medium", assigneeIds: [], billable: true, isMilestone: false, phaseId: null, parentTaskId: null },
   });
 
   const onAddPhase = async (values: z.infer<typeof phaseSchema>) => {
@@ -133,7 +140,14 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
 
   const onAddTask = async (values: z.infer<typeof taskSchema>) => {
     try {
-      await createTask.mutateAsync({ data: { ...values, projectId, phaseId: values.phaseId ?? undefined, effort: values.effort ?? 0 } });
+      await createTask.mutateAsync({ data: {
+        ...values,
+        projectId,
+        phaseId: values.phaseId ?? undefined,
+        effort: values.effort ?? 0,
+        parentTaskId: values.parentTaskId ?? undefined,
+        milestoneType: values.milestoneType ?? undefined,
+      } as any });
       queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
       setIsAddTaskOpen(false);
       taskForm.reset();
@@ -166,9 +180,9 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
     }
   };
 
-  const openAddTask = (phaseId: number | null) => {
+  const openAddTask = (phaseId: number | null, parentTaskId?: number | null) => {
     setSelectedPhaseId(phaseId);
-    taskForm.reset({ name: "", status: "Not Started", priority: "Medium", assigneeIds: [], billable: true, isMilestone: false, phaseId });
+    taskForm.reset({ name: "", status: "Not Started", priority: "Medium", assigneeIds: [], billable: true, isMilestone: false, phaseId, parentTaskId: parentTaskId ?? null });
     setIsAddTaskOpen(true);
   };
 
@@ -177,51 +191,67 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
     setTaskDetailOpen(true);
   };
 
-  const renderTask = (task: any) => (
-    <div key={task.id} className="flex items-center justify-between py-2 border-b last:border-0 hover:bg-muted/50 px-4 group">
-      <div className="flex items-center gap-4 flex-1">
-        <div className="w-1/3 font-medium cursor-pointer hover:text-indigo-600 hover:underline flex items-center gap-1.5" onClick={() => openTaskDetail(task)}>
-          {task.isMilestone && <Milestone className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />}
-          {task.name}
+  const renderTask = (task: any, depth = 0) => {
+    const subtasks = (tasks || []).filter((t: any) => t.parentTaskId === task.id);
+    return (
+      <div key={task.id}>
+        <div className={`flex items-center justify-between py-2 border-b last:border-0 hover:bg-muted/50 group ${depth > 0 ? "pl-10 pr-4" : "px-4"}`}>
+          <div className="flex items-center gap-4 flex-1">
+            <div className="w-1/3 font-medium cursor-pointer hover:text-indigo-600 hover:underline flex items-center gap-1.5" onClick={() => openTaskDetail(task)}>
+              {depth > 0 && <span className="text-muted-foreground mr-1">↳</span>}
+              {task.isMilestone && <Milestone className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />}
+              <span className={depth > 0 ? "text-sm" : ""}>{task.name}</span>
+              {task.isMilestone && task.milestoneType && (
+                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 text-purple-600 border-purple-300">{task.milestoneType}</Badge>
+              )}
+            </div>
+            {!task.isMilestone && (
+              <div className="w-32 cursor-pointer" onClick={() => handleTaskStatusClick(task)}>
+                <TaskStatusBadge status={task.status} />
+              </div>
+            )}
+            {task.isMilestone && <div className="w-32"><Badge variant="outline" className="text-purple-600">Milestone</Badge></div>}
+            <div className="w-24">
+              <TaskPriorityBadge priority={task.priority} />
+            </div>
+            <div className="w-32 flex -space-x-2">
+              {task.assigneeIds.map((userId: number) => {
+                const user = users?.find(u => u.id === userId);
+                return user ? (
+                  <Avatar key={userId} className="h-6 w-6 border-2 border-background">
+                    <AvatarFallback className="text-[10px]">{user.initials}</AvatarFallback>
+                  </Avatar>
+                ) : null;
+              })}
+            </div>
+            <div className="w-32 text-sm text-muted-foreground flex items-center gap-1">
+              {task.dueDate && <><Calendar className="h-3 w-3"/> {new Date(task.dueDate).toLocaleDateString()}</>}
+            </div>
+            <div className="w-24 text-sm text-right">
+              {!task.isMilestone && (task.effort ? `${task.effort}h` : '-')}
+            </div>
+          </div>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openTaskDetail(task)}>Open Details</DropdownMenuItem>
+                {!task.isMilestone && (
+                  <DropdownMenuItem onClick={() => openAddTask(task.phaseId, task.id)}>Add Sub-task</DropdownMenuItem>
+                )}
+                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteTask(task.id)}>Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        <div className="w-32 cursor-pointer" onClick={() => handleTaskStatusClick(task)}>
-          <TaskStatusBadge status={task.status} />
-        </div>
-        <div className="w-24">
-          <TaskPriorityBadge priority={task.priority} />
-        </div>
-        <div className="w-32 flex -space-x-2">
-          {task.assigneeIds.map((userId: number) => {
-            const user = users?.find(u => u.id === userId);
-            return user ? (
-              <Avatar key={userId} className="h-6 w-6 border-2 border-background">
-                <AvatarFallback className="text-[10px]">{user.initials}</AvatarFallback>
-              </Avatar>
-            ) : null;
-          })}
-        </div>
-        <div className="w-32 text-sm text-muted-foreground flex items-center gap-1">
-          {task.dueDate && <><Calendar className="h-3 w-3"/> {new Date(task.dueDate).toLocaleDateString()}</>}
-        </div>
-        <div className="w-24 text-sm text-right">
-          {task.effort ? `${task.effort}h` : '-'}
-        </div>
+        {subtasks.map((st: any) => renderTask(st, depth + 1))}
       </div>
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => openTaskDetail(task)}>Open Details</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteTask(task.id)}>Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
-  );
+    );
+  };
 
-  const unassignedTasks = tasks?.filter(t => !t.phaseId) || [];
+  const unassignedTasks = (tasks?.filter((t: any) => !t.phaseId && !t.parentTaskId)) || [];
 
   return (
     <div className="space-y-6">
@@ -232,7 +262,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
 
       <div className="space-y-4">
         {phases?.map(phase => {
-          const phaseTasks = tasks?.filter(t => t.phaseId === phase.id) || [];
+          const phaseTasks = (tasks?.filter((t: any) => t.phaseId === phase.id && !t.parentTaskId)) || [];
           return (
             <Collapsible key={phase.id} defaultOpen className="border rounded-md">
               <div className="bg-muted/20 border-b">
@@ -407,22 +437,34 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
               </div>
               <FormField control={taskForm.control} name="assigneeIds" render={() => (
                 <FormItem>
-                  <FormLabel>Assignees</FormLabel>
-                  <div className="border rounded p-2 h-32 overflow-y-auto space-y-2">
-                    {users?.map(user => (
-                      <FormField key={user.id} control={taskForm.control} name="assigneeIds" render={({field}) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox 
-                              checked={field.value?.includes(user.id)} 
-                              onCheckedChange={(checked) => checked ? field.onChange([...field.value, user.id]) : field.onChange(field.value?.filter(id => id !== user.id))}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal text-sm">{user.name}</FormLabel>
-                        </FormItem>
-                      )} />
-                    ))}
+                  <FormLabel>Assignees & Project Roles</FormLabel>
+                  <div className="border rounded p-2 h-36 overflow-y-auto space-y-1.5">
+                    {users?.map(user => {
+                      const alloc = allocations?.find(a => a.userId === user.id);
+                      return (
+                        <FormField key={user.id} control={taskForm.control} name="assigneeIds" render={({field}) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Checkbox 
+                                checked={field.value?.includes(user.id)} 
+                                onCheckedChange={(checked) => checked ? field.onChange([...field.value, user.id]) : field.onChange(field.value?.filter(id => id !== user.id))}
+                              />
+                            </FormControl>
+                            <div className="flex items-center justify-between flex-1">
+                              <FormLabel className="font-normal text-sm cursor-pointer">{user.name}</FormLabel>
+                              {alloc?.role && (
+                                <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium">{alloc.role}</span>
+                              )}
+                              {!alloc && (
+                                <span className="text-[10px] text-muted-foreground">Not allocated</span>
+                              )}
+                            </div>
+                          </FormItem>
+                        )} />
+                      );
+                    })}
                   </div>
+                  <p className="text-[11px] text-muted-foreground">Roles are inherited from project allocations</p>
                 </FormItem>
               )} />
               <div className="flex items-center gap-6">
@@ -434,11 +476,29 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                 )} />
                 <FormField control={taskForm.control} name="isMilestone" render={({field}) => (
                   <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange}/></FormControl>
+                    <FormControl><Checkbox checked={field.value} onCheckedChange={val => { field.onChange(val); if (!val) taskForm.setValue("milestoneType", undefined); }}/></FormControl>
                     <FormLabel className="flex items-center gap-1"><Milestone className="h-3.5 w-3.5 text-purple-500" /> Milestone</FormLabel>
                   </FormItem>
                 )} />
               </div>
+              {taskForm.watch("isMilestone") && (
+                <FormField control={taskForm.control} name="milestoneType" render={({field}) => (
+                  <FormItem>
+                    <FormLabel>Milestone Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select type"/></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="Payment">Payment — triggers invoice on completion</SelectItem>
+                        <SelectItem value="Project">Project — internal project milestone</SelectItem>
+                        <SelectItem value="External">External — client-facing milestone</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
+              )}
+              {taskForm.watch("parentTaskId") != null && (
+                <p className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">Creating as sub-task under parent task</p>
+              )}
               <DialogFooter><Button type="submit" disabled={createTask.isPending}>Add Task</Button></DialogFooter>
             </form>
           </Form>

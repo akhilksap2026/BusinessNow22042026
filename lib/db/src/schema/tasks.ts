@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -16,6 +16,8 @@ export const tasksTable = pgTable("tasks", {
   effort: numeric("effort", { precision: 8, scale: 2 }).notNull().default("0"),
   billable: boolean("billable").notNull().default(true),
   isMilestone: boolean("is_milestone").notNull().default(false),
+  milestoneType: text("milestone_type"),
+  taskRoles: jsonb("task_roles").$type<Record<string, string>>().default({}),
   visibleToClient: boolean("visible_to_client").notNull().default(true),
   approvalStatus: text("approval_status").default("none"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

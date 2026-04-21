@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken } from "@workspace/api-client-react";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge, HealthBadge } from "@/pages/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectPhases } from "@/components/project-phases";
 import { Button } from "@/components/ui/button";
@@ -77,6 +77,8 @@ export default function ProjectDetail() {
   const createResourceRequest = useCreateResourceRequest();
 
   const [shareOpen, setShareOpen] = useState(false);
+  const [taskView, setTaskView] = useState<"list" | "board">("list");
+  const updateTask = useUpdateTask();
 
   const [editProjectOpen, setEditProjectOpen] = useState(false);
   const [editProjectForm, setEditProjectForm] = useState({
@@ -378,12 +380,96 @@ export default function ProjectDetail() {
           
           <TabsContent value="tasks" className="m-0">
             <Card>
-              <CardHeader>
-                <CardTitle>Project Tasks</CardTitle>
-                <CardDescription>All tasks and phases for this project</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Project Tasks</CardTitle>
+                  <CardDescription>All tasks and phases for this project</CardDescription>
+                </div>
+                <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+                  <Button size="sm" variant={taskView === "list" ? "default" : "ghost"} className="h-7 px-2 gap-1.5" onClick={() => setTaskView("list")}>
+                    <LayoutList className="h-3.5 w-3.5" /> List
+                  </Button>
+                  <Button size="sm" variant={taskView === "board" ? "default" : "ghost"} className="h-7 px-2 gap-1.5" onClick={() => setTaskView("board")}>
+                    <Kanban className="h-3.5 w-3.5" /> Board
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <ProjectPhases projectId={projectId} />
+                {taskView === "list" ? (
+                  <ProjectPhases projectId={projectId} />
+                ) : (
+                  <div className="overflow-x-auto pb-4">
+                    <div className="flex gap-4 min-w-max">
+                      {(["Not Started", "In Progress", "Blocked", "Completed"] as const).map(status => {
+                        const colTasks = (tasks || []).filter((t: any) => t.status === status && !t.parentTaskId && !t.isMilestone);
+                        const colors: Record<string, string> = {
+                          "Not Started": "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
+                          "In Progress": "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+                          "Blocked": "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+                          "Completed": "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+                        };
+                        const nextStatus: Record<string, string> = {
+                          "Not Started": "In Progress",
+                          "In Progress": "Completed",
+                          "Blocked": "In Progress",
+                          "Completed": "Not Started",
+                        };
+                        return (
+                          <div key={status} className="w-72 flex-shrink-0">
+                            <div className={`flex items-center justify-between mb-3 px-2 py-1.5 rounded-md ${colors[status]}`}>
+                              <span className="font-semibold text-sm">{status}</span>
+                              <span className="text-xs bg-white/60 dark:bg-black/20 rounded-full px-2 py-0.5 font-medium">{colTasks.length}</span>
+                            </div>
+                            <div className="space-y-2">
+                              {colTasks.map((task: any) => {
+                                const subtaskCount = (tasks || []).filter((t: any) => t.parentTaskId === task.id).length;
+                                const assignees = (task.assigneeIds || []).map((uid: number) => users?.find(u => u.id === uid)).filter(Boolean);
+                                return (
+                                  <div key={task.id} className="bg-card border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+                                    <div className="font-medium text-sm mb-2">{task.name}</div>
+                                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                                      <TaskPriorityBadge priority={task.priority} />
+                                      {subtaskCount > 0 && (
+                                        <span className="text-xs text-muted-foreground">{subtaskCount} sub-task{subtaskCount > 1 ? "s" : ""}</span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <div className="flex -space-x-1.5">
+                                        {assignees.slice(0, 3).map((u: any) => (
+                                          <Avatar key={u.id} className="h-5 w-5 border border-background">
+                                            <AvatarFallback className="text-[9px]">{u.initials}</AvatarFallback>
+                                          </Avatar>
+                                        ))}
+                                      </div>
+                                      <button
+                                        className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground underline"
+                                        onClick={() => {
+                                          updateTask.mutate({ id: task.id, data: { status: nextStatus[status] as any } });
+                                          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+                                        }}
+                                      >
+                                        → {nextStatus[status]}
+                                      </button>
+                                    </div>
+                                    {task.dueDate && (
+                                      <div className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-0.5">
+                                        <Calendar className="h-2.5 w-2.5" />
+                                        {new Date(task.dueDate).toLocaleDateString()}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {colTasks.length === 0 && (
+                                <div className="border border-dashed rounded-lg p-4 text-center text-xs text-muted-foreground">No tasks</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
