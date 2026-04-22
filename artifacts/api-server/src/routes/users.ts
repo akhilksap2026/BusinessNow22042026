@@ -57,4 +57,12 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   res.json(UpdateUserResponse.parse(mapUser(row)));
 });
 
+router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {
+  const params = UpdateUserParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [row] = await db.delete(usersTable).where(eq(usersTable.id, params.data.id)).returning();
+  if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  res.status(204).end();
+});
+
 export default router;

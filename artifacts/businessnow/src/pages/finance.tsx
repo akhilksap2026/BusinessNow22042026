@@ -6,7 +6,7 @@ import {
   useListRevenueEntries, useCreateRevenueEntry, useDeleteRevenueEntry, useGetRevenueByPeriodReport, getListRevenueEntriesQueryKey,
   useUpdateInvoice,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight } from "lucide-react";
+import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,44 @@ export default function Finance() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterProjectId, setFilterProjectId] = useState<number | undefined>();
   const [invoiceSearch, setInvoiceSearch] = useState("");
+  const [editInvoice, setEditInvoice] = useState<any>(null);
+  const [invoiceEditForm, setInvoiceEditForm] = useState({ description: "", amount: "", dueDate: "", status: "" });
+  const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
+
+  const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+  const deleteInvoiceMut = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`${BASE}/api/invoices/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      if (!r.ok && r.status !== 204) throw new Error("Failed to delete invoice");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey() });
+      toast({ title: "Invoice deleted" });
+      setDeleteInvoiceId(null);
+      if (selectedInvoice?.id === deleteInvoiceId) setSelectedInvoice(null);
+    },
+    onError: () => toast({ title: "Failed to delete invoice", variant: "destructive" }),
+  });
+
+  async function handleEditInvoiceSave() {
+    if (!editInvoice) return;
+    try {
+      await updateInvoice.mutateAsync({
+        id: editInvoice.id,
+        data: {
+          description: invoiceEditForm.description || undefined,
+          amount: invoiceEditForm.amount ? parseFloat(invoiceEditForm.amount) : undefined,
+          dueDate: invoiceEditForm.dueDate || undefined,
+          status: (invoiceEditForm.status || undefined) as any,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey() });
+      toast({ title: "Invoice updated" });
+      setEditInvoice(null);
+    } catch {
+      toast({ title: "Failed to update invoice", variant: "destructive" });
+    }
+  }
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [deleteScheduleId, setDeleteScheduleId] = useState<number | null>(null);
   const [isRevenueOpen, setIsRevenueOpen] = useState(false);
@@ -329,6 +367,9 @@ export default function Finance() {
                                           </DropdownMenuTrigger>
                                           <DropdownMenuContent align="end">
                                             <DropdownMenuItem onClick={() => setSelectedInvoice(invoice)}>View Details</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={e => { e.stopPropagation(); setInvoiceEditForm({ description: invoice.description ?? "", amount: String(invoice.amount), dueDate: invoice.dueDate ?? "", status: invoice.status }); setEditInvoice(invoice); }}>
+                                              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
+                                            </DropdownMenuItem>
                                             {nextStatus && (
                                               <>
                                                 <DropdownMenuSeparator />
@@ -337,6 +378,10 @@ export default function Finance() {
                                                 </DropdownMenuItem>
                                               </>
                                             )}
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-red-600" onClick={e => { e.stopPropagation(); setDeleteInvoiceId(invoice.id); }}>
+                                              <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete
+                                            </DropdownMenuItem>
                                           </DropdownMenuContent>
                                         </DropdownMenu>
                                       </TableCell>
@@ -690,6 +735,54 @@ export default function Finance() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteRevenueId(null)}>Cancel</Button>
               <Button variant="destructive" onClick={() => deleteRevenueId && handleDeleteRevenue(deleteRevenueId)} disabled={deleteRevenue.isPending}>Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editInvoice} onOpenChange={o => !o && setEditInvoice(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Invoice — {editInvoice?.id}</DialogTitle>
+              <DialogDescription>Update the invoice details below.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label>Description</Label>
+                <Input value={invoiceEditForm.description} onChange={e => setInvoiceEditForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Amount ($)</Label>
+                  <Input type="number" step="0.01" value={invoiceEditForm.amount} onChange={e => setInvoiceEditForm(f => ({ ...f, amount: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Due Date</Label>
+                  <Input type="date" value={invoiceEditForm.dueDate} onChange={e => setInvoiceEditForm(f => ({ ...f, dueDate: e.target.value }))} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={invoiceEditForm.status} onChange={e => setInvoiceEditForm(f => ({ ...f, status: e.target.value }))}>
+                  {["Draft","In Review","Approved","Paid","Overdue"].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditInvoice(null)}>Cancel</Button>
+              <Button onClick={handleEditInvoiceSave} disabled={updateInvoice.isPending}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!deleteInvoiceId} onOpenChange={o => !o && setDeleteInvoiceId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Invoice</DialogTitle>
+              <DialogDescription>Permanently delete invoice <strong>{deleteInvoiceId}</strong>? This cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteInvoiceId(null)}>Cancel</Button>
+              <Button variant="destructive" disabled={deleteInvoiceMut.isPending} onClick={() => deleteInvoiceId && deleteInvoiceMut.mutate(deleteInvoiceId)}>Delete</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

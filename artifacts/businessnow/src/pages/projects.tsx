@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useListProjects, useDeleteProject } from "@workspace/api-client-react";
+import { useListProjects, useDeleteProject, useListUsers } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,7 @@ function InternalExternalBadge({ value }: { value: string | null }) {
 
 export default function Projects() {
   const { data: projects, isLoading } = useListProjects();
+  const { data: users } = useListUsers();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
@@ -198,7 +199,7 @@ export default function Projects() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">{project.accountId}</TableCell>
                       <TableCell className="whitespace-nowrap">{(project as any).companyName ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">{users?.find(u => u.id === project.ownerId)?.name ?? "—"}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-muted-foreground">{project.description ?? "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{trackedMin.toLocaleString()}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>

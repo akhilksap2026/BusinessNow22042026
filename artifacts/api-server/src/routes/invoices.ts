@@ -86,6 +86,13 @@ router.patch("/invoices/:id", requireFinance, async (req, res): Promise<void> =>
   res.json(UpdateInvoiceResponse.parse(mapInvoice(row)));
 });
 
+router.delete("/invoices/:id", requireFinance, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const [row] = await db.delete(invoicesTable).where(eq(invoicesTable.id, raw)).returning();
+  if (!row) { res.status(404).json({ error: "Invoice not found" }); return; }
+  res.status(204).end();
+});
+
 // Generate a draft invoice from an approved timesheet
 router.post("/invoices/from-timesheet/:id", requireFinance, async (req, res): Promise<void> => {
   const timesheetId = parseInt(req.params.id, 10);

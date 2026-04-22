@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { 
   useListTimeEntries, 
@@ -41,6 +41,29 @@ const logTimeSchema = z.object({
 
 export function TimesheetGrid({ userId }: { userId: number }) {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [initialised, setInitialised] = useState(false);
+
+  const { data: allUserTimesheets } = useListTimesheets({ userId }, {
+    query: { queryKey: getListTimesheetsQueryKey({ userId }) }
+  });
+  const { data: allUserEntries } = useListTimeEntries({ userId }, {
+    query: { queryKey: getListTimeEntriesQueryKey({ userId }) }
+  });
+
+  useEffect(() => {
+    if (initialised) return;
+    let latestDate: string | null = null;
+    if (allUserTimesheets && allUserTimesheets.length > 0) {
+      const sorted = [...allUserTimesheets].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+      latestDate = sorted[0].weekStart;
+    } else if (allUserEntries && allUserEntries.length > 0) {
+      const sorted = [...allUserEntries].sort((a, b) => b.date.localeCompare(a.date));
+      latestDate = sorted[0].date;
+    }
+    if (!latestDate) return;
+    setCurrentWeekStart(startOfWeek(parseISO(latestDate), { weekStartsOn: 1 }));
+    setInitialised(true);
+  }, [allUserTimesheets, allUserEntries, initialised]);
   const [isLogTimeOpen, setIsLogTimeOpen] = useState(false);
   const [rejectTimesheetId, setRejectTimesheetId] = useState<number | null>(null);
   const [rejectNote, setRejectNote] = useState("");

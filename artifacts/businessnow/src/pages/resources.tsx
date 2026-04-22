@@ -16,10 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 function PriorityBadge({ priority }: { priority: string }) {
@@ -91,6 +92,8 @@ export default function Resources() {
 
   const getProject = (id: number) => projects?.find(p => p.id === id);
   const getUser = (id: number) => users?.find(u => u.id === id);
+
+  const [profileUser, setProfileUser] = useState<any>(null);
 
   const pendingRequests = requests?.filter(r => r.status === "Pending") ?? [];
   const allRequests = requests ?? [];
@@ -221,7 +224,7 @@ export default function Resources() {
                         const isOverallocated = user.utilizationPercent > 100;
                         const isUnderutilized = user.utilizationPercent < 50;
                         return (
-                          <TableRow key={user.userId}>
+                          <TableRow key={user.userId} className="cursor-pointer hover:bg-muted/50" onClick={() => setProfileUser(user)}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-8 w-8"><AvatarFallback>{user.userInitials}</AvatarFallback></Avatar>
@@ -370,6 +373,69 @@ export default function Resources() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!profileUser} onOpenChange={o => !o && setProfileUser(null)}>
+        <SheetContent className="w-[400px] sm:w-[480px] overflow-y-auto">
+          {profileUser && (() => {
+            const fullUser = users?.find(u => u.id === profileUser.userId);
+            const isOverallocated = profileUser.utilizationPercent > 100;
+            const isUnderutilized = profileUser.utilizationPercent < 50;
+            return (
+              <div className="space-y-6">
+                <SheetHeader>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-14 w-14">
+                      <AvatarFallback className="text-lg">{profileUser.userInitials}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <SheetTitle className="text-xl">{profileUser.userName}</SheetTitle>
+                      <p className="text-sm text-muted-foreground">{profileUser.role}</p>
+                      <p className="text-xs text-muted-foreground">{profileUser.department}</p>
+                    </div>
+                  </div>
+                </SheetHeader>
+
+                {fullUser?.email && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4 shrink-0" />
+                    <span>{fullUser.email}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-lg border p-3 text-center">
+                    <div className="text-2xl font-bold">{profileUser.capacity}h</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Weekly Capacity</div>
+                  </div>
+                  <div className={`rounded-lg border p-3 text-center ${isOverallocated ? "border-red-200 bg-red-50 dark:bg-red-950/20" : isUnderutilized ? "border-amber-200 bg-amber-50 dark:bg-amber-950/20" : "border-green-200 bg-green-50 dark:bg-green-950/20"}`}>
+                    <div className={`text-2xl font-bold ${isOverallocated ? "text-red-600" : isUnderutilized ? "text-amber-600" : "text-green-600"}`}>{profileUser.utilizationPercent}%</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Utilization</div>
+                  </div>
+                  <div className={`rounded-lg border p-3 text-center ${profileUser.available < 0 ? "border-red-200 bg-red-50 dark:bg-red-950/20" : ""}`}>
+                    <div className={`text-2xl font-bold ${profileUser.available < 0 ? "text-red-600" : "text-green-600"}`}>{profileUser.available > 0 ? `+${profileUser.available}` : profileUser.available}h</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Available</div>
+                  </div>
+                </div>
+
+                {fullUser?.costRate !== undefined && (
+                  <div className="flex items-center gap-2 rounded-lg border p-3">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="text-sm font-medium">${fullUser.costRate}/hr</div>
+                      <div className="text-xs text-muted-foreground">Internal cost rate</div>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Skills</h3>
+                  <UserSkillsCell userId={profileUser.userId} />
+                </div>
+              </div>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
     </Layout>
   );
 }

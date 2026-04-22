@@ -3,6 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import {
   useListUsers,
+  useCreateUser,
+  useUpdateUser,
+  getListUsersQueryKey,
   useGetUserSkills,
   useAddUserSkill,
   useRemoveUserSkill,
@@ -62,7 +65,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: number; userName: string; allSkills: { id: number; name: string; categoryId: number }[]; onClose: () => void }) {
@@ -157,6 +161,56 @@ export default function Admin() {
   const deleteCategory = useDeleteSkillCategory();
   const createSkill = useCreateSkill();
   const deleteSkill = useDeleteSkill();
+  const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+
+  const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+  const deleteUserMut = useMutation({
+    mutationFn: async (id: number) => {
+      const r = await fetch(`${BASE}/api/users/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      if (!r.ok && r.status !== 204) throw new Error("Failed to delete user");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+      toast({ title: "User deleted" });
+      setUserDeleteId(null);
+    },
+    onError: () => toast({ title: "Failed to delete user", variant: "destructive" }),
+  });
+
+  const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [editUser, setEditUser] = useState<any>(null);
+  const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
+  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", capacity: "40", costRate: "0" });
+
+  function openAddUser() {
+    setEditUser(null);
+    setUserForm({ name: "", email: "", role: "", department: "", capacity: "40", costRate: "0" });
+    setUserDialogOpen(true);
+  }
+
+  function openEditUser(u: any) {
+    setEditUser(u);
+    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0) });
+    setUserDialogOpen(true);
+  }
+
+  async function handleSaveUser() {
+    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate) };
+    try {
+      if (editUser) {
+        await updateUser.mutateAsync({ id: editUser.id, data: payload });
+        toast({ title: "User updated" });
+      } else {
+        await createUser.mutateAsync({ data: payload });
+        toast({ title: "User added" });
+      }
+      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+      setUserDialogOpen(false);
+    } catch {
+      toast({ title: editUser ? "Failed to update user" : "Failed to add user", variant: "destructive" });
+    }
+  }
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogId, setDeleteDialogId] = useState<number | null>(null);
@@ -245,7 +299,6 @@ export default function Admin() {
   const [companyForm, setCompanyForm] = useState({ name: "", address: "", timezone: "", currency: "", fiscalYearStart: "", website: "", phone: "" });
   const [companyFormDirty, setCompanyFormDirty] = useState(false);
 
-  const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
   const { data: companySettings, refetch: refetchCompany } = useQuery({
     queryKey: ["company-settings"],
     queryFn: async () => {
@@ -625,7 +678,7 @@ export default function Admin() {
                   <CardTitle>User Management</CardTitle>
                   <CardDescription>Manage team members, roles, and permissions</CardDescription>
                 </div>
-                <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Add User</Button>
+                <Button size="sm" onClick={openAddUser}><Plus className="h-4 w-4 mr-2" /> Add User</Button>
               </CardHeader>
               <CardContent>
                 {isLoadingUsers ? (
@@ -656,9 +709,25 @@ export default function Admin() {
                           <TableCell>{user.department}</TableCell>
                           <TableCell className="text-right">${user.costRate}/hr</TableCell>
                           <TableCell>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setSkillsUser({ id: user.id, name: user.name })}>
-                              <Star className="h-3.5 w-3.5 mr-1" /> Skills
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setSkillsUser({ id: user.id, name: user.name })}>
+                                <Star className="h-3.5 w-3.5 mr-1" /> Skills
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => openEditUser(user)}>
+                                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-red-600" onClick={() => setUserDeleteId(user.id)}>
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1769,6 +1838,64 @@ export default function Admin() {
           onClose={() => setSkillsUser(null)}
         />
       )}
+
+      <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editUser ? "Edit User" : "Add User"}</DialogTitle>
+            <DialogDescription>{editUser ? "Update team member details." : "Add a new team member to KSAP Technology."}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>Name</Label>
+              <Input value={userForm.name} onChange={e => setUserForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" />
+            </div>
+            <div className="space-y-1">
+              <Label>Email</Label>
+              <Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} placeholder="name@ksap.tech" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Role</Label>
+                <Input value={userForm.role} onChange={e => setUserForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Consultant" />
+              </div>
+              <div className="space-y-1">
+                <Label>Department</Label>
+                <Input value={userForm.department} onChange={e => setUserForm(f => ({ ...f, department: e.target.value }))} placeholder="e.g. Engineering" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Weekly Capacity (hrs)</Label>
+                <Input type="number" value={userForm.capacity} onChange={e => setUserForm(f => ({ ...f, capacity: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>Cost Rate ($/hr)</Label>
+                <Input type="number" value={userForm.costRate} onChange={e => setUserForm(f => ({ ...f, costRate: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveUser} disabled={createUser.isPending || updateUser.isPending || !userForm.name || !userForm.email}>
+              {editUser ? "Save Changes" : "Add User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!userDeleteId} onOpenChange={o => !o && setUserDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>This will permanently remove the team member. Time entries and assignments will remain. Are you sure?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" disabled={deleteUserMut.isPending} onClick={() => userDeleteId && deleteUserMut.mutate(userDeleteId)}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

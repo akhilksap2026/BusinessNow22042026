@@ -105,6 +105,14 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - T004: Reports — year filter dropdowns in Revenue and Utilization tabs; auto-populated from data months; filters `byMonth` arrays by selected year prefix (YYYY-MM format)
 - T005: Account detail sheet Opportunities and Projects items wrapped in `<Link>` with hover states for navigation
 
+### P2 Tier 2 Feature Completions
+- **P2-A/B Admin Users CRUD** — `+ Add User` button opens a dialog (name, email, role, dept, capacity, costRate). Each user row now has a `⋮` dropdown with Edit (pre-fills form) and Delete (confirm dialog). Both call backend `POST /api/users`, `PATCH /api/users/:id`, `DELETE /api/users/:id`. The ★ Skills button remains alongside the new ⋮.
+- **P2-C Invoice edit/delete** — Invoice `⋮` dropdown now has two new items: **Edit** (opens dialog for description, amount, dueDate, status via `PATCH /api/invoices/:id`) and **Delete** (confirm dialog → `DELETE /api/invoices/:id`). Both backend routes added (`DELETE` was missing).
+- **P2-D Projects Account Owner** — `useListUsers` added to projects.tsx; "Account Owner" column now resolves `ownerId → user.name` (was showing "—" for all rows).
+- **P2-E Resources profile side-sheet** — Team member rows in Capacity tab are now clickable. Opens a `<Sheet>` with avatar, name, role, dept, email, three stat cards (capacity/utilization/available), cost rate, and skills via the existing `UserSkillsCell` component.
+- **P2-F Timesheet last active week** — `TimesheetGrid` now auto-navigates to the last week with data on mount. Checks timesheets first (latest `weekStart`), then falls back to the latest time entry date if no timesheets exist. User 1 (Ops Leader) has entries through 2025-04-07, so the grid opens at "Apr 7 – Apr 13, 2025".
+- **Backend DELETE routes added** — `DELETE /api/users/:id` (requireAdmin), `DELETE /api/invoices/:id` (requireFinance). Raw `fetch()` calls include `x-user-role: Admin` header to match the RBAC middleware.
+
 ### P1 UX Gap Closure (Quick Wins)
 - **P1-A Logout button** — Sidebar user chip (bottom of sidebar) is now a `<DropdownMenu>`. Shows user name + email header, then a red "Log Out" item that reloads the app. `ChevronDown` arrow appears on hover. Wired to `window.location.href = "/"` (ready for real auth swap)
 - **P1-B Notification links** — Bell popover rows and `/notifications` page rows are now clickable. Navigates to project (`/projects/:id`), finance (`/finance`), or time (`/time`) based on notification type + `projectId`. Marks read automatically on click. Added `notificationLink()` helper shared by both `layout.tsx` and `notifications.tsx`
