@@ -31,4 +31,11 @@ router.patch("/notifications/:id/read", async (req, res): Promise<void> => {
   res.json(MarkNotificationReadResponse.parse(mapNotification(row)));
 });
 
+router.delete("/notifications/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid notification id" }); return; }
+  await db.delete(notificationsTable).where(eq(notificationsTable.id, id));
+  res.status(204).send();
+});
+
 export default router;

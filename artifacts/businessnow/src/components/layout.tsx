@@ -1,9 +1,16 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard,
   Briefcase,
@@ -17,11 +24,16 @@ import {
   Menu,
   UserSearch,
   TrendingUp,
+  LogOut,
+  X,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -46,18 +58,42 @@ function timeAgo(date: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function notificationLink(n: { projectId?: number | null; type: string }): string | null {
+  if (n.projectId) return `/projects/${n.projectId}`;
+  if (n.type === "invoice_paid" || n.type === "invoice_overdue") return "/finance";
+  if (n.type === "timesheet_reminder") return "/time";
+  return null;
+}
+
 export function Layout({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { data: notifications } = useListNotifications();
   const markRead = useMarkNotificationRead();
   const unreadCount = notifications?.filter(n => !n.read).length ?? 0;
   const recentNotifs = notifications?.slice(0, 6) ?? [];
 
+  const dismissNotification = useMutation({
+    mutationFn: async (id: number) => {
+      await fetch(`${BASE}/api/notifications/${id}`, { method: "DELETE" });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() }),
+  });
+
   async function markAllRead() {
     const unread = notifications?.filter(n => !n.read) ?? [];
     await Promise.all(unread.map(n => markRead.mutateAsync({ id: n.id })));
     queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
+  }
+
+  function handleNotifClick(n: { id: number; read: boolean; projectId?: number | null; type: string }) {
+    if (!n.read) markRead.mutateAsync({ id: n.id }).then(() => queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() }));
+    const link = notificationLink(n);
+    if (link) navigate(link);
+  }
+
+  function handleLogout() {
+    window.location.href = "/";
   }
 
   const NavLinks = () => (
@@ -145,13 +181,25 @@ export function Layout({ children }: { children: ReactNode }) {
                   <div className="text-center py-8 text-muted-foreground text-sm">No notifications</div>
                 ) : (
                   recentNotifs.map(n => (
-                    <div key={n.id} className={`flex gap-3 px-4 py-3 border-b last:border-0 text-sm cursor-pointer hover:bg-muted/50 ${!n.read ? "bg-blue-50/60 dark:bg-blue-950/20" : ""}`}
-                      onClick={() => { if (!n.read) markRead.mutateAsync({ id: n.id }).then(() => queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() })); }}>
+                    <div
+                      key={n.id}
+                      className={`group flex gap-3 px-4 py-3 border-b last:border-0 text-sm cursor-pointer hover:bg-muted/50 ${!n.read ? "bg-blue-50/60 dark:bg-blue-950/20" : ""}`}
+                      onClick={() => handleNotifClick(n)}
+                    >
                       <div className="flex-1 min-w-0">
                         <p className={`truncate ${!n.read ? "font-medium" : "text-muted-foreground"}`}>{n.message}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{timeAgo(n.timestamp as unknown as string)}</p>
                       </div>
-                      {!n.read && <div className="mt-1.5 h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />}
+                      <div className="flex items-start gap-1 flex-shrink-0 mt-0.5">
+                        {!n.read && <div className="mt-1 h-2 w-2 rounded-full bg-blue-500" />}
+                        <button
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-4 w-4 flex items-center justify-center text-muted-foreground hover:text-red-500 rounded"
+                          onClick={e => { e.stopPropagation(); dismissNotification.mutate(n.id); }}
+                          title="Dismiss"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -167,17 +215,38 @@ export function Layout({ children }: { children: ReactNode }) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <NavLinks />
         </nav>
+
+        {/* User chip with logout */}
         <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3 px-3 py-2">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-primary/10 text-primary">OP</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">Ops Leader</span>
-              <span className="text-xs text-muted-foreground">Admin</span>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 px-3 py-2 w-full rounded-md hover:bg-muted transition-colors text-left group">
+                <Avatar className="h-9 w-9 flex-shrink-0">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-primary/10 text-primary">OP</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <span className="text-sm font-medium truncate">Ops Leader</span>
+                  <span className="text-xs text-muted-foreground">Admin</span>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-52 mb-1">
+              <div className="px-3 py-2">
+                <p className="text-sm font-medium">Ops Leader</p>
+                <p className="text-xs text-muted-foreground">admin@ksap.tech</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600 cursor-pointer gap-2"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Log Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 

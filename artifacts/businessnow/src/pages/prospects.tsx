@@ -6,6 +6,7 @@ import {
   updateProspect,
   deleteProspect,
   convertProspect,
+  useListAccounts,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,9 +47,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Search, UserCheck } from "lucide-react";
+import { MoreHorizontal, Plus, Search, UserCheck, ExternalLink } from "lucide-react";
 import { Prospect } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
+import { Link } from "wouter";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-slate-100 text-slate-700",
@@ -83,6 +85,7 @@ export default function ProspectsPage() {
     queryKey: ["prospects", filterStatus],
     queryFn: () => listProspects({ status: filterStatus === "all" ? undefined : filterStatus }),
   });
+  const { data: accounts = [] } = useListAccounts();
 
   const createMut = useMutation({
     mutationFn: () => createProspect({
@@ -219,6 +222,13 @@ export default function ProspectsPage() {
                           Convert to Customer
                         </DropdownMenuItem>
                       )}
+                      {p.status === "Converted" && p.convertedAccountId && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/accounts" className="flex items-center gap-1.5">
+                            <ExternalLink className="h-3.5 w-3.5" /> View Account
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem className="text-red-600" onClick={() => deleteMut.mutate(p.id)}>Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -251,6 +261,23 @@ export default function ProspectsPage() {
                     </Button>
                   )}
                 </div>
+
+                {selected.status === "Converted" && selected.convertedAccountId && (() => {
+                  const acct = accounts.find(a => a.id === selected.convertedAccountId);
+                  return (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">
+                      <div>
+                        <p className="text-xs text-green-700 font-medium uppercase tracking-wide">Converted Account</p>
+                        <p className="text-sm font-semibold text-green-900 mt-0.5">{acct?.name ?? `Account #${selected.convertedAccountId}`}</p>
+                      </div>
+                      <Link href="/accounts">
+                        <Button size="sm" variant="outline" className="gap-1.5 border-green-300 text-green-700 hover:bg-green-100">
+                          <ExternalLink className="h-3.5 w-3.5" /> View Account
+                        </Button>
+                      </Link>
+                    </div>
+                  );
+                })()}
 
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div><p className="text-xs text-slate-500">Contact</p><p className="text-sm font-medium">{selected.contactName ?? "—"}</p></div>

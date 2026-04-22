@@ -105,6 +105,13 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - T004: Reports — year filter dropdowns in Revenue and Utilization tabs; auto-populated from data months; filters `byMonth` arrays by selected year prefix (YYYY-MM format)
 - T005: Account detail sheet Opportunities and Projects items wrapped in `<Link>` with hover states for navigation
 
+### P1 UX Gap Closure (Quick Wins)
+- **P1-A Logout button** — Sidebar user chip (bottom of sidebar) is now a `<DropdownMenu>`. Shows user name + email header, then a red "Log Out" item that reloads the app. `ChevronDown` arrow appears on hover. Wired to `window.location.href = "/"` (ready for real auth swap)
+- **P1-B Notification links** — Bell popover rows and `/notifications` page rows are now clickable. Navigates to project (`/projects/:id`), finance (`/finance`), or time (`/time`) based on notification type + `projectId`. Marks read automatically on click. Added `notificationLink()` helper shared by both `layout.tsx` and `notifications.tsx`
+- **P1-C Dismiss notifications** — `DELETE /api/notifications/:id` added to backend. Bell popover rows show a `✕` button on hover that dismisses instantly. Notifications page rows show a `✕` dismiss button on hover. Added "Clear read (N)" bulk button at the top of `/notifications` page
+- **P1-D Converted prospect → account link** — `useListAccounts` added to prospects page. Dropdown `⋮` menu for Converted rows now has "View Account →" item. Detail sheet shows a green card "Converted Account" with the resolved account name + "View Account" button linking to `/accounts`
+- **P1-E (already done)** — Time-off delete (trash icon per row) was already wired via `useDeleteTimeOffRequest`
+
 ### E2E Bug Fixes (Post-Seed Audit)
 - **time.tsx timer crash** — `<SelectItem value="">None</SelectItem>` in Log Time category dropdown caused Radix to throw on empty string; replaced sentinel `"__none"` throughout initial state, SelectItem value, submission guard (`!== "__none"`), and form reset
 - **Revenue report blank chart** — `reports.ts /reports/revenue` was limited to rolling 6-month window; expanded to 24 months so seeded Dec 2024–Apr 2025 invoices appear
