@@ -4,23 +4,27 @@ import {
   useListTimeEntries, useGetTimeEntrySummary, useListProjects, useListUsers,
   useListTimeOffRequests, useCreateTimeOffRequest, useUpdateTimeOffRequestStatus, useDeleteTimeOffRequest,
   useUpdateTimeEntry, useDeleteTimeEntry, useCreateTimeEntry, useListTimeCategories,
-  getListTimeOffRequestsQueryKey, getListTimeEntriesQueryKey,
+  useListTimesheets, useApproveTimesheet, useRejectTimesheet,
+  getListTimeOffRequestsQueryKey, getListTimeEntriesQueryKey, getListTimesheetsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { addDays, format, startOfWeek } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle } from "lucide-react";
+import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimesheetGrid } from "@/components/timesheet-grid";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const CURRENT_USER_ID = 1;
 
@@ -160,6 +164,58 @@ export default function TimeTracking() {
 
   const pendingTimeOff = timeOffRequests?.filter(r => r.status === "Pending") ?? [];
 
+  // ── Approvals tab state ──────────────────────────────────────────────────
+  const [approvalWeek, setApprovalWeek] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const approvalWeekStr = format(approvalWeek, "yyyy-MM-dd");
+  const approvalWeekEndStr = format(addDays(approvalWeek, 6), "yyyy-MM-dd");
+  const { data: allWeekTimesheets, isLoading: isLoadingApprovalTs } = useListTimesheets({ weekStart: approvalWeekStr });
+  const { data: allWeekEntries } = useListTimeEntries({ startDate: approvalWeekStr, endDate: approvalWeekEndStr });
+  const approveTs = useApproveTimesheet();
+  const rejectTs = useRejectTimesheet();
+  const [approvalRejectId, setApprovalRejectId] = useState<number | null>(null);
+  const [approvalRejectNote, setApprovalRejectNote] = useState("");
+  const [detailUserId, setDetailUserId] = useState<number | null>(null);
+
+  const submittedCount = allWeekTimesheets?.filter(t => t.status === "Submitted").length ?? 0;
+
+  const userApprovalRows = (users ?? []).map(user => {
+    const ts = allWeekTimesheets?.find(t => t.userId === user.id);
+    const entries = allWeekEntries?.filter(e => e.userId === user.id) ?? [];
+    const totalHours = ts ? ts.totalHours : entries.reduce((s, e) => s + e.hours, 0);
+    const billableHours = ts ? ts.billableHours : entries.filter(e => e.billable).reduce((s, e) => s + e.hours, 0);
+    const billablePct = totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0;
+    const capacity = (user as any).capacity ?? 40;
+    const utilPct = capacity > 0 ? Math.round((totalHours / capacity) * 100) : 0;
+    const status = ts?.status ?? (entries.length > 0 ? "Draft" : "Not Submitted");
+    return { user, ts, totalHours, billableHours, billablePct, capacity, utilPct, status };
+  });
+
+  async function handleApprovalsApprove(tsId: number) {
+    try {
+      await approveTs.mutateAsync({ id: tsId, data: {} });
+      queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
+      toast({ title: "Timesheet approved" });
+    } catch {
+      toast({ title: "Failed to approve", variant: "destructive" });
+    }
+  }
+
+  async function handleApprovalsReject() {
+    if (!approvalRejectId) return;
+    try {
+      await rejectTs.mutateAsync({ id: approvalRejectId, data: { rejectionNote: approvalRejectNote } });
+      queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
+      setApprovalRejectId(null);
+      setApprovalRejectNote("");
+      toast({ title: "Timesheet rejected" });
+    } catch {
+      toast({ title: "Failed to reject", variant: "destructive" });
+    }
+  }
+
+  const detailUser = users?.find(u => u.id === detailUserId);
+  const detailEntries = allWeekEntries?.filter(e => e.userId === detailUserId) ?? [];
+
   async function handleRequestTimeOff() {
     if (!form.startDate || !form.endDate) return;
     try {
@@ -267,6 +323,14 @@ export default function TimeTracking() {
         <Tabs defaultValue="timesheet" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="timesheet">Timesheet</TabsTrigger>
+            <TabsTrigger value="approvals" className="flex items-center gap-2">
+              <UserCheck className="h-3.5 w-3.5" /> Approvals
+              {submittedCount > 0 && (
+                <span className="ml-1 bg-indigo-500 text-white rounded-full text-xs px-1.5 py-0.5 leading-none">
+                  {submittedCount}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="entries">Time Entries</TabsTrigger>
             <TabsTrigger value="by-project">By Project</TabsTrigger>
             <TabsTrigger value="by-user">By User</TabsTrigger>
@@ -282,6 +346,132 @@ export default function TimeTracking() {
 
           <TabsContent value="timesheet" className="m-0">
             <TimesheetGrid userId={1} />
+          </TabsContent>
+
+          <TabsContent value="approvals" className="m-0">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Team Approvals</CardTitle>
+                    <CardDescription>Review and approve team timesheets for the selected week</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setApprovalWeek(addDays(approvalWeek, -7))}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium min-w-[190px] text-center">
+                      {format(approvalWeek, "MMM d")} – {format(addDays(approvalWeek, 6), "MMM d, yyyy")}
+                    </span>
+                    <Button variant="outline" size="icon" onClick={() => setApprovalWeek(addDays(approvalWeek, 7))}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingApprovalTs ? (
+                  <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Team Member</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Hours</TableHead>
+                        <TableHead className="text-right">Capacity</TableHead>
+                        <TableHead className="text-right">Utilization</TableHead>
+                        <TableHead className="text-right">Billable %</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userApprovalRows.map(({ user, ts, totalHours, billablePct, capacity, utilPct, status }) => {
+                        const statusMap: Record<string, { label: string; cls: string }> = {
+                          "Not Submitted": { label: "Not Submitted", cls: "bg-gray-100 text-gray-600 border-gray-200" },
+                          Draft: { label: "Draft", cls: "bg-gray-100 text-gray-600 border-gray-200" },
+                          Submitted: { label: "Submitted", cls: "bg-amber-100 text-amber-700 border-amber-200" },
+                          Approved: { label: "Approved", cls: "bg-green-100 text-green-700 border-green-200" },
+                          Rejected: { label: "Rejected", cls: "bg-red-100 text-red-700 border-red-200" },
+                        };
+                        const s = statusMap[status] ?? statusMap["Not Submitted"];
+                        return (
+                          <TableRow key={user.id} className="hover:bg-muted/10">
+                            <TableCell>
+                              <button
+                                className="flex items-center gap-2 text-left hover:text-indigo-600 transition-colors group"
+                                onClick={() => setDetailUserId(user.id)}
+                              >
+                                <span className="h-7 w-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">
+                                  {user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                                </span>
+                                <span className="font-medium text-sm group-hover:underline">{user.name}</span>
+                              </button>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{(user as any).department ?? "—"}</TableCell>
+                            <TableCell>
+                              <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold border", s.cls)}>{s.label}</span>
+                            </TableCell>
+                            <TableCell className="text-right font-medium text-sm">{totalHours > 0 ? `${totalHours}h` : "—"}</TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">{capacity}h</TableCell>
+                            <TableCell className="text-right">
+                              <span className={cn("text-sm font-medium", utilPct >= 80 ? "text-green-600" : utilPct >= 50 ? "text-amber-600" : "text-red-500")}>
+                                {totalHours > 0 ? `${utilPct}%` : "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right text-sm font-medium">{totalHours > 0 ? `${billablePct}%` : "—"}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  title="View timesheet"
+                                  onClick={() => setDetailUserId(user.id)}
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                                {status === "Not Submitted" || status === "Draft" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2 text-xs text-muted-foreground hover:text-amber-600"
+                                    onClick={() => toast({ title: `Reminder sent to ${user.name}`, description: "They'll be notified to submit their timesheet." })}
+                                  >
+                                    <Bell className="h-3 w-3 mr-1" /> Remind
+                                  </Button>
+                                ) : null}
+                                {status === "Submitted" && ts && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2 text-xs border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                      onClick={() => setApprovalRejectId(ts.id)}
+                                    >
+                                      Reject
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      disabled={approveTs.isPending}
+                                      onClick={() => handleApprovalsApprove(ts.id)}
+                                    >
+                                      Approve
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="entries" className="m-0">
@@ -616,6 +806,121 @@ export default function TimeTracking() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Approvals — Reject Dialog */}
+      <Dialog open={approvalRejectId !== null} onOpenChange={o => !o && setApprovalRejectId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reject Timesheet</DialogTitle>
+            <DialogDescription>Provide an optional reason. The team member will see this note.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>Rejection Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input
+              value={approvalRejectNote}
+              onChange={e => setApprovalRejectNote(e.target.value)}
+              placeholder="e.g. Missing entries for Thursday…"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApprovalRejectId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleApprovalsReject} disabled={rejectTs.isPending}>Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approvals — Detail Sheet */}
+      <Sheet open={detailUserId !== null} onOpenChange={o => !o && setDetailUserId(null)}>
+        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="flex items-center gap-2">
+              <span className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-bold">
+                {detailUser?.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+              </span>
+              {detailUser?.name ?? "Team Member"}
+            </SheetTitle>
+            <SheetDescription>
+              {format(approvalWeek, "MMM d")} – {format(addDays(approvalWeek, 6), "MMM d, yyyy")} · {detailEntries.length} entries
+            </SheetDescription>
+          </SheetHeader>
+
+          {detailEntries.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Clock className="h-10 w-10 mx-auto mb-2 opacity-20" />
+              <p>No time logged this week</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Summary row */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[
+                  { label: "Total Hours", value: `${detailEntries.reduce((s, e) => s + e.hours, 0)}h` },
+                  { label: "Billable", value: `${detailEntries.filter(e => e.billable).reduce((s, e) => s + e.hours, 0)}h` },
+                  { label: "Entries", value: detailEntries.length },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-muted/40 rounded-lg p-3 text-center">
+                    <div className="text-lg font-bold">{value}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-center">Bill.</TableHead>
+                    <TableHead className="text-right">Hrs</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...detailEntries]
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .map(entry => (
+                      <TableRow key={entry.id}>
+                        <TableCell className="text-xs">{entry.date}</TableCell>
+                        <TableCell className="text-xs truncate max-w-[120px]">{getProject(entry.projectId)?.name}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground truncate max-w-[120px]">{entry.description || "—"}</TableCell>
+                        <TableCell className="text-center">
+                          {entry.billable
+                            ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mx-auto" />
+                            : <XCircle className="h-3.5 w-3.5 text-muted-foreground mx-auto" />}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-sm">{entry.hours}h</TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+
+              {/* Approve / Reject from sheet */}
+              {(() => {
+                const ts = allWeekTimesheets?.find(t => t.userId === detailUserId);
+                if (!ts || ts.status !== "Submitted") return null;
+                return (
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                      onClick={() => { setApprovalRejectId(ts.id); setDetailUserId(null); }}
+                    >
+                      Reject Timesheet
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      disabled={approveTs.isPending}
+                      onClick={() => { handleApprovalsApprove(ts.id); setDetailUserId(null); }}
+                    >
+                      Approve Timesheet
+                    </Button>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </Layout>
   );
 }

@@ -105,6 +105,22 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - T004: Reports — year filter dropdowns in Revenue and Utilization tabs; auto-populated from data months; filters `byMonth` arrays by selected year prefix (YYYY-MM format)
 - T005: Account detail sheet Opportunities and Projects items wrapped in `<Link>` with hover states for navigation
 
+### P3 Time Tracking Polish (Quick Wins + Approvals Tab)
+- **QW-5 Time categories seeded** — 8 categories inserted via API on first run: Implementation, Consulting, Analysis, Testing & QA, Documentation, Project Management, Training, Internal. Category picker in Log Time dialog is now functional.
+- **QW-2 Daily totals row** — `<TableFooter>` row added at the bottom of the timesheet grid. Shows per-day column totals and grand total. Renders only when rows exist.
+- **QW-3 Billable + category badges** — Each grid row now shows a green "Billable" or gray "Non-billable" chip, plus a violet category chip (when a categoryId is set). Chips sit below the project/task name in the first column.
+- **QW-4 Task name resolution** — `useListTasks({})` (all tasks, no projectId filter) added to grid. Row info column now resolves `taskId → task.name`; falls back to description text if no task.
+- **QW-1 Inline cell editing** — Each day cell is now a clickable button. Clicking opens a focused `<input type="number">` (step 0.5, max 24). On blur or Enter: creates, updates, or deletes the entry. Escape cancels. Locked for approved/submitted timesheets or cells with multiple overlapping entries.
+- **QW-6 Lock on submit/approve** — `isLocked = status === "Submitted" || "Approved"` blocks cell editing. Lock is labeled in the footer ("Awaiting approval — withdraw to make changes" / "✓ Approved & locked"). **Withdraw** button (with `Undo2` icon) appears for Submitted state and PATCHes status back to Draft.
+- **M-1 Approvals tab** — New "Approvals" tab in Time Tracking page (second position, with a blue badge showing pending count). Features:
+  - Independent week navigation (prev/next)
+  - Per-user table: avatar, name, department, submission status chip, total hours, capacity, utilization %, billable %
+  - Utilization colored green ≥80%, amber ≥50%, red <50%
+  - **Approve** / **Reject** inline buttons for Submitted timesheets
+  - **Remind** button (toast) for Not Submitted / Draft users
+  - **Eye** icon + name click opens detail Sheet (520px) showing summary cards, sorted entries table, approve/reject actions from within sheet
+- **Log Time dialog enhanced** — Category dropdown now populated from `useListTimeCategories()`. Category selected is persisted to the time entry.
+
 ### P2 Tier 2 Feature Completions
 - **P2-A/B Admin Users CRUD** — `+ Add User` button opens a dialog (name, email, role, dept, capacity, costRate). Each user row now has a `⋮` dropdown with Edit (pre-fills form) and Delete (confirm dialog). Both call backend `POST /api/users`, `PATCH /api/users/:id`, `DELETE /api/users/:id`. The ★ Skills button remains alongside the new ⋮.
 - **P2-C Invoice edit/delete** — Invoice `⋮` dropdown now has two new items: **Edit** (opens dialog for description, amount, dueDate, status via `PATCH /api/invoices/:id`) and **Delete** (confirm dialog → `DELETE /api/invoices/:id`). Both backend routes added (`DELETE` was missing).
