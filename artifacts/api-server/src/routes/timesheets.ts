@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, timesheetsTable } from "@workspace/db";
+import { db, timesheetsTable, notificationsTable } from "@workspace/db";
 import {
   ListTimesheetsQueryParams,
   ListTimesheetsResponse,
@@ -109,6 +109,14 @@ router.post("/timesheets/:id/approve", async (req, res): Promise<void> => {
     })
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
+  await db.insert(notificationsTable).values({
+    type: "timesheet_approved",
+    message: `Your timesheet for the week of ${existing.weekStart} has been approved.`,
+    userId: existing.userId,
+    entityType: "timesheet",
+    entityId: String(existing.id),
+    read: false,
+  } as any).catch(() => {});
   res.json(ApproveTimesheetResponse.parse(mapTimesheet(row)));
 });
 
@@ -124,6 +132,15 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
     .set({ status: "Draft", rejectionNote: parsed.data.rejectionNote, approvedAt: null, approvedByUserId: null })
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
+  const note = parsed.data.rejectionNote ? ` Reason: ${parsed.data.rejectionNote}` : "";
+  await db.insert(notificationsTable).values({
+    type: "timesheet_rejected",
+    message: `Your timesheet for the week of ${existing.weekStart} was returned for changes.${note}`,
+    userId: existing.userId,
+    entityType: "timesheet",
+    entityId: String(existing.id),
+    read: false,
+  } as any).catch(() => {});
   res.json(RejectTimesheetResponse.parse(mapTimesheet(row)));
 });
 

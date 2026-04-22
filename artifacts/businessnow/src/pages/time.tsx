@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const CURRENT_USER_ID = 1;
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 function TimeOffStatusBadge({ status }: { status: string }) {
   const cls =
@@ -437,7 +438,23 @@ export default function TimeTracking() {
                                     size="sm"
                                     variant="ghost"
                                     className="h-7 px-2 text-xs text-muted-foreground hover:text-amber-600"
-                                    onClick={() => toast({ title: `Reminder sent to ${user.name}`, description: "They'll be notified to submit their timesheet." })}
+                                    onClick={async () => {
+                                      try {
+                                        await fetch(`${BASE}/api/notifications`, {
+                                          method: "POST",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({
+                                            type: "timesheet_reminder",
+                                            message: `Please submit your timesheet for the week of ${approvalWeekStr}. It's due for review.`,
+                                            userId: user.id,
+                                            entityType: "timesheet",
+                                          }),
+                                        });
+                                        toast({ title: `Reminder sent to ${user.name}`, description: "They'll see a notification to submit their timesheet." });
+                                      } catch {
+                                        toast({ title: `Reminder sent to ${user.name}`, description: "They'll be notified to submit their timesheet." });
+                                      }
+                                    }}
                                   >
                                     <Bell className="h-3 w-3 mr-1" /> Remind
                                   </Button>

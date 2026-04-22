@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken } from "@workspace/api-client-react";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge, HealthBadge } from "@/pages/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectPhases } from "@/components/project-phases";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,10 @@ export default function ProjectDetail() {
 
   const { data: allocations, isLoading: isLoadingAllocations } = useListAllocations({ projectId }, {
     query: { enabled: !!projectId, queryKey: getListAllocationsQueryKey({ projectId }) }
+  });
+
+  const { data: projectTimeEntries } = useListTimeEntries({ projectId }, {
+    query: { enabled: !!projectId }
   });
 
   const queryClient = useQueryClient();
@@ -437,6 +441,10 @@ export default function ProjectDetail() {
             <TabsTrigger value="gantt" className="flex items-center gap-1.5">
               <BarChart2 className="h-4 w-4" />
               Timeline
+            </TabsTrigger>
+            <TabsTrigger value="time" className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4" />
+              Time
             </TabsTrigger>
           </TabsList>
           
@@ -911,6 +919,147 @@ export default function ProjectDetail() {
                 <ProjectGantt projectId={projectId} />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="time" className="m-0 space-y-4">
+            {(() => {
+              const entries = projectTimeEntries ?? [];
+              const totalHours = entries.reduce((s, e) => s + Number(e.hours), 0);
+              const billableHours = entries.filter(e => e.billable).reduce((s, e) => s + Number(e.hours), 0);
+              const billablePct = totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0;
+              const allUsers = users ?? [];
+
+              const byUser: Record<number, { userId: number; totalHours: number; billableHours: number; entries: number }> = {};
+              entries.forEach(e => {
+                if (!byUser[e.userId]) byUser[e.userId] = { userId: e.userId, totalHours: 0, billableHours: 0, entries: 0 };
+                byUser[e.userId].totalHours += Number(e.hours);
+                if (e.billable) byUser[e.userId].billableHours += Number(e.hours);
+                byUser[e.userId].entries += 1;
+              });
+              const userRows = Object.values(byUser).sort((a, b) => b.totalHours - a.totalHours);
+
+              const byTask: Record<string, { label: string; totalHours: number; billableHours: number; entries: number }> = {};
+              entries.forEach(e => {
+                const task = tasks?.find(t => t.id === e.taskId);
+                const key = e.taskId ? String(e.taskId) : (e.description ?? "Unassigned");
+                const label = task?.name ?? e.description ?? "No task";
+                if (!byTask[key]) byTask[key] = { label, totalHours: 0, billableHours: 0, entries: 0 };
+                byTask[key].totalHours += Number(e.hours);
+                if (e.billable) byTask[key].billableHours += Number(e.hours);
+                byTask[key].entries += 1;
+              });
+              const taskRows = Object.values(byTask).sort((a, b) => b.totalHours - a.totalHours);
+
+              return (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      { label: "Total Hours", value: `${totalHours}h`, icon: Clock },
+                      { label: "Billable Hours", value: `${billableHours}h`, icon: DollarSign },
+                      { label: "Billable Ratio", value: `${billablePct}%`, icon: TrendingUp },
+                      { label: "Contributors", value: String(userRows.length), icon: Users },
+                    ].map(({ label, value, icon: Icon }) => (
+                      <Card key={label}>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+                            <Icon className="h-3.5 w-3.5" /> {label}
+                          </div>
+                          <p className="text-2xl font-bold">{value}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" />By Team Member</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 pb-1">
+                      {entries.length === 0 ? (
+                        <p className="text-sm text-muted-foreground p-4 text-center">No time logged yet for this project.</p>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Member</TableHead>
+                              <TableHead className="text-right">Total</TableHead>
+                              <TableHead className="text-right">Billable</TableHead>
+                              <TableHead className="text-right">Billable %</TableHead>
+                              <TableHead className="text-right">Entries</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {userRows.map(row => {
+                              const u = allUsers.find(u => u.id === row.userId);
+                              const pct = row.totalHours > 0 ? Math.round((row.billableHours / row.totalHours) * 100) : 0;
+                              const initials = (u?.name ?? "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+                              return (
+                                <TableRow key={row.userId}>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <Avatar className="h-7 w-7">
+                                        <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700">{initials}</AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-sm font-medium">{u?.name ?? `User #${row.userId}`}</span>
+                                      {u?.department && <span className="text-xs text-muted-foreground">· {u.department}</span>}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium">{row.totalHours}h</TableCell>
+                                  <TableCell className="text-right text-muted-foreground">{row.billableHours}h</TableCell>
+                                  <TableCell className="text-right">
+                                    <span className={`text-xs font-semibold ${pct >= 80 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-red-500"}`}>{pct}%</span>
+                                  </TableCell>
+                                  <TableCell className="text-right text-muted-foreground text-sm">{row.entries}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2"><Target className="h-4 w-4 text-muted-foreground" />By Task / Work Item</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 pb-1">
+                      {taskRows.length === 0 ? (
+                        <p className="text-sm text-muted-foreground p-4 text-center">No time entries with task assignments yet.</p>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Task / Description</TableHead>
+                              <TableHead className="text-right">Total</TableHead>
+                              <TableHead className="text-right">Billable</TableHead>
+                              <TableHead className="text-right">Billable %</TableHead>
+                              <TableHead className="text-right">Entries</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {taskRows.map((row, i) => {
+                              const pct = row.totalHours > 0 ? Math.round((row.billableHours / row.totalHours) * 100) : 0;
+                              return (
+                                <TableRow key={i}>
+                                  <TableCell className="text-sm font-medium max-w-xs truncate">{row.label}</TableCell>
+                                  <TableCell className="text-right font-medium">{row.totalHours}h</TableCell>
+                                  <TableCell className="text-right text-muted-foreground">{row.billableHours}h</TableCell>
+                                  <TableCell className="text-right">
+                                    <span className={`text-xs font-semibold ${pct >= 80 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-red-500"}`}>{pct}%</span>
+                                  </TableCell>
+                                  <TableCell className="text-right text-muted-foreground text-sm">{row.entries}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              );
+            })()}
           </TabsContent>
         </Tabs>
       </div>

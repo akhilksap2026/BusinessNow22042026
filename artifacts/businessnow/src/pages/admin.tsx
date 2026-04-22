@@ -66,7 +66,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: number; userName: string; allSkills: { id: number; name: string; categoryId: number }[]; onClose: () => void }) {
@@ -338,6 +338,61 @@ export default function Admin() {
       refetchCompany();
     },
     onError: () => toast({ title: "Failed to save settings", variant: "destructive" }),
+  });
+
+  const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const [timeSettingsForm, setTimeSettingsForm] = useState({
+    weeklyCapacityHours: 40,
+    workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"] as string[],
+    timesheetDueDay: "Monday",
+    approvalMode: "Manual",
+    globalLockEnabled: false,
+    lockBeforeDate: "",
+  });
+  const [timeSettingsDirty, setTimeSettingsDirty] = useState(false);
+
+  const { data: timeSettings, refetch: refetchTimeSettings } = useQuery({
+    queryKey: ["time-settings"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/time-settings`);
+      if (!res.ok) throw new Error("Failed to fetch time settings");
+      return res.json() as Promise<{
+        id: number; weeklyCapacityHours: number; workingDays: string;
+        timesheetDueDay: string; approvalMode: string;
+        globalLockEnabled: boolean; lockBeforeDate: string | null; updatedAt: string;
+      }>;
+    },
+  });
+
+  useEffect(() => {
+    if (timeSettings && !timeSettingsDirty) {
+      setTimeSettingsForm({
+        weeklyCapacityHours: timeSettings.weeklyCapacityHours ?? 40,
+        workingDays: timeSettings.workingDays ? timeSettings.workingDays.split(",").map(d => d.trim()) : ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        timesheetDueDay: timeSettings.timesheetDueDay ?? "Monday",
+        approvalMode: timeSettings.approvalMode ?? "Manual",
+        globalLockEnabled: timeSettings.globalLockEnabled ?? false,
+        lockBeforeDate: timeSettings.lockBeforeDate ?? "",
+      });
+    }
+  }, [timeSettings, timeSettingsDirty]);
+
+  const saveTimeSettingsMut = useMutation({
+    mutationFn: async (data: typeof timeSettingsForm) => {
+      const res = await fetch(`${BASE}/api/time-settings`, {
+        method: "PUT",
+        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify({ ...data, workingDays: data.workingDays.join(",") }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Time settings saved" });
+      setTimeSettingsDirty(false);
+      refetchTimeSettings();
+    },
+    onError: () => toast({ title: "Failed to save time settings", variant: "destructive" }),
   });
 
   const { data: deletedProjects, refetch: refetchDeleted } = useQuery({
@@ -650,6 +705,9 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="timecategories" className="flex items-center gap-2">
               <Clock className="h-4 w-4" /> Time Categories
+            </TabsTrigger>
+            <TabsTrigger value="timesettings" className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" /> Time Settings
             </TabsTrigger>
             <TabsTrigger value="holidays" className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4" /> Holiday Calendars
@@ -994,6 +1052,114 @@ export default function Admin() {
                       </div>
                     ))}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="timesettings" className="m-0 space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Time &amp; Timesheet Settings</CardTitle>
+                  <CardDescription>Configure capacity, working days, approval rules, and period locking for your team.</CardDescription>
+                </div>
+                <Button size="sm" disabled={!timeSettingsDirty || saveTimeSettingsMut.isPending} onClick={() => saveTimeSettingsMut.mutate(timeSettingsForm)}>
+                  Save Changes
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Weekly Capacity (hours)</Label>
+                    <Input
+                      type="number" min={1} max={80}
+                      value={timeSettingsForm.weeklyCapacityHours}
+                      onChange={e => { setTimeSettingsForm(f => ({ ...f, weeklyCapacityHours: parseInt(e.target.value) || 40 })); setTimeSettingsDirty(true); }}
+                    />
+                    <p className="text-xs text-muted-foreground">Default expected hours per person per week used in utilization calculations.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Timesheet Due Day</Label>
+                    <Select value={timeSettingsForm.timesheetDueDay} onValueChange={v => { setTimeSettingsForm(f => ({ ...f, timesheetDueDay: v })); setTimeSettingsDirty(true); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
+                          <SelectItem key={d} value={d}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Day of the week by which timesheets must be submitted.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Approval Mode</Label>
+                    <Select value={timeSettingsForm.approvalMode} onValueChange={v => { setTimeSettingsForm(f => ({ ...f, approvalMode: v })); setTimeSettingsDirty(true); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Manual">Manual — manager reviews each submission</SelectItem>
+                        <SelectItem value="Auto">Auto — approve on submission</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Auto-approve instantly locks the timesheet on submit.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Lock Periods Before Date</Label>
+                    <Input
+                      type="date"
+                      value={timeSettingsForm.lockBeforeDate}
+                      onChange={e => { setTimeSettingsForm(f => ({ ...f, lockBeforeDate: e.target.value })); setTimeSettingsDirty(true); }}
+                    />
+                    <p className="text-xs text-muted-foreground">Timesheets starting before this date will be read-only for all users.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Working Days</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {DAYS_OF_WEEK.map(day => {
+                      const active = timeSettingsForm.workingDays.includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            setTimeSettingsForm(f => ({
+                              ...f,
+                              workingDays: active ? f.workingDays.filter(d => d !== day) : [...f.workingDays, day],
+                            }));
+                            setTimeSettingsDirty(true);
+                          }}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${active ? "bg-indigo-600 text-white border-indigo-600" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Days shown as columns in the timesheet grid.</p>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <p className="text-sm font-medium">Global Lock</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">When enabled, no timesheets can be edited regardless of date or status.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={timeSettingsForm.globalLockEnabled}
+                    onClick={() => { setTimeSettingsForm(f => ({ ...f, globalLockEnabled: !f.globalLockEnabled })); setTimeSettingsDirty(true); }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${timeSettingsForm.globalLockEnabled ? "bg-indigo-600" : "bg-muted-foreground/30"}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${timeSettingsForm.globalLockEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
+
+                {timeSettings && (
+                  <p className="text-xs text-muted-foreground">Last saved: {new Date(timeSettings.updatedAt).toLocaleString()}</p>
                 )}
               </CardContent>
             </Card>

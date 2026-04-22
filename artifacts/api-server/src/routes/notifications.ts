@@ -23,6 +23,22 @@ router.get("/notifications", async (_req, res): Promise<void> => {
   res.json(ListNotificationsResponse.parse(rows.map(mapNotification)));
 });
 
+router.post("/notifications", async (req, res): Promise<void> => {
+  const { type, message, userId, projectId, projectName, entityType, entityId } = req.body;
+  if (!type || !message) { res.status(400).json({ error: "type and message required" }); return; }
+  const [row] = await db.insert(notificationsTable).values({
+    type,
+    message,
+    userId: userId ?? null,
+    projectId: projectId ?? null,
+    projectName: projectName ?? null,
+    entityType: entityType ?? null,
+    entityId: entityId ? String(entityId) : null,
+    read: false,
+  } as any).returning();
+  res.status(201).json(mapNotification(row));
+});
+
 router.patch("/notifications/:id/read", async (req, res): Promise<void> => {
   const params = MarkNotificationReadParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }

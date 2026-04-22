@@ -105,6 +105,34 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - T004: Reports — year filter dropdowns in Revenue and Utilization tabs; auto-populated from data months; filters `byMonth` arrays by selected year prefix (YYYY-MM format)
 - T005: Account detail sheet Opportunities and Projects items wrapped in `<Link>` with hover states for navigation
 
+### M-2, M-3, L-2 — Project Time Tab, Admin Time Settings, Notification Wiring
+
+**M-2: Project-level Tracked Time tab**
+- Added "Time" tab to `project-detail.tsx` (after Timeline in the tab list)
+- Fetches all time entries for the project via `useListTimeEntries({ projectId })`
+- Shows 4 summary cards: Total Hours, Billable Hours, Billable Ratio %, Contributors
+- "By Team Member" table: avatar, name, dept, total hours, billable hours, billable %, # entries (color-coded green/amber/red)
+- "By Task / Work Item" table: resolves taskId → task.name, then falls back to description; same metrics
+
+**M-3: Admin Time Settings**
+- Added `timeSettingsTable` to DB schema (`lib/db/src/schema/timesheets.ts`): weeklyCapacityHours, workingDays, timesheetDueDay, approvalMode, globalLockEnabled, lockBeforeDate
+- `drizzle-kit push` applied to PostgreSQL
+- Added GET/PUT routes for `/api/admin/time-settings` in `adminSettings.ts` (upsert pattern, same as company-settings)
+- Added "Time Settings" tab to Admin page with:
+  - Weekly Capacity (number input)
+  - Timesheet Due Day (dropdown Mon–Sun)
+  - Approval Mode (Manual vs Auto)
+  - Lock Periods Before Date (date picker)
+  - Working Days (toggle buttons Mon–Sun, indigo for active)
+  - Global Lock switch (inline toggle)
+  - Save Changes button (disabled until dirty), shows last saved timestamp
+
+**L-2: Notification Wiring**
+- Added POST `/api/notifications` endpoint — accepts `{ type, message, userId, projectId, entityType, entityId }`
+- Approve timesheet endpoint now inserts a `timesheet_approved` notification for the timesheet owner
+- Reject timesheet endpoint now inserts a `timesheet_rejected` notification (with rejection note if provided) for the timesheet owner
+- Remind button in Approvals tab now POSTs a `timesheet_reminder` notification to the target user before showing the toast; gracefully falls back to toast-only if the POST fails
+
 ### P3 Time Tracking Polish (Quick Wins + Approvals Tab)
 - **QW-5 Time categories seeded** — 8 categories inserted via API on first run: Implementation, Consulting, Analysis, Testing & QA, Documentation, Project Management, Training, Internal. Category picker in Log Time dialog is now functional.
 - **QW-2 Daily totals row** — `<TableFooter>` row added at the bottom of the timesheet grid. Shows per-day column totals and grand total. Renders only when rows exist.

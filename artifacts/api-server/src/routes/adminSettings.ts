@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, taxCodesTable, timeCategoriesTable, companySettingsTable } from "@workspace/db";
+import { db, taxCodesTable, timeCategoriesTable, companySettingsTable, timeSettingsTable } from "@workspace/db";
 import { requireAdmin } from "../middleware/rbac";
 
 const router: IRouter = Router();
@@ -127,6 +127,40 @@ router.put("/company-settings", requireAdmin, async (req, res): Promise<void> =>
     [row] = await db.update(companySettingsTable).set(updates as any).where(eq(companySettingsTable.id, existing[0].id)).returning();
   }
   res.json({ ...row, updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt });
+});
+
+function mapTimeSettings(r: typeof timeSettingsTable.$inferSelect) {
+  return { ...r, updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt };
+}
+
+router.get("/time-settings", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(timeSettingsTable).limit(1);
+  if (rows.length === 0) {
+    const [row] = await db.insert(timeSettingsTable).values({}).returning();
+    res.json(mapTimeSettings(row));
+    return;
+  }
+  res.json(mapTimeSettings(rows[0]));
+});
+
+router.put("/time-settings", requireAdmin, async (req, res): Promise<void> => {
+  const { weeklyCapacityHours, workingDays, timesheetDueDay, approvalMode, globalLockEnabled, lockBeforeDate } = req.body;
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (weeklyCapacityHours !== undefined) updates.weeklyCapacityHours = weeklyCapacityHours;
+  if (workingDays !== undefined) updates.workingDays = workingDays;
+  if (timesheetDueDay !== undefined) updates.timesheetDueDay = timesheetDueDay;
+  if (approvalMode !== undefined) updates.approvalMode = approvalMode;
+  if (globalLockEnabled !== undefined) updates.globalLockEnabled = globalLockEnabled;
+  if (lockBeforeDate !== undefined) updates.lockBeforeDate = lockBeforeDate || null;
+
+  const existing = await db.select().from(timeSettingsTable).limit(1);
+  let row;
+  if (existing.length === 0) {
+    [row] = await db.insert(timeSettingsTable).values(updates as any).returning();
+  } else {
+    [row] = await db.update(timeSettingsTable).set(updates as any).where(eq(timeSettingsTable.id, existing[0].id)).returning();
+  }
+  res.json(mapTimeSettings(row));
 });
 
 export default router;

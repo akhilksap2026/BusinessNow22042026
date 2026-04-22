@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -72,3 +72,18 @@ export const holidayDatesTable = pgTable("holiday_dates", {
 export const insertHolidayDateSchema = createInsertSchema(holidayDatesTable).omit({ id: true, createdAt: true });
 export type InsertHolidayDate = z.infer<typeof insertHolidayDateSchema>;
 export type HolidayDate = typeof holidayDatesTable.$inferSelect;
+
+export const timeSettingsTable = pgTable("time_settings", {
+  id: serial("id").primaryKey(),
+  weeklyCapacityHours: integer("weekly_capacity_hours").notNull().default(40),
+  workingDays: text("working_days").notNull().default("Mon,Tue,Wed,Thu,Fri"),
+  timesheetDueDay: text("timesheet_due_day").notNull().default("Monday"),
+  approvalMode: text("approval_mode").notNull().default("Manual"),
+  globalLockEnabled: boolean("global_lock_enabled").notNull().default(false),
+  lockBeforeDate: text("lock_before_date"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTimeSettingsSchema = createInsertSchema(timeSettingsTable).omit({ id: true, updatedAt: true });
+export type InsertTimeSettings = z.infer<typeof insertTimeSettingsSchema>;
+export type TimeSettings = typeof timeSettingsTable.$inferSelect;
