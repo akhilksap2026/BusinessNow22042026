@@ -61,7 +61,7 @@ export default function TimeTracking() {
   const deleteTimeEntry = useDeleteTimeEntry();
   const createTimeEntry = useCreateTimeEntry();
   const [showLogTime, setShowLogTime] = useState(false);
-  const [logForm, setLogForm] = useState({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "" });
+  const [logForm, setLogForm] = useState({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
 
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -105,13 +105,13 @@ export default function TimeTracking() {
         hours: parseFloat(logForm.hours),
         description: logForm.description,
         billable: logForm.billable,
-        categoryId: logForm.categoryId ? parseInt(logForm.categoryId) : undefined,
+        categoryId: logForm.categoryId && logForm.categoryId !== "__none" ? parseInt(logForm.categoryId) : undefined,
       } as any });
       queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
       toast({ title: "Time logged" });
       setShowLogTime(false);
       setTimerSeconds(0);
-      setLogForm({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true });
+      setLogForm({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
     } catch {
       toast({ title: "Failed to log time", variant: "destructive" });
     }
@@ -538,7 +538,7 @@ export default function TimeTracking() {
               <Select value={logForm.categoryId} onValueChange={v => setLogForm(f => ({ ...f, categoryId: v }))}>
                 <SelectTrigger><SelectValue placeholder="Select category (optional)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none">None</SelectItem>
                   {timeCategories?.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>

@@ -29,7 +29,7 @@ router.get("/reports/utilization", async (_req, res): Promise<void> => {
   const now = new Date();
   const byMonth = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
-    const month = `${months[d.getMonth()]} ${d.getFullYear()}`;
+    const month = `${d.getFullYear()}-${months[d.getMonth()]}`;
     const monthStr = d.toISOString().slice(0, 7);
     const monthEntries = entries.filter(e => e.date.startsWith(monthStr));
     const totalH = monthEntries.reduce((s, e) => s + Number(e.hours), 0);
@@ -48,9 +48,9 @@ router.get("/reports/revenue", async (_req, res): Promise<void> => {
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const now = new Date();
-  const byMonth = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
-    const month = `${months[d.getMonth()]} ${d.getFullYear()}`;
+  const byMonth = Array.from({ length: 24 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 23 + i, 1);
+    const month = `${d.getFullYear()}-${months[d.getMonth()]}`;
     const monthStr = d.toISOString().slice(0, 7);
     const monthInvoices = invoices.filter(inv => inv.issueDate.startsWith(monthStr));
     const invoiced = monthInvoices.reduce((s, inv) => s + Number(inv.total), 0);

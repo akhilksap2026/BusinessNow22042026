@@ -105,6 +105,12 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - T004: Reports — year filter dropdowns in Revenue and Utilization tabs; auto-populated from data months; filters `byMonth` arrays by selected year prefix (YYYY-MM format)
 - T005: Account detail sheet Opportunities and Projects items wrapped in `<Link>` with hover states for navigation
 
+### E2E Bug Fixes (Post-Seed Audit)
+- **time.tsx timer crash** — `<SelectItem value="">None</SelectItem>` in Log Time category dropdown caused Radix to throw on empty string; replaced sentinel `"__none"` throughout initial state, SelectItem value, submission guard (`!== "__none"`), and form reset
+- **Revenue report blank chart** — `reports.ts /reports/revenue` was limited to rolling 6-month window; expanded to 24 months so seeded Dec 2024–Apr 2025 invoices appear
+- **Month format mismatch** — Both utilization and revenue `byMonth` were formatted as "MMM YYYY" (e.g. "Nov 2024") but frontend expected "YYYY-MMM" (e.g. "2024-Nov") for year-prefix extraction (`substring(0,4)`) and `startsWith` year filtering; fixed format to "YYYY-MMM" in both routes
+- Revenue confirmed: $1,043,500 collected across Dec 2024–Apr 2025; `revenueYears` dropdown correctly extracts "2024"/"2025"; XAxis labels show "Dec", "Feb", etc. via `substring(5)`
+
 ### Sprint 6 Complete
 - T001: Project Phases — "Edit Phase" and "Delete Phase" menu items now fully wired; `useUpdatePhase`/`useDeletePhase` mutations; Edit dialog (name/status/startDate/dueDate); Delete confirm dialog
 - T002: Time Tracking — "Log Time" button opens dialog (project/date/hours/description/billable); `useCreateTimeEntry` mutation; "Start Timer" stopwatch button counts up in header and auto-fills hours when stopped
