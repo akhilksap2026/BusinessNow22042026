@@ -170,6 +170,36 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - **Month format mismatch** — Both utilization and revenue `byMonth` were formatted as "MMM YYYY" (e.g. "Nov 2024") but frontend expected "YYYY-MMM" (e.g. "2024-Nov") for year-prefix extraction (`substring(0,4)`) and `startsWith` year filtering; fixed format to "YYYY-MMM" in both routes
 - Revenue confirmed: $1,043,500 collected across Dec 2024–Apr 2025; `revenueYears` dropdown correctly extracts "2024"/"2025"; XAxis labels show "Dec", "Feb", etc. via `substring(5)`
 
+### P3 Tier 3 Feature Completions
+
+**P3-A: Won Opportunity — Linked Project Display**
+- `mapOpportunity()` in `opportunities.ts` now fetches `projectName` from `projectsTable` when `projectId` is set
+- `projectName` field added to `Opportunity` interface in `api.schemas.ts`
+- Opportunity detail sheet: "Project ID" raw text replaced with a green card showing the project name and an arrow icon; clicking navigates to the project
+- `convertMut.onSuccess` now stays on the sheet (no `setSelected(null)`); instead refetches the opportunity from `/api/opportunities/:id` and updates `selected` with fresh `projectId`+`projectName`
+
+**P3-B: Projects List — Archive Recovery on Projects Page**
+- Added "Show Archived" toggle button in Projects page header (top-right alongside New Project)
+- When toggled, fetches `GET /api/projects/deleted` and renders an "Archived Projects" card below the main table
+- Each archived row shows project name, archived date, and a "Restore" button that calls `POST /api/projects/:id/restore`
+- Invalidates both `projects` and `projects-deleted` query keys on restore
+
+**P3-C: Session Context — Replace Hardcoded CURRENT_USER_ID**
+- New `src/contexts/current-user.tsx` — `CurrentUserProvider` fetches `GET /api/me` on mount, stores result in context; exposes `currentUser`, `isLoading`, `activeRole`, `availableRoles`, `switchRole`
+- `GET /api/me` route added to `users.ts` — returns user with ID=1 (hydrated via `mapUser()`)
+- `App.tsx` wrapped with `CurrentUserProvider` inside `QueryClientProvider`
+- `layout.tsx` — user chip reads from `useCurrentUser()` for name, initials, email, role instead of hardcoded "Ops Leader"/"Admin"
+- `time.tsx` — `const CURRENT_USER_ID = 1` removed; `currentUserId = currentUser?.id ?? 1` used in form resets and approval handler
+- `task-detail-sheet.tsx` — `const CURRENT_USER_ID = 1` removed; `currentUserId = currentUser?.id ?? 1` used in comment creation
+
+**P3-D: Sidebar User Chip — Role Switcher**
+- `CurrentUserContext` exposes `activeRole` (persisted to `localStorage`) + `availableRoles` (primary + secondaryRoles) + `switchRole(role)` function
+- Sidebar user chip dropdown shows "Switch Role" submenu (only when `availableRoles.length > 1`) with checkmark on current role
+- `secondaryRoles: text("secondary_roles").array()` column added to `usersTable` schema and pushed to DB
+- `Zod schemas updated`: `ListUsersResponseItem`, `GetUserResponse`, `UpdateUserResponse` now include `secondaryRoles`
+- New `PATCH /api/users/:id/secondary-roles` endpoint in `users.ts` (Admin only) — accepts `{ secondaryRoles: string[] }` and persists array
+- Admin → Users → **User Configuration** sub-tab: table of all users with their primary role badge + toggle buttons for each secondary role; clicking a role calls the new PATCH endpoint; saves immediately with toast feedback
+
 ### Sprint 6 Complete
 - T001: Project Phases — "Edit Phase" and "Delete Phase" menu items now fully wired; `useUpdatePhase`/`useDeletePhase` mutations; Edit dialog (name/status/startDate/dueDate); Delete confirm dialog
 - T002: Time Tracking — "Log Time" button opens dialog (project/date/hours/description/billable); `useCreateTimeEntry` mutation; "Start Timer" stopwatch button counts up in header and auto-fills hours when stopped

@@ -415,6 +415,7 @@ export const ListUsersResponseItem = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
+  secondaryRoles: zod.array(zod.string()).optional().default([]),
   createdAt: zod.string(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
@@ -449,6 +450,7 @@ export const GetUserResponse = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
+  secondaryRoles: zod.array(zod.string()).optional().default([]),
   createdAt: zod.string(),
 });
 
@@ -479,6 +481,7 @@ export const UpdateUserResponse = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
+  secondaryRoles: zod.array(zod.string()).optional().default([]),
   createdAt: zod.string(),
 });
 

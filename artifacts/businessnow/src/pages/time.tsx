@@ -25,8 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-const CURRENT_USER_ID = 1;
+import { useCurrentUser } from "@/contexts/current-user";
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 function TimeOffStatusBadge({ status }: { status: string }) {
@@ -59,14 +58,17 @@ export default function TimeTracking() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const { currentUser } = useCurrentUser();
+  const currentUserId = currentUser?.id ?? 1;
+
   const [requestOpen, setRequestOpen] = useState(false);
-  const [form, setForm] = useState({ userId: String(CURRENT_USER_ID), type: "PTO", startDate: "", endDate: "", notes: "" });
+  const [form, setForm] = useState({ userId: "1", type: "PTO", startDate: "", endDate: "", notes: "" });
 
   const updateTimeEntry = useUpdateTimeEntry();
   const deleteTimeEntry = useDeleteTimeEntry();
   const createTimeEntry = useCreateTimeEntry();
   const [showLogTime, setShowLogTime] = useState(false);
-  const [logForm, setLogForm] = useState({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
+  const [logForm, setLogForm] = useState({ projectId: "", userId: "1", date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
 
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -116,7 +118,7 @@ export default function TimeTracking() {
       toast({ title: "Time logged" });
       setShowLogTime(false);
       setTimerSeconds(0);
-      setLogForm({ projectId: "", userId: String(CURRENT_USER_ID), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
+      setLogForm({ projectId: "", userId: String(currentUserId), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
     } catch {
       toast({ title: "Failed to log time", variant: "destructive" });
     }
@@ -226,7 +228,7 @@ export default function TimeTracking() {
       queryClient.invalidateQueries({ queryKey: getListTimeOffRequestsQueryKey() });
       toast({ title: "Time-off request submitted" });
       setRequestOpen(false);
-      setForm({ userId: String(CURRENT_USER_ID), type: "PTO", startDate: "", endDate: "", notes: "" });
+      setForm({ userId: String(currentUserId), type: "PTO", startDate: "", endDate: "", notes: "" });
     } catch {
       toast({ title: "Failed to submit request", variant: "destructive" });
     }
@@ -234,7 +236,7 @@ export default function TimeTracking() {
 
   async function handleApprove(id: number) {
     try {
-      await updateTimeOff.mutateAsync({ id, data: { status: "Approved", approvedByUserId: CURRENT_USER_ID } });
+      await updateTimeOff.mutateAsync({ id, data: { status: "Approved", approvedByUserId: currentUserId } });
       queryClient.invalidateQueries({ queryKey: getListTimeOffRequestsQueryKey() });
       toast({ title: "Time-off approved" });
     } catch {

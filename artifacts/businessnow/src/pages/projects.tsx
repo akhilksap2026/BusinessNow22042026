@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Plus, MoreHorizontal, Search, X } from "lucide-react";
+import { Plus, MoreHorizontal, Search, X, Archive, RotateCcw } from "lucide-react";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 const STATUS_FILTERS = ["All", "Not Started", "In Progress", "At Risk", "Completed"] as const;
 type StatusFilter = typeof STATUS_FILTERS[number];
@@ -64,9 +66,33 @@ export default function Projects() {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("All Health");
+  const [showArchived, setShowArchived] = useState(false);
   const qc = useQueryClient();
   const { toast } = useToast();
   const deleteMut = useDeleteProject();
+
+  const { data: archivedProjects = [], isLoading: isLoadingArchived } = useQuery<{ id: number; name: string; deletedAt: string | null }[]>({
+    queryKey: ["projects-deleted"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/projects/deleted`, { headers: { "x-user-role": "Admin" } });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: showArchived,
+  });
+
+  const restoreMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`${BASE}/api/projects/${id}/restore`, { method: "POST", headers: { "x-user-role": "Admin" } });
+      if (!res.ok) throw new Error("Failed to restore");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["projects-deleted"] });
+      toast({ title: "Project restored" });
+    },
+    onError: () => toast({ title: "Failed to restore project", variant: "destructive" }),
+  });
 
   function handleDelete(id: number, name: string) {
     if (!confirm(`Archive project "${name}"? It will be hidden but can be recovered by an admin.`)) return;
@@ -97,9 +123,20 @@ export default function Projects() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> New Project
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant={showArchived ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowArchived(v => !v)}
+              className="gap-1.5"
+            >
+              <Archive className="h-4 w-4" />
+              {showArchived ? "Hide Archived" : "Show Archived"}
+            </Button>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New Project
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -249,6 +286,58 @@ export default function Projects() {
           </CardContent>
         </Card>
         
+        {showArchived && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-muted-foreground">
+                <Archive className="h-4 w-4" />
+                Archived Projects
+                {archivedProjects.length > 0 && (
+                  <Badge variant="secondary">{archivedProjects.length}</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingArchived ? (
+                <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+              ) : archivedProjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No archived projects.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project Name</TableHead>
+                      <TableHead>Archived On</TableHead>
+                      <TableHead className="w-[100px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {archivedProjects.map(p => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {p.deletedAt ? new Date(p.deletedAt).toLocaleDateString() : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => restoreMut.mutate(p.id)}
+                            disabled={restoreMut.isPending}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" /> Restore
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <CreateProjectWizard open={isCreateOpen} onOpenChange={setIsCreateOpen} />
       </div>
     </Layout>

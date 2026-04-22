@@ -66,7 +66,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2 } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: number; userName: string; allSkills: { id: number; name: string; categoryId: number }[]; onClose: () => void }) {
@@ -145,6 +145,101 @@ function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: nu
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const ALL_ROLES = ["Admin", "PM", "Resource Manager", "Finance", "Viewer"] as const;
+
+function UserConfigTab({ users, BASE, onRefresh }: {
+  users: { id: number; name: string; initials: string; role: string; secondaryRoles?: string[] }[];
+  BASE: string;
+  onRefresh: () => void;
+}) {
+  const { toast } = useToast();
+  const [saving, setSaving] = useState<number | null>(null);
+
+  async function toggleSecondaryRole(userId: number, currentSecondary: string[], primaryRole: string, role: string) {
+    if (role === primaryRole) return;
+    const updated = currentSecondary.includes(role)
+      ? currentSecondary.filter(r => r !== role)
+      : [...currentSecondary, role];
+    setSaving(userId);
+    try {
+      const res = await fetch(`${BASE}/api/users/${userId}/secondary-roles`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify({ secondaryRoles: updated }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      onRefresh();
+      toast({ title: "Roles updated" });
+    } catch {
+      toast({ title: "Failed to update roles", variant: "destructive" });
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>User Configuration</CardTitle>
+        <CardDescription>
+          Assign secondary roles to users so they can switch their active view in the sidebar.
+          A user's primary role is always available and cannot be removed here.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Primary Role</TableHead>
+              <TableHead>Secondary Roles</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map(user => {
+              const secondary = (user as any).secondaryRoles ?? [];
+              return (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8"><AvatarFallback>{user.initials}</AvatarFallback></Avatar>
+                      {user.name}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-normal">{user.role}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ALL_ROLES.filter(r => r !== user.role).map(role => {
+                        const active = secondary.includes(role);
+                        return (
+                          <button
+                            key={role}
+                            disabled={saving === user.id}
+                            onClick={() => toggleSecondaryRole(user.id, secondary, user.role, role)}
+                            className={`px-2.5 py-1 text-xs rounded-full border font-medium transition-colors ${
+                              active
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                            }`}
+                          >
+                            {role}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -730,70 +825,87 @@ export default function Admin() {
           </TabsList>
 
           <TabsContent value="users" className="m-0">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>Manage team members, roles, and permissions</CardDescription>
-                </div>
-                <Button size="sm" onClick={openAddUser}><Plus className="h-4 w-4 mr-2" /> Add User</Button>
-              </CardHeader>
-              <CardContent>
-                {isLoadingUsers ? (
-                  <div className="space-y-4">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead className="text-right">Cost Rate</TableHead>
-                        <TableHead className="w-[90px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users?.map(user => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8"><AvatarFallback>{user.initials}</AvatarFallback></Avatar>
-                              {user.name}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                          <TableCell><Badge variant="outline" className="font-normal">{user.role}</Badge></TableCell>
-                          <TableCell>{user.department}</TableCell>
-                          <TableCell className="text-right">${user.costRate}/hr</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setSkillsUser({ id: user.id, name: user.name })}>
-                                <Star className="h-3.5 w-3.5 mr-1" /> Skills
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => openEditUser(user)}>
-                                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-red-600" onClick={() => setUserDeleteId(user.id)}>
-                                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+            <Tabs defaultValue="management">
+              <TabsList className="mb-4">
+                <TabsTrigger value="management" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" /> User Management
+                </TabsTrigger>
+                <TabsTrigger value="configuration" className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" /> User Configuration
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="management" className="m-0">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>User Management</CardTitle>
+                      <CardDescription>Manage team members, roles, and permissions</CardDescription>
+                    </div>
+                    <Button size="sm" onClick={openAddUser}><Plus className="h-4 w-4 mr-2" /> Add User</Button>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingUsers ? (
+                      <div className="space-y-4">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Department</TableHead>
+                            <TableHead className="text-right">Cost Rate</TableHead>
+                            <TableHead className="w-[90px]"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {users?.map(user => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-8 w-8"><AvatarFallback>{user.initials}</AvatarFallback></Avatar>
+                                  {user.name}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                              <TableCell><Badge variant="outline" className="font-normal">{user.role}</Badge></TableCell>
+                              <TableCell>{user.department}</TableCell>
+                              <TableCell className="text-right">${user.costRate}/hr</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setSkillsUser({ id: user.id, name: user.name })}>
+                                    <Star className="h-3.5 w-3.5 mr-1" /> Skills
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => openEditUser(user)}>
+                                        <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-red-600" onClick={() => setUserDeleteId(user.id)}>
+                                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="configuration" className="m-0">
+                <UserConfigTab users={users ?? []} BASE={BASE} onRefresh={() => queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() })} />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="templates" className="m-0">

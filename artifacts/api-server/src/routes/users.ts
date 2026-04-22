@@ -24,6 +24,12 @@ function mapUser(u: typeof usersTable.$inferSelect) {
   };
 }
 
+router.get("/me", async (_req, res): Promise<void> => {
+  const [u] = await db.select().from(usersTable).where(eq(usersTable.id, 1));
+  if (!u) { res.status(404).json({ error: "User not found" }); return; }
+  res.json(mapUser(u));
+});
+
 router.get("/users", async (_req, res): Promise<void> => {
   const rows = await db.select().from(usersTable).orderBy(usersTable.name);
   res.json(ListUsersResponse.parse(rows.map(mapUser)));
@@ -55,6 +61,16 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   const [row] = await db.update(usersTable).set(userUpdates).where(eq(usersTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
   res.json(UpdateUserResponse.parse(mapUser(row)));
+});
+
+router.patch("/users/:id/secondary-roles", requireAdmin, async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { secondaryRoles } = req.body;
+  if (!Array.isArray(secondaryRoles)) { res.status(400).json({ error: "secondaryRoles must be an array" }); return; }
+  const [row] = await db.update(usersTable).set({ secondaryRoles } as any).where(eq(usersTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  res.json(mapUser(row));
 });
 
 router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {

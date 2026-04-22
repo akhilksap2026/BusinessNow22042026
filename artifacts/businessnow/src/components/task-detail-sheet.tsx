@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useCurrentUser } from "@/contexts/current-user";
 import {
   useListTaskComments,
   useCreateTaskComment,
@@ -114,7 +115,8 @@ export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetP
     } catch { /* ignore */ }
   }
 
-  const CURRENT_USER_ID = 1;
+  const { currentUser } = useCurrentUser();
+  const currentUserId = currentUser?.id ?? 1;
 
   const task = (queryClient.getQueryData(getListTasksQueryKey()) as any[])?.find((t: any) => t.id === taskId)
     ?? (queryClient.getQueriesData({ predicate: (q) => q.queryKey[0] === "listTasks" }).flatMap(([, d]) => d as any[]).find((t: any) => t?.id === taskId));
@@ -147,7 +149,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetP
 
   async function handleAddComment() {
     if (!newComment.trim() || !taskId) return;
-    await createComment.mutateAsync({ id: taskId, data: { taskId, userId: CURRENT_USER_ID, content: newComment.trim() } });
+    await createComment.mutateAsync({ id: taskId, data: { taskId, userId: currentUserId, content: newComment.trim() } });
     setNewComment("");
     setAddingComment(false);
     queryClient.invalidateQueries({ queryKey: getListTaskCommentsQueryKey(taskId) });

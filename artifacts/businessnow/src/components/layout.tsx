@@ -9,8 +9,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCurrentUser } from "@/contexts/current-user";
 import {
   LayoutDashboard,
   Briefcase,
@@ -27,6 +31,7 @@ import {
   LogOut,
   X,
   ChevronDown,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -68,6 +73,7 @@ function notificationLink(n: { projectId?: number | null; type: string }): strin
 export function Layout({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const { currentUser, activeRole, availableRoles, switchRole } = useCurrentUser();
   const { data: notifications } = useListNotifications();
   const markRead = useMarkNotificationRead();
   const unreadCount = notifications?.filter(n => !n.read).length ?? 0;
@@ -222,21 +228,44 @@ export function Layout({ children }: { children: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-3 px-3 py-2 w-full rounded-md hover:bg-muted transition-colors text-left group">
                 <Avatar className="h-9 w-9 flex-shrink-0">
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-primary/10 text-primary">OP</AvatarFallback>
+                  <AvatarImage src={currentUser?.avatarUrl ?? ""} />
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {currentUser?.initials ?? "?"}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-sm font-medium truncate">Ops Leader</span>
-                  <span className="text-xs text-muted-foreground">Admin</span>
+                  <span className="text-sm font-medium truncate">{currentUser?.name ?? "Loading…"}</span>
+                  <span className="text-xs text-muted-foreground">{activeRole}</span>
                 </div>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-52 mb-1">
+            <DropdownMenuContent align="end" side="top" className="w-56 mb-1">
               <div className="px-3 py-2">
-                <p className="text-sm font-medium">Ops Leader</p>
-                <p className="text-xs text-muted-foreground">admin@ksap.tech</p>
+                <p className="text-sm font-medium">{currentUser?.name ?? "—"}</p>
+                <p className="text-xs text-muted-foreground">{currentUser?.email ?? ""}</p>
               </div>
+              <DropdownMenuSeparator />
+              {availableRoles.length > 1 && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2 cursor-pointer">
+                    <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                    Switch Role
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {availableRoles.map(role => (
+                      <DropdownMenuItem
+                        key={role}
+                        className={`cursor-pointer gap-2 ${role === activeRole ? "font-semibold text-primary" : ""}`}
+                        onClick={() => switchRole(role)}
+                      >
+                        {role === activeRole && <span className="text-primary">✓</span>}
+                        {role}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 cursor-pointer gap-2"

@@ -1092,6 +1092,7 @@ export interface Opportunity {
   closeDate?: string | null;
   ownerId?: number | null;
   projectId?: number | null;
+  projectName?: string | null;
   accountName?: string | null;
   ownerName?: string | null;
   createdAt: string;

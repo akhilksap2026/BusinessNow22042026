@@ -18,6 +18,7 @@ const STAGE_PROBABILITY: Record<string, number> = {
 async function mapOpportunity(row: typeof opportunitiesTable.$inferSelect) {
   let accountName: string | null = null;
   let ownerName: string | null = null;
+  let projectName: string | null = null;
   if (row.accountId) {
     const [acc] = await db.select().from(accountsTable).where(eq(accountsTable.id, row.accountId));
     accountName = acc?.name ?? null;
@@ -25,6 +26,10 @@ async function mapOpportunity(row: typeof opportunitiesTable.$inferSelect) {
   if (row.ownerId) {
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, row.ownerId));
     ownerName = u?.name ?? null;
+  }
+  if (row.projectId) {
+    const [p] = await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
+    projectName = p?.name ?? null;
   }
   return {
     id: row.id,
@@ -37,6 +42,7 @@ async function mapOpportunity(row: typeof opportunitiesTable.$inferSelect) {
     closeDate: row.closeDate,
     ownerId: row.ownerId,
     projectId: row.projectId,
+    projectName,
     accountName,
     ownerName,
     createdAt: row.createdAt,

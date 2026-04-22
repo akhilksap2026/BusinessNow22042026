@@ -48,8 +48,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Kanban, ListIcon, FolderPlus } from "lucide-react";
+import { MoreHorizontal, Plus, Kanban, ListIcon, FolderPlus, FolderOpen, ArrowUpRight } from "lucide-react";
+import { Link } from "wouter";
 import { Layout } from "@/components/layout";
+
+const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 const STAGES = ["Discovery", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
@@ -155,11 +158,17 @@ export default function OpportunitiesPage() {
       startDate: projectForm.startDate,
       dueDate: projectForm.dueDate,
     }),
-    onSuccess: () => {
+    onSuccess: async () => {
       qc.invalidateQueries({ queryKey: ["opportunities"] });
       qc.invalidateQueries({ queryKey: ["projects"] });
       setShowConvert(false);
-      setSelected(null);
+      // Refresh selected opportunity so the linked project card appears immediately
+      try {
+        const res = await fetch(`${BASE_URL}/api/opportunities/${selected!.id}`, {
+          headers: { "x-user-role": "Admin" },
+        });
+        if (res.ok) setSelected(await res.json());
+      } catch { /* keep sheet open with old data */ }
     },
   });
 
@@ -241,7 +250,18 @@ export default function OpportunitiesPage() {
                   <div><p className="text-xs text-slate-500">Owner</p><p className="text-sm font-medium">{selected.ownerName ?? "—"}</p></div>
                   <div><p className="text-xs text-slate-500">Close Date</p><p className="text-sm font-medium">{selected.closeDate ? new Date(selected.closeDate).toLocaleDateString() : "—"}</p></div>
                   {selected.projectId && (
-                    <div><p className="text-xs text-slate-500">Project ID</p><p className="text-sm font-medium">#{selected.projectId}</p></div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-500 mb-1">Linked Project</p>
+                      <Link href={`/projects/${selected.projectId}`}>
+                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-md border border-green-200 bg-green-50 hover:bg-green-100 transition-colors cursor-pointer">
+                          <FolderOpen className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-sm font-medium text-green-800 truncate flex-1">
+                            {selected.projectName ?? `Project #${selected.projectId}`}
+                          </span>
+                          <ArrowUpRight className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                        </div>
+                      </Link>
+                    </div>
                   )}
                 </div>
 

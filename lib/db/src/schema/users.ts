@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   costRate: numeric("cost_rate", { precision: 8, scale: 2 }).notNull().default("0"),
   costRateEffectiveDate: text("cost_rate_effective_date"),
   skills: text("skills").array().notNull().default([]),
+  secondaryRoles: text("secondary_roles").array().notNull().default([]),
   avatarUrl: text("avatar_url"),
   isActive: integer("is_active").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
