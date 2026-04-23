@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, phasesTable, accountsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import {
   GetUtilizationReportResponse,
   GetRevenueReportResponse,
@@ -179,4 +179,275 @@ router.get("/reports/burn-down/:projectId", async (req, res): Promise<void> => {
   res.json({ projectId, projectName: project.name, totalTasks, completedTasks, dataPoints });
 });
 
+
+// ─── Project Performance Report ──────────────────────────────────────────────
+router.get("/reports/project-performance", async (_req, res): Promise<void> => {
+  const today = new Date().toISOString().slice(0, 10);
+  const projects = await db.select().from(projectsTable);
+  const tasks = await db.select().from(tasksTable);
+  const templates = await db.select().from(projectTemplatesTable);
+  const accounts = await db.select().from(accountsTable);
+  const surveys = await db.select().from(csatSurveysTable);
+  const responses = await db.select().from(csatResponsesTable);
+
+  const rows = projects.map(p => {
+    const pTasks = tasks.filter(t => t.projectId === p.id && !t.isMilestone);
+    const total = pTasks.length;
+    const completed = pTasks.filter(t => t.status === "Completed").length;
+    const overdue = pTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== "Completed").length;
+    const nonTemplate = pTasks.filter(t => !t.fromTemplate).length;
+    const onTimeRate = (completed + overdue) > 0 ? Math.round((completed / (completed + overdue)) * 100) : null;
+
+    const pSurveys = surveys.filter(s => s.projectId === p.id && s.rating !== null);
+    const pResponses = responses.filter(r => r.projectId === p.id);
+    const allRatings = [
+      ...pSurveys.map(s => s.rating as number),
+      ...pResponses.map(r => r.rating),
+    ];
+    const csatAvg = allRatings.length > 0 ? Math.round((allRatings.reduce((s, r) => s + r, 0) / allRatings.length) * 10) / 10 : null;
+
+    const template = p.templateId ? templates.find(t => t.id === p.templateId) : null;
+    const account = accounts.find(a => a.id === p.accountId);
+
+    const planned = Math.ceil((new Date(p.dueDate).getTime() - new Date(p.startDate).getTime()) / 86400000);
+
+    return {
+      projectId: p.id,
+      projectName: p.name,
+      status: p.status,
+      health: p.health,
+      accountName: account?.name ?? null,
+      templateUsed: !!p.templateId,
+      templateName: template?.name ?? null,
+      totalTasks: total,
+      completedTasks: completed,
+      overdueTasks: overdue,
+      nonTemplateTasks: nonTemplate,
+      onTimeRate,
+      csatAvg,
+      csatCount: allRatings.length,
+      startDate: p.startDate,
+      dueDate: p.dueDate,
+      plannedDays: planned,
+    };
+  });
+
+  res.json(rows);
+});
+
+// ─── Operations Insights Report ───────────────────────────────────────────────
+router.get("/reports/operations-insights", async (_req, res): Promise<void> => {
+  const today = new Date().toISOString().slice(0, 10);
+  const projects = await db.select().from(projectsTable);
+  const tasks = await db.select().from(tasksTable);
+  const templates = await db.select().from(projectTemplatesTable);
+  const surveys = await db.select().from(csatSurveysTable);
+  const responses = await db.select().from(csatResponsesTable);
+
+  const grouped = new Map<string, {
+    templateId: number | null; templateName: string; projects: typeof projects;
+  }>();
+
+  for (const t of templates) {
+    grouped.set(`t-${t.id}`, { templateId: t.id, templateName: t.name, projects: [] });
+  }
+  grouped.set("no-template", { templateId: null, templateName: "(No Template)", projects: [] });
+
+  for (const p of projects) {
+    const key = p.templateId ? `t-${p.templateId}` : "no-template";
+    const g = grouped.get(key);
+    if (g) g.projects.push(p);
+  }
+
+  const rows = Array.from(grouped.values())
+    .filter(g => g.projects.length > 0)
+    .map(g => {
+      const pIds = new Set(g.projects.map(p => p.id));
+      const pTasks = tasks.filter(t => pIds.has(t.projectId) && !t.isMilestone);
+      const total = pTasks.length;
+      const completed = pTasks.filter(t => t.status === "Completed").length;
+      const overdue = pTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== "Completed").length;
+      const nonTemplate = pTasks.filter(t => !t.fromTemplate).length;
+      const onTimeRate = (completed + overdue) > 0 ? Math.round((completed / (completed + overdue)) * 100) : null;
+
+      const allRatings = [
+        ...surveys.filter(s => pIds.has(s.projectId) && s.rating !== null).map(s => s.rating as number),
+        ...responses.filter(r => pIds.has(r.projectId)).map(r => r.rating),
+      ];
+      const csatAvg = allRatings.length > 0 ? Math.round((allRatings.reduce((a, b) => a + b, 0) / allRatings.length) * 10) / 10 : null;
+
+      const completedProjects = g.projects.filter(p => p.status === "Completed");
+      const avgDuration = completedProjects.length > 0
+        ? Math.round(completedProjects.reduce((s, p) => s + Math.ceil((new Date(p.dueDate).getTime() - new Date(p.startDate).getTime()) / 86400000), 0) / completedProjects.length)
+        : null;
+
+      return {
+        templateId: g.templateId,
+        templateName: g.templateName,
+        projectCount: g.projects.length,
+        completedProjects: completedProjects.length,
+        onTimeRate,
+        totalTasks: total,
+        completedTasks: completed,
+        nonTemplateTasks: nonTemplate,
+        nonTemplateRatio: total > 0 ? Math.round((nonTemplate / total) * 100) : 0,
+        csatAvg,
+        avgDurationDays: avgDuration,
+      };
+    });
+
+  res.json(rows);
+});
+
+// ─── CSAT Trend Report ────────────────────────────────────────────────────────
+router.get("/reports/csat-trend", async (_req, res): Promise<void> => {
+  const surveys = await db.select().from(csatSurveysTable);
+  const responses = await db.select().from(csatResponsesTable);
+  const projects = await db.select().from(projectsTable);
+
+  const allRatings: { date: string; rating: number; projectId: number }[] = [
+    ...surveys.filter(s => s.rating !== null && s.completedAt !== null).map(s => ({
+      date: s.completedAt!.toISOString().slice(0, 7),
+      rating: s.rating as number,
+      projectId: s.projectId,
+    })),
+    ...responses.map(r => ({
+      date: r.submittedAt.toISOString().slice(0, 7),
+      rating: r.rating,
+      projectId: r.projectId,
+    })),
+  ];
+
+  const monthMap = new Map<string, number[]>();
+  for (const r of allRatings) {
+    if (!monthMap.has(r.date)) monthMap.set(r.date, []);
+    monthMap.get(r.date)!.push(r.rating);
+  }
+  const byMonth = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([month, ratings]) => ({
+    month,
+    avgRating: Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10,
+    count: ratings.length,
+  }));
+
+  const byProject = projects.map(p => {
+    const pr = allRatings.filter(r => r.projectId === p.id);
+    if (pr.length === 0) return null;
+    const avg = Math.round((pr.reduce((s, r) => s + r.rating, 0) / pr.length) * 10) / 10;
+    return { projectId: p.id, projectName: p.name, avgRating: avg, count: pr.length };
+  }).filter(Boolean);
+
+  const allValues = allRatings.map(r => r.rating);
+  const overallAvg = allValues.length > 0 ? Math.round((allValues.reduce((s, r) => s + r, 0) / allValues.length) * 10) / 10 : null;
+
+  res.json({ byMonth, byProject, overallAvg, totalResponses: allValues.length });
+});
+
+// ─── Interval IQ Report ───────────────────────────────────────────────────────
+router.get("/reports/interval-iq", async (_req, res): Promise<void> => {
+  const projects = await db.select().from(projectsTable);
+  const tasks = await db.select().from(tasksTable);
+  const phases = await db.select().from(phasesTable);
+
+  const existingEvents = await db.select().from(keyEventsTable);
+
+  if (existingEvents.length === 0) {
+    const milestones = tasks.filter(t => t.isMilestone && t.dueDate);
+    for (const m of milestones) {
+      const project = projects.find(p => p.id === m.projectId);
+      if (!project) continue;
+      const existing = existingEvents.find(e => e.projectId === m.projectId && e.name === m.name);
+      if (!existing) {
+        await db.insert(keyEventsTable).values({
+          projectId: m.projectId,
+          name: m.name,
+          eventDate: m.dueDate!,
+          eventType: "milestone",
+        });
+      }
+    }
+    for (const p of projects) {
+      await db.insert(keyEventsTable).values([
+        { projectId: p.id, name: "Project Kickoff", eventDate: p.startDate, eventType: "project_start" },
+        { projectId: p.id, name: "Project Go-Live", eventDate: p.dueDate, eventType: "project_end" },
+      ]).onConflictDoNothing();
+    }
+  }
+
+  const allEvents = await db.select().from(keyEventsTable);
+  const allIntervals = await db.select().from(intervalsTable);
+
+  if (allIntervals.length === 0) {
+    for (const p of projects) {
+      const pEvents = allEvents.filter(e => e.projectId === p.id);
+      const kickoff = pEvents.find(e => e.eventType === "project_start");
+      const golive = pEvents.find(e => e.eventType === "project_end");
+      if (kickoff && golive) {
+        await db.insert(intervalsTable).values({
+          projectId: p.id,
+          name: "Kickoff to Go-Live",
+          startEventId: kickoff.id,
+          endEventId: golive.id,
+          benchmarkDays: 90,
+        }).onConflictDoNothing();
+      }
+    }
+  }
+
+  const finalIntervals = await db.select().from(intervalsTable);
+  const finalEvents = await db.select().from(keyEventsTable);
+
+  const rows = finalIntervals.map(interval => {
+    const project = projects.find(p => p.id === interval.projectId);
+    const startEvent = finalEvents.find(e => e.id === interval.startEventId);
+    const endEvent = finalEvents.find(e => e.id === interval.endEventId);
+
+    let actualDays: number | null = null;
+    if (startEvent && endEvent) {
+      const diff = new Date(endEvent.eventDate).getTime() - new Date(startEvent.eventDate).getTime();
+      actualDays = Math.ceil(diff / 86400000);
+    }
+
+    const isOverrun = actualDays !== null && actualDays > interval.benchmarkDays;
+    const delta = actualDays !== null ? actualDays - interval.benchmarkDays : null;
+
+    return {
+      intervalId: interval.id,
+      projectId: interval.projectId,
+      projectName: project?.name ?? "Unknown",
+      intervalName: interval.name,
+      startEventName: startEvent?.name ?? null,
+      startDate: startEvent?.eventDate ?? null,
+      endEventName: endEvent?.name ?? null,
+      endDate: endEvent?.eventDate ?? null,
+      benchmarkDays: interval.benchmarkDays,
+      actualDays,
+      delta,
+      isOverrun,
+    };
+  });
+
+  res.json(rows);
+});
+
+router.post("/reports/interval-iq/events", async (req, res): Promise<void> => {
+  const { projectId, name, eventDate, eventType = "manual" } = req.body ?? {};
+  if (!projectId || !name || !eventDate) { res.status(400).json({ error: "projectId, name, eventDate required" }); return; }
+  const [ev] = await db.insert(keyEventsTable).values({ projectId: parseInt(projectId, 10), name, eventDate, eventType }).returning();
+  res.status(201).json(ev);
+});
+
+router.post("/reports/interval-iq/intervals", async (req, res): Promise<void> => {
+  const { projectId, name, startEventId, endEventId, benchmarkDays = 0 } = req.body ?? {};
+  if (!projectId || !name) { res.status(400).json({ error: "projectId and name required" }); return; }
+  const [row] = await db.insert(intervalsTable).values({
+    projectId: parseInt(projectId, 10),
+    name,
+    startEventId: startEventId ? parseInt(startEventId, 10) : null,
+    endEventId: endEventId ? parseInt(endEventId, 10) : null,
+    benchmarkDays: parseInt(benchmarkDays, 10) || 0,
+  }).returning();
+  res.status(201).json(row);
+});
+
 export default router;
+

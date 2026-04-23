@@ -25,3 +25,4 @@ export * from "./clientPortal";
 export * from "./companySettings";
 export * from "./changeOrders";
 export * from "./projectUpdates";
+export * from "./intervalIq";

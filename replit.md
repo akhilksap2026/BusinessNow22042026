@@ -36,6 +36,22 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - When adding fields to the API contract, update all four places: `lib/api-zod/src/generated/api.ts` + `types/createXBody.ts`, `lib/api-client-react/src/generated/api.schemas.ts`, then rebuild both dists (`tsc --build --force`)
 - `lib/api-client-react/dist/index.d.ts` is the compiled declaration output — must rebuild after editing `custom-fetch.ts` or any generated schema file
 
+### Phase 7 Complete — Reports Module Expansion (4 New Report Types)
+- **New DB tables**: `key_events` (project_id, name, event_date, event_type) + `intervals` (project_id, name, start_event_id, end_event_id, benchmark_days); auto-backfilled from milestone tasks + project dates on first `/reports/interval-iq` call
+- **Schema**: `lib/db/src/schema/intervalIq.ts`, exported from schema index
+- **4 new API endpoints** appended to `artifacts/api-server/src/routes/reports.ts`:
+  - `GET /reports/project-performance` — per-project: on-time rate (completed / completed+overdue), CSAT avg (from csat_surveys + csat_responses), template name, non-template task count, planned days, account name
+  - `GET /reports/operations-insights` — grouped by template: on-time %, non-template ratio (scope creep %), CSAT avg, avg duration, project/completed counts
+  - `GET /reports/csat-trend` — monthly avg rating trend from both csat_surveys (completedAt) + csat_responses (submittedAt), by-project breakdown, overall avg
+  - `GET /reports/interval-iq` — intervals with actual vs benchmark days, overrun flag, delta; backfills key_events + intervals from existing data on first load
+  - `POST /reports/interval-iq/events` + `POST /reports/interval-iq/intervals` — manual event/interval creation
+- **Frontend** (`artifacts/businessnow/src/pages/reports.tsx`): 4 new tabs prepend the existing 5 (now 9 total):
+  - **Performance tab** (default): 4 summary KPI cards + filterable table (search, status, health, template filter) + Export CSV; progress bars for on-time %, star ratings for CSAT, amber highlight for non-template tasks
+  - **Operations tab**: Bar chart (on-time % vs scope creep % by template) + comparison table with % formatting and color thresholds
+  - **CSAT Trend tab**: 3 summary cards + line chart with 4★ reference line + by-project breakdown table; empty state message
+  - **Interval IQ tab**: 4 summary cards (overruns, on-time, avg delta) + bar chart (actual vs benchmark, red for overrun/green for on-time) + detail table with overrun badges
+- **Shared utilities**: `downloadCSV()` function for browser-triggered CSV export; `StarRating` component; color constants for health/status
+
 ### Phase 6 Complete — Project Overview Health Stats + Updates Feature
 - **DB**: Two new tables `project_updates` (id, project_id, subject, body, type, created_by_user_id, sent_at, created_at) and `update_recipients` (id, update_id, user_id, delivered_at)
 - **Schema** (`lib/db/src/schema/projectUpdates.ts`): Drizzle schema for both tables; exported from schema index
