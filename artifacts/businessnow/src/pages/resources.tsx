@@ -267,7 +267,7 @@ export default function Resources() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Team Resources</h1>
           {pendingRequests.length > 0 && (
@@ -756,7 +756,7 @@ export default function Resources() {
             const isOverallocated = profileUser.utilizationPercent > 100;
             const isUnderutilized = profileUser.utilizationPercent < 50;
             return (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <SheetHeader>
                   <div className="flex items-center gap-4">
                     <Avatar className="h-14 w-14">

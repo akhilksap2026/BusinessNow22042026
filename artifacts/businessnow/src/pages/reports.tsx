@@ -831,7 +831,7 @@ export default function Reports() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
         </div>

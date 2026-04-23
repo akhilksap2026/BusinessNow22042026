@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <div className="flex items-center gap-2">
@@ -150,7 +150,7 @@ export default function Dashboard() {
               ) : activities?.length === 0 ? (
                 <div className="text-sm text-muted-foreground text-center py-4">No recent activity.</div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {activities?.map((activity) => (
                     <div key={activity.id} className="flex gap-4">
                       <div className="flex flex-col items-center">

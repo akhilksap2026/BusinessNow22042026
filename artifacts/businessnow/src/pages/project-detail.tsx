@@ -412,7 +412,7 @@ export default function ProjectDetail() {
   if (isLoadingProject || isLoadingSummary) {
     return (
       <Layout>
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Skeleton className="h-10 w-1/3" />
           <div className="grid gap-4 md:grid-cols-4">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 w-full" />)}
@@ -436,7 +436,7 @@ export default function ProjectDetail() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">

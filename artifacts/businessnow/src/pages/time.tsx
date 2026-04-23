@@ -266,7 +266,7 @@ export default function TimeTracking() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Time Tracking</h1>
           <div className="flex gap-2">

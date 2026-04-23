@@ -125,7 +125,7 @@
   --app-font-sans: 'DM Sans', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  --radius: .5rem; 
+  --radius: .375rem; 
 
   --shadow-2xs: 0px 2px 0px 0px hsl(202 89% 53% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(202 89% 53% / 0.00);
@@ -212,6 +212,10 @@
 @layer base {
   * {
     @apply border-border;
+  }
+
+  html {
+    font-size: 14px;
   }
 
   body {
