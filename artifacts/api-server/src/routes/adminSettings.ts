@@ -144,7 +144,7 @@ router.get("/time-settings", async (_req, res): Promise<void> => {
 });
 
 router.put("/time-settings", requireAdmin, async (req, res): Promise<void> => {
-  const { weeklyCapacityHours, workingDays, timesheetDueDay, approvalMode, globalLockEnabled, lockBeforeDate, weekStartDay, minSubmitHours, approverRoutingMode } = req.body;
+  const { weeklyCapacityHours, workingDays, timesheetDueDay, approvalMode, globalLockEnabled, lockBeforeDate, weekStartDay, minSubmitHours, approverRoutingMode, lockOnApprovalEnabled, statusLockEnabled, dateLockEditOverrideRoles, dateLockStatusOverrideRoles } = req.body;
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (weeklyCapacityHours !== undefined) updates.weeklyCapacityHours = weeklyCapacityHours;
   if (workingDays !== undefined) updates.workingDays = workingDays;
@@ -155,6 +155,10 @@ router.put("/time-settings", requireAdmin, async (req, res): Promise<void> => {
   if (weekStartDay !== undefined) updates.weekStartDay = Number(weekStartDay);
   if (minSubmitHours !== undefined) updates.minSubmitHours = Number(minSubmitHours);
   if (approverRoutingMode !== undefined) updates.approverRoutingMode = String(approverRoutingMode);
+  if (lockOnApprovalEnabled !== undefined) updates.lockOnApprovalEnabled = !!lockOnApprovalEnabled;
+  if (statusLockEnabled !== undefined) updates.statusLockEnabled = !!statusLockEnabled;
+  if (dateLockEditOverrideRoles !== undefined) updates.dateLockEditOverrideRoles = String(dateLockEditOverrideRoles);
+  if (dateLockStatusOverrideRoles !== undefined) updates.dateLockStatusOverrideRoles = String(dateLockStatusOverrideRoles);
 
   const existing = await db.select().from(timeSettingsTable).limit(1);
   let row;

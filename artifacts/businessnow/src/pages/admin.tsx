@@ -562,6 +562,10 @@ export default function Admin() {
     weekStartDay: 1,
     minSubmitHours: 0,
     approverRoutingMode: "admin_default",
+    lockOnApprovalEnabled: false,
+    statusLockEnabled: false,
+    dateLockEditOverrideRoles: "",
+    dateLockStatusOverrideRoles: "",
   });
   const [timeSettingsDirty, setTimeSettingsDirty] = useState(false);
 
@@ -591,6 +595,10 @@ export default function Admin() {
         weekStartDay: timeSettings.weekStartDay ?? 1,
         minSubmitHours: timeSettings.minSubmitHours ?? 0,
         approverRoutingMode: (timeSettings as any).approverRoutingMode ?? "admin_default",
+        lockOnApprovalEnabled: (timeSettings as any).lockOnApprovalEnabled ?? false,
+        statusLockEnabled: (timeSettings as any).statusLockEnabled ?? false,
+        dateLockEditOverrideRoles: (timeSettings as any).dateLockEditOverrideRoles ?? "",
+        dateLockStatusOverrideRoles: (timeSettings as any).dateLockStatusOverrideRoles ?? "",
       });
     }
   }, [timeSettings, timeSettingsDirty]);
@@ -1495,6 +1503,62 @@ export default function Admin() {
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${timeSettingsForm.globalLockEnabled ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <p className="text-sm font-medium">Lock on Approval</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">When enabled, team members cannot withdraw, edit, or resubmit a timesheet after it is approved. Admins remain exempt.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={timeSettingsForm.lockOnApprovalEnabled}
+                    onClick={() => { setTimeSettingsForm(f => ({ ...f, lockOnApprovalEnabled: !f.lockOnApprovalEnabled })); setTimeSettingsDirty(true); }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${timeSettingsForm.lockOnApprovalEnabled ? "bg-indigo-600" : "bg-muted-foreground/30"}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${timeSettingsForm.lockOnApprovalEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <p className="text-sm font-medium">Status Lock (with Date Lock)</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">When enabled, non-admins cannot submit, approve, reject, or withdraw entries dated on/before the Lock Date. Disables the "Change status of date-locked entries" override for non-admins.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={timeSettingsForm.statusLockEnabled}
+                    onClick={() => { setTimeSettingsForm(f => ({ ...f, statusLockEnabled: !f.statusLockEnabled })); setTimeSettingsDirty(true); }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${timeSettingsForm.statusLockEnabled ? "bg-indigo-600" : "bg-muted-foreground/30"}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${timeSettingsForm.statusLockEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-3">
+                  <div>
+                    <p className="text-sm font-medium">Date-Lock Override Roles</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Comma-separated role names that may bypass the Date Lock. Admin always exempt.</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Can edit details of date-locked entries</Label>
+                    <Input
+                      value={timeSettingsForm.dateLockEditOverrideRoles}
+                      onChange={e => { setTimeSettingsForm(f => ({ ...f, dateLockEditOverrideRoles: e.target.value })); setTimeSettingsDirty(true); }}
+                      placeholder="e.g. PM, Finance"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Can change status of date-locked entries {timeSettingsForm.statusLockEnabled && <span className="text-amber-600 font-normal">(disabled — Status Lock is ON)</span>}</Label>
+                    <Input
+                      value={timeSettingsForm.dateLockStatusOverrideRoles}
+                      onChange={e => { setTimeSettingsForm(f => ({ ...f, dateLockStatusOverrideRoles: e.target.value })); setTimeSettingsDirty(true); }}
+                      placeholder="e.g. Finance"
+                      disabled={timeSettingsForm.statusLockEnabled}
+                    />
+                  </div>
                 </div>
 
                 {timeSettings && (

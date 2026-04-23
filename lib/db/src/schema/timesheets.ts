@@ -87,6 +87,10 @@ export const timeSettingsTable = pgTable("time_settings", {
   weekStartDay: integer("week_start_day").notNull().default(1),
   minSubmitHours: integer("min_submit_hours").notNull().default(0),
   approverRoutingMode: text("approver_routing_mode").notNull().default("admin_default"),
+  lockOnApprovalEnabled: boolean("lock_on_approval_enabled").notNull().default(false),
+  statusLockEnabled: boolean("status_lock_enabled").notNull().default(false),
+  dateLockEditOverrideRoles: text("date_lock_edit_override_roles").notNull().default(""),
+  dateLockStatusOverrideRoles: text("date_lock_status_override_roles").notNull().default(""),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

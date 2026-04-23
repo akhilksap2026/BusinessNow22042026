@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, inArray } from "drizzle-orm";
 import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable, timesheetMessagesTable, notificationPreferencesTable, usersTable } from "@workspace/db";
+import { getGovernanceSettings, checkTimesheetStatusChangeable, checkTimesheetEditable } from "../lib/governance";
 import {
   ListTimesheetsQueryParams,
   ListTimesheetsResponse,
@@ -106,12 +107,28 @@ router.patch("/timesheets/:id", async (req, res): Promise<void> => {
   const tsUpdates: any = { ...parsed.data };
   if (tsUpdates.totalHours !== undefined) tsUpdates.totalHours = String(tsUpdates.totalHours);
   if (tsUpdates.billableHours !== undefined) tsUpdates.billableHours = String(tsUpdates.billableHours);
+  const role = String(req.headers["x-user-role"] ?? "");
+  const settings = await getGovernanceSettings();
   // Withdraw flow: if status is changing back to Draft from Submitted, clear submitted audit fields.
   if (tsUpdates.status === "Draft") {
     const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
-    if (existing && existing.status === "Submitted") {
-      tsUpdates.submittedAt = null;
-      tsUpdates.submittedByUserId = null;
+    if (existing) {
+      // Lock-on-Approval: cannot withdraw an Approved timesheet
+      const tsErr = checkTimesheetEditable(existing, role, settings);
+      if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
+      // Status lock: cannot withdraw if week is in locked period
+      const stErr = checkTimesheetStatusChangeable(existing, role, settings);
+      if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
+      if (existing.status === "Submitted") {
+        tsUpdates.submittedAt = null;
+        tsUpdates.submittedByUserId = null;
+      }
+    }
+  } else if (tsUpdates.totalHours !== undefined || tsUpdates.billableHours !== undefined) {
+    const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
+    if (existing) {
+      const tsErr = checkTimesheetEditable(existing, role, settings);
+      if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
     }
   }
   const [row] = await db.update(timesheetsTable).set(tsUpdates).where(eq(timesheetsTable.id, params.data.id)).returning();
@@ -125,6 +142,13 @@ router.post("/timesheets/:id/submit", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Draft") { res.status(400).json({ error: "Only Draft timesheets can be submitted" }); return; }
+  // Status lock guard
+  {
+    const role = String(req.headers["x-user-role"] ?? "");
+    const settings = await getGovernanceSettings();
+    const stErr = checkTimesheetStatusChangeable(existing, role, settings);
+    if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
+  }
   // Check minimum hours requirement
   const settingsRows = await db.select().from(timeSettingsTable).limit(1);
   const minHours = settingsRows[0]?.minSubmitHours ?? 0;
@@ -157,6 +181,12 @@ router.post("/timesheets/:id/approve", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Submitted") { res.status(400).json({ error: "Only Submitted timesheets can be approved" }); return; }
+  {
+    const role = String(req.headers["x-user-role"] ?? "");
+    const settings = await getGovernanceSettings();
+    const stErr = checkTimesheetStatusChangeable(existing, role, settings);
+    if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
+  }
   const [row] = await db.update(timesheetsTable)
     .set({
       status: "Approved",
@@ -180,6 +210,12 @@ router.post("/timesheets/:id/unapprove", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Approved") { res.status(400).json({ error: "Only Approved timesheets can be unapproved" }); return; }
+  {
+    const role = String(req.headers["x-user-role"] ?? "");
+    const settings = await getGovernanceSettings();
+    const stErr = checkTimesheetStatusChangeable(existing, role, settings);
+    if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
+  }
   const [row] = await db.update(timesheetsTable)
     .set({
       status: "Submitted",
@@ -204,6 +240,12 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Submitted") { res.status(400).json({ error: "Only Submitted timesheets can be rejected" }); return; }
+  {
+    const role = String(req.headers["x-user-role"] ?? "");
+    const settings = await getGovernanceSettings();
+    const stErr = checkTimesheetStatusChangeable(existing, role, settings);
+    if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
+  }
   const rejectedByUserId = (req.body as any)?.rejectedByUserId ?? null;
   const [row] = await db.update(timesheetsTable)
     .set({
@@ -228,7 +270,12 @@ router.post("/timesheets/bulk-approve", async (req, res): Promise<void> => {
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
   const approvedByUserId = req.body?.approvedByUserId ?? null;
   const existing = await db.select().from(timesheetsTable).where(inArray(timesheetsTable.id, ids));
-  const eligible = existing.filter(t => t.status === "Submitted").map(t => t.id);
+  const role = String(req.headers["x-user-role"] ?? "");
+  const settings = await getGovernanceSettings();
+  const eligible = existing
+    .filter(t => t.status === "Submitted")
+    .filter(t => !checkTimesheetStatusChangeable(t, role, settings))
+    .map(t => t.id);
   if (eligible.length === 0) { res.json({ approved: 0, skipped: ids.length }); return; }
   await db.update(timesheetsTable)
     .set({ status: "Approved", approvedAt: new Date(), approvedByUserId, rejectedAt: null, rejectedByUserId: null, rejectionNote: null })

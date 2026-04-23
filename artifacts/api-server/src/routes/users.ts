@@ -73,12 +73,30 @@ router.patch("/users/:id/secondary-roles", requireAdmin, async (req, res): Promi
   res.json(mapUser(row));
 });
 
+// Soft-delete: deactivate user (preserves all historical entries, approvals, audit records).
+// User is removed from active dropdowns via isActive=0 / activeStatus="deactivated"
+// but remains visible in reports referencing their userId.
 router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = UpdateUserParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const [row] = await db.delete(usersTable).where(eq(usersTable.id, params.data.id)).returning();
+  const [row] = await db.update(usersTable)
+    .set({ isActive: 0, activeStatus: "deactivated", updatedAt: new Date() } as any)
+    .where(eq(usersTable.id, params.data.id))
+    .returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
   res.status(204).end();
+});
+
+// Reactivate a soft-deleted user.
+router.post("/users/:id/reactivate", requireAdmin, async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.update(usersTable)
+    .set({ isActive: 1, activeStatus: "active", updatedAt: new Date() } as any)
+    .where(eq(usersTable.id, id))
+    .returning();
+  if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  res.json(mapUser(row));
 });
 
 export default router;

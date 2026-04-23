@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { db, timeEntriesTable, projectsTable, usersTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
+import { getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable, checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry } from "../lib/governance";
 import {
   ListTimeEntriesResponse,
   ListTimeEntriesQueryParams,
@@ -55,6 +56,22 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const role = String(req.headers["x-user-role"] ?? "");
+  const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Time entry not found" }); return; }
+  const settings = await getGovernanceSettings();
+  // Date-based lock: edit details
+  const dateErr = checkEntryEditable(existing, role, settings);
+  if (dateErr) { res.status(dateErr.status).json({ error: dateErr.error }); return; }
+  // Lock-on-Approval: parent timesheet
+  const ts = await getTimesheetForEntry(existing);
+  if (ts) {
+    const tsErr = checkTimesheetEditable(ts, role, settings);
+    if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
+  }
+  // Invoice protection: block project move if entry is invoiced
+  const invErr = await checkInvoicedMove(existing, (parsed.data as any).projectId);
+  if (invErr) { res.status(invErr.status).json({ error: invErr.error }); return; }
   const teUpdates: any = { ...parsed.data };
   if (teUpdates.hours !== undefined) teUpdates.hours = String(teUpdates.hours);
   const [row] = await db.update(timeEntriesTable).set(teUpdates).where(eq(timeEntriesTable.id, params.data.id)).returning();
@@ -69,6 +86,10 @@ router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<voi
   const reason = String(req.body?.rejectionNote ?? req.body?.reason ?? "").trim();
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, id));
   if (!existing) { res.status(404).json({ error: "Time entry not found" }); return; }
+  const role = String(req.headers["x-user-role"] ?? "");
+  const settings = await getGovernanceSettings();
+  const statusErr = checkEntryStatusChangeable(existing, role, settings);
+  if (statusErr) { res.status(statusErr.status).json({ error: statusErr.error }); return; }
   const [row] = await db.update(timeEntriesTable)
     .set({ rejected: true, approved: false, rejectionNote: reason || null })
     .where(eq(timeEntriesTable.id, id))
@@ -94,6 +115,12 @@ router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<vo
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
   const { inArray } = await import("drizzle-orm");
   const existing = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
+  const role = String(req.headers["x-user-role"] ?? "");
+  const settings = await getGovernanceSettings();
+  for (const e of existing) {
+    const err = checkEntryStatusChangeable(e, role, settings);
+    if (err) { res.status(err.status).json({ error: err.error, blockedEntryId: e.id }); return; }
+  }
   await db.update(timeEntriesTable)
     .set({ rejected: true, approved: false, rejectionNote: reason || null })
     .where(inArray(timeEntriesTable.id, ids));
@@ -120,6 +147,21 @@ router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<vo
 router.delete("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteTimeEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
+  if (!existing) { res.sendStatus(204); return; }
+  const role = String(req.headers["x-user-role"] ?? "");
+  const settings = await getGovernanceSettings();
+  const dateErr = checkEntryEditable(existing, role, settings);
+  if (dateErr) { res.status(dateErr.status).json({ error: dateErr.error }); return; }
+  const ts = await getTimesheetForEntry(existing);
+  if (ts) {
+    const tsErr = checkTimesheetEditable(ts, role, settings);
+    if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
+  }
+  // Invoiced entries cannot be deleted
+  const { getInvoicedLink } = await import("../lib/governance");
+  const link = await getInvoicedLink(existing.id);
+  if (link) { res.status(409).json({ error: `Cannot delete: this entry is on invoice ${link.invoiceId} (${link.invoiceStatus}). Void or delete the invoice first.` }); return; }
   await db.delete(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
   res.sendStatus(204);
 });
