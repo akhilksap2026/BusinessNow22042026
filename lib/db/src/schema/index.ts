@@ -24,3 +24,4 @@ export * from "./opportunities";
 export * from "./clientPortal";
 export * from "./companySettings";
 export * from "./changeOrders";
+export * from "./projectUpdates";

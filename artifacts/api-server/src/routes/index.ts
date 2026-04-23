@@ -35,6 +35,7 @@ import taskDependenciesRouter from "./taskDependencies";
 import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
 import { portalAuthRouter } from "./portalAuth";
+import { projectUpdatesRouter } from "./projectUpdates";
 
 const router: IRouter = Router();
 
@@ -74,5 +75,6 @@ router.use(taskDependenciesRouter);
 router.use(baselinesRouter);
 router.use(csatSurveysRouter);
 router.use(portalAuthRouter);
+router.use(projectUpdatesRouter);
 
 export default router;

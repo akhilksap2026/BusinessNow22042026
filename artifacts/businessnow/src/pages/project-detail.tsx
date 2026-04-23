@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge, HealthBadge } from "@/pages/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell } from "lucide-react";
 import { ApplyTemplateModal } from "@/components/apply-template-modal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectPhases } from "@/components/project-phases";
@@ -85,6 +85,11 @@ export default function ProjectDetail() {
   const [shareOpen, setShareOpen] = useState(false);
   const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
   const [taskView, setTaskView] = useState<"list" | "board">("list");
+  const [activeTab, setActiveTab] = useState("tasks");
+  const [taskFilter, setTaskFilter] = useState<"overdue" | "blocked" | "at_risk" | "on_track" | null>(null);
+  const [updateForm, setUpdateForm] = useState({ subject: "", body: "", type: "internal" });
+  const [sendingUpdate, setSendingUpdate] = useState(false);
+  const [showPhaseProgress, setShowPhaseProgress] = useState(true);
   const updateTask = useUpdateTask();
 
   const [editProjectOpen, setEditProjectOpen] = useState(false);
@@ -320,6 +325,49 @@ export default function ProjectDetail() {
     enabled: !!projectId,
   });
 
+  const { data: healthStats, refetch: refetchHealth } = useQuery<{
+    total: number; completed: number; overdue: number; blocked: number; atRisk: number; onTrack: number; completionPct: number;
+    phases: { id: number; name: string; status: string; totalTasks: number; completedTasks: number; completionPct: number; overdueTasks: number; startDate: string | null; endDate: string | null }[];
+  }>({
+    queryKey: ["health-stats", projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects/${projectId}/health-stats`);
+      if (!res.ok) throw new Error("Failed to load health stats");
+      return res.json();
+    },
+    enabled: !!projectId,
+  });
+
+  const { data: projectUpdates = [], refetch: refetchUpdates } = useQuery<any[]>({
+    queryKey: ["project-updates", projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects/${projectId}/updates`);
+      if (!res.ok) throw new Error("Failed to load updates");
+      return res.json();
+    },
+    enabled: !!projectId,
+  });
+
+  async function handleSendUpdate() {
+    if (!updateForm.subject) return;
+    setSendingUpdate(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/updates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateForm),
+      });
+      if (!res.ok) throw new Error("Failed to send");
+      setUpdateForm({ subject: "", body: "", type: "internal" });
+      refetchUpdates();
+      toast({ title: "Update sent", description: "Team has been notified." });
+    } catch {
+      toast({ title: "Failed to send update", variant: "destructive" });
+    } finally {
+      setSendingUpdate(false);
+    }
+  }
+
   const { data: users } = useListUsers();
 
   const getUser = (userId: number) => users?.find(u => u.id === userId);
@@ -431,7 +479,55 @@ export default function ProjectDetail() {
           </Card>
         </div>
 
-        <Tabs defaultValue="tasks" className="w-full">
+        {/* ── Mini Health Stat Cards ────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <button
+            onClick={() => { setTaskFilter(f => f === "overdue" ? null : "overdue"); setActiveTab("tasks"); }}
+            className={`rounded-xl border text-left p-3 transition-all hover:shadow-md focus:outline-none ${taskFilter === "overdue" ? "ring-2 ring-red-400 bg-red-50 dark:bg-red-950/30" : "bg-card dark:bg-card"}`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <span className="text-xs font-medium text-muted-foreground">Overdue</span>
+            </div>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{healthStats?.overdue ?? "–"}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">tasks past due</div>
+          </button>
+          <button
+            onClick={() => { setTaskFilter(f => f === "blocked" ? null : "blocked"); setActiveTab("tasks"); }}
+            className={`rounded-xl border text-left p-3 transition-all hover:shadow-md focus:outline-none ${taskFilter === "blocked" ? "ring-2 ring-orange-400 bg-orange-50 dark:bg-orange-950/30" : "bg-card dark:bg-card"}`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldAlert className="h-4 w-4 text-orange-500" />
+              <span className="text-xs font-medium text-muted-foreground">Blocked</span>
+            </div>
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{healthStats?.blocked ?? "–"}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">tasks blocked</div>
+          </button>
+          <button
+            onClick={() => { setTaskFilter(f => f === "at_risk" ? null : "at_risk"); setActiveTab("tasks"); }}
+            className={`rounded-xl border text-left p-3 transition-all hover:shadow-md focus:outline-none ${taskFilter === "at_risk" ? "ring-2 ring-amber-400 bg-amber-50 dark:bg-amber-950/30" : "bg-card dark:bg-card"}`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Target className="h-4 w-4 text-amber-500" />
+              <span className="text-xs font-medium text-muted-foreground">At Risk</span>
+            </div>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{healthStats?.atRisk ?? "–"}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">milestones at risk</div>
+          </button>
+          <button
+            onClick={() => { setTaskFilter(f => f === "on_track" ? null : "on_track"); setActiveTab("tasks"); }}
+            className={`rounded-xl border text-left p-3 transition-all hover:shadow-md focus:outline-none ${taskFilter === "on_track" ? "ring-2 ring-green-400 bg-green-50 dark:bg-green-950/30" : "bg-card dark:bg-card"}`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="text-xs font-medium text-muted-foreground">On Track</span>
+            </div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{healthStats?.onTrack ?? "–"}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">in progress, on time</div>
+          </button>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="team">Team & Allocations</TabsTrigger>
@@ -461,6 +557,13 @@ export default function ProjectDetail() {
               <Clock className="h-4 w-4" />
               Time
             </TabsTrigger>
+            <TabsTrigger value="updates" className="flex items-center gap-1.5">
+              <Bell className="h-4 w-4" />
+              Updates
+              {projectUpdates.length > 0 && (
+                <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{projectUpdates.length}</span>
+              )}
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="tasks" className="m-0">
@@ -480,6 +583,82 @@ export default function ProjectDetail() {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* ── Phase Progress ──────────────────────────────── */}
+                {healthStats && healthStats.phases.length > 0 && (
+                  <div className="mb-5 border rounded-lg overflow-hidden">
+                    <button
+                      className="w-full flex items-center justify-between px-4 py-2.5 bg-muted/50 hover:bg-muted text-sm font-medium transition-colors"
+                      onClick={() => setShowPhaseProgress(v => !v)}
+                    >
+                      <span className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        Phase Progress
+                        <span className="text-xs text-muted-foreground font-normal">({healthStats.completionPct}% overall)</span>
+                      </span>
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showPhaseProgress ? "rotate-180" : ""}`} />
+                    </button>
+                    {showPhaseProgress && (
+                      <div className="divide-y">
+                        {healthStats.phases.map(ph => (
+                          <div key={ph.id} className="flex items-center gap-4 px-4 py-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium truncate">{ph.name}</span>
+                                <div className="flex items-center gap-2 ml-2 shrink-0">
+                                  {ph.overdueTasks > 0 && (
+                                    <span className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-1.5 py-0.5 rounded-full">{ph.overdueTasks} overdue</span>
+                                  )}
+                                  <span className="text-xs text-muted-foreground">{ph.completedTasks}/{ph.totalTasks}</span>
+                                  <span className="text-xs font-semibold">{ph.completionPct}%</span>
+                                </div>
+                              </div>
+                              <Progress value={ph.completionPct} className="h-1.5" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Active Filter Banner ──────────────────────────── */}
+                {taskFilter && (
+                  <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                    <Filter className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                      Showing: {taskFilter === "overdue" ? "Overdue tasks" : taskFilter === "blocked" ? "Blocked tasks" : taskFilter === "at_risk" ? "At-risk milestones" : "On-track tasks"}
+                    </span>
+                    <button onClick={() => setTaskFilter(null)} className="ml-auto flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">
+                      <XIcon className="h-3.5 w-3.5" /> Clear filter
+                    </button>
+                  </div>
+                )}
+                {taskFilter && (
+                  <div className="mb-4 space-y-2">
+                    {(() => {
+                      const today = new Date().toISOString().slice(0, 10);
+                      let filtered = (tasks || []).filter((t: any) => {
+                        if (taskFilter === "overdue") return t.dueDate && t.dueDate < today && t.status !== "Completed" && !t.isMilestone;
+                        if (taskFilter === "blocked") return t.status === "Blocked";
+                        if (taskFilter === "at_risk") return t.isMilestone && t.dueDate && t.dueDate > today && t.status !== "Completed" && new Date(t.dueDate).getTime() - Date.now() < 7 * 86400000;
+                        if (taskFilter === "on_track") return t.status === "In Progress" && (!t.dueDate || t.dueDate >= today) && !t.isMilestone;
+                        return false;
+                      });
+                      if (filtered.length === 0) return <p className="text-sm text-muted-foreground py-2">No tasks match this filter.</p>;
+                      return filtered.map((t: any) => (
+                        <div key={t.id} className="flex items-center justify-between px-3 py-2 rounded-md border bg-card text-sm gap-3">
+                          <span className="font-medium truncate">{t.name}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {t.isMilestone && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 px-1.5 py-0.5 rounded-full">Milestone</span>}
+                            <TaskStatusBadge status={t.status} />
+                            {t.dueDate && <span className="text-xs text-muted-foreground">Due {t.dueDate}</span>}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+
                 {taskView === "list" ? (
                   <ProjectPhases projectId={projectId} />
                 ) : (
@@ -980,6 +1159,91 @@ export default function ProjectDetail() {
                 </>
               );
             })()}
+          </TabsContent>
+
+          {/* ── Updates Tab ──────────────────────────────────────── */}
+          <TabsContent value="updates" className="m-0 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Send className="h-4 w-4" /> Send Project Update</CardTitle>
+                <CardDescription>Compose an update for the team or client. Use <code className="bg-muted px-1 rounded text-xs">{"{{milestones}}"}</code>, <code className="bg-muted px-1 rounded text-xs">{"{{overdue_tasks}}"}</code>, or <code className="bg-muted px-1 rounded text-xs">{"{{pending_approvals}}"}</code> — they are auto-resolved on send.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3">
+                  <div className="grid grid-cols-4 items-center gap-3">
+                    <Label className="text-right col-span-1">Subject</Label>
+                    <Input
+                      className="col-span-3"
+                      placeholder="e.g. Week 3 Project Update"
+                      value={updateForm.subject}
+                      onChange={e => setUpdateForm(f => ({ ...f, subject: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-start gap-3">
+                    <Label className="text-right col-span-1 pt-2">Message</Label>
+                    <Textarea
+                      className="col-span-3 min-h-[120px] font-mono text-sm"
+                      placeholder={"Milestone status:\n{{milestones}}\n\nOverdue tasks:\n{{overdue_tasks}}\n\nPending approvals:\n{{pending_approvals}}"}
+                      value={updateForm.body}
+                      onChange={e => setUpdateForm(f => ({ ...f, body: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-3">
+                    <Label className="text-right col-span-1">Audience</Label>
+                    <Select value={updateForm.type} onValueChange={v => setUpdateForm(f => ({ ...f, type: v }))}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="internal">Internal (team only)</SelectItem>
+                        <SelectItem value="client">Client-facing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleSendUpdate} disabled={sendingUpdate || !updateForm.subject} className="gap-2">
+                    <Send className="h-4 w-4" />
+                    {sendingUpdate ? "Sending…" : "Send Update"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Update History</CardTitle>
+                <CardDescription>{projectUpdates.length === 0 ? "No updates sent yet." : `${projectUpdates.length} update${projectUpdates.length !== 1 ? "s" : ""} sent`}</CardDescription>
+              </CardHeader>
+              {projectUpdates.length > 0 && (
+                <CardContent className="space-y-3">
+                  {projectUpdates.map((upd: any) => (
+                    <div key={upd.id} className="border rounded-lg p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-sm">{upd.subject}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${upd.type === "client" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"}`}>
+                              {upd.type === "client" ? "Client-facing" : "Internal"}
+                            </span>
+                            {upd.createdBy && (
+                              <span className="text-xs text-muted-foreground">by {upd.createdBy.name}</span>
+                            )}
+                            <span className="text-xs text-muted-foreground">· {new Date(upd.sentAt).toLocaleString()}</span>
+                            {upd.recipientCount > 0 && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" />{upd.recipientCount} recipients</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {upd.body && (
+                        <pre className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/50 rounded p-2 font-mono leading-relaxed">{upd.body}</pre>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              )}
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

@@ -36,6 +36,27 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - When adding fields to the API contract, update all four places: `lib/api-zod/src/generated/api.ts` + `types/createXBody.ts`, `lib/api-client-react/src/generated/api.schemas.ts`, then rebuild both dists (`tsc --build --force`)
 - `lib/api-client-react/dist/index.d.ts` is the compiled declaration output — must rebuild after editing `custom-fetch.ts` or any generated schema file
 
+### Phase 6 Complete — Project Overview Health Stats + Updates Feature
+- **DB**: Two new tables `project_updates` (id, project_id, subject, body, type, created_by_user_id, sent_at, created_at) and `update_recipients` (id, update_id, user_id, delivered_at)
+- **Schema** (`lib/db/src/schema/projectUpdates.ts`): Drizzle schema for both tables; exported from schema index
+- **Backend** (`artifacts/api-server/src/routes/projectUpdates.ts`):
+  - `GET /projects/:id/health-stats` — returns overdue/blocked/at-risk/on-track counts + per-phase progress (completionPct, overdueTasks, totalTasks)
+    - Overdue: tasks with `dueDate < today AND status != 'Completed' AND !isMilestone`
+    - Blocked: tasks with `status = 'Blocked'`
+    - At Risk: milestones with `dueDate > today` and due within 7 days and not Completed
+    - On Track: non-milestone tasks `In Progress` with no overdue date
+  - `GET /projects/:id/updates` — list updates (reverse-chron) with creator name + recipientCount
+  - `POST /projects/:id/updates` — create update, auto-resolve template placeholders, insert `update_recipients` for team members, fire in-app notifications
+  - Template placeholders: `{{milestones}}`, `{{overdue_tasks}}`, `{{pending_approvals}}` — resolved at send time from live DB data
+- **Frontend** (`project-detail.tsx`):
+  - **4 mini health stat cards** (Overdue/Blocked/At Risk/On Track) — clickable; clicking filters Tasks tab to show matching tasks; active card gets ring highlight; click again to clear
+  - **Phase Progress** collapsible section in Tasks tab header — shows per-phase completion bar, task counts, overdue badge
+  - **Active filter banner** in Tasks tab — shows filtered task list with clear button when a health card is active
+  - **Updates tab** (9th tab, bell icon, count badge):
+    - Compose form: subject, body (monospaced with template hint), audience selector (Internal/Client-facing)
+    - Update history: reverse-chron list with audience badge, sender, timestamp, recipient count, body preview (monospaced)
+  - Tab is now controlled (`value={activeTab}`) to allow programmatic switching via stat card clicks
+
 ### Phase 5 Complete — Authenticated Client Portal (`/portal/*`)
 - **DB**: Added `portal_theme JSONB` to `accounts` table (primaryColor, accentColor, logoUrl, tabVisibility)
 - **Backend** (`artifacts/api-server/src/routes/portalAuth.ts`):
