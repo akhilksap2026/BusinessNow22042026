@@ -19,7 +19,7 @@ export type AppRole =
 const ROLE_HIERARCHY: Record<AppRole, number> = {
   Admin: 100,
   PM: 80,
-  "Super User": 75,   // PM-level access minus account settings and cost rates
+  "Super User": 80,   // PM-level access minus account settings and cost rates (both excluded via anyRole checks, not hierarchy)
   Finance: 70,
   Developer: 50,
   Designer: 50,

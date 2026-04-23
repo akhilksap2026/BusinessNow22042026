@@ -800,11 +800,13 @@ export const ListAllocationsQueryParams = zod.object({
 export const ListAllocationsResponseItem = zod.object({
   id: zod.number(),
   projectId: zod.number(),
-  userId: zod.number(),
+  userId: zod.number().nullish(),
+  placeholderRole: zod.string().nullish(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
   role: zod.string(),
+  isSoftAllocation: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);
@@ -833,6 +835,7 @@ export const UpdateAllocationBody = zod.object({
   endDate: zod.string().optional(),
   hoursPerWeek: zod.number().optional(),
   role: zod.string().optional(),
+  isSoftAllocation: zod.boolean().optional(),
 });
 
 export const UpdateAllocationResponse = zod.object({
