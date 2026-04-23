@@ -878,6 +878,9 @@ export default function Admin() {
             <TabsTrigger value="customfields" className="flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4" /> Custom Fields
             </TabsTrigger>
+            <TabsTrigger value="placeholders" className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Placeholders
+            </TabsTrigger>
             <TabsTrigger value="auditlog" className="flex items-center gap-2">
               <Activity className="h-4 w-4" /> Audit Log
             </TabsTrigger>
@@ -1595,6 +1598,10 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="placeholders" className="m-0">
+            <PlaceholdersCatalog base={BASE} />
           </TabsContent>
 
           <TabsContent value="auditlog" className="m-0">
@@ -2420,5 +2427,99 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
     </Layout>
+  );
+}
+
+type PlaceholderRow = { id: number; name: string; roleId: string | null; isDefault: boolean; createdAt: string };
+
+function PlaceholdersCatalog({ base }: { base: string }) {
+  const { toast } = useToast();
+  const [rows, setRows] = useState<PlaceholderRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
+  const [roleId, setRoleId] = useState("");
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch(`${base}/api/placeholders`);
+      if (r.ok) setRows(await r.json());
+    } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function create() {
+    if (!name.trim()) return;
+    const r = await fetch(`${base}/api/placeholders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+      body: JSON.stringify({ name: name.trim(), roleId: roleId.trim() || null }),
+    });
+    if (r.ok) {
+      toast({ title: "Placeholder created" });
+      setName(""); setRoleId(""); load();
+    } else {
+      toast({ title: "Failed to create placeholder", variant: "destructive" });
+    }
+  }
+
+  async function remove(id: number, isDefault: boolean) {
+    if (isDefault) { toast({ title: "Default placeholders cannot be deleted", variant: "destructive" }); return; }
+    if (!confirm("Delete this placeholder? Existing allocations referencing it will keep their text role label.")) return;
+    const r = await fetch(`${base}/api/placeholders/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+    if (r.status === 204) { toast({ title: "Placeholder deleted" }); load(); }
+    else { toast({ title: "Failed to delete", variant: "destructive" }); }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Placeholders Catalog</CardTitle>
+        <CardDescription>Reusable unfilled slots used in resource allocations before a real team member is assigned.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1.5">
+            <Label>Name</Label>
+            <Input className="w-64" placeholder="e.g. Senior Consultant Slot" value={name} onChange={e => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Role (optional)</Label>
+            <Input className="w-48" placeholder="e.g. Consultant" value={roleId} onChange={e => setRoleId(e.target.value)} />
+          </div>
+          <Button onClick={create} disabled={!name.trim()}>Add Placeholder</Button>
+        </div>
+        <div className="rounded-md border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-3 py-2 text-left">Name</th>
+                <th className="px-3 py-2 text-left">Role</th>
+                <th className="px-3 py-2 text-left">Default</th>
+                <th className="px-3 py-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={4} className="px-3 py-4 text-center text-muted-foreground">Loading…</td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={4} className="px-3 py-4 text-center text-muted-foreground">No placeholders yet</td></tr>
+              ) : rows.map(r => (
+                <tr key={r.id} className="border-t">
+                  <td className="px-3 py-2">{r.name}</td>
+                  <td className="px-3 py-2">{r.roleId ?? "—"}</td>
+                  <td className="px-3 py-2">{r.isDefault ? <Badge variant="secondary">Default</Badge> : "—"}</td>
+                  <td className="px-3 py-2 text-right">
+                    <Button size="sm" variant="ghost" onClick={() => remove(r.id, r.isDefault)} disabled={r.isDefault}>
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

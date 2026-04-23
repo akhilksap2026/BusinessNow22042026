@@ -165,6 +165,49 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
     }
   }
 
+  // Auto-allocate hook: if project.autoAllocate is true and assigneeIds changed,
+  // ensure each newly-assigned user has an active allocation on the project.
+  try {
+    if (parsed.data.assigneeIds !== undefined) {
+      const prevSet = new Set((existing.assigneeIds ?? []) as number[]);
+      const nextIds = (row.assigneeIds ?? []) as number[];
+      const newlyAssigned = nextIds.filter(id => !prevSet.has(id));
+      if (newlyAssigned.length > 0) {
+        const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, row.projectId));
+        if (project && project.autoAllocate) {
+          const existingAllocs = await db.select().from(allocationsTable).where(eq(allocationsTable.projectId, project.id));
+          const startDate = (row as any).startDate ?? project.startDate;
+          const endDate = (row as any).dueDate ?? project.dueDate;
+          for (const uid of newlyAssigned) {
+            const has = existingAllocs.some(a => a.userId === uid && a.endDate >= startDate);
+            if (has) continue;
+            await db.insert(allocationsTable).values({
+              projectId: project.id,
+              userId: uid,
+              startDate,
+              endDate,
+              hoursPerWeek: "0",
+              hoursPerDay: "0",
+              totalHours: "0",
+              allocationMethod: "hours_per_week",
+              methodValue: "0",
+              role: "Team Member",
+              isSoftAllocation: true,
+            } as any);
+            await logAudit({
+              entityType: "allocation",
+              entityId: 0,
+              action: "auto_created",
+              description: `Auto-allocated user ${uid} to project ${project.name} via task "${row.name}"`,
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Auto-allocate from task assignment failed:", err);
+  }
+
   res.json(UpdateTaskResponse.parse(mapTask(row)));
 });
 

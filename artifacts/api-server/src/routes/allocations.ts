@@ -19,9 +19,105 @@ function mapAllocation(a: typeof allocationsTable.$inferSelect) {
   return {
     ...a,
     hoursPerWeek: Number(a.hoursPerWeek),
+    hoursPerDay: Number(a.hoursPerDay ?? 0),
+    totalHours: Number(a.totalHours ?? 0),
+    methodValue: a.methodValue !== null && a.methodValue !== undefined ? Number(a.methodValue) : null,
+    percentOfCapacity: a.percentOfCapacity !== null && a.percentOfCapacity !== undefined ? Number(a.percentOfCapacity) : null,
     createdAt: a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt,
     updatedAt: a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt,
   };
+}
+
+// Count working days (Mon–Fri) in inclusive date range YYYY-MM-DD
+function workingDaysInRange(startDate: string, endDate: string): number {
+  let d = new Date(startDate + "T00:00:00Z");
+  const end = new Date(endDate + "T00:00:00Z");
+  let n = 0;
+  while (d <= end) {
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) n++;
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return n;
+}
+
+const SUPPORTED_METHODS = new Set(["total_hours", "hours_per_day", "hours_per_week", "percentage_capacity", "hours"]);
+
+type ComputeResult =
+  | { ok: true; value: { hoursPerDay: number; hoursPerWeek: number; totalHours: number; percentOfCapacity: number | null; methodValue: number | null; allocationMethod: string } }
+  | { ok: false; error: string };
+
+// Auto-derive hoursPerDay/hoursPerWeek/totalHours from method + methodValue.
+// Returns explicit error rather than silently falling back when inputs are invalid.
+async function computeAllocationFields(input: {
+  startDate: string;
+  endDate: string;
+  allocationMethod?: string;
+  methodValue?: number | null;
+  hoursPerWeek?: number | null;
+  userId?: number | null;
+}): Promise<ComputeResult> {
+  const days = Math.max(1, workingDaysInRange(input.startDate, input.endDate));
+  const rawMethod = input.allocationMethod ?? "hours_per_week";
+  if (!SUPPORTED_METHODS.has(rawMethod)) {
+    return { ok: false, error: `Unsupported allocationMethod "${rawMethod}". Supported: total_hours, hours_per_day, hours_per_week, percentage_capacity` };
+  }
+  // "hours" is a legacy alias for "hours_per_week"
+  const method = rawMethod === "hours" ? "hours_per_week" : rawMethod;
+  const mv: number = input.methodValue ?? input.hoursPerWeek ?? 0;
+  let hpd = 0, hpw = 0, total = 0, pct: number | null = null;
+
+  if (method === "total_hours") {
+    total = mv;
+    hpd = total / days;
+    hpw = hpd * 5;
+  } else if (method === "hours_per_day") {
+    hpd = mv;
+    hpw = hpd * 5;
+    total = hpd * days;
+  } else if (method === "percentage_capacity") {
+    if (!input.userId) {
+      return { ok: false, error: "percentage_capacity requires userId so user.capacity can be resolved" };
+    }
+    const [u] = await db.select().from(usersTable).where(eq(usersTable.id, input.userId));
+    if (!u) return { ok: false, error: `percentage_capacity: user ${input.userId} not found` };
+    pct = mv;
+    const weeklyCap = u.capacity;
+    hpd = (pct / 100) * (weeklyCap / 5);
+    hpw = (pct / 100) * weeklyCap;
+    total = hpd * days;
+  } else {
+    // hours_per_week
+    hpw = mv;
+    hpd = hpw / 5;
+    total = hpd * days;
+  }
+
+  return {
+    ok: true,
+    value: {
+      hoursPerDay: Math.round(hpd * 100) / 100,
+      hoursPerWeek: Math.round(hpw * 100) / 100,
+      totalHours: Math.round(total * 100) / 100,
+      percentOfCapacity: pct,
+      methodValue: mv,
+      allocationMethod: method,
+    },
+  };
+}
+
+// Identity rule: exactly one of (userId, placeholderId) must be set.
+// `placeholderRole` (legacy text label) is only accepted when placeholderId is also set, as descriptive metadata.
+function validateAllocationCore(body: any): string | null {
+  const hasUser = body.userId !== undefined && body.userId !== null;
+  const hasPlaceholderId = body.placeholderId !== undefined && body.placeholderId !== null;
+  const hasLegacyPlaceholderRole = body.placeholderRole !== undefined && body.placeholderRole !== null && body.placeholderRole !== "";
+  // Allow legacy rows where only placeholderRole is set (pre-catalog data) for PATCH compatibility
+  const hasPlaceholder = hasPlaceholderId || hasLegacyPlaceholderRole;
+  if (hasUser && hasPlaceholder) return "Provide exactly one of userId or placeholderId";
+  if (!hasUser && !hasPlaceholder) return "Either userId or placeholderId is required";
+  if (body.startDate && body.endDate && body.endDate < body.startDate) return "endDate must be on or after startDate";
+  return null;
 }
 
 router.get("/allocations", async (req, res): Promise<void> => {
@@ -38,8 +134,32 @@ router.get("/allocations", async (req, res): Promise<void> => {
 router.post("/allocations", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateAllocationBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const validationError = validateAllocationCore({ ...parsed.data, ...req.body });
+  if (validationError) { res.status(400).json({ error: validationError }); return; }
   const isSoftAllocation = req.body.isSoftAllocation === true || req.body.isSoftAllocation === "true";
-  const [row] = await db.insert(allocationsTable).values({ ...parsed.data as any, isSoftAllocation }).returning();
+  const computeRes = await computeAllocationFields({
+    startDate: parsed.data.startDate,
+    endDate: parsed.data.endDate,
+    allocationMethod: req.body.allocationMethod ?? parsed.data.allocationMethod,
+    methodValue: req.body.methodValue,
+    hoursPerWeek: parsed.data.hoursPerWeek,
+    userId: parsed.data.userId ?? null,
+  });
+  if (!computeRes.ok) { res.status(400).json({ error: computeRes.error }); return; }
+  const computed = computeRes.value;
+  const placeholderId = req.body.placeholderId ?? null;
+  const insertVals: any = {
+    ...parsed.data,
+    isSoftAllocation,
+    placeholderId,
+    hoursPerWeek: String(computed.hoursPerWeek),
+    hoursPerDay: String(computed.hoursPerDay),
+    totalHours: String(computed.totalHours),
+    methodValue: computed.methodValue !== null ? String(computed.methodValue) : null,
+    percentOfCapacity: computed.percentOfCapacity !== null ? String(computed.percentOfCapacity) : null,
+    allocationMethod: computed.allocationMethod,
+  };
+  const [row] = await db.insert(allocationsTable).values(insertVals).returning();
   res.status(201).json(mapAllocation(row));
 });
 
@@ -48,11 +168,53 @@ router.patch("/allocations/:id", requirePM, async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateAllocationBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const updateData: any = { ...parsed.data };
+  const [existing] = await db.select().from(allocationsTable).where(eq(allocationsTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Allocation not found" }); return; }
+
+  const merged = { ...existing, ...parsed.data, ...(req.body.placeholderId !== undefined ? { placeholderId: req.body.placeholderId } : {}) };
+  const validationError = validateAllocationCore(merged);
+  if (validationError) { res.status(400).json({ error: validationError }); return; }
+
+  const updateData: any = { ...parsed.data, updatedAt: new Date() };
+  if (req.body.placeholderId !== undefined) updateData.placeholderId = req.body.placeholderId;
   if (req.body.isSoftAllocation !== undefined) updateData.isSoftAllocation = req.body.isSoftAllocation === true || req.body.isSoftAllocation === "true";
+
+  // Recompute derived fields if any input changed
+  const inputsChanged = parsed.data.startDate !== undefined || parsed.data.endDate !== undefined
+    || parsed.data.hoursPerWeek !== undefined || req.body.methodValue !== undefined
+    || req.body.allocationMethod !== undefined || parsed.data.userId !== undefined;
+  if (inputsChanged) {
+    const computeRes = await computeAllocationFields({
+      startDate: parsed.data.startDate ?? existing.startDate,
+      endDate: parsed.data.endDate ?? existing.endDate,
+      allocationMethod: req.body.allocationMethod ?? existing.allocationMethod,
+      methodValue: req.body.methodValue ?? (existing.methodValue !== null ? Number(existing.methodValue) : (parsed.data.hoursPerWeek ?? Number(existing.hoursPerWeek))),
+      hoursPerWeek: parsed.data.hoursPerWeek ?? Number(existing.hoursPerWeek),
+      userId: parsed.data.userId ?? existing.userId ?? null,
+    });
+    if (!computeRes.ok) { res.status(400).json({ error: computeRes.error }); return; }
+    const computed = computeRes.value;
+    updateData.hoursPerWeek = String(computed.hoursPerWeek);
+    updateData.hoursPerDay = String(computed.hoursPerDay);
+    updateData.totalHours = String(computed.totalHours);
+    updateData.methodValue = computed.methodValue !== null ? String(computed.methodValue) : null;
+    updateData.percentOfCapacity = computed.percentOfCapacity !== null ? String(computed.percentOfCapacity) : null;
+    updateData.allocationMethod = computed.allocationMethod;
+  }
+
   const [row] = await db.update(allocationsTable).set(updateData).where(eq(allocationsTable.id, params.data.id)).returning();
-  if (!row) { res.status(404).json({ error: "Allocation not found" }); return; }
   res.json(UpdateAllocationResponse.parse(mapAllocation(row)));
+});
+
+// Cascade-delete: remove all allocations for a user on a project (when removed from project)
+router.delete("/projects/:projectId/users/:userId/allocations", requirePM, async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.projectId);
+  const userId = parseInt(req.params.userId);
+  if (isNaN(projectId) || isNaN(userId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const removed = await db.delete(allocationsTable)
+    .where(and(eq(allocationsTable.projectId, projectId), eq(allocationsTable.userId, userId)))
+    .returning();
+  res.json({ removedCount: removed.length });
 });
 
 router.delete("/allocations/:id", requirePM, async (req, res): Promise<void> => {

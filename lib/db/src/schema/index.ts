@@ -10,6 +10,7 @@ export * from "./invoices";
 export * from "./financials";
 export * from "./rateCards";
 export * from "./allocations";
+export * from "./placeholders";
 export * from "./notifications";
 export * from "./resourceRequests";
 export * from "./auditLog";

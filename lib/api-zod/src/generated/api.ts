@@ -166,6 +166,7 @@ export const ListProjectsResponseItem = zod.object({
   description: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
+  autoAllocate: zod.boolean().nullish(),
   opportunityId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
@@ -187,6 +188,7 @@ export const CreateProjectBody = zod.object({
   budget: zod.number(),
   budgetedHours: zod.number(),
   description: zod.string().optional(),
+  autoAllocate: zod.boolean().optional(),
 });
 
 /**
@@ -214,6 +216,7 @@ export const GetProjectResponse = zod.object({
   description: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
+  autoAllocate: zod.boolean().nullish(),
   opportunityId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
@@ -239,6 +242,7 @@ export const UpdateProjectBody = zod.object({
   completion: zod.number().optional(),
   health: zod.string().optional(),
   description: zod.string().optional(),
+  autoAllocate: zod.boolean().optional(),
 });
 
 export const UpdateProjectResponse = zod.object({
@@ -817,9 +821,15 @@ export const ListAllocationsResponseItem = zod.object({
   projectId: zod.number(),
   userId: zod.number().nullish(),
   placeholderRole: zod.string().nullish(),
+  placeholderId: zod.number().nullish(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
+  hoursPerDay: zod.number().nullish(),
+  totalHours: zod.number().nullish(),
+  allocationMethod: zod.string().nullish(),
+  methodValue: zod.number().nullish(),
+  percentOfCapacity: zod.number().nullish(),
   role: zod.string(),
   isSoftAllocation: zod.boolean().optional(),
   createdAt: zod.string(),
@@ -831,11 +841,16 @@ export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);
  */
 export const CreateAllocationBody = zod.object({
   projectId: zod.number(),
-  userId: zod.number(),
+  userId: zod.number().nullish(),
+  placeholderId: zod.number().nullish(),
+  placeholderRole: zod.string().nullish(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
+  allocationMethod: zod.string().optional(),
+  methodValue: zod.number().optional(),
   role: zod.string(),
+  isSoftAllocation: zod.boolean().optional(),
 });
 
 /**
@@ -846,9 +861,14 @@ export const UpdateAllocationParams = zod.object({
 });
 
 export const UpdateAllocationBody = zod.object({
+  userId: zod.number().nullish(),
+  placeholderId: zod.number().nullish(),
+  placeholderRole: zod.string().nullish(),
   startDate: zod.string().optional(),
   endDate: zod.string().optional(),
   hoursPerWeek: zod.number().optional(),
+  allocationMethod: zod.string().optional(),
+  methodValue: zod.number().optional(),
   role: zod.string().optional(),
   isSoftAllocation: zod.boolean().optional(),
 });
@@ -856,11 +876,19 @@ export const UpdateAllocationBody = zod.object({
 export const UpdateAllocationResponse = zod.object({
   id: zod.number(),
   projectId: zod.number(),
-  userId: zod.number(),
+  userId: zod.number().nullish(),
+  placeholderId: zod.number().nullish(),
+  placeholderRole: zod.string().nullish(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
+  hoursPerDay: zod.number().nullish(),
+  totalHours: zod.number().nullish(),
+  allocationMethod: zod.string().nullish(),
+  methodValue: zod.number().nullish(),
+  percentOfCapacity: zod.number().nullish(),
   role: zod.string(),
+  isSoftAllocation: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 

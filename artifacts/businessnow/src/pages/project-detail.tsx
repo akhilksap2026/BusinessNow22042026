@@ -93,8 +93,8 @@ export default function ProjectDetail() {
   const updateTask = useUpdateTask();
 
   const [editProjectOpen, setEditProjectOpen] = useState(false);
-  const [editProjectForm, setEditProjectForm] = useState({
-    name: "", status: "", health: "", budget: "", description: "",
+  const [editProjectForm, setEditProjectForm] = useState<{ name: string; status: string; health: string; budget: string; description: string; autoAllocate: boolean }>({
+    name: "", status: "", health: "", budget: "", description: "", autoAllocate: false,
   });
 
   const [coDialogOpen, setCoDialogOpen] = useState(false);
@@ -147,6 +147,7 @@ export default function ProjectDetail() {
       health: project.health,
       budget: project.budget.toString(),
       description: project.description ?? "",
+      autoAllocate: !!(project as any).autoAllocate,
     });
     setEditProjectOpen(true);
   }
@@ -161,6 +162,7 @@ export default function ProjectDetail() {
           health: editProjectForm.health,
           budget: parseFloat(editProjectForm.budget) || project?.budget,
           description: editProjectForm.description,
+          autoAllocate: editProjectForm.autoAllocate,
         } as any,
       });
       queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
@@ -1429,6 +1431,19 @@ export default function ProjectDetail() {
             <div className="space-y-1.5">
               <Label>Description</Label>
               <Input value={editProjectForm.description} onChange={e => setEditProjectForm(f => ({ ...f, description: e.target.value }))} placeholder="Project description" />
+            </div>
+            <div className="flex items-start gap-3 rounded-md border p-3">
+              <input
+                id="auto-allocate-toggle"
+                type="checkbox"
+                className="mt-0.5"
+                checked={editProjectForm.autoAllocate}
+                onChange={e => setEditProjectForm(f => ({ ...f, autoAllocate: e.target.checked }))}
+              />
+              <div>
+                <Label htmlFor="auto-allocate-toggle" className="cursor-pointer">Auto-allocate team members</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">When enabled, assigning a task to a team member automatically creates a soft allocation on this project for the project date range.</p>
+              </div>
             </div>
           </div>
           <DialogFooter>

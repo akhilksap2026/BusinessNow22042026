@@ -152,6 +152,12 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **T009 Holiday Calendar capacity subtraction** — `/resources/capacity` now fetches this week's holidays from `holidayDatesTable` and subtracts 8h per holiday day from each user's weekly capacity
 - **DB** — `milestoneType` column (text) + `task_roles` column (jsonb) added to tasks table and pushed to production DB
 
+### Sprint 9 (audit gap fills — Allocations & Placeholders)
+- **Allocations module extensions** — `allocations` table now has `placeholderId` (FK), `hoursPerDay`, `totalHours`, `methodValue` columns; default `allocationMethod` is `"hours_per_week"`. POST/PATCH `/allocations` auto-derive hpd/hpw/total from `(allocationMethod, methodValue, dateRange, user.capacity)`: supported methods `total_hours`, `hours_per_day`, `hours_per_week`, `percentage_capacity`. Validation rejects (a) both userId+placeholder set, (b) neither set, (c) endDate < startDate.
+- **Placeholders catalog** — new `placeholders` table (id, name, roleId, isDefault, accountId, createdBy); `GET/POST/PATCH /placeholders` (PM) and `DELETE /placeholders/:id` (Admin, blocks default rows). Admin > Placeholders tab provides catalog UI for create/list/delete.
+- **Project auto-allocate** — `projects.autoAllocate` boolean (default false). When true, PATCH `/tasks/:id` adding new assignees auto-creates a soft allocation per newly-assigned user spanning task or project dates (skips users with overlapping active allocation). Toggle exposed in Project Edit dialog.
+- **Cascade remove from project** — new `DELETE /projects/:projectId/users/:userId/allocations` endpoint removes all allocations for a user on a project (membership is implicit via allocations).
+
 ### Sprint 8 Complete (Wave 1 BRD gap-closure — 9 features)
 - **BR-RA-01/02 Soft vs Hard allocation** — `isSoftAllocation` boolean now exposed in API response (added to `ListAllocationsResponseItem` Zod schema); Soft/Hard badge (amber/blue) added to Team Allocations table column; "Soft allocation" checkbox added to Create/Edit Allocation dialog; allocation route PATCH/POST now persists `isSoftAllocation` from request body (bypasses auto-generated Zod body)
 - **BR-RA-03 Resource Utilisation Heat Map** — New `UtilisationHeatmap` component (`components/utilisation-heatmap.tsx`); 12-week lookahead, rows = active users, cells = allocated% vs capacity; green/amber/red colour coding; soft-only weeks shown italic; tooltip with details; "Heat Map" tab added to Resources page
