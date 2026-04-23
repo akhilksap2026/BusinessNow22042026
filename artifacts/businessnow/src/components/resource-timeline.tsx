@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useListAllocations, useListProjects, useListUsers, useGetCapacityOverview,
   useUpdateAllocation, useCreateAllocation, useDeleteAllocation,
-  getListAllocationsQueryKey,
+  getListAllocationsQueryKey, useListSkills,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,8 @@ interface AvailFilter {
   endDate: string;
   minHoursPerDay: string;
   role: string;
+  requiredSkillIds: number[];
+  minProficiency: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -136,7 +138,14 @@ export default function ResourceTimeline({ mode }: Props) {
   const [drag, setDrag] = useState<DragState | null>(null);
   const [editAlloc, setEditAlloc] = useState<any | null>(null);
   const [showAvail, setShowAvail] = useState(false);
-  const [availFilter, setAvailFilter] = useState<AvailFilter>({ startDate: "", endDate: "", minHoursPerDay: "", role: "" });
+  const [availFilter, setAvailFilter] = useState<AvailFilter>({ startDate: "", endDate: "", minHoursPerDay: "", role: "", requiredSkillIds: [], minProficiency: "Intermediate" });
+  const [allUserSkillsForFilter, setAllUserSkillsForFilter] = useState<any[]>([]);
+  const { data: allSkillsList } = useListSkills();
+
+  // Fetch all user-skills once for filtering
+  useEffect(() => {
+    fetch("/api/user-skills").then(r => r.json()).then(setAllUserSkillsForFilter).catch(() => {});
+  }, []);
   const [focusedUserIds, setFocusedUserIds] = useState<Set<number> | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -429,14 +438,30 @@ export default function ResourceTimeline({ mode }: Props) {
   }
 
   // ─── Availability search ──────────────────────────────────────────────────
+  const PROFICIENCY_RANK: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3, Expert: 4 };
+
   function runAvailSearch() {
     if (!availFilter.startDate || !availFilter.endDate) {
       toast({ title: "Enter both start and end date", variant: "destructive" }); return;
     }
     const minHpd = parseFloat(availFilter.minHoursPerDay) || 0;
+    const minProfRank = PROFICIENCY_RANK[availFilter.minProficiency] ?? 1;
     const matchedIds = new Set<number>();
+
     for (const u of userList) {
       if (availFilter.role && u.role !== availFilter.role) continue;
+
+      // Skill filter: user must have ALL required skills with proficiency >= minProficiency
+      if (availFilter.requiredSkillIds.length > 0) {
+        const userSkillsHere = allUserSkillsForFilter.filter((us: any) => us.userId === u.id);
+        const meetsAllSkills = availFilter.requiredSkillIds.every(sid => {
+          const us = userSkillsHere.find((x: any) => x.skillId === sid);
+          if (!us) return false;
+          return (PROFICIENCY_RANK[us.proficiencyLevel] ?? 1) >= minProfRank;
+        });
+        if (!meetsAllSkills) continue;
+      }
+
       const cap = userCapacity(u.id);
       const concurrent = allocs.filter((a: any) =>
         a.userId === u.id &&
@@ -545,6 +570,40 @@ export default function ResourceTimeline({ mode }: Props) {
                 </SelectContent>
               </Select>
             </div>
+            {/* Skills filter */}
+            <div className="space-y-1">
+              <Label className="text-xs block">Required Skills</Label>
+              <div className="flex flex-wrap gap-1 max-w-64">
+                {(allSkillsList as any[] ?? []).map((s: any) => {
+                  const selected = availFilter.requiredSkillIds.includes(s.id);
+                  return (
+                    <button key={s.id}
+                      onClick={() => setAvailFilter(f => ({
+                        ...f,
+                        requiredSkillIds: selected
+                          ? f.requiredSkillIds.filter(id => id !== s.id)
+                          : [...f.requiredSkillIds, s.id]
+                      }))}
+                      className={`px-2 py-0.5 rounded border text-xs transition-colors ${selected ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-indigo-400"}`}>
+                      {s.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {availFilter.requiredSkillIds.length > 0 && (
+              <div>
+                <Label className="text-xs mb-1 block">Min Proficiency</Label>
+                <Select value={availFilter.minProficiency} onValueChange={v => setAvailFilter(f => ({ ...f, minProficiency: v }))}>
+                  <SelectTrigger className="h-7 text-xs w-36"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Beginner","Intermediate","Advanced","Expert"].map(l => (
+                      <SelectItem key={l} value={l}>{l}+</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Button size="sm" className="h-7 text-xs" onClick={runAvailSearch}>Search</Button>
           </div>
         )}

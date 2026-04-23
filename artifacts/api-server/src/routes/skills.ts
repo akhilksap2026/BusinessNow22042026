@@ -114,6 +114,23 @@ router.post("/users/:id/skills", async (req, res): Promise<void> => {
   });
 });
 
+router.patch("/users/:id/skills/:skillId", async (req, res): Promise<void> => {
+  const userId = parseInt(req.params.id);
+  const skillId = parseInt(req.params.skillId);
+  const { proficiencyLevel, value } = req.body;
+  if (isNaN(userId) || isNaN(skillId)) { res.status(400).json({ error: "Invalid ids" }); return; }
+  const newLevel = proficiencyLevel ?? value ?? "Intermediate";
+  const [row] = await db.update(userSkillsTable)
+    .set({ proficiencyLevel: newLevel, updatedAt: new Date() })
+    .where(and(eq(userSkillsTable.userId, userId), eq(userSkillsTable.skillId, skillId)))
+    .returning();
+  if (!row) {
+    const [inserted] = await db.insert(userSkillsTable).values({ userId, skillId, proficiencyLevel: newLevel }).returning();
+    res.json(inserted); return;
+  }
+  res.json(row);
+});
+
 router.delete("/users/:id/skills/:skillId", async (req, res): Promise<void> => {
   const params = RemoveUserSkillParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
@@ -121,6 +138,28 @@ router.delete("/users/:id/skills/:skillId", async (req, res): Promise<void> => {
     and(eq(userSkillsTable.userId, params.data.id), eq(userSkillsTable.skillId, params.data.skillId))
   );
   res.status(204).send();
+});
+
+// Bulk: GET /user-skills — all user skills with skill metadata (for matrix view)
+router.get("/user-skills", async (_req, res): Promise<void> => {
+  const allUserSkills = await db.select().from(userSkillsTable);
+  const allSkills = await db.select().from(skillsTable);
+  const allCategories = await db.select().from(skillCategoriesTable);
+  const result = allUserSkills.map(us => {
+    const skill = allSkills.find(s => s.id === us.skillId);
+    const category = skill?.categoryId ? allCategories.find(c => c.id === skill.categoryId) : null;
+    return {
+      id: us.id,
+      userId: us.userId,
+      skillId: us.skillId,
+      skillName: skill?.name ?? "Unknown",
+      skillType: skill?.skillType ?? "Level",
+      categoryId: skill?.categoryId ?? null,
+      categoryName: category?.name ?? null,
+      proficiencyLevel: us.proficiencyLevel,
+    };
+  });
+  res.json(result);
 });
 
 export default router;

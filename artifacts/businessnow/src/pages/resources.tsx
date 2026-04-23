@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
 import ResourceTimeline from "@/components/resource-timeline";
+import SkillsMatrix from "@/components/skills-matrix";
 import {
   useGetCapacityOverview, useListUsers, useListProjects, useListResourceRequests, useUpdateResourceRequestStatus, getListResourceRequestsQueryKey,
   useGetUserSkills, useListSkills, useListAllocations,
@@ -20,7 +21,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 function PriorityBadge({ priority }: { priority: string }) {
@@ -97,6 +98,23 @@ export default function Resources() {
   const [chatMessages, setChatMessages] = useState<Record<number, any[]>>({});
   const [chatInput, setChatInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [allUserSkills, setAllUserSkills] = useState<any[]>([]);
+
+  // Bulk-load all user skills once on mount for skill match scoring
+  useState(() => {
+    fetch("/api/user-skills").then(r => r.json()).then(setAllUserSkills).catch(() => {});
+  });
+
+  const PROFICIENCY_RANK: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3, Expert: 4 };
+
+  function skillMatchScore(userId: number, requiredSkillNames: string[]): { matched: number; total: number } {
+    if (!requiredSkillNames || requiredSkillNames.length === 0) return { matched: 0, total: 0 };
+    const userSkillNames = allUserSkills
+      .filter((us: any) => us.userId === userId)
+      .map((us: any) => us.skillName.toLowerCase());
+    const matched = requiredSkillNames.filter(s => userSkillNames.includes(s.toLowerCase())).length;
+    return { matched, total: requiredSkillNames.length };
+  }
 
   const getProject = (id: number) => projects?.find((p: any) => p.id === id);
   const getUser = (id: number) => users?.find((u: any) => u.id === id);
@@ -253,6 +271,9 @@ export default function Resources() {
                   {pendingRequests.length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="skills-matrix" className="flex items-center gap-2">
+              <Grid3x3 className="h-4 w-4" /> Skills Matrix
             </TabsTrigger>
           </TabsList>
 
@@ -506,34 +527,72 @@ export default function Resources() {
                       </div>
 
                       {/* Candidate panel (shows on Pending requests) */}
-                      {req.status === "Pending" && users && (users as any[]).length > 0 && (
-                        <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900/30 space-y-2">
-                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Relevant team members</p>
-                          <div className="space-y-1.5">
-                            {(users as any[])
-                              .filter((u: any) => {
-                                if (!u.isInternal && u.isInternal !== undefined) return false;
-                                const roleMatch = !req.role || u.role?.toLowerCase().includes(req.role.toLowerCase().split(" ").pop() ?? "");
-                                return roleMatch;
-                              })
-                              .slice(0, 5)
-                              .map((u: any) => {
-                                const fc = forecastedUtil(u.id, Number(req.hoursPerWeek), ignoreSoft);
+                      {req.status === "Pending" && users && (users as any[]).length > 0 && (() => {
+                        const reqSkills = req.requiredSkills ?? [];
+                        const hasSkillFilter = reqSkills.length > 0;
+
+                        const candidates = (users as any[])
+                          .filter((u: any) => {
+                            if (!u.isInternal && u.isInternal !== undefined) return false;
+                            const roleMatch = !req.role || u.role?.toLowerCase().includes(req.role.toLowerCase().split(" ").pop() ?? "");
+                            return roleMatch;
+                          })
+                          .map((u: any) => {
+                            const fc = forecastedUtil(u.id, Number(req.hoursPerWeek), ignoreSoft);
+                            const sm = skillMatchScore(u.id, reqSkills);
+                            return { ...u, fc, sm };
+                          })
+                          .sort((a: any, b: any) => {
+                            if (hasSkillFilter) {
+                              if (b.sm.matched !== a.sm.matched) return b.sm.matched - a.sm.matched;
+                            }
+                            return a.fc.pct - b.fc.pct;
+                          })
+                          .slice(0, 5);
+
+                        if (candidates.length === 0) return null;
+
+                        return (
+                          <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900/30 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Relevant team members</p>
+                              {hasSkillFilter && <span className="text-xs text-indigo-600">sorted by skill match</span>}
+                            </div>
+                            <div className="space-y-1.5">
+                              {candidates.map((u: any) => {
+                                const { fc, sm } = u;
                                 const pctClass = fc.pct > 100 ? "text-red-600" : fc.pct > 80 ? "text-amber-600" : "text-green-600";
+                                const matchDot = hasSkillFilter
+                                  ? sm.matched === sm.total ? "bg-green-500"
+                                    : sm.matched > 0 ? "bg-amber-500" : "bg-red-500"
+                                  : (fc.pct > 100 ? "bg-red-500" : fc.pct > 80 ? "bg-amber-500" : "bg-green-500");
                                 return (
                                   <div key={u.id} className="flex items-center gap-3 text-xs">
-                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: fc.pct > 100 ? "#ef4444" : fc.pct > 80 ? "#f59e0b" : "#22c55e" }} />
-                                    <span className="font-medium w-36 truncate">{u.name}</span>
-                                    <span className="text-muted-foreground w-28 truncate">{u.role}</span>
+                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${matchDot}`} />
+                                    <span className="font-medium w-32 truncate">{u.name}</span>
+                                    <span className="text-muted-foreground w-24 truncate">{u.role}</span>
+                                    {hasSkillFilter && (
+                                      <span className={`font-semibold ${sm.matched === sm.total ? "text-green-600" : sm.matched > 0 ? "text-amber-600" : "text-red-600"}`}>
+                                        {sm.matched}/{sm.total} skills
+                                      </span>
+                                    )}
                                     <span className="text-muted-foreground">{fc.current}h → <span className={`font-semibold ${pctClass}`}>{fc.proposed}h ({fc.pct}%)</span></span>
-                                    <span className="text-muted-foreground">/ {fc.capacity}h cap</span>
+                                    <span className="text-muted-foreground">cap {fc.capacity}h</span>
                                   </div>
                                 );
                               })}
+                            </div>
+                            {ignoreSoft && <p className="text-xs text-indigo-500">* Soft allocations excluded from utilization</p>}
+                            {hasSkillFilter && (
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1 border-t">
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> All {reqSkills.length} skills matched</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Partial match</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> No match</span>
+                              </div>
+                            )}
                           </div>
-                          {ignoreSoft && <p className="text-xs text-indigo-500">* Soft allocations excluded from utilization calculation</p>}
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Chat thread */}
                       {isChatOpen && (
@@ -573,6 +632,10 @@ export default function Resources() {
                 );
               })
             )}
+          </TabsContent>
+
+          <TabsContent value="skills-matrix" className="m-0">
+            <SkillsMatrix />
           </TabsContent>
         </Tabs>
       </div>

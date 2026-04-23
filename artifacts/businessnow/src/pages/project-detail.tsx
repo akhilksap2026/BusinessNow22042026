@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken } from "@workspace/api-client-react";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken, useListSkills } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -177,8 +177,9 @@ export default function ProjectDetail() {
   const [resReqForm, setResReqForm] = useState({
     type: "add_member",
     role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "",
-    region: "", targetUserId: "", skills: "",
+    region: "", targetUserId: "", skillIds: [] as number[],
   });
+  const { data: allSkillsList } = useListSkills();
 
   const RES_REQ_TYPES = [
     { value: "add_member", label: "Add New Team Member", desc: "Request a new person to join the project" },
@@ -198,7 +199,7 @@ export default function ProjectDetail() {
   async function handleSaveResReq() {
     if (!resReqForm.role || !resReqForm.startDate || !resReqForm.endDate) return;
     try {
-      const skills = resReqForm.skills ? resReqForm.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
+      const skills = (allSkillsList as any[] ?? []).filter((s: any) => resReqForm.skillIds.includes(s.id)).map((s: any) => s.name);
       await createResourceRequest.mutateAsync({
         data: {
           projectId,
@@ -229,7 +230,7 @@ export default function ProjectDetail() {
       }
       toast({ title: "Resource request submitted" });
       setResReqOpen(false);
-      setResReqForm({ type: "add_member", role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "", region: "", targetUserId: "", skills: "" });
+      setResReqForm({ type: "add_member", role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "", region: "", targetUserId: "", skillIds: [] });
     } catch {
       toast({ title: "Failed to submit resource request", variant: "destructive" });
     }
@@ -1537,8 +1538,29 @@ export default function ProjectDetail() {
 
             {resReqForm.type === "add_member" && (
               <div className="space-y-1.5">
-                <Label>Required Skills <span className="text-muted-foreground text-xs">(comma-separated)</span></Label>
-                <Input value={resReqForm.skills} onChange={e => setResReqForm(f => ({ ...f, skills: e.target.value }))} placeholder="e.g. React, TypeScript, Node.js" />
+                <Label>Required Skills</Label>
+                {(allSkillsList as any[] ?? []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No skills defined yet. Add skills in Admin → Skills Matrix.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border bg-slate-50 min-h-10">
+                    {(allSkillsList as any[] ?? []).map((s: any) => {
+                      const selected = resReqForm.skillIds.includes(s.id);
+                      return (
+                        <button key={s.id} type="button"
+                          onClick={() => setResReqForm(f => ({
+                            ...f,
+                            skillIds: selected ? f.skillIds.filter(id => id !== s.id) : [...f.skillIds, s.id]
+                          }))}
+                          className={`px-2.5 py-0.5 rounded-full border text-xs font-medium transition-colors ${selected ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600"}`}>
+                          {s.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {resReqForm.skillIds.length > 0 && (
+                  <p className="text-xs text-indigo-600">{resReqForm.skillIds.length} skill{resReqForm.skillIds.length !== 1 ? "s" : ""} selected</p>
+                )}
               </div>
             )}
 

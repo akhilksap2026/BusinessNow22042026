@@ -152,6 +152,17 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **T009 Holiday Calendar capacity subtraction** — `/resources/capacity` now fetches this week's holidays from `holidayDatesTable` and subtracts 8h per holiday day from each user's weekly capacity
 - **DB** — `milestoneType` column (text) + `task_roles` column (jsonb) added to tasks table and pushed to production DB
 
+### Sprint 12 — Skills Competency Matrix & Skill-Based Search
+- **Skills Matrix grid** (`Resources → Skills Matrix` tab): Full cross-tab grid — rows=team members (grouped by role), columns=skills (grouped by category). Cell shows color-coded proficiency badge (Beginner/Intermediate/Advanced/Expert). Click any cell → inline dropdown to set/update/remove proficiency. Group by toggle (Role / Category). Column category show/hide toggles. Name/role search filter. Live data from new `GET /user-skills` bulk endpoint. Refresh button.
+- **PATCH /users/:id/skills/:skillId** (new): Upsert proficiency — updates if exists, inserts if new. Body: `{ proficiencyLevel }`.
+- **GET /user-skills** (new): Bulk endpoint returning all user_skills with skill metadata (name, skillType, categoryId, categoryName) — avoids N+1 per-user fetches for the matrix.
+- **Find Availability skill filter** (`Resources → People Timeline → Find Availability`): Added "Required Skills" chip-toggle multi-select — click skills to require them. Added "Min Proficiency" dropdown (Beginner+ / Intermediate+ / Advanced+ / Expert+). `runAvailSearch` enforces: user must have ALL selected skills with proficiency ≥ min threshold using PROFICIENCY_RANK map (Beginner=1, Intermediate=2, Advanced=3, Expert=4).
+- **Skill-based candidate sorting** (`Resources → Resource Requests`): Candidate panel now loads all user-skills via `GET /user-skills`. For requests with `requiredSkills[]`, computes `matchScore` (count of matched skill names). Sorts: match score desc, then utilization pct asc. Shows `X/Y skills` badge per candidate — green=all, amber=partial, red=none. Legend row below panel when skills filter is active.
+- **Required skills multi-select** (`Project detail → Request Resource dialog`): Replaced comma-separated text input with chip-toggle pill buttons loaded from `GET /skills`. Selected skills stored as `skillIds[]`, mapped to names on submit. Count indicator shows selection count.
+- **Proficiency comparison logic**: `Beginner < Intermediate < Advanced < Expert` enforced numerically via PROFICIENCY_RANK in both Find Availability and candidate panel matching.
+- **Skill type support**: Matrix renders Level (4-tier), Yes-No (Yes/No only), and Number (1–10) proficiency options based on skill's `skillType` field.
+- Files: `artifacts/businessnow/src/components/skills-matrix.tsx` (new), `artifacts/api-server/src/routes/skills.ts`, `artifacts/businessnow/src/components/resource-timeline.tsx`, `artifacts/businessnow/src/pages/resources.tsx`, `artifacts/businessnow/src/pages/project-detail.tsx`
+
 ### Sprint 11 — Enhanced Resource Request Approval Workflow
 - **6 request types**: `add_member`, `add_hours`, `assign_placeholder`, `replacement`, `shift_allocations`, `delete_allocation` — selectable in project-detail form with conditional field rendering per type
 - **Candidate panel** (Resources → Requests): on Pending cards shows up to 5 team members matching role keyword with color-coded forecasted utilization (current hpw + proposed hpw vs capacity)
