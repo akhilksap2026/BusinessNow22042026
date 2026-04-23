@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, baselinesTable, phasesTable, tasksTable } from "@workspace/db";
+import { requirePM } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
@@ -60,8 +61,8 @@ router.post("/projects/:id/baselines", async (req, res): Promise<void> => {
   });
 });
 
-// Delete a baseline
-router.delete("/baselines/:id", async (req, res): Promise<void> => {
+// Delete a baseline — PM+ only; baselines are otherwise immutable records
+router.delete("/baselines/:id", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(baselinesTable).where(eq(baselinesTable.id, id));

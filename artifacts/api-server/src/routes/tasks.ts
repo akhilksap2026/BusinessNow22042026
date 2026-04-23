@@ -17,6 +17,11 @@ import {
 
 const router: IRouter = Router();
 
+const PM_ROLES = new Set(["Admin", "PM", "Super User"]);
+function canReadPrivateNotes(role: string): boolean {
+  return PM_ROLES.has(role);
+}
+
 function mapTask(t: typeof tasksTable.$inferSelect) {
   return {
     ...t,
@@ -28,6 +33,7 @@ function mapTask(t: typeof tasksTable.$inferSelect) {
 }
 
 router.get("/tasks", async (req, res): Promise<void> => {
+  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
   const qp = ListTasksQueryParams.safeParse(req.query);
   const conditions = [];
   if (qp.success && qp.data.projectId) conditions.push(eq(tasksTable.projectId, qp.data.projectId));
@@ -35,7 +41,12 @@ router.get("/tasks", async (req, res): Promise<void> => {
   const rows = conditions.length
     ? await db.select().from(tasksTable).where(and(...conditions))
     : await db.select().from(tasksTable);
-  res.json(ListTasksResponse.parse(rows.map(mapTask)));
+  const mapped = rows.map(t => {
+    const task = mapTask(t);
+    if (!canReadPrivateNotes(role)) task.privateNotes = null;
+    return task;
+  });
+  res.json(ListTasksResponse.parse(mapped));
 });
 
 router.post("/tasks", requirePM, async (req, res): Promise<void> => {
@@ -47,11 +58,14 @@ router.post("/tasks", requirePM, async (req, res): Promise<void> => {
 });
 
 router.get("/tasks/:id", async (req, res): Promise<void> => {
+  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
   const params = GetTaskParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [row] = await db.select().from(tasksTable).where(eq(tasksTable.id, params.data.id));
   if (!row) { res.status(404).json({ error: "Task not found" }); return; }
-  res.json(GetTaskResponse.parse(mapTask(row)));
+  const task = mapTask(row);
+  if (!canReadPrivateNotes(role)) task.privateNotes = null;
+  res.json(GetTaskResponse.parse(task));
 });
 
 router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {

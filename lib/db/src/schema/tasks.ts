@@ -23,6 +23,7 @@ export const tasksTable = pgTable("tasks", {
   fromTemplate: boolean("from_template").notNull().default(false),
   appliedTemplateId: integer("applied_template_id"),
   csatEnabled: boolean("csat_enabled").notNull().default(true),
+  privateNotes: text("private_notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

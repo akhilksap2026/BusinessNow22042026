@@ -27,7 +27,7 @@ function mapInvoice(i: typeof invoicesTable.$inferSelect) {
   };
 }
 
-router.get("/invoices", async (req, res): Promise<void> => {
+router.get("/invoices", requireFinance, async (req, res): Promise<void> => {
   const qp = ListInvoicesQueryParams.safeParse(req.query);
   const conditions = [];
   if (qp.success && qp.data.status) conditions.push(eq(invoicesTable.status, qp.data.status));
@@ -48,7 +48,7 @@ router.post("/invoices", requireFinance, async (req, res): Promise<void> => {
   res.status(201).json(GetInvoiceResponse.parse(mapInvoice(row)));
 });
 
-router.get("/invoices/finance-summary", async (_req, res): Promise<void> => {
+router.get("/invoices/finance-summary", requireFinance, async (_req, res): Promise<void> => {
   const rows = await db.select().from(invoicesTable);
   const totalInvoiced = rows.reduce((s, r) => s + Number(r.total), 0);
   const totalPaid = rows.filter(r => r.status === 'Paid').reduce((s, r) => s + Number(r.total), 0);
@@ -66,7 +66,7 @@ router.get("/invoices/finance-summary", async (_req, res): Promise<void> => {
   res.json(GetFinanceSummaryResponse.parse({ totalInvoiced, totalPaid, totalOutstanding, totalOverdue, pipelineValue, byStatus }));
 });
 
-router.get("/invoices/:id", async (req, res): Promise<void> => {
+router.get("/invoices/:id", requireFinance, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = GetInvoiceParams.safeParse({ id: raw });
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }

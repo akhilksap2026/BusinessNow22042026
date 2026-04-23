@@ -163,6 +163,16 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **BR-RM-03 Project Margin** — Financials tab enhanced: shows Base Budget + Approved COs + Total Revenue + Est. Resource Cost (from allocations × weeks × user.costRate) + Gross Margin ($ and %) with green/amber/red colour coding based on margin %
 - **DB** — `change_orders` table added and pushed; `isSoftAllocation` field already existed in schema
 
+### Security Audit Complete (CRITICAL/HIGH/MEDIUM fixes)
+- **CRITICAL — Customer/Partner portal-role block**: Global `blockPortalRoles` middleware applied to all `/api/*` routes (except `/api/portal-auth/*`). `x-user-role: Customer` or `Partner` now returns `403` on any internal endpoint; those roles can only call `/api/portal-auth/` routes.
+- **CRITICAL — Rate cards authentication**: All 4 rate-card endpoints previously had zero auth. Now `GET/PATCH /rate-cards` requires Admin/Finance/PM (`requireCostRateAccess`); `POST/DELETE /rate-cards` requires Admin only (`requireAdmin`). Super Users are explicitly excluded per spec.
+- **HIGH — Invoice GET endpoints**: `GET /invoices`, `GET /invoices/finance-summary`, and `GET /invoices/:id` now all require `requireFinance` (Admin or Finance). Previously any role could read financial data.
+- **HIGH — Baseline delete guard**: `DELETE /baselines/:id` now requires `requirePM`. Previously unguarded — any internal user could destroy baseline snapshots.
+- **HIGH — New RBAC roles**: `Super User` (level 75, PM-equivalent minus account settings/cost rates), `Collaborator` (level 45, Developer-equivalent without project creation rights), `Partner` (level 5, blocked from internal APIs like Customer) added to `AppRole` type and hierarchy.
+- **MEDIUM — Document privacy by role**: `GET /documents`, `GET /documents/:id`, `PATCH /documents/:id`, `DELETE /documents/:id`, and `POST /documents` now enforce `spaceType=private` visibility. Only Admin/PM/Super User/Finance/Developer/Designer/QA may access private documents; Viewer and Collaborator see shared documents only.
+- **MEDIUM — Task `privateNotes` field**: New `private_notes TEXT` column added to `tasks` table (SQL migration applied). Schema updated. `GET /tasks` and `GET /tasks/:id` redact `privateNotes → null` for non-PM roles (Viewer, Collaborator, etc.). All mutation routes already require PM+ so writes are already protected. Zod schemas (`ListTasksResponseItem`, `GetTaskResponse`, `UpdateTaskBody`, `UpdateTaskResponse`) updated with optional nullable `privateNotes` field.
+- **DB** — `private_notes` column added to `tasks` table via direct SQL `ALTER TABLE`.
+
 ### Sprint 1 Complete (Wave 1)
 - RBAC middleware on projects routes (requirePM for create/update/delete, requireAdmin for restore/deleted list)
 - Soft-delete on projects (deletedAt column; filter on list; restore endpoint)

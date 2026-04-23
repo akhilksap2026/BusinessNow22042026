@@ -36,10 +36,23 @@ import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
 import { portalAuthRouter } from "./portalAuth";
 import { projectUpdatesRouter } from "./projectUpdates";
+import { blockPortalRoles } from "../middleware/rbac";
+import type { Request, Response, NextFunction } from "express";
 
 const router: IRouter = Router();
 
+// Health check is public — no auth required.
 router.use(healthRouter);
+
+// Portal-auth routes are for Customer / Partner roles — mount before the internal block.
+router.use(portalAuthRouter);
+
+// Block Customer and Partner roles from all other internal API routes.
+router.use((req: Request, res: Response, next: NextFunction) => {
+  // Portal-auth paths already handled above; block everything else for portal roles.
+  if (req.path.startsWith("/portal-auth/")) { next(); return; }
+  blockPortalRoles(req, res, next);
+});
 router.use(dashboardRouter);
 router.use(accountsRouter);
 router.use(projectsRouter);
@@ -74,7 +87,6 @@ router.use(changeOrdersRouter);
 router.use(taskDependenciesRouter);
 router.use(baselinesRouter);
 router.use(csatSurveysRouter);
-router.use(portalAuthRouter);
 router.use(projectUpdatesRouter);
 
 export default router;

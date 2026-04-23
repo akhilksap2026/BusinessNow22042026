@@ -321,6 +321,7 @@ export const ListTasksResponseItem = zod.object({
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
   visibleToClient: zod.boolean().optional(),
+  privateNotes: zod.string().nullish().describe("Internal PM-only notes; not visible to Viewers or Collaborators"),
   createdAt: zod.string(),
 });
 export const ListTasksResponse = zod.array(ListTasksResponseItem);
@@ -372,6 +373,7 @@ export const GetTaskResponse = zod.object({
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
   visibleToClient: zod.boolean().optional(),
+  privateNotes: zod.string().nullish().describe("Internal PM-only notes; not visible to Viewers or Collaborators"),
   createdAt: zod.string(),
 });
 
@@ -393,6 +395,7 @@ export const UpdateTaskBody = zod.object({
   effort: zod.number().optional(),
   billable: zod.boolean().optional(),
   isMilestone: zod.boolean().optional(),
+  privateNotes: zod.string().nullish().describe("Internal PM-only notes"),
 });
 
 export const UpdateTaskResponse = zod.object({
@@ -418,6 +421,7 @@ export const UpdateTaskResponse = zod.object({
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
   visibleToClient: zod.boolean().optional(),
+  privateNotes: zod.string().nullish().describe("Internal PM-only notes; not visible to Viewers or Collaborators"),
   createdAt: zod.string(),
 });
 
