@@ -61,7 +61,7 @@ export default function TimeTracking() {
   });
 
   const [requestOpen, setRequestOpen] = useState(false);
-  const [form, setForm] = useState({ userId: "1", type: "PTO", startDate: "", endDate: "", notes: "" });
+  const [form, setForm] = useState({ userId: "1", type: "PTO", startDate: "", endDate: "", notes: "", durationType: "Full Day", customHours: "", notifyProjectOwners: false, additionalEmails: "" });
 
   const updateTimeEntry = useUpdateTimeEntry();
   const deleteTimeEntry = useDeleteTimeEntry();
@@ -269,18 +269,33 @@ export default function TimeTracking() {
   const detailUser = users?.find(u => u.id === detailUserId);
   const detailEntries = allWeekEntries?.filter(e => e.userId === detailUserId) ?? [];
 
+  function resetForm(uid?: string) {
+    setForm({ userId: uid ?? String(currentUserId), type: "PTO", startDate: "", endDate: "", notes: "", durationType: "Full Day", customHours: "", notifyProjectOwners: false, additionalEmails: "" });
+  }
+
   async function handleRequestTimeOff() {
     if (!form.startDate || !form.endDate) return;
     try {
       await createTimeOff.mutateAsync({
-        data: { userId: parseInt(form.userId), type: form.type, startDate: form.startDate, endDate: form.endDate, notes: form.notes || undefined }
+        data: {
+          userId: parseInt(form.userId),
+          type: form.type,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          notes: form.notes || undefined,
+          durationType: form.durationType,
+          customHours: form.durationType === "Custom" && form.customHours ? Number(form.customHours) : undefined,
+          notifyProjectOwners: form.notifyProjectOwners,
+          additionalEmails: form.additionalEmails || undefined,
+        } as any
       });
       queryClient.invalidateQueries({ queryKey: getListTimeOffRequestsQueryKey() });
       toast({ title: "Time-off request submitted" });
       setRequestOpen(false);
-      setForm({ userId: String(currentUserId), type: "PTO", startDate: "", endDate: "", notes: "" });
-    } catch {
-      toast({ title: "Failed to submit request", variant: "destructive" });
+      resetForm();
+    } catch (e: any) {
+      const msg = e?.response?.data?.error ?? e?.message ?? "Failed to submit request";
+      toast({ title: "Could not submit request", description: msg, variant: "destructive" });
     }
   }
 
@@ -525,6 +540,15 @@ export default function TimeTracking() {
                                   onClick={() => setDetailUserId(user.id)}
                                 >
                                   <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2 text-xs text-muted-foreground hover:text-indigo-600"
+                                  title={`Apply time off for ${user.name}`}
+                                  onClick={() => { resetForm(String(user.id)); setRequestOpen(true); }}
+                                >
+                                  <CalendarOff className="h-3 w-3 mr-1" /> Time Off
                                 </Button>
                                 {status === "Not Submitted" || status === "Draft" ? (
                                   <Button
@@ -805,12 +829,42 @@ export default function TimeTracking() {
               </div>
             </div>
             <div className="space-y-1.5">
+              <Label>Duration Type</Label>
+              <div className="flex gap-2">
+                {["Full Day", "Half Day", "Custom"].map(dt => (
+                  <button
+                    key={dt}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, durationType: dt }))}
+                    className={`flex-1 py-1.5 rounded-md text-sm border transition-colors ${form.durationType === dt ? "bg-indigo-600 text-white border-indigo-600" : "bg-background border-border text-muted-foreground hover:bg-muted"}`}
+                  >
+                    {dt}
+                  </button>
+                ))}
+              </div>
+              {form.durationType === "Custom" && (
+                <div className="mt-2 space-y-1.5">
+                  <Label>Custom Hours per Day</Label>
+                  <Input type="number" step="0.25" min="0.25" max="24" placeholder="e.g. 4" value={form.customHours} onChange={e => setForm(f => ({ ...f, customHours: e.target.value }))} />
+                </div>
+              )}
+            </div>
+            <div className="space-y-1.5">
               <Label>Notes</Label>
               <Input placeholder="Optional notes or reason" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Additional Notification Emails</Label>
+              <Input placeholder="e.g. manager@company.com, hr@company.com" value={form.additionalEmails} onChange={e => setForm(f => ({ ...f, additionalEmails: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">Comma-separated email addresses to notify when this request is approved.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="notifyPO" checked={form.notifyProjectOwners} onChange={e => setForm(f => ({ ...f, notifyProjectOwners: e.target.checked }))} className="h-4 w-4 rounded border-gray-300" />
+              <label htmlFor="notifyPO" className="text-sm">Notify project owners of this time off</label>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setRequestOpen(false); resetForm(); }}>Cancel</Button>
             <Button onClick={handleRequestTimeOff} disabled={!form.startDate || !form.endDate || createTimeOff.isPending}>
               {createTimeOff.isPending ? "Submitting…" : "Submit Request"}
             </Button>

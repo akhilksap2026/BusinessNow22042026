@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, timeOffRequestsTable, holidayCalendarsTable, holidayDatesTable, notificationsTable } from "@workspace/db";
+import { db, timeOffRequestsTable, holidayCalendarsTable, holidayDatesTable, notificationsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import {
   ListTimeOffRequestsQueryParams,
@@ -32,10 +32,50 @@ router.get("/time-off-requests", async (req, res): Promise<void> => {
   res.json(rows.map(mapTimeOff));
 });
 
+function dateRange(start: string, end: string): string[] {
+  const dates: string[] = [];
+  const cur = new Date(start + "T00:00:00Z");
+  const fin = new Date(end + "T00:00:00Z");
+  while (cur <= fin) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return dates;
+}
+
 router.post("/time-off-requests", async (req, res): Promise<void> => {
   const parsed = CreateTimeOffRequestBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [row] = await db.insert(timeOffRequestsTable).values(parsed.data as any).returning();
+
+  const { userId, startDate, endDate } = parsed.data as any;
+
+  // Dedup check: if the user has an assigned holiday calendar, reject if ALL
+  // requested dates are already covered by holidays (no duplicate deduction).
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (user?.holidayCalendarId) {
+    const holidayDates = await db.select().from(holidayDatesTable)
+      .where(eq(holidayDatesTable.calendarId, user.holidayCalendarId));
+    const holidaySet = new Set(holidayDates.map(h => h.date));
+    const requestedDates = dateRange(startDate, endDate);
+    const workingDates = requestedDates.filter(d => {
+      const dow = new Date(d + "T00:00:00Z").getUTCDay();
+      return dow !== 0 && dow !== 6;
+    });
+    const conflicting = workingDates.filter(d => holidaySet.has(d));
+    if (conflicting.length > 0 && conflicting.length === workingDates.length) {
+      res.status(409).json({
+        error: `All requested dates (${conflicting.join(", ")}) are already marked as holidays in your assigned calendar. No duplicate capacity deduction needed.`,
+      });
+      return;
+    }
+  }
+
+  const insertData: any = { ...parsed.data };
+  if (req.body.durationType) insertData.durationType = req.body.durationType;
+  if (req.body.customHours !== undefined) insertData.customHours = req.body.customHours ? Number(req.body.customHours) : null;
+  if (req.body.notifyProjectOwners !== undefined) insertData.notifyProjectOwners = Boolean(req.body.notifyProjectOwners);
+  if (req.body.additionalEmails !== undefined) insertData.additionalEmails = req.body.additionalEmails || null;
+  const [row] = await db.insert(timeOffRequestsTable).values(insertData).returning();
   res.status(201).json(mapTimeOff(row));
 });
 

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, real, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -43,6 +43,10 @@ export const timeOffRequestsTable = pgTable("time_off_requests", {
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
   status: text("status").notNull().default("Pending"),
+  durationType: text("duration_type").notNull().default("Full Day"),
+  customHours: real("custom_hours"),
+  notifyProjectOwners: boolean("notify_project_owners").notNull().default(false),
+  additionalEmails: text("additional_emails"),
   notes: text("notes"),
   approvedByUserId: integer("approved_by_user_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

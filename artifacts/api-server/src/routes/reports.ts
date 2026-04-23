@@ -9,31 +9,118 @@ import {
 
 const router: IRouter = Router();
 
+// Helper: count working days (Mon–Fri) in [startStr, endStr] that appear in a given set
+function countWorkingDaysInSet(dateSet: Set<string>, startStr: string, endStr: string): number {
+  let count = 0;
+  const cur = new Date(startStr + "T00:00:00Z");
+  const fin = new Date(endStr + "T00:00:00Z");
+  while (cur <= fin) {
+    const dow = cur.getUTCDay();
+    if (dow !== 0 && dow !== 6 && dateSet.has(cur.toISOString().slice(0, 10))) count++;
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return count;
+}
+
+// Helper: count working days (Mon–Fri) in a month's YYYY-MM period
+function workingDaysInMonth(yearMonth: string): number {
+  const [y, m] = yearMonth.split("-").map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(y, m - 1, d).getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return count;
+}
+
+// Helper: get all YYYY-MM-DD dates for a month
+function datesInMonth(yearMonth: string): string[] {
+  const [y, m] = yearMonth.split("-").map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const dates: string[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    dates.push(`${yearMonth}-${String(d).padStart(2, "0")}`);
+  }
+  return dates;
+}
+
 router.get("/reports/utilization", async (_req, res): Promise<void> => {
-  const entries = await db.select().from(timeEntriesTable);
-  const users = await db.select().from(usersTable);
+  const [entries, users, allTimeOffs, allHolidayDates] = await Promise.all([
+    db.select().from(timeEntriesTable),
+    db.select().from(usersTable),
+    db.select().from(timeOffRequestsTable).where(eq(timeOffRequestsTable.status, "Approved")),
+    db.select().from(holidayDatesTable),
+  ]);
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const now = new Date();
+
+  // Build per-user adjusted capacity for a given YYYY-MM month
+  function userAdjustedMonthlyCapacity(u: typeof users[0], yearMonth: string): number {
+    const dailyCap = u.capacity / 5;
+    const monthDates = new Set(datesInMonth(yearMonth).filter(d => {
+      const dow = new Date(d + "T00:00:00Z").getUTCDay();
+      return dow !== 0 && dow !== 6;
+    }));
+
+    // Holiday deduction
+    const userHolidaySet = u.holidayCalendarId
+      ? new Set(allHolidayDates.filter(h => h.calendarId === u.holidayCalendarId).map(h => h.date))
+      : new Set<string>();
+    const holidayDays = [...monthDates].filter(d => userHolidaySet.has(d)).length;
+
+    // Time-off deduction (approved, in this month, not already a holiday)
+    const userTOs = allTimeOffs.filter(to => to.userId === u.id);
+    let toHours = 0;
+    for (const to of userTOs) {
+      const toStart = to.startDate > (yearMonth + "-01") ? to.startDate : (yearMonth + "-01");
+      const lastDay = datesInMonth(yearMonth).at(-1)!;
+      const toEnd = to.endDate < lastDay ? to.endDate : lastDay;
+      if (toStart > toEnd) continue;
+      const cur = new Date(toStart + "T00:00:00Z");
+      const fin = new Date(toEnd + "T00:00:00Z");
+      while (cur <= fin) {
+        const d = cur.toISOString().slice(0, 10);
+        const dow = cur.getUTCDay();
+        if (dow !== 0 && dow !== 6 && !userHolidaySet.has(d)) {
+          if ((to as any).durationType === "Half Day") toHours += dailyCap / 2;
+          else if ((to as any).durationType === "Custom" && (to as any).customHours) toHours += Number((to as any).customHours);
+          else toHours += dailyCap;
+        }
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+
+    const rawCap = workingDaysInMonth(yearMonth) * dailyCap;
+    return Math.max(0, rawCap - holidayDays * dailyCap - toHours);
+  }
 
   const byUser = users.map(u => {
     const userEntries = entries.filter(e => e.userId === u.id);
     const totalHours = userEntries.reduce((s, e) => s + Number(e.hours), 0);
     const billableHours = userEntries.filter(e => e.billable).reduce((s, e) => s + Number(e.hours), 0);
-    const utilization = u.capacity > 0 ? Math.min(100, Math.round((totalHours / (u.capacity * 4)) * 100)) : 0;
+    if (totalHours === 0) return null;
+
+    // Compute adjusted capacity over the span of the user's entries (last 4 months approx)
+    const entryMonths = [...new Set(userEntries.map(e => e.date.slice(0, 7)))];
+    const adjustedCap = entryMonths.reduce((s, m) => s + userAdjustedMonthlyCapacity(u, m), 0);
+    const denominator = adjustedCap > 0 ? adjustedCap : u.capacity * 4;
+    const utilization = Math.min(100, Math.round((totalHours / denominator) * 100));
     return { userId: u.id, userName: u.name, billableHours, totalHours, utilization };
-  }).filter(u => u.totalHours > 0);
+  }).filter(Boolean) as { userId: number; userName: string; billableHours: number; totalHours: number; utilization: number }[];
 
   const averageUtilization = byUser.length > 0
     ? Math.round(byUser.reduce((s, u) => s + u.utilization, 0) / byUser.length)
     : 0;
 
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const now = new Date();
   const byMonth = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
     const month = `${d.getFullYear()}-${months[d.getMonth()]}`;
-    const monthStr = d.toISOString().slice(0, 7);
-    const monthEntries = entries.filter(e => e.date.startsWith(monthStr));
+    const yearMonth = d.toISOString().slice(0, 7);
+    const monthEntries = entries.filter(e => e.date.startsWith(yearMonth));
     const totalH = monthEntries.reduce((s, e) => s + Number(e.hours), 0);
-    const totalCap = users.reduce((s, u) => s + u.capacity * 4, 0);
+    const totalCap = users.reduce((s, u) => s + userAdjustedMonthlyCapacity(u, yearMonth), 0);
     return { month, utilization: totalCap > 0 ? Math.min(100, Math.round((totalH / totalCap) * 100)) : 0 };
   });
 

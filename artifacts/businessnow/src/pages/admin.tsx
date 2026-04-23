@@ -278,22 +278,22 @@ export default function Admin() {
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
   const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
-  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active" });
+  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "" });
 
   function openAddUser() {
     setEditUser(null);
-    setUserForm({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active" });
+    setUserForm({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "" });
     setUserDialogOpen(true);
   }
 
   function openEditUser(u: any) {
     setEditUser(u);
-    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", region: u.region ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0), isInternal: u.isInternal === false ? "false" : "true", activeStatus: u.activeStatus ?? "active" });
+    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", region: u.region ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0), isInternal: u.isInternal === false ? "false" : "true", activeStatus: u.activeStatus ?? "active", holidayCalendarId: u.holidayCalendarId ? String(u.holidayCalendarId) : "" });
     setUserDialogOpen(true);
   }
 
   async function handleSaveUser() {
-    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, region: userForm.region || undefined, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate), isInternal: userForm.isInternal !== "false", activeStatus: userForm.activeStatus };
+    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, region: userForm.region || undefined, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate), isInternal: userForm.isInternal !== "false", activeStatus: userForm.activeStatus, holidayCalendarId: userForm.holidayCalendarId ? Number(userForm.holidayCalendarId) : null };
     try {
       if (editUser) {
         await updateUser.mutateAsync({ id: editUser.id, data: payload });
@@ -2617,6 +2617,19 @@ export default function Admin() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Holiday Calendar</Label>
+              <Select value={userForm.holidayCalendarId || "__none"} onValueChange={v => setUserForm(f => ({ ...f, holidayCalendarId: v === "__none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="No calendar assigned" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">No calendar</SelectItem>
+                  {holidayCalendars?.map((cal: any) => (
+                    <SelectItem key={cal.id} value={String(cal.id)}>{cal.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Assigns a holiday calendar for capacity deductions and timesheet visual indicators.</p>
             </div>
           </div>
           <DialogFooter>

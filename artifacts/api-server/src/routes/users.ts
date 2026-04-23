@@ -58,6 +58,11 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const userUpdates: any = { ...parsed.data };
   if (userUpdates.costRate !== undefined) userUpdates.costRate = String(userUpdates.costRate);
+  // Pass through fields not yet in the generated Zod schema
+  if (req.body.region !== undefined) userUpdates.region = req.body.region;
+  if (req.body.isInternal !== undefined) userUpdates.isInternal = Boolean(req.body.isInternal);
+  if (req.body.activeStatus !== undefined) userUpdates.activeStatus = req.body.activeStatus;
+  if (req.body.holidayCalendarId !== undefined) userUpdates.holidayCalendarId = req.body.holidayCalendarId === null || req.body.holidayCalendarId === "" ? null : Number(req.body.holidayCalendarId);
   const [row] = await db.update(usersTable).set(userUpdates).where(eq(usersTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
   res.json(UpdateUserResponse.parse(mapUser(row)));

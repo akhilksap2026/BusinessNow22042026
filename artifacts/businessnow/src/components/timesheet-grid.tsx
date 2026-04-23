@@ -14,6 +14,8 @@ import {
   useListTasks,
   useListUsers,
   useListTimeCategories,
+  useListTimeOffRequests,
+  useListHolidayCalendars,
   getListTimeEntriesQueryKey,
   getGetTimeEntrySummaryQueryKey,
   getListTimesheetsQueryKey,
@@ -29,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, AlertCircle, Plus, Undo2, Clock, X, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star } from "lucide-react";
 import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -139,6 +141,28 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     queryKey: ["time-settings"],
     queryFn: async () => { const r = await fetch("/api/time-settings"); return r.json(); },
   });
+
+  // Time-off and holiday indicators
+  const { data: userTimeOffs } = useListTimeOffRequests({ userId, status: "Approved" as any });
+  const { data: holidayCalendars } = useListHolidayCalendars();
+  const currentUser = users?.find((u: any) => u.id === userId);
+  const userHolidayDates = (() => {
+    if (!currentUser || !(currentUser as any).holidayCalendarId) return new Set<string>();
+    const cal = holidayCalendars?.find((c: any) => c.id === (currentUser as any).holidayCalendarId);
+    return new Set<string>((cal as any)?.holidays?.map((h: any) => h.date) ?? []);
+  })();
+  const userTimeOffDates = (() => {
+    const result: Record<string, string> = {};
+    for (const to of userTimeOffs ?? []) {
+      const cur = new Date((to as any).startDate + "T00:00:00Z");
+      const fin = new Date((to as any).endDate + "T00:00:00Z");
+      while (cur <= fin) {
+        result[cur.toISOString().slice(0, 10)] = (to as any).durationType ?? "Full Day";
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+    return result;
+  })();
 
   // Mutations
   const createTimeEntry = useCreateTimeEntry();
@@ -504,12 +528,27 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
             <TableHeader>
               <TableRow className="bg-muted/30">
                 <TableHead className="w-[240px] min-w-[240px]">Project / Task / Activity</TableHead>
-                {allWeekDays.map(day => (
-                  <TableHead key={day.toISOString()} className="text-center min-w-[60px] w-[60px] p-2">
-                    <div className="text-[11px] font-normal text-muted-foreground">{format(day, "EEE")}</div>
-                    <div className="font-semibold">{format(day, "d")}</div>
-                  </TableHead>
-                ))}
+                {allWeekDays.map(day => {
+                  const dayStr = format(day, "yyyy-MM-dd");
+                  const isHoliday = userHolidayDates.has(dayStr);
+                  const timeOffType = userTimeOffDates[dayStr];
+                  return (
+                    <TableHead key={day.toISOString()} className={cn("text-center min-w-[60px] w-[60px] p-2", isHoliday ? "bg-amber-50 dark:bg-amber-950/20" : timeOffType ? "bg-blue-50 dark:bg-blue-950/20" : "")}>
+                      <div className="text-[11px] font-normal text-muted-foreground">{format(day, "EEE")}</div>
+                      <div className="font-semibold">{format(day, "d")}</div>
+                      {isHoliday && (
+                        <div title="Holiday" className="flex justify-center mt-0.5">
+                          <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
+                        </div>
+                      )}
+                      {!isHoliday && timeOffType && (
+                        <div title={`Time Off: ${timeOffType}`} className="flex justify-center mt-0.5">
+                          <Umbrella className="h-2.5 w-2.5 text-blue-500" />
+                        </div>
+                      )}
+                    </TableHead>
+                  );
+                })}
                 <TableHead className="text-right min-w-[56px]">Total</TableHead>
                 <TableHead className="w-[32px]"></TableHead>
               </TableRow>
