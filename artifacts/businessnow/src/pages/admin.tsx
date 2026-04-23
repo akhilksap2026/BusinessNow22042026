@@ -561,6 +561,7 @@ export default function Admin() {
     lockBeforeDate: "",
     weekStartDay: 1,
     minSubmitHours: 0,
+    approverRoutingMode: "admin_default",
   });
   const [timeSettingsDirty, setTimeSettingsDirty] = useState(false);
 
@@ -589,6 +590,7 @@ export default function Admin() {
         lockBeforeDate: timeSettings.lockBeforeDate ?? "",
         weekStartDay: timeSettings.weekStartDay ?? 1,
         minSubmitHours: timeSettings.minSubmitHours ?? 0,
+        approverRoutingMode: (timeSettings as any).approverRoutingMode ?? "admin_default",
       });
     }
   }, [timeSettings, timeSettingsDirty]);
@@ -1437,6 +1439,19 @@ export default function Admin() {
                       onChange={e => { setTimeSettingsForm(f => ({ ...f, minSubmitHours: parseInt(e.target.value) || 0 })); setTimeSettingsDirty(true); }}
                     />
                     <p className="text-xs text-muted-foreground">Block submission if weekly hours logged are below this threshold. Set to 0 to disable.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Approver Routing</Label>
+                    <Select value={timeSettingsForm.approverRoutingMode} onValueChange={v => { setTimeSettingsForm(f => ({ ...f, approverRoutingMode: v })); setTimeSettingsDirty(true); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin_default">Account Admins (default)</SelectItem>
+                        <SelectItem value="designated">Designated Approver per Team Member</SelectItem>
+                        <SelectItem value="project_owner">Project Owners (per project)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Who receives "approval requested" notifications when timesheets are submitted.</p>
                   </div>
                 </div>
 

@@ -177,6 +177,57 @@ export default function TimeTracking() {
   const [approvalRejectId, setApprovalRejectId] = useState<number | null>(null);
   const [approvalRejectNote, setApprovalRejectNote] = useState("");
   const [detailUserId, setDetailUserId] = useState<number | null>(null);
+  const [selectedTsIds, setSelectedTsIds] = useState<Set<number>>(new Set());
+  const [messageDraft, setMessageDraft] = useState("");
+  const detailTs = allWeekTimesheets?.find(t => t.userId === detailUserId);
+
+  const { data: detailMessages, refetch: refetchMessages } = useQuery({
+    queryKey: ["timesheet-messages", detailTs?.id],
+    queryFn: async () => {
+      if (!detailTs?.id) return [];
+      const r = await fetch(`/api/timesheets/${detailTs.id}/messages`);
+      return r.ok ? r.json() : [];
+    },
+    enabled: !!detailTs?.id,
+  });
+
+  async function handleSendMessage() {
+    if (!detailTs?.id || !messageDraft.trim()) return;
+    try {
+      await fetch(`/api/timesheets/${detailTs.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: currentUserId, body: messageDraft.trim() }),
+      });
+      setMessageDraft("");
+      refetchMessages();
+    } catch { toast({ title: "Failed to send message", variant: "destructive" }); }
+  }
+
+  async function handleUnapprove(tsId: number) {
+    try {
+      const r = await fetch(`/api/timesheets/${tsId}/unapprove`, { method: "POST" });
+      if (!r.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
+      toast({ title: "Approval reverted", description: "Timesheet returned to Submitted status." });
+    } catch { toast({ title: "Failed to undo approval", variant: "destructive" }); }
+  }
+
+  async function handleBulkApprove() {
+    const ids = Array.from(selectedTsIds);
+    if (ids.length === 0) return;
+    try {
+      const r = await fetch("/api/timesheets/bulk-approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, approvedByUserId: currentUserId }),
+      });
+      const data = await r.json();
+      queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
+      setSelectedTsIds(new Set());
+      toast({ title: `${data.approved ?? 0} timesheet(s) approved`, description: data.skipped ? `${data.skipped} skipped (not in Submitted state).` : undefined });
+    } catch { toast({ title: "Bulk approve failed", variant: "destructive" }); }
+  }
 
   const submittedCount = allWeekTimesheets?.filter(t => t.status === "Submitted").length ?? 0;
 
@@ -359,6 +410,11 @@ export default function TimeTracking() {
                     <CardDescription>Review and approve team timesheets for the selected week</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    {selectedTsIds.size > 0 && (
+                      <Button size="sm" onClick={handleBulkApprove}>
+                        Bulk Approve ({selectedTsIds.size})
+                      </Button>
+                    )}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="outline" size="icon" onClick={() => setApprovalWeek(addDays(approvalWeek, -7))}>
@@ -388,6 +444,18 @@ export default function TimeTracking() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-8">
+                          <Checkbox
+                            checked={(() => {
+                              const submittedIds = userApprovalRows.filter(r => r.status === "Submitted" && r.ts).map(r => r.ts!.id);
+                              return submittedIds.length > 0 && submittedIds.every(id => selectedTsIds.has(id));
+                            })()}
+                            onCheckedChange={(checked) => {
+                              const submittedIds = userApprovalRows.filter(r => r.status === "Submitted" && r.ts).map(r => r.ts!.id);
+                              setSelectedTsIds(checked ? new Set(submittedIds) : new Set());
+                            }}
+                          />
+                        </TableHead>
                         <TableHead>Team Member</TableHead>
                         <TableHead>Department</TableHead>
                         <TableHead>Status</TableHead>
@@ -410,6 +478,20 @@ export default function TimeTracking() {
                         const s = statusMap[status] ?? statusMap["Not Submitted"];
                         return (
                           <TableRow key={user.id} className="hover:bg-muted/10">
+                            <TableCell className="w-8">
+                              {ts && status === "Submitted" && (
+                                <Checkbox
+                                  checked={selectedTsIds.has(ts.id)}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedTsIds(prev => {
+                                      const next = new Set(prev);
+                                      if (checked) next.add(ts.id); else next.delete(ts.id);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              )}
+                            </TableCell>
                             <TableCell>
                               <button
                                 className="flex items-center gap-2 text-left hover:text-indigo-600 transition-colors group"
@@ -932,29 +1014,81 @@ export default function TimeTracking() {
                 </TableBody>
               </Table>
 
-              {/* Approve / Reject from sheet */}
+              {/* Approve / Reject / Undo from sheet */}
               {(() => {
                 const ts = allWeekTimesheets?.find(t => t.userId === detailUserId);
-                if (!ts || ts.status !== "Submitted") return null;
-                return (
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-                      onClick={() => { setApprovalRejectId(ts.id); setDetailUserId(null); }}
-                    >
-                      Reject Timesheet
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      disabled={approveTs.isPending}
-                      onClick={() => { handleApprovalsApprove(ts.id); setDetailUserId(null); }}
-                    >
-                      Approve Timesheet
-                    </Button>
-                  </div>
-                );
+                if (!ts) return null;
+                if (ts.status === "Submitted") {
+                  return (
+                    <div className="flex gap-2 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() => { setApprovalRejectId(ts.id); setDetailUserId(null); }}
+                      >
+                        Reject Timesheet
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        disabled={approveTs.isPending}
+                        onClick={() => { handleApprovalsApprove(ts.id); setDetailUserId(null); }}
+                      >
+                        Approve Timesheet
+                      </Button>
+                    </div>
+                  );
+                }
+                if (ts.status === "Approved") {
+                  return (
+                    <div className="pt-4 border-t space-y-2">
+                      <div className="text-xs text-muted-foreground">
+                        Approved {ts.approvedAt ? new Date(ts.approvedAt).toLocaleDateString() : ""}
+                        {ts.approvedByUserId ? ` by ${getUser(ts.approvedByUserId)?.name ?? "—"}` : ""}
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                        onClick={() => { handleUnapprove(ts.id); setDetailUserId(null); }}
+                      >
+                        Undo Approval
+                      </Button>
+                    </div>
+                  );
+                }
+                return null;
               })()}
+
+              {/* In-context messaging thread */}
+              {detailTs && (
+                <div className="pt-4 border-t mt-4 space-y-2">
+                  <div className="text-sm font-medium flex items-center gap-1.5">
+                    <Bell className="h-3.5 w-3.5" /> Conversation
+                  </div>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {(detailMessages ?? []).length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">No messages yet.</p>
+                    ) : (
+                      (detailMessages ?? []).map((m: any) => (
+                        <div key={m.id} className="bg-muted/40 rounded p-2 text-xs">
+                          <div className="font-medium">{getUser(m.userId)?.name ?? `User ${m.userId}`}</div>
+                          <div className="text-muted-foreground mt-0.5">{m.body}</div>
+                          <div className="text-[10px] text-muted-foreground/70 mt-0.5">{new Date(m.createdAt).toLocaleString()}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={messageDraft}
+                      onChange={e => setMessageDraft(e.target.value)}
+                      placeholder="Add a comment…"
+                      className="text-xs h-8"
+                      onKeyDown={e => { if (e.key === "Enter") handleSendMessage(); }}
+                    />
+                    <Button size="sm" onClick={handleSendMessage} disabled={!messageDraft.trim()}>Send</Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>

@@ -19,6 +19,7 @@ export const usersTable = pgTable("users", {
   isActive: integer("is_active").notNull().default(1),
   isInternal: boolean("is_internal").notNull().default(true),
   activeStatus: text("active_status").notNull().default("active"),
+  timesheetApproverUserId: integer("timesheet_approver_user_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

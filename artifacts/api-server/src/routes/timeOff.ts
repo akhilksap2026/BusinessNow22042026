@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, timeOffRequestsTable, holidayCalendarsTable, holidayDatesTable } from "@workspace/db";
+import { db, timeOffRequestsTable, holidayCalendarsTable, holidayDatesTable, notificationsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import {
   ListTimeOffRequestsQueryParams,
@@ -49,6 +49,19 @@ router.patch("/time-off-requests/:id", async (req, res): Promise<void> => {
     .where(eq(timeOffRequestsTable.id, params.data.id))
     .returning();
   if (!row) { res.status(404).json({ error: "Time-off request not found" }); return; }
+  // Notify submitter when approved
+  if ((parsed.data as any).status === "Approved") {
+    try {
+      await db.insert(notificationsTable).values({
+        type: "time_off_applied",
+        message: `Your time-off request (${row.type}, ${row.startDate} → ${row.endDate}) was approved.`,
+        userId: row.userId,
+        entityType: "time_off",
+        entityId: String(row.id),
+        read: false,
+      } as any);
+    } catch {}
+  }
   res.json(mapTimeOff(row));
 });
 

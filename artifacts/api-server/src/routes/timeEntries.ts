@@ -62,6 +62,61 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   res.json(UpdateTimeEntryResponse.parse(mapEntry(row)));
 });
 
+// Per-entry reject (used by Approvals → detail review with selected entries)
+router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+  const reason = String(req.body?.rejectionNote ?? req.body?.reason ?? "").trim();
+  const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Time entry not found" }); return; }
+  const [row] = await db.update(timeEntriesTable)
+    .set({ rejected: true, approved: false, rejectionNote: reason || null })
+    .where(eq(timeEntriesTable.id, id))
+    .returning();
+  // Notify submitter
+  try {
+    await db.insert((await import("@workspace/db")).notificationsTable).values({
+      type: "timesheet_entry_rejected",
+      message: `A time entry on ${existing.date} was rejected${reason ? `: ${reason}` : ""}.`,
+      userId: existing.userId,
+      entityType: "time_entry",
+      entityId: String(existing.id),
+      read: false,
+    } as any);
+  } catch {}
+  res.json(mapEntry(row));
+});
+
+// Bulk per-entry reject: { ids: number[], reason: string }
+router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<void> => {
+  const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
+  const reason = String(req.body?.rejectionNote ?? req.body?.reason ?? "").trim();
+  if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
+  const { inArray } = await import("drizzle-orm");
+  const existing = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
+  await db.update(timeEntriesTable)
+    .set({ rejected: true, approved: false, rejectionNote: reason || null })
+    .where(inArray(timeEntriesTable.id, ids));
+  const { notificationsTable } = await import("@workspace/db");
+  const userToEntries = new Map<number, number[]>();
+  for (const e of existing) {
+    if (!userToEntries.has(e.userId)) userToEntries.set(e.userId, []);
+    userToEntries.get(e.userId)!.push(e.id);
+  }
+  for (const [uid, entryIds] of userToEntries) {
+    try {
+      await db.insert(notificationsTable).values({
+        type: "timesheet_entry_rejected",
+        message: `${entryIds.length} time entry(ies) were rejected${reason ? `: ${reason}` : ""}.`,
+        userId: uid,
+        entityType: "time_entry",
+        read: false,
+      } as any);
+    } catch {}
+  }
+  res.json({ rejected: ids.length });
+});
+
 router.delete("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteTimeEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }

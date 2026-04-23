@@ -10,8 +10,11 @@ export const timesheetsTable = pgTable("timesheets", {
   totalHours: numeric("total_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   billableHours: numeric("billable_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  submittedByUserId: integer("submitted_by_user_id"),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   approvedByUserId: integer("approved_by_user_id"),
+  rejectedAt: timestamp("rejected_at", { withTimezone: true }),
+  rejectedByUserId: integer("rejected_by_user_id"),
   rejectionNote: text("rejection_note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -83,8 +86,34 @@ export const timeSettingsTable = pgTable("time_settings", {
   lockBeforeDate: text("lock_before_date"),
   weekStartDay: integer("week_start_day").notNull().default(1),
   minSubmitHours: integer("min_submit_hours").notNull().default(0),
+  approverRoutingMode: text("approver_routing_mode").notNull().default("admin_default"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const timesheetMessagesTable = pgTable("timesheet_messages", {
+  id: serial("id").primaryKey(),
+  timesheetId: integer("timesheet_id").notNull(),
+  userId: integer("user_id").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTimesheetMessageSchema = createInsertSchema(timesheetMessagesTable).omit({ id: true, createdAt: true });
+export type InsertTimesheetMessage = z.infer<typeof insertTimesheetMessageSchema>;
+export type TimesheetMessage = typeof timesheetMessagesTable.$inferSelect;
+
+export const notificationPreferencesTable = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  type: text("type").notNull(),
+  emailEnabled: boolean("email_enabled").notNull().default(true),
+  inAppEnabled: boolean("in_app_enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferencesTable).omit({ id: true, updatedAt: true });
+export type InsertNotificationPreference = z.infer<typeof insertNotificationPreferenceSchema>;
+export type NotificationPreference = typeof notificationPreferencesTable.$inferSelect;
 
 export const insertTimeSettingsSchema = createInsertSchema(timeSettingsTable).omit({ id: true, updatedAt: true });
 export type InsertTimeSettings = z.infer<typeof insertTimeSettingsSchema>;

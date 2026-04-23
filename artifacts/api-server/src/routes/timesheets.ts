@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable, timesheetMessagesTable, notificationPreferencesTable, usersTable } from "@workspace/db";
 import {
   ListTimesheetsQueryParams,
   ListTimesheetsResponse,
@@ -29,9 +29,40 @@ function mapTimesheet(t: typeof timesheetsTable.$inferSelect) {
     billableHours: Number(t.billableHours),
     submittedAt: t.submittedAt instanceof Date ? t.submittedAt.toISOString() : t.submittedAt,
     approvedAt: t.approvedAt instanceof Date ? t.approvedAt.toISOString() : t.approvedAt,
+    rejectedAt: (t as any).rejectedAt instanceof Date ? (t as any).rejectedAt.toISOString() : (t as any).rejectedAt ?? null,
     createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
     updatedAt: t.updatedAt instanceof Date ? t.updatedAt.toISOString() : t.updatedAt,
   };
+}
+
+// Resolve who should approve a given user's timesheet, based on global routing mode.
+// Returns array of approver user IDs.
+async function resolveApprovers(submitterUserId: number): Promise<number[]> {
+  const settingsRows = await db.select().from(timeSettingsTable).limit(1);
+  const mode = settingsRows[0]?.approverRoutingMode ?? "admin_default";
+  if (mode === "designated") {
+    const [u] = await db.select().from(usersTable).where(eq(usersTable.id, submitterUserId));
+    if (u && (u as any).timesheetApproverUserId) return [(u as any).timesheetApproverUserId];
+  }
+  // Fallback: all admins
+  const admins = await db.select().from(usersTable).where(eq(usersTable.role, "Admin"));
+  if (admins.length > 0) return admins.map(a => a.id);
+  // Last resort: all Project Managers
+  const pms = await db.select().from(usersTable).where(eq(usersTable.role, "Project Manager"));
+  return pms.map(p => p.id);
+}
+
+async function notifyUsers(userIds: number[], type: string, message: string, entityId: number) {
+  for (const uid of userIds) {
+    // Check user's notification preferences (defaults to enabled if no row)
+    const prefs = await db.select().from(notificationPreferencesTable)
+      .where(and(eq(notificationPreferencesTable.userId, uid), eq(notificationPreferencesTable.type, type)));
+    const inAppEnabled = prefs.length === 0 ? true : prefs[0].inAppEnabled;
+    if (!inAppEnabled) continue;
+    await db.insert(notificationsTable).values({
+      type, message, userId: uid, entityType: "timesheet", entityId: String(entityId), read: false,
+    } as any).catch(() => {});
+  }
 }
 
 router.get("/timesheets", async (req, res): Promise<void> => {
@@ -75,6 +106,14 @@ router.patch("/timesheets/:id", async (req, res): Promise<void> => {
   const tsUpdates: any = { ...parsed.data };
   if (tsUpdates.totalHours !== undefined) tsUpdates.totalHours = String(tsUpdates.totalHours);
   if (tsUpdates.billableHours !== undefined) tsUpdates.billableHours = String(tsUpdates.billableHours);
+  // Withdraw flow: if status is changing back to Draft from Submitted, clear submitted audit fields.
+  if (tsUpdates.status === "Draft") {
+    const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
+    if (existing && existing.status === "Submitted") {
+      tsUpdates.submittedAt = null;
+      tsUpdates.submittedByUserId = null;
+    }
+  }
   const [row] = await db.update(timesheetsTable).set(tsUpdates).where(eq(timesheetsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Timesheet not found" }); return; }
   res.json(UpdateTimesheetResponse.parse(mapTimesheet(row)));
@@ -93,10 +132,21 @@ router.post("/timesheets/:id/submit", async (req, res): Promise<void> => {
     res.status(400).json({ error: `Minimum ${minHours} hours required before submission. Current: ${Number(existing.totalHours)}h` });
     return;
   }
+  const submittedByUserId = (req.body as any)?.submittedByUserId ?? existing.userId;
   const [row] = await db.update(timesheetsTable)
-    .set({ status: "Submitted", submittedAt: new Date() })
+    .set({ status: "Submitted", submittedAt: new Date(), submittedByUserId })
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
+  // Notify resolved approver(s)
+  try {
+    const approverIds = await resolveApprovers(existing.userId);
+    await notifyUsers(
+      approverIds,
+      "approval_requested",
+      `Approval requested for timesheet (week of ${existing.weekStart}).`,
+      existing.id,
+    );
+  } catch {}
   res.json(SubmitTimesheetResponse.parse(mapTimesheet(row)));
 });
 
@@ -112,19 +162,38 @@ router.post("/timesheets/:id/approve", async (req, res): Promise<void> => {
       status: "Approved",
       approvedAt: new Date(),
       approvedByUserId: body.success ? body.data.approvedByUserId ?? null : null,
+      rejectedAt: null,
+      rejectedByUserId: null,
       rejectionNote: null,
     })
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
-  await db.insert(notificationsTable).values({
-    type: "timesheet_approved",
-    message: `Your timesheet for the week of ${existing.weekStart} has been approved.`,
-    userId: existing.userId,
-    entityType: "timesheet",
-    entityId: String(existing.id),
-    read: false,
-  } as any).catch(() => {});
+  await notifyUsers([existing.userId], "timesheet_approved",
+    `Your timesheet for the week of ${existing.weekStart} has been approved.`, existing.id);
   res.json(ApproveTimesheetResponse.parse(mapTimesheet(row)));
+});
+
+// Undo approval: returns timesheet to Submitted and clears Approved + Rejected audit fields.
+router.post("/timesheets/:id/unapprove", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
+  if (existing.status !== "Approved") { res.status(400).json({ error: "Only Approved timesheets can be unapproved" }); return; }
+  const [row] = await db.update(timesheetsTable)
+    .set({
+      status: "Submitted",
+      approvedAt: null,
+      approvedByUserId: null,
+      rejectedAt: null,
+      rejectedByUserId: null,
+      rejectionNote: null,
+    })
+    .where(eq(timesheetsTable.id, id))
+    .returning();
+  await notifyUsers([existing.userId], "timesheet_unapproved",
+    `Your timesheet for the week of ${existing.weekStart} approval was reverted and is awaiting re-review.`, existing.id);
+  res.json(mapTimesheet(row));
 });
 
 router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
@@ -135,20 +204,94 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Submitted") { res.status(400).json({ error: "Only Submitted timesheets can be rejected" }); return; }
+  const rejectedByUserId = (req.body as any)?.rejectedByUserId ?? null;
   const [row] = await db.update(timesheetsTable)
-    .set({ status: "Draft", rejectionNote: parsed.data.rejectionNote, approvedAt: null, approvedByUserId: null })
+    .set({
+      status: "Draft",
+      rejectionNote: parsed.data.rejectionNote,
+      rejectedAt: new Date(),
+      rejectedByUserId,
+      approvedAt: null,
+      approvedByUserId: null,
+    })
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
   const note = parsed.data.rejectionNote ? ` Reason: ${parsed.data.rejectionNote}` : "";
-  await db.insert(notificationsTable).values({
-    type: "timesheet_rejected",
-    message: `Your timesheet for the week of ${existing.weekStart} was returned for changes.${note}`,
-    userId: existing.userId,
-    entityType: "timesheet",
-    entityId: String(existing.id),
-    read: false,
-  } as any).catch(() => {});
+  await notifyUsers([existing.userId], "timesheet_rejected",
+    `Your timesheet for the week of ${existing.weekStart} was returned for changes.${note}`, existing.id);
   res.json(RejectTimesheetResponse.parse(mapTimesheet(row)));
+});
+
+// Bulk approve: accepts { ids: number[], approvedByUserId?: number }
+router.post("/timesheets/bulk-approve", async (req, res): Promise<void> => {
+  const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
+  if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
+  const approvedByUserId = req.body?.approvedByUserId ?? null;
+  const existing = await db.select().from(timesheetsTable).where(inArray(timesheetsTable.id, ids));
+  const eligible = existing.filter(t => t.status === "Submitted").map(t => t.id);
+  if (eligible.length === 0) { res.json({ approved: 0, skipped: ids.length }); return; }
+  await db.update(timesheetsTable)
+    .set({ status: "Approved", approvedAt: new Date(), approvedByUserId, rejectedAt: null, rejectedByUserId: null, rejectionNote: null })
+    .where(inArray(timesheetsTable.id, eligible));
+  for (const t of existing.filter(x => eligible.includes(x.id))) {
+    await notifyUsers([t.userId], "timesheet_approved",
+      `Your timesheet for the week of ${t.weekStart} has been approved.`, t.id);
+  }
+  res.json({ approved: eligible.length, skipped: ids.length - eligible.length });
+});
+
+// ─── Timesheet Messages (in-context conversation) ────────────────────────────
+router.get("/timesheets/:id/messages", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+  const rows = await db.select().from(timesheetMessagesTable)
+    .where(eq(timesheetMessagesTable.timesheetId, id))
+    .orderBy(timesheetMessagesTable.createdAt);
+  res.json(rows.map(r => ({ ...r, createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt })));
+});
+
+router.post("/timesheets/:id/messages", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { userId, body } = req.body ?? {};
+  if (!userId || !body) { res.status(400).json({ error: "userId and body required" }); return; }
+  const [row] = await db.insert(timesheetMessagesTable).values({ timesheetId: id, userId: Number(userId), body: String(body) }).returning();
+  // Notify timesheet owner + approvers
+  const [ts] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, id));
+  if (ts) {
+    const approverIds = await resolveApprovers(ts.userId).catch(() => [] as number[]);
+    const recipients = Array.from(new Set([ts.userId, ...approverIds].filter(uid => uid !== Number(userId))));
+    await notifyUsers(recipients, "timesheet_message",
+      `New message on timesheet for the week of ${ts.weekStart}.`, ts.id);
+  }
+  res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
+});
+
+// ─── Notification Preferences ────────────────────────────────────────────────
+router.get("/notification-preferences", async (req, res): Promise<void> => {
+  const userId = req.query.userId ? Number(req.query.userId) : null;
+  if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+  const rows = await db.select().from(notificationPreferencesTable).where(eq(notificationPreferencesTable.userId, userId));
+  res.json(rows.map(r => ({ ...r, updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt })));
+});
+
+router.put("/notification-preferences", async (req, res): Promise<void> => {
+  const { userId, type, emailEnabled, inAppEnabled } = req.body ?? {};
+  if (!userId || !type) { res.status(400).json({ error: "userId and type required" }); return; }
+  const existing = await db.select().from(notificationPreferencesTable)
+    .where(and(eq(notificationPreferencesTable.userId, Number(userId)), eq(notificationPreferencesTable.type, String(type))));
+  if (existing.length > 0) {
+    const [row] = await db.update(notificationPreferencesTable)
+      .set({ emailEnabled: !!emailEnabled, inAppEnabled: !!inAppEnabled, updatedAt: new Date() })
+      .where(eq(notificationPreferencesTable.id, existing[0].id))
+      .returning();
+    res.json({ ...row, updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt });
+    return;
+  }
+  const [row] = await db.insert(notificationPreferencesTable)
+    .values({ userId: Number(userId), type: String(type), emailEnabled: !!emailEnabled, inAppEnabled: !!inAppEnabled })
+    .returning();
+  res.status(201).json({ ...row, updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt });
 });
 
 // ─── Timesheet Rows (persistent row tracking) ────────────────────────────────
