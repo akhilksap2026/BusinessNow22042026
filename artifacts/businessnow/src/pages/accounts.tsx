@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAccounts, createAccount, updateAccount, deleteAccount, listOpportunities, listProjects } from "@workspace/api-client-react";
 import { Account } from "@workspace/api-client-react";
@@ -192,8 +192,8 @@ export default function Accounts() {
                   {filtered.map(account => {
                     const isExpanded = expandedAccounts.has(account.id);
                     return (
-                      <>
-                        <TableRow key={account.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelected(account)}>
+                      <Fragment key={account.id}>
+                        <TableRow className="cursor-pointer hover:bg-slate-50" onClick={() => setSelected(account)}>
                           <TableCell onClick={e => toggleExpand(account.id, e)} className="p-2">
                             <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10 transition-colors">
                               {isExpanded
@@ -239,14 +239,14 @@ export default function Accounts() {
                           </TableCell>
                         </TableRow>
                         {isExpanded && (
-                          <TableRow key={`${account.id}-projects`} className="bg-slate-50/60 hover:bg-slate-50/60">
+                          <TableRow className="bg-slate-50/60 hover:bg-slate-50/60">
                             <TableCell />
                             <TableCell colSpan={7} className="py-3 px-4">
                               <AccountProjectsExpanded accountId={account.id} accountName={account.name} />
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                   {filtered.length === 0 && (
