@@ -4,7 +4,6 @@ import {
   clientPortalAccessTable,
   projectsTable,
   tasksTable,
-  phasesTable,
   documentsTable,
   accountsTable,
   taskDependenciesTable,
@@ -55,65 +54,48 @@ router.get("/projects/:id/gantt", async (req, res) => {
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
   if (!project) return res.status(404).json({ error: "Not found" });
 
-  const phases = await db.select().from(phasesTable).where(eq(phasesTable.projectId, projectId));
   const tasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, projectId));
 
-  const rows: any[] = [];
+  // Derive project date range from tasks if not set
+  const allStarts = tasks.map(t => t.startDate).filter(Boolean).sort() as string[];
+  const allEnds = tasks.map(t => t.dueDate).filter(Boolean).sort() as string[];
+  const today = new Date().toISOString().slice(0, 10);
+  const addDays = (d: string, n: number) =>
+    new Date(new Date(d).getTime() + n * 86400000).toISOString().slice(0, 10);
+  const projectStart = project.startDate ?? allStarts[0] ?? today;
+  const projectEnd = project.dueDate ?? allEnds[allEnds.length - 1] ?? addDays(projectStart, 30);
 
-  // Add phases
-  for (const phase of phases) {
-    const phaseTasks = tasks.filter(t => t.phaseId === phase.id);
-    // Phase dates: min start / max due from its tasks
-    const starts = phaseTasks.map(t => t.startDate).filter(Boolean).sort();
-    const dues = phaseTasks.map(t => t.dueDate).filter(Boolean).sort();
-    const completedCount = phaseTasks.filter(t => t.status === "Completed").length;
-    const completion = phaseTasks.length > 0 ? Math.round((completedCount / phaseTasks.length) * 100) : 0;
-
-    rows.push({
-      id: phase.id,
-      type: "phase",
-      name: phase.name,
-      startDate: starts[0] ?? project.startDate,
-      dueDate: dues[dues.length - 1] ?? project.dueDate,
-      status: phase.status ?? "Not Started",
-      completion,
-      parentId: null,
-      isMilestone: false,
-    });
-
-    // Add tasks under phase
-    for (const task of phaseTasks) {
+  // Recursive row builder (preorder: parent then children)
+  function buildRows(parentId: number | null, depth: number): any[] {
+    const children = tasks.filter(t => (t.parentTaskId ?? null) === parentId);
+    const rows: any[] = [];
+    for (const task of children) {
+      const hasChildren = tasks.some(t => t.parentTaskId === task.id);
+      const completion =
+        task.status === "Completed" ? 100 :
+        task.status === "In Progress" ? 50 : 0;
       rows.push({
         id: task.id,
         type: "task",
         name: task.name,
-        startDate: task.startDate ?? project.startDate,
-        dueDate: task.dueDate ?? project.dueDate,
+        startDate: task.startDate ?? projectStart,
+        dueDate: task.dueDate ?? projectEnd,
         status: task.status,
-        completion: task.status === "Completed" ? 100 : task.status === "In Progress" ? 50 : 0,
-        parentId: phase.id,
+        completion,
+        parentTaskId: task.parentTaskId ?? null,
+        depth,
         isMilestone: task.isMilestone ?? false,
+        milestoneType: task.milestoneType ?? null,
+        hasChildren,
       });
+      rows.push(...buildRows(task.id, depth + 1));
     }
+    return rows;
   }
 
-  // Add unphased tasks
-  const unphasedTasks = tasks.filter(t => !t.phaseId);
-  for (const task of unphasedTasks) {
-    rows.push({
-      id: task.id,
-      type: "task",
-      name: task.name,
-      startDate: task.startDate ?? project.startDate,
-      dueDate: task.dueDate ?? project.dueDate,
-      status: task.status,
-      completion: task.status === "Completed" ? 100 : task.status === "In Progress" ? 50 : 0,
-      parentId: null,
-      isMilestone: task.isMilestone ?? false,
-    });
-  }
+  const rows = buildRows(null, 0);
 
-  // Fetch dependencies for all task ids in this project
+  // Fetch all dependencies for tasks in this project
   const taskIds = tasks.map(t => t.id);
   const deps = taskIds.length > 0
     ? await db.select().from(taskDependenciesTable).where(
@@ -123,15 +105,15 @@ router.get("/projects/:id/gantt", async (req, res) => {
 
   return res.json({
     projectId,
-    projectStart: project.startDate,
-    projectEnd: project.dueDate,
+    projectStart,
+    projectEnd,
     rows,
     dependencies: deps.map(d => ({
       id: d.id,
       predecessorId: d.predecessorId,
       successorId: d.successorId,
       dependencyType: d.dependencyType,
-      lagDays: d.lagDays,
+      lagDays: d.lagDays ?? 0,
     })),
   });
 });

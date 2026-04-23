@@ -85,6 +85,17 @@ router.post("/tasks/:id/dependencies", async (req, res): Promise<void> => {
   res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
 });
 
+router.patch("/task-dependencies/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { lagDays } = req.body;
+  const lag = parseInt(lagDays, 10);
+  if (isNaN(lag)) { res.status(400).json({ error: "lagDays must be a number" }); return; }
+  const [row] = await db.update(taskDependenciesTable).set({ lagDays: lag }).where(eq(taskDependenciesTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Dependency not found" }); return; }
+  res.json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
+});
+
 router.delete("/task-dependencies/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
