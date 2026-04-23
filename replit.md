@@ -36,6 +36,22 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - When adding fields to the API contract, update all four places: `lib/api-zod/src/generated/api.ts` + `types/createXBody.ts`, `lib/api-client-react/src/generated/api.schemas.ts`, then rebuild both dists (`tsc --build --force`)
 - `lib/api-client-react/dist/index.d.ts` is the compiled declaration output — must rebuild after editing `custom-fetch.ts` or any generated schema file
 
+### Phase 3 Complete — Interactive Timeline (Gantt) with Dependencies, Baselines & Shift Dates
+- **`baselines` table** — `id, project_id, name, notes, snapshot_date, phase_snapshot JSONB, task_snapshot JSONB`; `GET/POST /projects/:id/baselines`, `DELETE /baselines/:id`
+- **Circular dependency detection** — BFS from successorId; rejects with error before insert if a cycle would be created
+- **Date cascade on dependency create** — when predecessor has a due_date, successor start_date/due_date pushed forward by 1+lagDays automatically
+- **`POST /projects/:id/shift-dates { days, fromTaskId? }`** — shifts all tasks (or downstream only from a task), recalculates phase dates, optionally shifts project dates; requires PM role
+- **Enhanced `/projects/:id/gantt`** — now returns `dependencies[]` array alongside rows for SVG arrows
+- **Enhanced `project-gantt.tsx`** — full rewrite:
+  - Zoom toolbar (Quarter / Month / Week / Day) with pixel-per-day scaling
+  - SVG cubic-bezier dependency arrows (indigo) with arrowhead markers
+  - Collapsible phase rows (click chevron to expand/collapse)
+  - Today red-line marker
+  - Baseline panel: "Baselines" toggle → baseline picker → grey overlay bars on task rows for comparison
+  - "Save Baseline" dialog with custom name
+  - "Shift Dates" modal: enter ±days, checkbox "Save baseline before shifting" auto-creates pre-shift snapshot
+  - Rich tooltips on bars (name, dates, status, completion%, baseline dates)
+
 ### Phase 2 Complete — Template Engine with Relative Dates
 - **Normalized schema**: Replaced JSON-blob `project_templates.phases` column with 3 normalized tables: `template_phases` (relativeStartOffset, relativeEndOffset, privacyDefault, order) and `template_tasks` (relativeDueDateOffset, effort, billableDefault, priority, assigneeRolePlaceholder, order)
 - **tasks table**: Added `from_template boolean` and `applied_template_id integer` columns — all template-derived tasks are flagged for scope-creep tracking

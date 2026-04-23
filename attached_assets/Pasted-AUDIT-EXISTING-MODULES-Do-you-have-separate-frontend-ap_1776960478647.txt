@@ -1,0 +1,52 @@
+AUDIT EXISTING MODULES:
+- Do you have separate frontend apps or a single app with role-based rendering?
+- Is there any client-facing interface already?
+- How is authentication/session handled?
+
+GAP MAPPING:
+→ Can customers log into a simplified view?
+→ Is there complete data isolation between internal and customer views?
+→ Can customers perform any actions (complete tasks, approve, comment)?
+
+INTEGRATION STEPS:
+1. DECISION: Portal as route restriction vs. separate app
+   - RECOMMENDED: Same app, `/portal/*` routes with strict middleware
+   - Reuses all existing components, applies privacy filter universally
+
+2. CREATE portal route guard middleware:
+   - IF user.role = 'customer' AND route starts with /portal: ALLOW
+   - IF user.role = 'customer' AND route does NOT start with /portal: REDIRECT to /portal
+   - IF user.role != 'customer': DENY portal routes (or redirect to main app)
+   
+3. REUSE existing project list component for portal:
+   - Same API endpoint, but privacy filter already applied (from Prompt 1)
+   - Customer sees only projects where they are member AND shared content
+   
+4. REUSE existing task list/detail components:
+   - Same components, same APIs
+   - Hide/disable actions based on role:
+     - Cannot create/delete phases (hide buttons)
+     - Cannot convert to milestone (hide menu item)
+     - Cannot view financial data (hide fields)
+     - Cannot access Reports/Settings tabs (route guard or conditional render)
+
+5. ADD customer-specific actions to existing task drawer:
+   - Complete assigned task (if already possible, no change needed)
+   - Add comment (reuse existing comment thread)
+   - Approve document (reuse existing approval flow, limited to responding)
+
+6. ADD "Invite Team Member" to portal:
+   - Reuse existing invitation system, restrict to same customer domain/organization
+   - ADD validation: invited email domain must match customer's domain
+
+7. ADD portal branding configuration:
+   - ADD to existing account settings: portal_theme (JSON: colors, logo URL)
+   - ADD tab visibility settings: which tabs show in portal (Plan, Spaces, Updates)
+   - Apply theme CSS variables to portal routes only
+
+VERIFICATION:
+- [ ] Customer logs in → lands on /portal, sees only shared projects
+- [ ] Customer direct URL to /admin or /reports → 403/redirect
+- [ ] Customer task detail → no "Convert to Milestone", no "Make Private", no financial fields
+- [ ] Customer invites team member → invitation sent, new user gets customer role
+- [ ] Internal user accesses /portal → denied or redirected to main app

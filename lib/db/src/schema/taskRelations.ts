@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -42,6 +42,21 @@ export const taskChecklistsTable = pgTable("task_checklists", {
 export const insertTaskChecklistSchema = createInsertSchema(taskChecklistsTable).omit({ id: true, createdAt: true });
 export type InsertTaskChecklist = z.infer<typeof insertTaskChecklistSchema>;
 export type TaskChecklist = typeof taskChecklistsTable.$inferSelect;
+
+export const baselinesTable = pgTable("baselines", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  name: text("name").notNull(),
+  notes: text("notes"),
+  snapshotDate: text("snapshot_date").notNull(),
+  phaseSnapshot: jsonb("phase_snapshot").notNull().default([]),
+  taskSnapshot: jsonb("task_snapshot").notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertBaselineSchema = createInsertSchema(baselinesTable).omit({ id: true, createdAt: true });
+export type InsertBaseline = z.infer<typeof insertBaselineSchema>;
+export type Baseline = typeof baselinesTable.$inferSelect;
 
 export const taskAttachmentsTable = pgTable("task_attachments", {
   id: serial("id").primaryKey(),

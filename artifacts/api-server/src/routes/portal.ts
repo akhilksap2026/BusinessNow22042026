@@ -7,8 +7,9 @@ import {
   phasesTable,
   documentsTable,
   accountsTable,
+  taskDependenciesTable,
 } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 
 const router = Router();
 
@@ -112,11 +113,26 @@ router.get("/projects/:id/gantt", async (req, res) => {
     });
   }
 
+  // Fetch dependencies for all task ids in this project
+  const taskIds = tasks.map(t => t.id);
+  const deps = taskIds.length > 0
+    ? await db.select().from(taskDependenciesTable).where(
+        inArray(taskDependenciesTable.predecessorId, taskIds)
+      )
+    : [];
+
   return res.json({
     projectId,
     projectStart: project.startDate,
     projectEnd: project.dueDate,
     rows,
+    dependencies: deps.map(d => ({
+      id: d.id,
+      predecessorId: d.predecessorId,
+      successorId: d.successorId,
+      dependencyType: d.dependencyType,
+      lagDays: d.lagDays,
+    })),
   });
 });
 

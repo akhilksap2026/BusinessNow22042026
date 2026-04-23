@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, isNull, isNotNull } from "drizzle-orm";
-import { db, projectsTable, invoicesTable, allocationsTable, accountsTable } from "@workspace/db";
+import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, tasksTable, phasesTable, taskDependenciesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
@@ -124,4 +124,88 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
   }));
 });
 
+// ─── Shift Dates ──────────────────────────────────────────────────────────────
+router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  const { days, fromTaskId } = req.body;
+  const shiftDays = parseInt(days, 10);
+  if (isNaN(shiftDays) || shiftDays === 0) {
+    res.status(400).json({ error: "days must be a non-zero integer" }); return;
+  }
+
+  const shiftMs = shiftDays * 86400000;
+
+  function shiftDate(d: string | null | undefined): string | null {
+    if (!d) return null;
+    return new Date(new Date(d).getTime() + shiftMs).toISOString().slice(0, 10);
+  }
+
+  // Get all tasks for the project
+  const allTasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, projectId));
+
+  // If fromTaskId given, only shift that task and its downstream dependents
+  let taskIdsToShift: Set<number>;
+  if (fromTaskId) {
+    const startId = parseInt(fromTaskId, 10);
+    // BFS downstream
+    taskIdsToShift = new Set<number>([startId]);
+    const allDeps = await db.select().from(taskDependenciesTable)
+      .where(inArray(taskDependenciesTable.predecessorId, allTasks.map(t => t.id)));
+    const queue = [startId];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      const downstream = allDeps.filter(d => d.predecessorId === cur);
+      for (const d of downstream) {
+        if (!taskIdsToShift.has(d.successorId)) {
+          taskIdsToShift.add(d.successorId);
+          queue.push(d.successorId);
+        }
+      }
+    }
+  } else {
+    taskIdsToShift = new Set(allTasks.map(t => t.id));
+  }
+
+  // Shift tasks
+  for (const task of allTasks) {
+    if (!taskIdsToShift.has(task.id)) continue;
+    await db.update(tasksTable).set({
+      startDate: shiftDate(task.startDate),
+      dueDate: shiftDate(task.dueDate),
+    }).where(eq(tasksTable.id, task.id));
+  }
+
+  // Shift phases: recalc from tasks after update
+  const updatedTasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, projectId));
+  const phases = await db.select().from(phasesTable).where(eq(phasesTable.projectId, projectId));
+  for (const phase of phases) {
+    const phaseTasks = updatedTasks.filter(t => t.phaseId === phase.id);
+    const starts = phaseTasks.map(t => t.startDate).filter(Boolean).sort() as string[];
+    const dues = phaseTasks.map(t => t.dueDate).filter(Boolean).sort() as string[];
+    if (starts.length > 0 || dues.length > 0) {
+      await db.update(phasesTable).set({
+        startDate: starts[0] ?? phase.startDate,
+        endDate: dues[dues.length - 1] ?? phase.endDate,
+      }).where(eq(phasesTable.id, phase.id));
+    }
+  }
+
+  // Optionally shift project dates too
+  if (!fromTaskId) {
+    const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+    if (project) {
+      await db.update(projectsTable).set({
+        startDate: shiftDate(project.startDate),
+        dueDate: shiftDate(project.dueDate),
+      }).where(eq(projectsTable.id, projectId));
+    }
+  }
+
+  await logAudit({ action: "shift_dates", entityType: "project", entityId: projectId, description: `Shifted dates by ${shiftDays} days` });
+  res.json({ shifted: taskIdsToShift.size, days: shiftDays });
+});
+
 export default router;
+
