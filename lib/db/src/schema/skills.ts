@@ -16,6 +16,10 @@ export const skillsTable = pgTable("skills", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id"),
   name: text("name").notNull(),
+  skillType: text("skill_type").notNull().default("Level"),
+  section: text("section"),
+  associatedRoles: text("associated_roles").array().notNull().default([]),
+  description: text("description"),
   isActive: integer("is_active").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

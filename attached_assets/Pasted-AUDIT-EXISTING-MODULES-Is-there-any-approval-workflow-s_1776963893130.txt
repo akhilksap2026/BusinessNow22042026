@@ -1,0 +1,58 @@
+AUDIT EXISTING MODULES:
+- Is there any approval workflow system already? (for tasks, documents, expenses?)
+- Can users request changes that require manager approval?
+- Is there a notification system for pending approvals?
+
+GAP MAPPING:
+→ Can project managers formally request staffing changes?
+→ Is there an approval gate before allocations are committed?
+→ Can approvers see impact on team member capacity before deciding?
+→ Are request types structured (add/replace/shift/delete)?
+
+INTEGRATION STEPS:
+1. CREATE `resource_requests` table (NEW):
+   - id, type ENUM('add_member','add_hours','assign_placeholder',
+     'replacement','shift_allocations','delete_allocation'),
+     status ENUM('draft','pending','approved','blocked','cancelled'),
+     requested_by, approver_id (nullable),
+     project_id, target_resource_id (nullable), target_placeholder_id (nullable),
+     role_id (nullable), required_skills JSON,
+     region VARCHAR(50), start_date, end_date,
+     hours_per_day DECIMAL(4,2), allocation_method, method_value,
+     comments TEXT, created_at, updated_at
+
+2. CREATE `resource_request_comments` table (NEW — for approver-requester chat):
+   - id, request_id, user_id, message, created_at
+
+3. ADD request creation UI:
+   - Reuse existing form patterns
+   - Six request types, each with relevant fields shown/hidden
+   - Timeline preview: show how request fits into existing project allocations
+   - "Relevant Matches" panel: auto-suggest team members by role/skills
+
+4. ADD approval interface:
+   - List view: all pending requests with status badges
+   - Detail view: request info + project hours summary (budgeted/allocated/remaining)
+   - Timeline view: overlay proposed allocation on existing project timeline
+   - Candidate panel: show forecasted_utilization for each suggested team member
+   - ADD "Ignore Soft Allocation" toggle → recalculates utilization excluding soft allocations
+   - Actions: Assign & Allocate, Assign Placeholder, Block (with reason + chat)
+
+5. ADD approval automation hooks:
+   - On approve: auto-create allocation record, notify requester
+   - On block: notify requester, enable chat thread for resolution
+   - On edit & resubmit: status returns to pending
+
+6. ADD permission enforcement:
+   - Project Manager: can create requests for own projects only
+   - Admin/Super User: can create, approve, block any request
+   - Team Member: cannot create requests
+
+VERIFICATION:
+- [ ] Project Manager raises "Add New Team Member" request → appears in approver queue
+- [ ] Approver sees forecasted utilization for candidate: (existing + proposed) / capacity
+- [ ] Toggle "Ignore Soft Allocation" → utilization recalculates, soft hours excluded
+- [ ] Approver blocks request with reason → requester notified, chat enabled
+- [ ] Requester edits and resubmits → status returns to pending
+- [ ] On approval → allocation auto-created, requester sees "Approved" status
+- [ ] **GAP CAPTURE**: Document notification delivery failures, approval chain bottlenecks

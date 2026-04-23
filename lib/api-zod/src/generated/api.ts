@@ -443,8 +443,11 @@ export const ListUsersResponseItem = zod.object({
   email: zod.string(),
   capacity: zod.number(),
   department: zod.string(),
+  region: zod.string().nullish(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
+  isInternal: zod.boolean().nullish(),
+  activeStatus: zod.string().nullish(),
   createdAt: zod.string(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
@@ -458,8 +461,11 @@ export const CreateUserBody = zod.object({
   email: zod.string(),
   capacity: zod.number(),
   department: zod.string(),
+  region: zod.string().optional(),
   costRate: zod.number(),
   skills: zod.array(zod.string()).optional(),
+  isInternal: zod.boolean().optional(),
+  activeStatus: zod.string().optional(),
 });
 
 /**
@@ -477,8 +483,11 @@ export const GetUserResponse = zod.object({
   email: zod.string(),
   capacity: zod.number(),
   department: zod.string(),
+  region: zod.string().nullish(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
+  isInternal: zod.boolean().nullish(),
+  activeStatus: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -495,8 +504,11 @@ export const UpdateUserBody = zod.object({
   email: zod.string().optional(),
   capacity: zod.number().optional(),
   department: zod.string().optional(),
+  region: zod.string().optional(),
   costRate: zod.number().optional(),
   skills: zod.array(zod.string()).optional(),
+  isInternal: zod.boolean().optional(),
+  activeStatus: zod.string().optional(),
 });
 
 export const UpdateUserResponse = zod.object({
@@ -507,8 +519,11 @@ export const UpdateUserResponse = zod.object({
   email: zod.string(),
   capacity: zod.number(),
   department: zod.string(),
+  region: zod.string().nullish(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
+  isInternal: zod.boolean().nullish(),
+  activeStatus: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -869,6 +884,9 @@ export const GetCapacityOverviewResponseItem = zod.object({
   utilizationPercent: zod.number(),
   department: zod.string(),
   role: zod.string(),
+  region: zod.string().nullish(),
+  isInternal: zod.boolean().nullish(),
+  activeStatus: zod.string().nullish(),
 });
 export const GetCapacityOverviewResponse = zod.array(
   GetCapacityOverviewResponseItem,
@@ -2308,6 +2326,10 @@ export const ListSkillsResponseItem = zod.object({
   id: zod.number(),
   categoryId: zod.number().optional(),
   name: zod.string(),
+  skillType: zod.string().nullish(),
+  section: zod.string().nullish(),
+  associatedRoles: zod.array(zod.string()).nullish(),
+  description: zod.string().nullish(),
   isActive: zod.number(),
   createdAt: zod.string(),
 });
@@ -2319,6 +2341,10 @@ export const ListSkillsResponse = zod.array(ListSkillsResponseItem);
 export const CreateSkillBody = zod.object({
   name: zod.string(),
   categoryId: zod.number().optional(),
+  skillType: zod.string().optional(),
+  section: zod.string().optional(),
+  associatedRoles: zod.array(zod.string()).optional(),
+  description: zod.string().optional(),
 });
 
 /**

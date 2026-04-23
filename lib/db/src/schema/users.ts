@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,12 +10,15 @@ export const usersTable = pgTable("users", {
   email: text("email").notNull().unique(),
   capacity: integer("capacity").notNull().default(40),
   department: text("department").notNull(),
+  region: text("region"),
   costRate: numeric("cost_rate", { precision: 8, scale: 2 }).notNull().default("0"),
   costRateEffectiveDate: text("cost_rate_effective_date"),
   skills: text("skills").array().notNull().default([]),
   secondaryRoles: text("secondary_roles").array().notNull().default([]),
   avatarUrl: text("avatar_url"),
   isActive: integer("is_active").notNull().default(1),
+  isInternal: boolean("is_internal").notNull().default(true),
+  activeStatus: text("active_status").notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

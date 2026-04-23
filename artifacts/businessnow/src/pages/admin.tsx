@@ -278,22 +278,22 @@ export default function Admin() {
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
   const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
-  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", capacity: "40", costRate: "0" });
+  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active" });
 
   function openAddUser() {
     setEditUser(null);
-    setUserForm({ name: "", email: "", role: "", department: "", capacity: "40", costRate: "0" });
+    setUserForm({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active" });
     setUserDialogOpen(true);
   }
 
   function openEditUser(u: any) {
     setEditUser(u);
-    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0) });
+    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", region: u.region ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0), isInternal: u.isInternal === false ? "false" : "true", activeStatus: u.activeStatus ?? "active" });
     setUserDialogOpen(true);
   }
 
   async function handleSaveUser() {
-    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate) };
+    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, region: userForm.region || undefined, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate), isInternal: userForm.isInternal !== "false", activeStatus: userForm.activeStatus };
     try {
       if (editUser) {
         await updateUser.mutateAsync({ id: editUser.id, data: payload });
@@ -321,6 +321,9 @@ export default function Admin() {
   const [skillDialogOpen, setSkillDialogOpen] = useState(false);
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillCategoryId, setNewSkillCategoryId] = useState("");
+  const [newSkillType, setNewSkillType] = useState("Level");
+  const [newSkillSection, setNewSkillSection] = useState("");
+  const [newSkillDescription, setNewSkillDescription] = useState("");
   const [deleteSkillId, setDeleteSkillId] = useState<number | null>(null);
 
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
@@ -748,13 +751,12 @@ export default function Admin() {
     if (!newSkillName) return;
     try {
       await createSkill.mutateAsync({
-        data: { name: newSkillName, categoryId: newSkillCategoryId ? parseInt(newSkillCategoryId) : undefined }
+        data: { name: newSkillName, categoryId: newSkillCategoryId ? parseInt(newSkillCategoryId) : undefined, skillType: newSkillType, section: newSkillSection || undefined, description: newSkillDescription || undefined }
       });
       queryClient.invalidateQueries({ queryKey: getListSkillsQueryKey() });
       toast({ title: "Skill created" });
       setSkillDialogOpen(false);
-      setNewSkillName("");
-      setNewSkillCategoryId("");
+      setNewSkillName(""); setNewSkillCategoryId(""); setNewSkillType("Level"); setNewSkillSection(""); setNewSkillDescription("");
     } catch {
       toast({ title: "Failed to create skill", variant: "destructive" });
     }
@@ -918,6 +920,7 @@ export default function Admin() {
                             <TableHead>Email</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead>Department</TableHead>
+                            <TableHead>Status</TableHead>
                             <TableHead className="text-right">Cost Rate</TableHead>
                             <TableHead className="w-[90px]"></TableHead>
                           </TableRow>
@@ -933,7 +936,13 @@ export default function Admin() {
                               </TableCell>
                               <TableCell className="text-muted-foreground">{user.email}</TableCell>
                               <TableCell><Badge variant="outline" className="font-normal">{user.role}</Badge></TableCell>
-                              <TableCell>{user.department}</TableCell>
+                              <TableCell>{user.department}{user.region ? <span className="text-muted-foreground ml-1 text-xs">· {user.region}</span> : null}</TableCell>
+                              <TableCell>
+                                {user.activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
+                                  : user.activeStatus === "inactive" ? <Badge variant="secondary" className="text-xs text-muted-foreground">Inactive</Badge>
+                                  : <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border">Active</Badge>}
+                                {user.isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
+                              </TableCell>
                               <TableCell className="text-right">${user.costRate}/hr</TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1">
@@ -1971,19 +1980,42 @@ export default function Admin() {
       <Dialog open={skillDialogOpen} onOpenChange={setSkillDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Skill</DialogTitle><DialogDescription>Add a skill that can be assigned to team members.</DialogDescription></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Skill Name *</Label>
               <Input placeholder="e.g. React, AWS, SQL" value={newSkillName} onChange={e => setNewSkillName(e.target.value)} />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Category</Label>
+                <Select value={newSkillCategoryId} onValueChange={setNewSkillCategoryId}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    {categories?.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Type</Label>
+                <Select value={newSkillType} onValueChange={setNewSkillType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Level">Level (Beginner–Expert)</SelectItem>
+                    <SelectItem value="Yes-No">Yes / No</SelectItem>
+                    <SelectItem value="Number">Number</SelectItem>
+                    <SelectItem value="Single-Choice">Single Choice</SelectItem>
+                    <SelectItem value="Multiple-Choice">Multiple Choice</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-1.5">
-              <Label>Category</Label>
-              <Select value={newSkillCategoryId} onValueChange={setNewSkillCategoryId}>
-                <SelectTrigger><SelectValue placeholder="Select category (optional)" /></SelectTrigger>
-                <SelectContent>
-                  {categories?.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Section <span className="text-muted-foreground text-xs">(optional grouping within category)</span></Label>
+              <Input placeholder="e.g. Frontend, Cloud, Leadership" value={newSkillSection} onChange={e => setNewSkillSection(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Input placeholder="Brief description of this skill" value={newSkillDescription} onChange={e => setNewSkillDescription(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
@@ -2328,6 +2360,10 @@ export default function Admin() {
                 <Input value={userForm.department} onChange={e => setUserForm(f => ({ ...f, department: e.target.value }))} placeholder="e.g. Engineering" />
               </div>
             </div>
+            <div className="space-y-1">
+              <Label>Region</Label>
+              <Input value={userForm.region} onChange={e => setUserForm(f => ({ ...f, region: e.target.value }))} placeholder="e.g. APAC, EMEA, US-East" />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Weekly Capacity (hrs)</Label>
@@ -2336,6 +2372,29 @@ export default function Admin() {
               <div className="space-y-1">
                 <Label>Cost Rate ($/hr)</Label>
                 <Input type="number" value={userForm.costRate} onChange={e => setUserForm(f => ({ ...f, costRate: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={userForm.activeStatus} onValueChange={v => setUserForm(f => ({ ...f, activeStatus: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="on_leave">On Leave</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Member Type</Label>
+                <Select value={userForm.isInternal} onValueChange={v => setUserForm(f => ({ ...f, isInternal: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Internal Employee</SelectItem>
+                    <SelectItem value="false">External / Client Contact</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
