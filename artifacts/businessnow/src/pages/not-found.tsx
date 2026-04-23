@@ -18,7 +18,7 @@ export default function NotFound() {
             </p>
           </div>
           <Link href="/">
-            <Button variant="outline" size="sm">Go to Dashboard</Button>
+            <Button variant="outline" size="sm">Back to Dashboard</Button>
           </Link>
         </CardContent>
       </Card>

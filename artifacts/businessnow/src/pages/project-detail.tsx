@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { StatusBadge, HealthBadge } from "@/pages/projects";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell } from "lucide-react";
 import { ApplyTemplateModal } from "@/components/apply-template-modal";
@@ -453,9 +453,9 @@ export default function ProjectDetail() {
               </BreadcrumbList>
             </Breadcrumb>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
               <StatusBadge status={project.status} />
-              <HealthBadge health={project.health} />
+              <StatusBadge status={project.health} />
             </div>
             <p className="text-muted-foreground">{project.description}</p>
           </div>

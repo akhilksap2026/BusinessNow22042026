@@ -833,7 +833,7 @@ export default function Reports() {
     <Layout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
         </div>
 
         <Tabs defaultValue="performance" className="w-full">

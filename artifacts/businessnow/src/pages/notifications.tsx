@@ -75,7 +75,7 @@ export default function Notifications() {
     <Layout>
       <div className="space-y-6 max-w-3xl mx-auto">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
           <div className="flex items-center gap-2">
             {unreadNotifications.length > 0 && (
               <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markRead.isPending}>

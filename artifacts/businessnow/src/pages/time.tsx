@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -268,7 +269,7 @@ export default function TimeTracking() {
     <Layout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Time Tracking</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Time Tracking</h1>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setRequestOpen(true)}>
               <CalendarOff className="mr-2 h-4 w-4" /> Request Time Off
@@ -360,15 +361,25 @@ export default function TimeTracking() {
                     <CardDescription>Review and approve team timesheets for the selected week</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => setApprovalWeek(addDays(approvalWeek, -7))}>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={() => setApprovalWeek(addDays(approvalWeek, -7))}>
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Previous week</TooltipContent>
+                    </Tooltip>
                     <span className="text-sm font-medium min-w-[190px] text-center">
                       {format(approvalWeek, "MMM d")} – {format(addDays(approvalWeek, 6), "MMM d, yyyy")}
                     </span>
-                    <Button variant="outline" size="icon" onClick={() => setApprovalWeek(addDays(approvalWeek, 7))}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={() => setApprovalWeek(addDays(approvalWeek, 7))}>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Next week</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </CardHeader>
@@ -534,12 +545,22 @@ export default function TimeTracking() {
                           <TableCell className="text-right font-medium">{entry.hours}h</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1 justify-end">
-                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditEntry(entry as any)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteEntryId(entry.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditEntry(entry as any)}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit entry</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteEntryId(entry.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete entry</TooltipContent>
+                              </Tooltip>
                             </div>
                           </TableCell>
                         </TableRow>

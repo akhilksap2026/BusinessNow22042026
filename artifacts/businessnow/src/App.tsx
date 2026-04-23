@@ -1,9 +1,10 @@
 import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CurrentUserProvider, useCurrentUser } from "@/contexts/current-user";
 import { DensityProvider } from "@/contexts/density";
+import { queryClient } from "@/lib/queryClient";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
@@ -20,8 +21,6 @@ import Opportunities from "@/pages/opportunities";
 import PortalPage from "@/pages/portal";
 import PortalDashboard from "@/pages/portal-dashboard";
 import PortalProject from "@/pages/portal-project";
-
-const queryClient = new QueryClient();
 
 function Router() {
   const { activeRole } = useCurrentUser();

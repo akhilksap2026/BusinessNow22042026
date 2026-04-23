@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 function PriorityBadge({ priority }: { priority: string }) {
   const cls =
@@ -42,16 +43,6 @@ function PriorityBadge({ priority }: { priority: string }) {
     : priority === "Medium" ? "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400"
     : "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300";
   return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>{priority}</span>;
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const cls =
-    status === "Pending" ? "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400"
-    : status === "Approved" ? "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
-    : status === "Fulfilled" ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400"
-    : status === "Rejected" ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400"
-    : "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300";
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>{status}</span>;
 }
 
 function ProficiencyDot({ level }: { level: string }) {
@@ -269,7 +260,7 @@ export default function Resources() {
     <Layout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Team Resources</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Team Resources</h1>
           {pendingRequests.length > 0 && (
             <Badge variant="destructive" className="flex items-center gap-1.5 px-3 py-1.5">
               <AlertTriangle className="h-3.5 w-3.5" />

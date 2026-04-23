@@ -40,14 +40,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from "wouter";
 import { Plus, Search, Building2, MoreHorizontal, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen } from "lucide-react";
-
-const STATUS_COLORS: Record<string, string> = {
-  Active: "bg-green-100 text-green-700",
-  Inactive: "bg-slate-100 text-slate-600",
-  Prospect: "bg-blue-100 text-blue-700",
-  "At Risk": "bg-red-100 text-red-700",
-  Churned: "bg-red-200 text-red-800",
-};
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TIER_COLORS: Record<string, string> = {
   Enterprise: "bg-purple-100 text-purple-700",
@@ -155,7 +149,7 @@ export default function Accounts() {
     <Layout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Client Accounts</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Client Accounts</h1>
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="mr-2 h-4 w-4" /> New Account
           </Button>
@@ -209,9 +203,7 @@ export default function Accounts() {
                           </TableCell>
                           <TableCell className="text-muted-foreground">{account.domain}</TableCell>
                           <TableCell>
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[account.status] ?? "bg-slate-100 text-slate-600"}`}>
-                              {account.status}
-                            </span>
+                            <StatusBadge status={account.status} />
                           </TableCell>
                           <TableCell>
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[account.tier] ?? "bg-slate-100 text-slate-600"}`}>
@@ -223,9 +215,14 @@ export default function Accounts() {
                           <TableCell onClick={e => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>More options</TooltipContent>
+                                </Tooltip>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => openEdit(account)}>
@@ -445,12 +442,7 @@ function AccountProjectsExpanded({ accountId, accountName }: { accountId: number
           >
             <span className="font-medium truncate">{p.name}</span>
             <span>
-              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                p.status === "Completed" ? "bg-green-100 text-green-700" :
-                p.status === "In Progress" ? "bg-blue-100 text-blue-700" :
-                p.status === "At Risk" ? "bg-red-100 text-red-700" :
-                "bg-slate-100 text-slate-600"
-              }`}>{p.status}</span>
+              <StatusBadge status={p.status} />
             </span>
             <span className="text-muted-foreground">{p.billingType}</span>
             <span className="text-right tabular-nums font-medium">{fmt(p.budget)}</span>
@@ -498,7 +490,7 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
 
       <div className="mt-6 space-y-4">
         <div className="flex items-center gap-2">
-          <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[account.status] ?? ""}`}>{account.status}</span>
+          <StatusBadge status={account.status} />
           <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${TIER_COLORS[account.tier] ?? ""}`}>{account.tier}</span>
         </div>
 

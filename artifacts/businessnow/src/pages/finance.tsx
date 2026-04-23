@@ -25,27 +25,11 @@ import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Sea
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export function InvoiceStatusBadge({ status }: { status: string }) {
-  const getVariant = (s: string) => {
-    switch (s) {
-      case "Paid": return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800";
-      case "Approved": return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
-      case "In Review": return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
-      case "Overdue": return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
-      default: return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
-    }
-  };
-  return <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getVariant(status)}`}>{status}</span>;
-}
-
-function ScheduleStatusBadge({ status }: { status: string }) {
-  const cls = status === "Fired" ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400"
-    : status === "Active" ? "bg-blue-100 text-blue-800 border-blue-200"
-    : "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300";
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>{status}</span>;
-}
+export { StatusBadge as InvoiceStatusBadge };
 
 const createInvoiceSchema = z.object({
   projectId: z.coerce.number().min(1, "Project is required"),
@@ -246,7 +230,7 @@ export default function Finance() {
     <Layout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Finance & Invoicing</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Finance & Invoicing</h1>
           <Button onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Create Invoice
           </Button>
@@ -358,12 +342,17 @@ export default function Finance() {
                                       <TableCell>{invoice.description}</TableCell>
                                       <TableCell>{new Date(invoice.issueDate).toLocaleDateString()}</TableCell>
                                       <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
-                                      <TableCell><InvoiceStatusBadge status={invoice.status} /></TableCell>
+                                      <TableCell><StatusBadge status={invoice.status} /></TableCell>
                                       <TableCell className="text-right font-medium">${invoice.total.toLocaleString()}</TableCell>
                                       <TableCell onClick={e => e.stopPropagation()} className="p-1">
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="h-3.5 w-3.5" /></Button>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="h-3.5 w-3.5" /></Button>
+                                              </TooltipTrigger>
+                                              <TooltipContent>More options</TooltipContent>
+                                            </Tooltip>
                                           </DropdownMenuTrigger>
                                           <DropdownMenuContent align="end">
                                             <DropdownMenuItem onClick={() => setSelectedInvoice(invoice)}>View Details</DropdownMenuItem>
@@ -453,7 +442,7 @@ export default function Finance() {
                           <TableCell className="text-sm">
                             {s.amount ? `$${Number(s.amount).toLocaleString()}` : s.percentOfBudget ? `${s.percentOfBudget}% of budget` : "—"}
                           </TableCell>
-                          <TableCell><ScheduleStatusBadge status={s.status} /></TableCell>
+                          <TableCell><StatusBadge status={s.status} /></TableCell>
                           <TableCell className="text-xs text-muted-foreground">
                             {s.lastFiredAt ? new Date(s.lastFiredAt).toLocaleDateString() : "Never"}
                           </TableCell>
@@ -491,7 +480,7 @@ export default function Finance() {
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis dataKey="period" tick={{ fontSize: 12 }} />
                       <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 12 }} />
-                      <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                      <RechartsTooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
                       <Legend />
                       {revReport.methods.map((m, i) => (
                         <Bar key={m} dataKey={`byMethod.${m}`} name={m} stackId="a" fill={COLORS[i % COLORS.length]} radius={i === revReport.methods.length - 1 ? [4, 4, 0, 0] : [0,0,0,0]} />

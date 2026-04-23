@@ -28,6 +28,15 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **API contract**: OpenAPI spec → Orval codegen → React Query hooks + Zod schemas
 - **Packages**: `@workspace/api-spec`, `@workspace/api-zod`, `@workspace/db`, `@workspace/api-server`, `@workspace/businessnow`
 
+### UI Polish (April 2026 Audit Quick Wins)
+- **Shared StatusBadge** (`artifacts/businessnow/src/components/ui/status-badge.tsx`): single component with documented color map for all status types — project status, project health, account status, invoice status, resource request status, timesheet status, billing schedule status. Replaces all ad-hoc inline badge classes across pages.
+- **Consistent page titles**: all page h1 elements use `text-2xl font-bold tracking-tight` (was `text-3xl`) across dashboard, admin, finance, accounts, projects, time, notifications, reports, resources, project-detail.
+- **Projects list: clickable rows** — entire table row navigates to project detail; action cell stops propagation.
+- **Route alias**: `/time-tracking` renders the same page as `/time` (nav label and URL now match).
+- **User-friendly 404**: polished centered layout with helpful copy and "Back to Dashboard" button (removed developer-facing "did you forget to add the page?" message).
+- **Global error toasts**: `artifacts/businessnow/src/lib/queryClient.ts` — QueryClient with `QueryCache.onError` handler shows a destructive toast for page-load failures; imported in App.tsx.
+- **Tooltips on icon-only buttons**: added to MoreHorizontal/MoreVertical dropdown triggers in projects, accounts, finance; Previous/Next week nav and Edit/Delete entry buttons in time tracking.
+
 ### Key Pitfalls
 - `lib/api-zod/src/index.ts` must only export `./generated/api` (Zod schemas) — re-exporting `./generated/types` causes duplicate name errors
 - Drizzle returns JS `Date` objects for timestamp columns; all `map*` functions in API routes must convert these to ISO strings via `instanceof Date ? .toISOString() : value`

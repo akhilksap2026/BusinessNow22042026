@@ -2,14 +2,16 @@ import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { useListProjects, useDeleteProject, useListUsers } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Plus, MoreHorizontal, Search, X, Archive, RotateCcw } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -45,30 +47,6 @@ type StatusFilter = typeof STATUS_FILTERS[number];
 const HEALTH_FILTERS = ["All Health", "On Track", "At Risk", "Off Track"] as const;
 type HealthFilter = typeof HEALTH_FILTERS[number];
 
-export function StatusBadge({ status }: { status: string }) {
-  const getVariant = (s: string) => {
-    switch (s) {
-      case "Completed": return "secondary";
-      case "In Progress": return "default";
-      case "At Risk": return "destructive";
-      default: return "outline";
-    }
-  };
-  return <Badge variant={getVariant(status)}>{status}</Badge>;
-}
-
-export function HealthBadge({ health }: { health: string }) {
-  const getColor = (h: string) => {
-    switch (h) {
-      case "On Track": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "At Risk": return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300";
-      case "Off Track": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
-  };
-  return <span className={`px-2 py-1 rounded-full text-xs font-medium ${getColor(health)}`}>{health}</span>;
-}
-
 function InternalExternalBadge({ value }: { value: string | null }) {
   if (!value) return null;
   return (
@@ -86,6 +64,7 @@ function InternalExternalBadge({ value }: { value: string | null }) {
 export default function Projects() {
   const { data: projects, isLoading } = useListProjects();
   const { data: users } = useListUsers();
+  const [, navigate] = useLocation();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
@@ -148,7 +127,7 @@ export default function Projects() {
     <Layout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
           <div className="flex gap-2">
             <Button
               variant={showArchived ? "secondary" : "outline"}
@@ -258,9 +237,17 @@ export default function Projects() {
                     const trackedMin = Math.round((project.trackedHours ?? 0) * 60);
                     const allocatedMin = Math.round((project.allocatedHours ?? 0) * 60);
                     return (
-                    <TableRow key={project.id} className="text-xs">
+                    <TableRow
+                      key={project.id}
+                      className="text-xs cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/projects/${project.id}`)}
+                    >
                       <TableCell className="font-medium whitespace-nowrap">
-                        <Link href={`/projects/${project.id}`} className="text-primary hover:underline">
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className="text-primary hover:underline"
+                          onClick={e => e.stopPropagation()}
+                        >
                           {project.name}
                         </Link>
                       </TableCell>
@@ -278,13 +265,18 @@ export default function Projects() {
                       <TableCell className="text-right tabular-nums">{allocatedMin.toLocaleString()}</TableCell>
                       <TableCell className="text-muted-foreground">—</TableCell>
                       <TableCell><StatusBadge status={project.status} /></TableCell>
-                      <TableCell><HealthBadge health={project.health} /></TableCell>
-                      <TableCell>
+                      <TableCell><StatusBadge status={project.health} /></TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>More options</TooltipContent>
+                            </Tooltip>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
