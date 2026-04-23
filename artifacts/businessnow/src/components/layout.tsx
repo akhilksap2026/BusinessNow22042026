@@ -102,6 +102,15 @@ export function Layout({ children }: { children: ReactNode }) {
     window.location.href = "/";
   }
 
+  function handleSwitchRole(role: string) {
+    switchRole(role);
+    if (role === "Customer") {
+      navigate("/portal/dashboard");
+    } else if (location.startsWith("/portal/")) {
+      navigate("/");
+    }
+  }
+
   const NavLinks = () => (
     <>
       {NAV_ITEMS.map((item) => {
@@ -257,7 +266,7 @@ export function Layout({ children }: { children: ReactNode }) {
                       <DropdownMenuItem
                         key={role}
                         className={`cursor-pointer gap-2 ${role === activeRole ? "font-semibold text-primary" : ""}`}
-                        onClick={() => switchRole(role)}
+                        onClick={() => handleSwitchRole(role)}
                       >
                         {role === activeRole && <span className="text-primary">✓</span>}
                         {role}

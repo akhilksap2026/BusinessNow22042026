@@ -1,9 +1,8 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { setDefaultHeaders } from "@workspace/api-client-react";
-import { CurrentUserProvider } from "@/contexts/current-user";
+import { CurrentUserProvider, useCurrentUser } from "@/contexts/current-user";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
@@ -18,14 +17,29 @@ import Notifications from "@/pages/notifications";
 import Prospects from "@/pages/prospects";
 import Opportunities from "@/pages/opportunities";
 import PortalPage from "@/pages/portal";
+import PortalDashboard from "@/pages/portal-dashboard";
+import PortalProject from "@/pages/portal-project";
 
 const queryClient = new QueryClient();
 
-setDefaultHeaders({ "x-user-role": "Admin" });
-
 function Router() {
+  const { activeRole } = useCurrentUser();
+  const [location] = useLocation();
+  const isCustomer = activeRole === "Customer";
+  const isPortalRoute = location.startsWith("/portal/dashboard") || location.startsWith("/portal/projects");
+
+  if (isCustomer && !isPortalRoute && !location.startsWith("/portal/")) {
+    return <Redirect to="/portal/dashboard" />;
+  }
+  if (!isCustomer && isPortalRoute) {
+    return <Redirect to="/" />;
+  }
+
   return (
     <Switch>
+      <Route path="/portal/:token" component={PortalPage} />
+      <Route path="/portal/dashboard" component={PortalDashboard} />
+      <Route path="/portal/projects/:id" component={PortalProject} />
       <Route path="/" component={Dashboard} />
       <Route path="/projects" component={Projects} />
       <Route path="/projects/:id" component={ProjectDetail} />
@@ -38,7 +52,6 @@ function Router() {
       <Route path="/reports" component={Reports} />
       <Route path="/admin" component={Admin} />
       <Route path="/notifications" component={Notifications} />
-      <Route path="/portal/:token" component={PortalPage} />
       <Route component={NotFound} />
     </Switch>
   );

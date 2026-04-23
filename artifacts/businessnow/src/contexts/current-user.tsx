@@ -1,9 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { setDefaultHeaders } from "@workspace/api-client-react";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
-
-const ROLES = ["Admin", "PM", "Resource Manager", "Finance", "Viewer"] as const;
-export type AppRole = typeof ROLES[number];
 
 export interface CurrentUser {
   id: number;
@@ -32,6 +30,12 @@ const CurrentUserContext = createContext<CurrentUserCtx>({
   switchRole: () => {},
 });
 
+function applyRoleHeaders(role: string, userId?: number) {
+  const headers: Record<string, string> = { "x-user-role": role };
+  if (role === "Customer" && userId) headers["x-user-id"] = String(userId);
+  setDefaultHeaders(headers);
+}
+
 export function CurrentUserProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,11 +49,13 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
       .then((data: CurrentUser | null) => {
         if (data) {
           setCurrentUser(data);
-          const stored = localStorage.getItem("activeRole");
-          const available = [data.role, ...(data.secondaryRoles ?? [])];
-          if (!stored || !available.includes(stored)) {
+          const stored = localStorage.getItem("activeRole") ?? "Admin";
+          applyRoleHeaders(stored, data.id);
+          const available = [data.role, ...(data.secondaryRoles ?? []), "Customer"];
+          if (!available.includes(stored)) {
             setActiveRole(data.role);
             localStorage.setItem("activeRole", data.role);
+            applyRoleHeaders(data.role, data.id);
           }
         }
       })
@@ -60,10 +66,15 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
   function switchRole(role: string) {
     setActiveRole(role);
     localStorage.setItem("activeRole", role);
+    applyRoleHeaders(role, currentUser?.id);
   }
 
   const availableRoles = currentUser
-    ? [currentUser.role, ...(currentUser.secondaryRoles ?? []).filter(r => r !== currentUser.role)]
+    ? [
+        currentUser.role,
+        ...(currentUser.secondaryRoles ?? []).filter(r => r !== currentUser.role),
+        ...(!currentUser.role.includes("Customer") ? ["Customer"] : []),
+      ]
     : [activeRole];
 
   return (

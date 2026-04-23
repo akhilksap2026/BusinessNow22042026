@@ -34,6 +34,7 @@ import changeOrdersRouter from "./changeOrders";
 import taskDependenciesRouter from "./taskDependencies";
 import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
+import { portalAuthRouter } from "./portalAuth";
 
 const router: IRouter = Router();
 
@@ -72,5 +73,6 @@ router.use(changeOrdersRouter);
 router.use(taskDependenciesRouter);
 router.use(baselinesRouter);
 router.use(csatSurveysRouter);
+router.use(portalAuthRouter);
 
 export default router;

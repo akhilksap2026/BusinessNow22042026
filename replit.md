@@ -36,6 +36,25 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - When adding fields to the API contract, update all four places: `lib/api-zod/src/generated/api.ts` + `types/createXBody.ts`, `lib/api-client-react/src/generated/api.schemas.ts`, then rebuild both dists (`tsc --build --force`)
 - `lib/api-client-react/dist/index.d.ts` is the compiled declaration output — must rebuild after editing `custom-fetch.ts` or any generated schema file
 
+### Phase 5 Complete — Authenticated Client Portal (`/portal/*`)
+- **DB**: Added `portal_theme JSONB` to `accounts` table (primaryColor, accentColor, logoUrl, tabVisibility)
+- **Backend** (`artifacts/api-server/src/routes/portalAuth.ts`):
+  - `GET /portal-auth/projects` — returns projects where `x-user-id` is allocated; requires `x-user-role: Customer`
+  - `GET /portal-auth/projects/:id` — customer-filtered detail (phases with `is_shared_with_client=true`, tasks with `visible_to_client=true`, milestones, documents); 403 if not allocated
+  - `PATCH /portal-auth/tasks/:id/complete` — customer completes their own assigned task only
+  - `GET /portal-auth/accounts/:id/branding` — read portal theme for an account
+  - `PATCH /portal-auth/accounts/:id/branding` — update portal theme (Admin)
+- **Role switching & header sync** (`current-user.tsx`):
+  - `applyRoleHeaders(role, userId)` — updates `x-user-role` (and `x-user-id` for Customer) default headers whenever role switches
+  - "Customer" added to `availableRoles` for all users
+- **Route guard** (`App.tsx`):
+  - `activeRole === "Customer"` + non-portal path → `<Redirect to="/portal/dashboard" />`
+  - `activeRole !== "Customer"` + `/portal/dashboard` or `/portal/projects/*` → `<Redirect to="/" />`
+- **Portal Dashboard** (`/portal/dashboard`): branded project cards with health badge, progress bar, dates; empty state if no projects
+- **Portal Project** (`/portal/projects/:id`): collapsible phases, task list with "Assigned to you" badge + "Mark Done" button, milestone list, documents, color from portalTheme
+- **Role redirect in sidebar** (`layout.tsx`): switching to Customer navigates to `/portal/dashboard`; switching away from Customer navigates to `/`
+- **Admin portal branding** (`admin.tsx` → Settings tab): account selector, primary + accent color pickers (native `<input type="color">` + hex field), logo URL, tab visibility checkboxes, live swatch preview, save button
+
 ### Phase 4 Complete — Milestone CSAT Surveys (Auto-Trigger, Submit, Toggle)
 - **DB**: Added `csat_enabled boolean` to `tasks` (default true); new `csat_surveys` table (`id, milestone_task_id, project_id, recipient_user_id, sent_at, rating, comment, completed_at, token UUID`)
 - **Auto-trigger**: When any milestone task is marked Completed AND `csat_enabled=true` → `csat_surveys` record created + in-app notification sent to first project allocation member; duplicate-safe (one survey per milestone)
