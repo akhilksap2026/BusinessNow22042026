@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Briefcase, DollarSign, Clock, Users, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/format";
 
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
@@ -70,16 +71,15 @@ export default function Dashboard() {
             <Card className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 {isLoadingSummary ? (
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <>
-                    <div className="text-2xl font-bold">${summary?.totalRevenue.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{formatCurrency(summary?.totalRevenue ?? 0)}</div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      ${summary?.outstandingInvoices.toLocaleString()} outstanding
+                      {formatCurrency(summary?.outstandingInvoices ?? 0)} outstanding
                     </p>
                   </>
                 )}
@@ -163,10 +163,10 @@ export default function Dashboard() {
                       </div>
                       <div className="flex-1 pb-4">
                         <p className="text-sm">
-                          <span className="font-medium text-foreground">{activity.userName}</span>{" "}
+                          <span className="text-muted-foreground">{activity.userName}</span>{" "}
                           <span className="text-muted-foreground">{activity.description}</span>
                           {activity.projectName && (
-                            <span className="font-medium text-foreground"> {activity.projectName}</span>
+                            <span className="font-semibold text-foreground"> {activity.projectName}</span>
                           )}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">

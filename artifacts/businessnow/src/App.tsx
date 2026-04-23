@@ -48,6 +48,7 @@ function Router() {
       <Route path="/prospects" component={Prospects} />
       <Route path="/opportunities" component={Opportunities} />
       <Route path="/time" component={TimeTracking} />
+      <Route path="/time-tracking"><Redirect to="/time" /></Route>
       <Route path="/resources" component={Resources} />
       <Route path="/finance" component={Finance} />
       <Route path="/reports" component={Reports} />
