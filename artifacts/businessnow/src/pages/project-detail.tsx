@@ -175,12 +175,30 @@ export default function ProjectDetail() {
 
   const [resReqOpen, setResReqOpen] = useState(false);
   const [resReqForm, setResReqForm] = useState({
+    type: "add_member",
     role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "",
+    region: "", targetUserId: "", skills: "",
   });
+
+  const RES_REQ_TYPES = [
+    { value: "add_member", label: "Add New Team Member", desc: "Request a new person to join the project" },
+    { value: "add_hours", label: "Add Hours", desc: "Increase allocation hours for an existing member" },
+    { value: "assign_placeholder", label: "Assign Placeholder", desc: "Fill an open placeholder slot" },
+    { value: "replacement", label: "Replacement", desc: "Replace an existing team member" },
+    { value: "shift_allocations", label: "Shift Allocations", desc: "Move allocation dates for a team member" },
+    { value: "delete_allocation", label: "Remove Allocation", desc: "End or remove an existing allocation" },
+  ];
+
+  // Relevant matches: filter users by role keyword
+  const resReqMatches = (users as any[] ?? []).filter((u: any) => {
+    if (!resReqForm.role) return false;
+    return u.role?.toLowerCase().includes(resReqForm.role.toLowerCase().split(" ").pop() ?? "");
+  }).slice(0, 3);
 
   async function handleSaveResReq() {
     if (!resReqForm.role || !resReqForm.startDate || !resReqForm.endDate) return;
     try {
+      const skills = resReqForm.skills ? resReqForm.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
       await createResourceRequest.mutateAsync({
         data: {
           projectId,
@@ -191,11 +209,27 @@ export default function ProjectDetail() {
           hoursPerWeek: parseFloat(resReqForm.hoursPerWeek) || 40,
           priority: resReqForm.priority,
           notes: resReqForm.notes || undefined,
-        },
+          requiredSkills: skills,
+        } as any,
       });
+      // Patch the extra fields (type, region, targetResourceId) separately since Zod schema may not include them
+      const listRes = await fetch("/api/resource-requests", { headers: { "x-user-role": "PM" } });
+      const allRR = await listRes.json();
+      const newest = allRR.sort((a: any, b: any) => b.id - a.id)[0];
+      if (newest) {
+        await fetch(`/api/resource-requests/${newest.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+          body: JSON.stringify({
+            type: resReqForm.type,
+            region: resReqForm.region || undefined,
+            targetResourceId: resReqForm.targetUserId ? parseInt(resReqForm.targetUserId) : undefined,
+          }),
+        });
+      }
       toast({ title: "Resource request submitted" });
       setResReqOpen(false);
-      setResReqForm({ role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "" });
+      setResReqForm({ type: "add_member", role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "", region: "", targetUserId: "", skills: "" });
     } catch {
       toast({ title: "Failed to submit resource request", variant: "destructive" });
     }
@@ -1456,31 +1490,104 @@ export default function ProjectDetail() {
       </Dialog>
 
       <Dialog open={resReqOpen} onOpenChange={setResReqOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Request Resource</DialogTitle>
-            <DialogDescription>Submit a resource request for this project. It will appear in the Resources pipeline.</DialogDescription>
+            <DialogDescription>Submit a staffing request for this project. It will be routed for approval.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Request type selector */}
             <div className="space-y-1.5">
-              <Label>Role Needed *</Label>
-              <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Senior Developer, UX Designer" />
+              <Label>Request Type *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {RES_REQ_TYPES.map(t => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setResReqForm(f => ({ ...f, type: t.value }))}
+                    className={`text-left px-3 py-2 rounded-lg border text-sm transition-colors ${resReqForm.type === t.value ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300" : "border-border hover:border-indigo-300 hover:bg-slate-50"}`}
+                  >
+                    <div className="font-medium">{t.label}</div>
+                    <div className="text-xs text-muted-foreground">{t.desc}</div>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Role / skills — shown for most types */}
+            {["add_member","assign_placeholder","replacement"].includes(resReqForm.type) && (
+              <div className="space-y-1.5">
+                <Label>Role Needed *</Label>
+                <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Senior Developer, UX Designer" />
+                {/* Relevant matches */}
+                {resReqMatches.length > 0 && (
+                  <div className="mt-1.5 rounded-lg border bg-green-50 dark:bg-green-950/20 p-2 space-y-1">
+                    <p className="text-xs font-medium text-green-700 dark:text-green-400">Relevant matches already on team</p>
+                    {resReqMatches.map((u: any) => (
+                      <div key={u.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{u.name}</span>
+                        <span>{u.role}</span>
+                        <span className="text-slate-400">· {u.capacity ?? 40}h/wk capacity</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {resReqForm.type === "add_member" && (
+              <div className="space-y-1.5">
+                <Label>Required Skills <span className="text-muted-foreground text-xs">(comma-separated)</span></Label>
+                <Input value={resReqForm.skills} onChange={e => setResReqForm(f => ({ ...f, skills: e.target.value }))} placeholder="e.g. React, TypeScript, Node.js" />
+              </div>
+            )}
+
+            {/* For add_hours, replacement, shift_allocations, delete_allocation — need a target user */}
+            {["add_hours","replacement","shift_allocations","delete_allocation"].includes(resReqForm.type) && (
+              <div className="space-y-1.5">
+                <Label>{resReqForm.type === "replacement" ? "Member to Replace" : "Target Team Member"} *</Label>
+                <Select value={resReqForm.targetUserId} onValueChange={v => setResReqForm(f => ({ ...f, targetUserId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select team member…" /></SelectTrigger>
+                  <SelectContent>
+                    {(allocations as any[] ?? [])
+                      .filter((a: any) => a.userId)
+                      .filter((a: any, i: number, arr: any[]) => arr.findIndex(b => b.userId === a.userId) === i)
+                      .map((a: any) => {
+                        const u = (users as any[])?.find((u: any) => u.id === a.userId);
+                        return <SelectItem key={a.userId} value={String(a.userId)}>{u?.name ?? `User ${a.userId}`} — {u?.role ?? ""}</SelectItem>;
+                      })}
+                  </SelectContent>
+                </Select>
+                {resReqForm.type !== "delete_allocation" && (
+                  <div className="space-y-1.5 mt-2">
+                    <Label>Role Needed *</Label>
+                    <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="Role for this request" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Dates — not needed for delete_allocation */}
+            {resReqForm.type !== "delete_allocation" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Start Date *</Label>
+                  <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>End Date *</Label>
+                  <Input type="date" value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Start Date *</Label>
-                <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>End Date *</Label>
-                <Input type="date" value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Hours / Week</Label>
-                <Input type="number" min={1} max={80} value={resReqForm.hoursPerWeek} onChange={e => setResReqForm(f => ({ ...f, hoursPerWeek: e.target.value }))} />
-              </div>
+              {resReqForm.type !== "delete_allocation" && (
+                <div className="space-y-1.5">
+                  <Label>Hours / Week</Label>
+                  <Input type="number" min={1} max={80} value={resReqForm.hoursPerWeek} onChange={e => setResReqForm(f => ({ ...f, hoursPerWeek: e.target.value }))} />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>Priority</Label>
                 <Select value={resReqForm.priority} onValueChange={v => setResReqForm(f => ({ ...f, priority: v }))}>
@@ -1493,6 +1600,14 @@ export default function ProjectDetail() {
                 </Select>
               </div>
             </div>
+
+            {resReqForm.type === "add_member" && (
+              <div className="space-y-1.5">
+                <Label>Region / Location Preference</Label>
+                <Input value={resReqForm.region} onChange={e => setResReqForm(f => ({ ...f, region: e.target.value }))} placeholder="e.g. EMEA, North America, Remote…" />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>Notes</Label>
               <Input value={resReqForm.notes} onChange={e => setResReqForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any specific requirements or context…" />
@@ -1500,7 +1615,7 @@ export default function ProjectDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResReqOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveResReq} disabled={!resReqForm.role || !resReqForm.startDate || !resReqForm.endDate || createResourceRequest.isPending}>
+            <Button onClick={handleSaveResReq} disabled={!resReqForm.role || (!resReqForm.startDate && resReqForm.type !== "delete_allocation") || createResourceRequest.isPending}>
               Submit Request
             </Button>
           </DialogFooter>

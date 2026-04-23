@@ -152,6 +152,22 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **T009 Holiday Calendar capacity subtraction** — `/resources/capacity` now fetches this week's holidays from `holidayDatesTable` and subtracts 8h per holiday day from each user's weekly capacity
 - **DB** — `milestoneType` column (text) + `task_roles` column (jsonb) added to tasks table and pushed to production DB
 
+### Sprint 11 — Enhanced Resource Request Approval Workflow
+- **6 request types**: `add_member`, `add_hours`, `assign_placeholder`, `replacement`, `shift_allocations`, `delete_allocation` — selectable in project-detail form with conditional field rendering per type
+- **Candidate panel** (Resources → Requests): on Pending cards shows up to 5 team members matching role keyword with color-coded forecasted utilization (current hpw + proposed hpw vs capacity)
+- **Ignore-soft toggle**: checkbox in requests toolbar excludes soft allocations from all utilization calculations across candidate panel and Assign dialog
+- **Status filter**: dropdown filters request list by Pending/Approved/Blocked/Rejected/Fulfilled/Cancelled
+- **Block action**: new "Block" button on Pending cards → dialog captures reason → PATCH `/api/resource-requests/:id/status` sets status=Blocked, stores `blockedReason`; notifies requester
+- **Resubmit action**: "Resubmit" button on Blocked/Rejected cards → resets status to Pending
+- **Chat thread**: "Chat" button on Pending/Blocked cards → inline thread using `resource_request_comments` table; GET/POST `/api/resource-requests/:id/comments`; real-time send on Enter
+- **Enhanced Assign dialog**: shows forecasted utilization preview for selected candidate; confirm button disabled until user is selected
+- **Auto-create allocation on Fulfill**: PATCH status→Fulfilled with assignedUserId → API auto-inserts allocation record using request dates/hoursPerWeek; toast says "allocation automatically created"
+- **Relevant Matches panel** (project-detail dialog): filters existing users by role keyword → shows up to 3 matches already on the organization with capacity info
+- **Type badge**: non-default request types shown as a small badge on each request card
+- **Color-coded card borders**: amber=Pending, blue=Approved, red=Blocked
+- DB: `resource_request_comments` table (id, requestId, userId, message, createdAt); extended `resource_requests` with type, region, blockedReason, targetResourceId, approverId, allocationMethod, methodValue
+- Files: `artifacts/businessnow/src/pages/resources.tsx`, `artifacts/businessnow/src/pages/project-detail.tsx`, `artifacts/api-server/src/routes/resourceRequests.ts`, `lib/db/src/schema/resourceRequests.ts`
+
 ### Sprint 10 — Resource Management Timeline
 - **Projects Timeline tab** (`Resources → Projects Timeline`): Gantt-style grid listing all projects that have allocations. Expand a project row → sub-rows per team member/placeholder each showing their allocation bars. Quarter/Month/Week/Day zoom. Thin summary bar on parent rows shows total active span.
 - **People Timeline tab** (`Resources → People Timeline`): Same grid but person-centric. Expand a team member → project sub-rows. Shows current utilization % on parent row label. Over-allocated members marked with red dot.

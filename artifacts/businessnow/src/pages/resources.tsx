@@ -4,8 +4,7 @@ import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
 import ResourceTimeline from "@/components/resource-timeline";
 import {
   useGetCapacityOverview, useListUsers, useListProjects, useListResourceRequests, useUpdateResourceRequestStatus, getListResourceRequestsQueryKey,
-  useGetUserSkills,
-  useListSkills,
+  useGetUserSkills, useListSkills, useListAllocations,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,7 +20,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 function PriorityBadge({ priority }: { priority: string }) {
@@ -90,20 +89,66 @@ export default function Resources() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [assignUserId, setAssignUserId] = useState<string>("");
   const [fulfillRequestId, setFulfillRequestId] = useState<number | null>(null);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [blockReason, setBlockReason] = useState("");
+  const [blockRequestId, setBlockRequestId] = useState<number | null>(null);
+  const [ignoreSoft, setIgnoreSoft] = useState(false);
+  const [openChatId, setOpenChatId] = useState<number | null>(null);
+  const [chatMessages, setChatMessages] = useState<Record<number, any[]>>({});
+  const [chatInput, setChatInput] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const getProject = (id: number) => projects?.find(p => p.id === id);
-  const getUser = (id: number) => users?.find(u => u.id === id);
+  const getProject = (id: number) => projects?.find((p: any) => p.id === id);
+  const getUser = (id: number) => users?.find((u: any) => u.id === id);
 
   const [profileUser, setProfileUser] = useState<any>(null);
 
-  const pendingRequests = requests?.filter(r => r.status === "Pending") ?? [];
-  const allRequests = requests ?? [];
+  const pendingRequests = requests?.filter((r: any) => r.status === "Pending") ?? [];
+  const allRequests = (requests ?? []) as any[];
+
+  const filteredRequests = statusFilter === "all" ? allRequests : allRequests.filter((r: any) => r.status === statusFilter);
+
+  // Forecasted utilization: current allocated hpw + proposed hpw, optionally ignoring soft allocations
+  const { data: rawAllocs } = useListAllocations();
+  function forecastedUtil(userId: number, proposedHpw: number, ignoreSoftFlag: boolean): { current: number; proposed: number; capacity: number; pct: number } {
+    const cap = (getUser(userId) as any)?.capacity ?? 40;
+    const userAllocs = ((rawAllocs as any[]) ?? []).filter((a: any) => {
+      if (a.userId !== userId) return false;
+      if (ignoreSoftFlag && a.isSoftAllocation) return false;
+      const today = new Date().toISOString().slice(0, 10);
+      return a.endDate >= today;
+    });
+    const current = userAllocs.reduce((s: number, a: any) => s + Number(a.hoursPerWeek ?? 0), 0);
+    const proposed = current + proposedHpw;
+    return { current, proposed, capacity: cap, pct: cap > 0 ? Math.round((proposed / cap) * 100) : 0 };
+  }
+
+  async function fetchComments(requestId: number) {
+    try {
+      const res = await fetch(`/api/resource-requests/${requestId}/comments`);
+      const data = await res.json();
+      setChatMessages(prev => ({ ...prev, [requestId]: data }));
+    } catch {}
+  }
+
+  async function sendComment(requestId: number) {
+    if (!chatInput.trim()) return;
+    try {
+      await fetch(`/api/resource-requests/${requestId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: 1, message: chatInput.trim() }),
+      });
+      setChatInput("");
+      fetchComments(requestId);
+    } catch {}
+  }
 
   async function handleApprove(id: number) {
     try {
       await updateStatus.mutateAsync({ id, data: { status: "Approved" } });
       queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
-      toast({ title: "Request approved" });
+      toast({ title: "Request approved — requester notified" });
     } catch {
       toast({ title: "Failed to approve request", variant: "destructive" });
     }
@@ -123,6 +168,40 @@ export default function Resources() {
     }
   }
 
+  async function handleBlock() {
+    if (!blockRequestId) return;
+    try {
+      const res = await fetch(`/api/resource-requests/${blockRequestId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify({ status: "Blocked", blockedReason: blockReason }),
+      });
+      if (!res.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
+      toast({ title: "Request blocked — requester notified and chat enabled" });
+      setBlockDialogOpen(false);
+      setBlockReason("");
+      setBlockRequestId(null);
+    } catch {
+      toast({ title: "Failed to block request", variant: "destructive" });
+    }
+  }
+
+  async function handleResubmit(id: number) {
+    try {
+      const res = await fetch(`/api/resource-requests/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Pending" }),
+      });
+      if (!res.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
+      toast({ title: "Request resubmitted for review" });
+    } catch {
+      toast({ title: "Failed to resubmit", variant: "destructive" });
+    }
+  }
+
   async function handleFulfill() {
     if (!fulfillRequestId) return;
     try {
@@ -131,7 +210,7 @@ export default function Resources() {
         data: { status: "Fulfilled", assignedUserId: assignUserId ? parseInt(assignUserId) : undefined }
       });
       queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
-      toast({ title: "Request fulfilled" });
+      toast({ title: "Request fulfilled — allocation automatically created" });
       setAssignDialogOpen(false);
       setAssignUserId("");
       setFulfillRequestId(null);
@@ -298,9 +377,26 @@ export default function Resources() {
           </TabsContent>
 
           <TabsContent value="requests" className="m-0 space-y-4">
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["all","Pending","Approved","Blocked","Rejected","Fulfilled","Cancelled"].map(s => (
+                    <SelectItem key={s} value={s}>{s === "all" ? "All statuses" : s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground border rounded-md px-2 py-1.5">
+                <input type="checkbox" id="ignoreSoft" checked={ignoreSoft} onChange={e => setIgnoreSoft(e.target.checked)} className="h-3.5 w-3.5" />
+                <label htmlFor="ignoreSoft" className="cursor-pointer select-none">Ignore soft allocations in utilization</label>
+              </div>
+              <span className="text-xs text-muted-foreground ml-auto">{filteredRequests.length} request{filteredRequests.length !== 1 ? "s" : ""}</span>
+            </div>
+
             {isLoadingRequests ? (
               <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-32 w-full" />)}</div>
-            ) : allRequests.length === 0 ? (
+            ) : filteredRequests.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   <Briefcase className="h-12 w-12 mx-auto mb-3 opacity-30" />
@@ -309,25 +405,44 @@ export default function Resources() {
                 </CardContent>
               </Card>
             ) : (
-              allRequests.map(req => {
+              filteredRequests.map((req: any) => {
                 const project = getProject(req.projectId);
                 const requester = getUser(req.requestedByUserId);
                 const assignedUser = req.assignedUserId ? getUser(req.assignedUserId) : null;
+                const isChatOpen = openChatId === req.id;
+                const threadMsgs = chatMessages[req.id] ?? [];
+
+                // Type label mapping
+                const typeLabels: Record<string,string> = {
+                  add_member: "Add Member", add_hours: "Add Hours",
+                  assign_placeholder: "Assign Placeholder", replacement: "Replacement",
+                  shift_allocations: "Shift Allocations", delete_allocation: "Delete Allocation",
+                };
+
+                const cardBorder = req.status === "Pending" ? "border-amber-200 dark:border-amber-800"
+                  : req.status === "Blocked" ? "border-red-300 dark:border-red-800"
+                  : req.status === "Approved" ? "border-blue-200 dark:border-blue-800"
+                  : "";
+
                 return (
-                  <Card key={req.id} className={req.status === "Pending" ? "border-amber-200 dark:border-amber-800" : ""}>
-                    <CardContent className="pt-5">
+                  <Card key={req.id} className={cardBorder}>
+                    <CardContent className="pt-5 space-y-4">
                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                         <div className="flex-1 space-y-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-semibold text-base">{req.role}</span>
                             <StatusBadge status={req.status} />
                             <PriorityBadge priority={req.priority} />
+                            {req.type && req.type !== "add_member" && (
+                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">{typeLabels[req.type] ?? req.type}</span>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" />{project?.name ?? `Project #${req.projectId}`}</span>
                             <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />{req.hoursPerWeek} hrs/week</span>
                             <span className="flex items-center gap-1.5"><CalendarRange className="h-3.5 w-3.5" />{req.startDate} → {req.endDate}</span>
-                            <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Requested by {requester?.name ?? `User #${req.requestedByUserId}`}</span>
+                            <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />By {requester?.name ?? `User #${req.requestedByUserId}`}</span>
+                            {req.region && <span className="flex items-center gap-1.5">🌍 {req.region}</span>}
                           </div>
                           {req.requiredSkills && req.requiredSkills.length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
@@ -344,27 +459,115 @@ export default function Resources() {
                           )}
                           {req.rejectionReason && (
                             <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                              <XCircle className="h-3.5 w-3.5" />Rejection reason: {req.rejectionReason}
+                              <XCircle className="h-3.5 w-3.5" />Rejected: {req.rejectionReason}
+                            </p>
+                          )}
+                          {req.blockedReason && (
+                            <p className="text-sm text-red-700 dark:text-red-400 flex items-center gap-1.5 font-medium">
+                              <Ban className="h-3.5 w-3.5" />Blocked: {req.blockedReason}
                             </p>
                           )}
                         </div>
 
-                        {req.status === "Pending" && (
-                          <div className="flex gap-2 shrink-0">
-                            <Button size="sm" variant="outline" className="border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30" onClick={() => handleApprove(req.id)} disabled={updateStatus.isPending}>
-                              <CheckCircle className="h-4 w-4 mr-1" /> Approve
+                        <div className="flex flex-col gap-2 shrink-0">
+                          {req.status === "Pending" && (
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" className="border-green-500 text-green-600 hover:bg-green-50" onClick={() => handleApprove(req.id)} disabled={updateStatus.isPending}>
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50" onClick={() => { setBlockRequestId(req.id); setBlockDialogOpen(true); }}>
+                                <Ban className="h-3.5 w-3.5 mr-1" /> Block
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-red-500 text-red-600 hover:bg-red-50" onClick={() => { setSelectedRequestId(req.id); setRejectDialogOpen(true); }}>
+                                <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                              </Button>
+                            </div>
+                          )}
+                          {req.status === "Approved" && (
+                            <Button size="sm" onClick={() => { setFulfillRequestId(req.id); setAssignDialogOpen(true); }} disabled={updateStatus.isPending}>
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Assign & Allocate
                             </Button>
-                            <Button size="sm" variant="outline" className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => { setSelectedRequestId(req.id); setRejectDialogOpen(true); }} disabled={updateStatus.isPending}>
-                              <XCircle className="h-4 w-4 mr-1" /> Reject
+                          )}
+                          {(req.status === "Blocked" || req.status === "Rejected") && (
+                            <Button size="sm" variant="outline" onClick={() => handleResubmit(req.id)}>
+                              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Resubmit
+                            </Button>
+                          )}
+                          {(req.status === "Pending" || req.status === "Blocked") && (
+                            <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" onClick={() => {
+                              const next = isChatOpen ? null : req.id;
+                              setOpenChatId(next);
+                              if (next) fetchComments(next);
+                            }}>
+                              <MessageSquare className="h-3.5 w-3.5 mr-1" /> {isChatOpen ? "Hide" : "Chat"} {threadMsgs.length > 0 && `(${threadMsgs.length})`}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Candidate panel (shows on Pending requests) */}
+                      {req.status === "Pending" && users && (users as any[]).length > 0 && (
+                        <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900/30 space-y-2">
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Relevant team members</p>
+                          <div className="space-y-1.5">
+                            {(users as any[])
+                              .filter((u: any) => {
+                                if (!u.isInternal && u.isInternal !== undefined) return false;
+                                const roleMatch = !req.role || u.role?.toLowerCase().includes(req.role.toLowerCase().split(" ").pop() ?? "");
+                                return roleMatch;
+                              })
+                              .slice(0, 5)
+                              .map((u: any) => {
+                                const fc = forecastedUtil(u.id, Number(req.hoursPerWeek), ignoreSoft);
+                                const pctClass = fc.pct > 100 ? "text-red-600" : fc.pct > 80 ? "text-amber-600" : "text-green-600";
+                                return (
+                                  <div key={u.id} className="flex items-center gap-3 text-xs">
+                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: fc.pct > 100 ? "#ef4444" : fc.pct > 80 ? "#f59e0b" : "#22c55e" }} />
+                                    <span className="font-medium w-36 truncate">{u.name}</span>
+                                    <span className="text-muted-foreground w-28 truncate">{u.role}</span>
+                                    <span className="text-muted-foreground">{fc.current}h → <span className={`font-semibold ${pctClass}`}>{fc.proposed}h ({fc.pct}%)</span></span>
+                                    <span className="text-muted-foreground">/ {fc.capacity}h cap</span>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                          {ignoreSoft && <p className="text-xs text-indigo-500">* Soft allocations excluded from utilization calculation</p>}
+                        </div>
+                      )}
+
+                      {/* Chat thread */}
+                      {isChatOpen && (
+                        <div className="border rounded-lg p-3 space-y-2 bg-white dark:bg-slate-950">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Thread</p>
+                          {threadMsgs.length === 0 && <p className="text-xs text-muted-foreground">No messages yet. Start a conversation to resolve this request.</p>}
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {threadMsgs.map((m: any) => (
+                              <div key={m.id} className="flex gap-2">
+                                <div className="h-5 w-5 rounded-full bg-indigo-100 text-indigo-700 text-xs flex items-center justify-center shrink-0 font-semibold">
+                                  {getUser(m.userId)?.name?.[0] ?? "?"}
+                                </div>
+                                <div>
+                                  <span className="text-xs font-medium">{getUser(m.userId)?.name ?? `User ${m.userId}`}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">{new Date(m.createdAt).toLocaleString()}</span>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">{m.message}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <Input
+                              placeholder="Type a message…"
+                              className="h-7 text-xs flex-1"
+                              value={chatInput}
+                              onChange={e => setChatInput(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") sendComment(req.id); }}
+                            />
+                            <Button size="sm" className="h-7 px-2" onClick={() => sendComment(req.id)}>
+                              <Send className="h-3 w-3" />
                             </Button>
                           </div>
-                        )}
-                        {req.status === "Approved" && (
-                          <Button size="sm" onClick={() => { setFulfillRequestId(req.id); setAssignDialogOpen(true); }} disabled={updateStatus.isPending}>
-                            <CheckCircle className="h-4 w-4 mr-1" /> Fulfill
-                          </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -374,6 +577,7 @@ export default function Resources() {
         </Tabs>
       </div>
 
+      {/* Reject dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Reject Resource Request</DialogTitle><DialogDescription>Provide a reason for rejecting this request (optional).</DialogDescription></DialogHeader>
@@ -387,19 +591,57 @@ export default function Resources() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+      {/* Block dialog */}
+      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Fulfill Resource Request</DialogTitle><DialogDescription>Assign a team member to fulfill this request.</DialogDescription></DialogHeader>
-          <Select onValueChange={setAssignUserId} value={assignUserId}>
-            <SelectTrigger><SelectValue placeholder="Select team member (optional)" /></SelectTrigger>
-            <SelectContent>
-              {users?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name} — {u.role}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <DialogHeader>
+            <DialogTitle>Block Resource Request</DialogTitle>
+            <DialogDescription>Blocking pauses this request and notifies the requester. A chat thread will be opened so they can provide more information.</DialogDescription>
+          </DialogHeader>
+          <Textarea placeholder="Explain what information is needed or why this is blocked…" value={blockReason} onChange={e => setBlockReason(e.target.value)} />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleFulfill} disabled={updateStatus.isPending}>
-              {updateStatus.isPending ? "Fulfilling..." : "Mark as Fulfilled"}
+            <Button variant="outline" onClick={() => setBlockDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleBlock}>
+              Block & Notify Requester
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign & Allocate dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Assign & Allocate</DialogTitle>
+            <DialogDescription>Select a team member to assign. An allocation record will be automatically created on approval.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select onValueChange={setAssignUserId} value={assignUserId}>
+              <SelectTrigger><SelectValue placeholder="Select team member…" /></SelectTrigger>
+              <SelectContent>
+                {(users as any[])?.map((u: any) => <SelectItem key={u.id} value={u.id.toString()}>{u.name} — {u.role}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {/* Forecasted utilization preview */}
+            {assignUserId && fulfillRequestId && (() => {
+              const req = allRequests.find((r: any) => r.id === fulfillRequestId);
+              if (!req) return null;
+              const fc = forecastedUtil(parseInt(assignUserId), Number(req.hoursPerWeek), ignoreSoft);
+              const pctClass = fc.pct > 100 ? "text-red-600 font-bold" : fc.pct > 80 ? "text-amber-600 font-semibold" : "text-green-600 font-semibold";
+              return (
+                <div className="rounded-lg border p-3 bg-slate-50 text-sm space-y-1">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Forecasted utilization after assignment</p>
+                  <p>Current: <span className="font-medium">{fc.current}h/wk</span> + Proposed: <span className="font-medium">{req.hoursPerWeek}h/wk</span> = <span className={pctClass}>{fc.proposed}h ({fc.pct}% of {fc.capacity}h capacity)</span></p>
+                  {fc.pct > 100 && <p className="text-red-600 text-xs">⚠ This will over-allocate the team member. Consider reassigning or adjusting hours.</p>}
+                  {ignoreSoft && <p className="text-xs text-indigo-500">* Soft allocations excluded</p>}
+                </div>
+              );
+            })()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setAssignDialogOpen(false); setAssignUserId(""); }}>Cancel</Button>
+            <Button onClick={handleFulfill} disabled={updateStatus.isPending || !assignUserId}>
+              {updateStatus.isPending ? "Creating allocation…" : "Assign & Create Allocation"}
             </Button>
           </DialogFooter>
         </DialogContent>
