@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, timesheetsTable, notificationsTable } from "@workspace/db";
+import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable } from "@workspace/db";
 import {
   ListTimesheetsQueryParams,
   ListTimesheetsResponse,
@@ -86,6 +86,13 @@ router.post("/timesheets/:id/submit", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Draft") { res.status(400).json({ error: "Only Draft timesheets can be submitted" }); return; }
+  // Check minimum hours requirement
+  const settingsRows = await db.select().from(timeSettingsTable).limit(1);
+  const minHours = settingsRows[0]?.minSubmitHours ?? 0;
+  if (minHours > 0 && Number(existing.totalHours) < minHours) {
+    res.status(400).json({ error: `Minimum ${minHours} hours required before submission. Current: ${Number(existing.totalHours)}h` });
+    return;
+  }
   const [row] = await db.update(timesheetsTable)
     .set({ status: "Submitted", submittedAt: new Date() })
     .where(eq(timesheetsTable.id, params.data.id))
@@ -142,6 +149,35 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
     read: false,
   } as any).catch(() => {});
   res.json(RejectTimesheetResponse.parse(mapTimesheet(row)));
+});
+
+// ─── Timesheet Rows (persistent row tracking) ────────────────────────────────
+
+router.get("/timesheet-rows", async (req, res): Promise<void> => {
+  const userId = req.query.userId ? Number(req.query.userId) : null;
+  const rows = userId
+    ? await db.select().from(timesheetRowsTable).where(eq(timesheetRowsTable.userId, userId))
+    : await db.select().from(timesheetRowsTable);
+  res.json(rows.map(r => ({ ...r, createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt })));
+});
+
+router.post("/timesheet-rows", async (req, res): Promise<void> => {
+  const { userId, projectId, taskId, activityName, isNonProject, billable, categoryId } = req.body;
+  if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+  const data: any = { userId: Number(userId), isNonProject: !!isNonProject, billable: isNonProject ? false : !!billable };
+  if (projectId) data.projectId = Number(projectId);
+  if (taskId) data.taskId = Number(taskId);
+  if (activityName) data.activityName = String(activityName);
+  if (categoryId) data.categoryId = Number(categoryId);
+  const [row] = await db.insert(timesheetRowsTable).values(data).returning();
+  res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
+});
+
+router.delete("/timesheet-rows/:id", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(timesheetRowsTable).where(eq(timesheetRowsTable.id, id));
+  res.sendStatus(204);
 });
 
 export default router;

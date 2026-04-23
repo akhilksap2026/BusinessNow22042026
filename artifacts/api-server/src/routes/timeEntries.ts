@@ -19,7 +19,9 @@ function mapEntry(e: typeof timeEntriesTable.$inferSelect) {
   return {
     ...e,
     hours: Number(e.hours),
+    projectId: e.projectId ?? undefined,
     taskId: e.taskId ?? undefined,
+    activityName: (e as any).activityName ?? undefined,
     createdAt: e.createdAt instanceof Date ? e.createdAt.toISOString() : e.createdAt,
     updatedAt: e.updatedAt instanceof Date ? e.updatedAt.toISOString() : e.updatedAt,
   };
@@ -41,7 +43,10 @@ router.get("/time-entries", async (req, res): Promise<void> => {
 router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [row] = await db.insert(timeEntriesTable).values({ ...parsed.data, hours: String(parsed.data.hours) } as any).returning();
+  const data: any = { ...parsed.data, hours: String(parsed.data.hours) };
+  // Enforce: non-project activities must be non-billable
+  if (!data.projectId) { data.projectId = null; data.billable = false; }
+  const [row] = await db.insert(timeEntriesTable).values(data).returning();
   res.status(201).json(mapEntry(row));
 });
 
@@ -81,7 +86,9 @@ router.get("/time-entries/summary", async (_req, res): Promise<void> => {
   const billablePercent = totalHoursThisMonth > 0 ? Math.round((billableHours / totalHoursThisMonth) * 100) : 0;
 
   const byProjectMap = new Map<number, number>();
-  allEntries.forEach(e => byProjectMap.set(e.projectId, (byProjectMap.get(e.projectId) || 0) + Number(e.hours)));
+  allEntries.filter(e => e.projectId != null).forEach(e => {
+    byProjectMap.set(e.projectId!, (byProjectMap.get(e.projectId!) || 0) + Number(e.hours));
+  });
 
   const byProject = Array.from(byProjectMap.entries()).map(([projectId, hours]) => ({
     projectId,

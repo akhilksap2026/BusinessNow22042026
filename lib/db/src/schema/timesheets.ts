@@ -81,9 +81,27 @@ export const timeSettingsTable = pgTable("time_settings", {
   approvalMode: text("approval_mode").notNull().default("Manual"),
   globalLockEnabled: boolean("global_lock_enabled").notNull().default(false),
   lockBeforeDate: text("lock_before_date"),
+  weekStartDay: integer("week_start_day").notNull().default(1),
+  minSubmitHours: integer("min_submit_hours").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const insertTimeSettingsSchema = createInsertSchema(timeSettingsTable).omit({ id: true, updatedAt: true });
 export type InsertTimeSettings = z.infer<typeof insertTimeSettingsSchema>;
 export type TimeSettings = typeof timeSettingsTable.$inferSelect;
+
+export const timesheetRowsTable = pgTable("timesheet_rows", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  projectId: integer("project_id"),
+  taskId: integer("task_id"),
+  activityName: text("activity_name"),
+  isNonProject: boolean("is_non_project").notNull().default(false),
+  billable: boolean("billable").notNull().default(true),
+  categoryId: integer("category_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTimesheetRowSchema = createInsertSchema(timesheetRowsTable).omit({ id: true, createdAt: true });
+export type InsertTimesheetRow = z.infer<typeof insertTimesheetRowSchema>;
+export type TimesheetRow = typeof timesheetRowsTable.$inferSelect;

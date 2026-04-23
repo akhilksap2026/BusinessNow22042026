@@ -559,6 +559,8 @@ export default function Admin() {
     approvalMode: "Manual",
     globalLockEnabled: false,
     lockBeforeDate: "",
+    weekStartDay: 1,
+    minSubmitHours: 0,
   });
   const [timeSettingsDirty, setTimeSettingsDirty] = useState(false);
 
@@ -570,7 +572,8 @@ export default function Admin() {
       return res.json() as Promise<{
         id: number; weeklyCapacityHours: number; workingDays: string;
         timesheetDueDay: string; approvalMode: string;
-        globalLockEnabled: boolean; lockBeforeDate: string | null; updatedAt: string;
+        globalLockEnabled: boolean; lockBeforeDate: string | null;
+        weekStartDay: number; minSubmitHours: number; updatedAt: string;
       }>;
     },
   });
@@ -584,6 +587,8 @@ export default function Admin() {
         approvalMode: timeSettings.approvalMode ?? "Manual",
         globalLockEnabled: timeSettings.globalLockEnabled ?? false,
         lockBeforeDate: timeSettings.lockBeforeDate ?? "",
+        weekStartDay: timeSettings.weekStartDay ?? 1,
+        minSubmitHours: timeSettings.minSubmitHours ?? 0,
       });
     }
   }, [timeSettings, timeSettingsDirty]);
@@ -1410,6 +1415,28 @@ export default function Admin() {
                       onChange={e => { setTimeSettingsForm(f => ({ ...f, lockBeforeDate: e.target.value })); setTimeSettingsDirty(true); }}
                     />
                     <p className="text-xs text-muted-foreground">Timesheets starting before this date will be read-only for all users.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Calendar Week Starts On</Label>
+                    <Select value={String(timeSettingsForm.weekStartDay)} onValueChange={v => { setTimeSettingsForm(f => ({ ...f, weekStartDay: Number(v) })); setTimeSettingsDirty(true); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Monday</SelectItem>
+                        <SelectItem value="0">Sunday</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">First column of the timesheet grid (Monday or Sunday).</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Minimum Hours to Submit</Label>
+                    <Input
+                      type="number" min={0} max={80}
+                      value={timeSettingsForm.minSubmitHours}
+                      onChange={e => { setTimeSettingsForm(f => ({ ...f, minSubmitHours: parseInt(e.target.value) || 0 })); setTimeSettingsDirty(true); }}
+                    />
+                    <p className="text-xs text-muted-foreground">Block submission if weekly hours logged are below this threshold. Set to 0 to disable.</p>
                   </div>
                 </div>
 

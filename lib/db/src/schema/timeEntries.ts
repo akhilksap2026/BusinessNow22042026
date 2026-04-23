@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 
 export const timeEntriesTable = pgTable("time_entries", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
+  projectId: integer("project_id"),
   userId: integer("user_id").notNull(),
   taskId: integer("task_id"),
   timesheetId: integer("timesheet_id"),
@@ -12,6 +12,7 @@ export const timeEntriesTable = pgTable("time_entries", {
   date: text("date").notNull(),
   hours: numeric("hours", { precision: 6, scale: 2 }).notNull(),
   description: text("description"),
+  activityName: text("activity_name"),
   billable: boolean("billable").notNull().default(true),
   approved: boolean("approved").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

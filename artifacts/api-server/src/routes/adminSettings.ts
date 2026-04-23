@@ -144,7 +144,7 @@ router.get("/time-settings", async (_req, res): Promise<void> => {
 });
 
 router.put("/time-settings", requireAdmin, async (req, res): Promise<void> => {
-  const { weeklyCapacityHours, workingDays, timesheetDueDay, approvalMode, globalLockEnabled, lockBeforeDate } = req.body;
+  const { weeklyCapacityHours, workingDays, timesheetDueDay, approvalMode, globalLockEnabled, lockBeforeDate, weekStartDay, minSubmitHours } = req.body;
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (weeklyCapacityHours !== undefined) updates.weeklyCapacityHours = weeklyCapacityHours;
   if (workingDays !== undefined) updates.workingDays = workingDays;
@@ -152,6 +152,8 @@ router.put("/time-settings", requireAdmin, async (req, res): Promise<void> => {
   if (approvalMode !== undefined) updates.approvalMode = approvalMode;
   if (globalLockEnabled !== undefined) updates.globalLockEnabled = globalLockEnabled;
   if (lockBeforeDate !== undefined) updates.lockBeforeDate = lockBeforeDate || null;
+  if (weekStartDay !== undefined) updates.weekStartDay = Number(weekStartDay);
+  if (minSubmitHours !== undefined) updates.minSubmitHours = Number(minSubmitHours);
 
   const existing = await db.select().from(timeSettingsTable).limit(1);
   let row;

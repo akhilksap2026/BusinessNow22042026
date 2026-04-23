@@ -7,7 +7,7 @@ import {
   useListTimesheets, useApproveTimesheet, useRejectTimesheet,
   getListTimeOffRequestsQueryKey, getListTimeEntriesQueryKey, getListTimesheetsQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { addDays, format, startOfWeek } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -54,6 +54,11 @@ export default function TimeTracking() {
 
   const { currentUser } = useCurrentUser();
   const currentUserId = currentUser?.id ?? 1;
+
+  const { data: timeSettings } = useQuery({
+    queryKey: ["time-settings"],
+    queryFn: async () => { const r = await fetch("/api/time-settings"); return r.json(); },
+  });
 
   const [requestOpen, setRequestOpen] = useState(false);
   const [form, setForm] = useState({ userId: "1", type: "PTO", startDate: "", endDate: "", notes: "" });
@@ -342,7 +347,7 @@ export default function TimeTracking() {
           </TabsList>
 
           <TabsContent value="timesheet" className="m-0">
-            <TimesheetGrid userId={1} />
+            <TimesheetGrid userId={currentUserId} weekStartDay={timeSettings?.weekStartDay ?? 1} />
           </TabsContent>
 
           <TabsContent value="approvals" className="m-0">
