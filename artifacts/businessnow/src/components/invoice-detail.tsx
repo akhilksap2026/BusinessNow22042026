@@ -27,7 +27,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Pencil, Trash2, Plus, Zap } from "lucide-react";
-import { InvoiceStatusBadge } from "@/pages/finance";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -118,7 +118,7 @@ export function InvoiceDetail({ invoice, open, onOpenChange }: { invoice: any, o
               <SheetTitle className="text-2xl">Invoice #{invoice.id}</SheetTitle>
               <SheetDescription>{invoice.description}</SheetDescription>
             </div>
-            <InvoiceStatusBadge status={invoice.status} />
+            <StatusBadge status={invoice.status} />
           </div>
         </SheetHeader>
 

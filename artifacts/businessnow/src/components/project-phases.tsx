@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { TaskStatusBadge, TaskPriorityBadge } from "@/pages/project-detail";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const phaseSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -207,12 +207,12 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
             </div>
             {!task.isMilestone && (
               <div className="w-32 cursor-pointer" onClick={() => handleTaskStatusClick(task)}>
-                <TaskStatusBadge status={task.status} />
+                <StatusBadge status={task.status} />
               </div>
             )}
             {task.isMilestone && <div className="w-32"><Badge variant="outline" className="text-purple-600">Milestone</Badge></div>}
             <div className="w-24">
-              <TaskPriorityBadge priority={task.priority} />
+              <StatusBadge status={task.priority} />
             </div>
             <div className="w-32 flex -space-x-2">
               {task.assigneeIds.map((userId: number) => {

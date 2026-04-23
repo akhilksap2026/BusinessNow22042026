@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { formatCurrency } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell } from "lucide-react";
 import { ApplyTemplateModal } from "@/components/apply-template-modal";
@@ -27,29 +28,6 @@ import { ProjectDocuments } from "@/components/project-documents";
 import { ProjectForms } from "@/components/project-forms";
 import ProjectGantt from "@/components/project-gantt";
 
-export function TaskStatusBadge({ status }: { status: string }) {
-  const getVariant = (s: string) => {
-    switch (s) {
-      case "Completed": return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800";
-      case "In Progress": return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
-      case "Overdue": return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
-      default: return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
-    }
-  };
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${getVariant(status)}`}>{status}</span>;
-}
-
-export function TaskPriorityBadge({ priority }: { priority: string }) {
-  const getVariant = (s: string) => {
-    switch (s) {
-      case "Urgent": return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
-      case "High": return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
-      case "Medium": return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
-      default: return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
-    }
-  };
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${getVariant(priority)}`}>{priority}</span>;
-}
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -485,7 +463,7 @@ export default function ProjectDetail() {
               <div className="text-2xl font-bold">{summary?.budgetUsedPercent}%</div>
               <Progress value={summary?.budgetUsedPercent} className="h-2 mt-2" />
               <p className="text-xs text-muted-foreground mt-2">
-                ${summary?.invoicedAmount.toLocaleString()} invoiced of ${project.budget.toLocaleString()}
+                {formatCurrency(summary?.invoicedAmount ?? 0)} invoiced of {formatCurrency(project.budget)}
               </p>
             </CardContent>
           </Card>
@@ -702,7 +680,7 @@ export default function ProjectDetail() {
                           <span className="font-medium truncate">{t.name}</span>
                           <div className="flex items-center gap-2 shrink-0">
                             {t.isMilestone && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 px-1.5 py-0.5 rounded-full">Milestone</span>}
-                            <TaskStatusBadge status={t.status} />
+                            <StatusBadge status={t.status} />
                             {t.dueDate && <span className="text-xs text-muted-foreground">Due {t.dueDate}</span>}
                           </div>
                         </div>
@@ -744,7 +722,7 @@ export default function ProjectDetail() {
                                   <div key={task.id} className="bg-card border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
                                     <div className="font-medium text-sm mb-2">{task.name}</div>
                                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                                      <TaskPriorityBadge priority={task.priority} />
+                                      <StatusBadge status={task.priority} />
                                       {task.fromTemplate && (
                                         <Badge variant="outline" className="text-xs py-0 text-purple-700 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800">
                                           <LayoutTemplate className="h-2.5 w-2.5 mr-0.5" /> Template
@@ -909,25 +887,25 @@ export default function ProjectDetail() {
                       <div className="space-y-4">
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Base Budget</p>
-                          <p className="text-2xl font-bold">${project.budget.toLocaleString()}</p>
+                          <p className="text-2xl font-bold">{formatCurrency(project.budget)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Approved Change Orders</p>
-                          <p className="text-xl font-semibold text-green-700">+${coValue.toLocaleString()}</p>
+                          <p className="text-xl font-semibold text-green-700">+{formatCurrency(coValue)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-                          <p className="text-xl font-bold">${revenue.toLocaleString()}</p>
+                          <p className="text-xl font-bold">{formatCurrency(revenue)}</p>
                         </div>
                       </div>
                       <div className="space-y-4">
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Invoiced Amount</p>
-                          <p className="text-xl font-semibold">${(summary?.invoicedAmount ?? 0).toLocaleString()}</p>
+                          <p className="text-xl font-semibold">{formatCurrency(summary?.invoicedAmount ?? 0)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Pending Amount</p>
-                          <p className="text-xl font-semibold text-muted-foreground">${(summary?.pendingAmount ?? 0).toLocaleString()}</p>
+                          <p className="text-xl font-semibold text-muted-foreground">{formatCurrency(summary?.pendingAmount ?? 0)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Billing Type</p>
@@ -937,11 +915,11 @@ export default function ProjectDetail() {
                       <div className="space-y-4">
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Est. Resource Cost</p>
-                          <p className="text-xl font-semibold text-red-600">${estimatedCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                          <p className="text-xl font-semibold text-red-600">{formatCurrency(estimatedCost)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Gross Margin</p>
-                          <p className={`text-xl font-bold ${marginColor}`}>${margin.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                          <p className={`text-xl font-bold ${marginColor}`}>{formatCurrency(margin)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Margin %</p>
@@ -991,7 +969,7 @@ export default function ProjectDetail() {
                             </Select>
                           </TableCell>
                           <TableCell>{co.requestedDate ? new Date(co.requestedDate + "T00:00:00").toLocaleDateString() : "—"}</TableCell>
-                          <TableCell className="text-right font-medium">${Number(co.amount).toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(Number(co.amount))}</TableCell>
                           <TableCell>
                             <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => handleDeleteCO(co.id)}>
                               <Trash2 className="h-3.5 w-3.5" />

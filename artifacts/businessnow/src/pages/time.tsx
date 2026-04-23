@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye } from "lucide-react";
@@ -29,14 +30,6 @@ import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/contexts/current-user";
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
-function TimeOffStatusBadge({ status }: { status: string }) {
-  const cls =
-    status === "Approved" ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400"
-    : status === "Pending" ? "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400"
-    : status === "Rejected" ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400"
-    : "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300";
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>{status}</span>;
-}
 
 function TimeOffTypeBadge({ type }: { type: string }) {
   const cls =
@@ -659,7 +652,7 @@ export default function TimeTracking() {
                           <TableCell>{req.startDate}</TableCell>
                           <TableCell>{req.endDate}</TableCell>
                           <TableCell className="max-w-[180px] truncate text-sm text-muted-foreground">{req.notes ?? "—"}</TableCell>
-                          <TableCell><TimeOffStatusBadge status={req.status} /></TableCell>
+                          <TableCell><StatusBadge status={req.status} /></TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               {req.status === "Pending" && (

@@ -3,6 +3,7 @@ import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { getPortal } from "@workspace/api-client-react";
 import { CheckCircle, Clock, FileText, AlertTriangle, Activity } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const HEALTH_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   Green: { bg: "bg-emerald-500", text: "text-emerald-700", label: "On Track" },
@@ -195,12 +196,3 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const cls = {
-    Completed: "bg-emerald-50 text-emerald-700",
-    "In Progress": "bg-blue-50 text-blue-700",
-    "Not Started": "bg-slate-100 text-slate-500",
-    Blocked: "bg-red-50 text-red-600",
-  }[status] ?? "bg-slate-100 text-slate-500";
-  return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cls}`}>{status}</span>;
-}

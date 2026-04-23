@@ -29,7 +29,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export { StatusBadge as InvoiceStatusBadge };
+
 
 const createInvoiceSchema = z.object({
   projectId: z.coerce.number().min(1, "Project is required"),
