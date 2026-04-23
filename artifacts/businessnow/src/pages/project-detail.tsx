@@ -180,6 +180,9 @@ export default function ProjectDetail() {
     region: "", targetUserId: "", skillIds: [] as number[],
   });
   const { data: allSkillsList } = useListSkills();
+  const { data: users } = useListUsers();
+
+  const getUser = (userId: number) => users?.find(u => u.id === userId);
 
   const RES_REQ_TYPES = [
     { value: "add_member", label: "Add New Team Member", desc: "Request a new person to join the project" },
@@ -404,10 +407,6 @@ export default function ProjectDetail() {
       setSendingUpdate(false);
     }
   }
-
-  const { data: users } = useListUsers();
-
-  const getUser = (userId: number) => users?.find(u => u.id === userId);
 
   if (isLoadingProject || isLoadingSummary) {
     return (
