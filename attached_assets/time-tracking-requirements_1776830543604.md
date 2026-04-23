@@ -425,3 +425,209 @@ Requirements:
 ---
 
 *Document compiled from Rocketlane Time Tracking Help Documentation. Structured for product/engineering reference.*
+
+---
+
+## Part 4: Addenda (April 2026)
+
+> The following sections extend the original specification with features and settings not covered in the initial MVP definition. Each addendum is self-contained and references the original section it extends. **Do not re-implement content already covered in Parts 1–3.**
+
+---
+
+### Addendum A — Client Portal: External User Time Logging
+
+*Extends: Part 1 → Section 1.13 Role-Based Access Control / Client Portal integration*
+
+#### Client Portal — External User Time Logging
+
+Rocketlane's Customer Portal V2 supports time tracking for external (customer-side) users, enabling clients to log time directly within the portal interface — not just view budgeted vs tracked hours.
+
+**Admin configuration**
+
+Admins configure per-project whether time tracking is exposed in the customer portal. This is a project-level toggle, not a global setting. When enabled, the relevant portal users gain access to a timesheet view scoped to that project.
+
+**Customer-facing experience**
+
+Customers access their own timesheet from within the portal interface. The UI follows the same weekly grid concept (rows = tasks, columns = days) but is scoped to the customer's portal view. Customers may only log time against project tasks they are explicitly responsible for within the portal.
+
+**Approval workflow integration**
+
+Time entries submitted by portal/external users flow through the **same approval workflow** as internal team members. They are NOT auto-approved. Portal-submitted entries appear in:
+- The standard **Approvals** tab (visible to project owners and designated approvers)
+- The **Tracked Time** tab at the project level
+
+This is distinct from the read-only Time Tracking Widget (which displays budgeted vs tracked hours for context). This feature enables active time logging by the customer, not passive viewing.
+
+**Data model implications**
+
+The `Team Member` field on a `TimeEntry` record must support portal/external user types in addition to internal users. External user time entries carry a user type flag (e.g., `userType: "portal"`) to distinguish them in reporting and filtering without separate storage.
+
+**RBAC implications**
+
+Portal users have a separate role type. Their permissions are limited to:
+- Log time against tasks in their project scope
+- Submit their own timesheet
+- Withdraw and re-submit (before approval)
+
+They cannot: approve others' entries, view other team members' timesheets, or access project financials.
+
+| Role | Timesheet Access |
+|---|---|
+| Portal User (external) | Own entries only, scoped to enabled portal project(s) |
+| Project Owner / Manager | Can view and approve portal user entries via Approvals tab |
+| Admin | Full access including portal user entries |
+
+---
+
+### Addendum B — Time Tracking in Project Templates
+
+*Extends: Part 1 → Section 1.2 Configuration & Setup → new sub-section*
+
+#### Template-Level Time Tracking Configuration
+
+When time tracking is enabled account-wide, project templates gain time tracking configuration options at the task level. These settings eliminate the need to configure each task individually in every project created from the template.
+
+**Navigation path**
+
+Templates → select a project template → click any task → locate the **Time Entry Settings** section in the task detail panel.
+
+**Per-task configurable settings**
+
+| Setting | Options | Effect |
+|---|---|---|
+| Mark task as Billable | Yes / No | Becomes the billable default when team members log time against this task in any project created from this template |
+| Time Entry Category | Select from active categories | Pre-assigns the category for time entries on this task |
+
+**Behaviour and overrides**
+
+- Template-level billable and category defaults carry forward to **all projects created from this template**.
+- At log time, team members can override both the billable flag and the category on any individual time entry. Template defaults are starting values, not locked values.
+
+**Allocation placeholders**
+
+Resource allocation placeholders defined in templates (roles + estimated hours per role) serve as the starting allocation baseline when a new project is created from the template. These placeholder allocations feed directly into the **Import from Allocations** feature (see Section 1.10), allowing team members to pull pre-planned hours into their weekly timesheet without re-entering manually.
+
+---
+
+### Addendum C — Two Missing Global Settings
+
+*Extends: Part 1 → Section 1.2 Configuration & Setup — Global Settings table*
+
+The following two settings are missing from the Global Settings table defined in Section 1.2. They should be treated as additions to that table:
+
+| Setting | Options | Default | Notes |
+|---|---|---|---|
+| Billable Default | Billable / Non-Billable | Billable | Account-wide default for the billable flag on new tasks. Applies when no task-level or template-level billable setting is configured. Can be overridden per task or per time entry at log time. |
+| Calendar Start Day | Monday / Sunday | Monday | Sets which day is rendered as the first column in the weekly timesheet grid. Affects week boundary calculations for submission deadlines and weekly total aggregation. |
+
+**Implementation note — Calendar Start Day**
+
+This setting has a cascading effect on several calculations:
+- The weekly grid renders `startDay` as column 1 and `startDay − 1` as column 7
+- "Week submission due" deadlines are calculated relative to the configured end-of-week boundary
+- Weekly total aggregations (capacity, tracked hours, billable %) use the configured week boundaries
+
+---
+
+### Addendum D — Operations Insights: Tracked vs Planned Tab
+
+*Extends: Part 1 → Section 1.14 Reporting → new sub-section*
+
+#### Operations Insights — Tracked vs Planned Tab
+
+**Path:** Reporting → Operations Insights → Tracked vs Planned tab  
+**Plan availability:** All plans
+
+**Purpose**
+
+Compares tracked time entries against planned (budgeted) hours at the task, phase, and project level within a selected project template. Surfaces over-burning and under-burning patterns to help delivery teams refine future effort estimates in templates.
+
+**Scope**
+
+Scoped to a **selected template** — the report aggregates data across all projects that were created from that template, enabling pattern detection across the portfolio of similar deliveries.
+
+**Drill-down levels**
+
+```
+Project level
+  └── Phase level
+        └── Task level
+```
+
+Users start at the project level summary and drill down into specific phases or tasks to identify where time variance is occurring.
+
+**Key columns**
+
+| Column | Description |
+|---|---|
+| Planned Hours | Template task effort estimates (the "planned" baseline) |
+| Tracked Hours | Timesheet actuals logged against matching tasks across all projects from this template |
+| Variance | Planned Hours − Tracked Hours |
+| Variance % | (Variance ÷ Planned Hours) × 100 |
+
+**Visual highlighting**
+
+| State | Condition | Display |
+|---|---|---|
+| Over-burning | Tracked > Planned | Red or amber highlight |
+| Under-burning | Tracked < Planned | Green highlight |
+| On track | Tracked ≈ Planned | Neutral |
+
+**Primary use case**
+
+If "Customer Onboarding" tasks consistently burn 40% more than planned across 20 projects created from the same template, this tab surfaces the pattern — enabling the delivery team to update the template task estimates before the next project kicks off. This closes the feedback loop between time tracking actuals and delivery planning.
+
+**Why it matters**
+
+This report connects time tracking data directly to delivery operations improvement. It is one of the highest-value reports for a Professional Services team because it translates logged hours into actionable template refinements — reducing mis-estimation over time.
+
+---
+
+### Addendum E — People Performance Report: Time-Tracking Columns
+
+*Extends: Part 1 → Section 1.14 Reporting → new sub-section*
+
+#### People Performance Report — Time Tracking Fields
+
+**Path:** Reporting → People Performance  
+**Plan availability:** All plans
+
+**Purpose**
+
+The People Performance report is the only foundational report that combines task completion speed, collaboration activity, and billable utilization in a single view — making it the primary report for performance reviews and capacity planning conversations.
+
+**Time-tracking-specific columns**
+
+The following fields are sourced from time tracking data and appear alongside task performance metrics:
+
+| Field | Description | Formula / Source |
+|---|---|---|
+| Capacity | Total available hours in the reporting period, excluding approved time-off and holidays | Calendar working hours × working days − time-off hours − holiday hours |
+| Hours Tracked | Total hours logged in timesheets (billable + non-billable combined) | Timesheet data |
+| Billable Hours | Hours logged with the Billable flag set to Yes | Timesheet data |
+| Non-Billable Hours | Hours logged with the Billable flag set to No | Timesheet data |
+| Billable Utilization | Percentage of capacity spent on billable work | (Billable Hours ÷ Capacity) × 100 |
+
+**Capacity formula (shared across all time-tracking reports)**
+
+```
+Capacity = Total working hours in period
+         − Time-Off hours (approved absences)
+         − Holiday hours (from Holiday Calendar)
+```
+
+This formula is consistent across the People Performance report, the Tracked vs Planned tab (Addendum D), and the approver summary view in Section 1.5.
+
+**KPI spotlight cards (top of report)**
+
+Three "Top Performer" cards appear above the main table, each highlighting the top 3 team members by a specific metric:
+
+| Card | Metric | Calculation |
+|---|---|---|
+| Top Performers: Task Completion | Highest % of assigned tasks marked Completed in the period | Completed tasks ÷ Total assigned tasks |
+| Top Performers: Billable Utilization | Highest billable utilization % | Billable Hours ÷ Capacity × 100 |
+| Top Performers: Collaboration | Highest total messages + comments sent | Activity data from project conversations |
+
+**Implementation priority note**
+
+This addendum is additive to an existing report surface — no data model changes are required beyond ensuring the billable flag and capacity calculations are already being computed (covered in Sections 1.2, 1.8, and Addendum C). Low complexity, high visibility for managers running performance reviews.
