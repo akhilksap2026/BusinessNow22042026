@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge, HealthBadge } from "@/pages/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate } from "lucide-react";
+import { ApplyTemplateModal } from "@/components/apply-template-modal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectPhases } from "@/components/project-phases";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,7 @@ export default function ProjectDetail() {
   const createResourceRequest = useCreateResourceRequest();
 
   const [shareOpen, setShareOpen] = useState(false);
+  const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
   const [taskView, setTaskView] = useState<"list" | "board">("list");
   const updateTask = useUpdateTask();
 
@@ -351,6 +353,10 @@ export default function ProjectDetail() {
             <p className="text-muted-foreground">{project.description}</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setApplyTemplateOpen(true)} className="flex items-center gap-2 shrink-0">
+              <LayoutTemplate className="h-4 w-4" />
+              Apply Template
+            </Button>
             <Button variant="outline" size="sm" onClick={openEditProject} className="flex items-center gap-2 shrink-0">
               <Settings2 className="h-4 w-4" />
               Edit Project
@@ -499,6 +505,11 @@ export default function ProjectDetail() {
                                     <div className="font-medium text-sm mb-2">{task.name}</div>
                                     <div className="flex items-center gap-2 flex-wrap mb-2">
                                       <TaskPriorityBadge priority={task.priority} />
+                                      {task.fromTemplate && (
+                                        <Badge variant="outline" className="text-xs py-0 text-purple-700 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800">
+                                          <LayoutTemplate className="h-2.5 w-2.5 mr-0.5" /> Template
+                                        </Badge>
+                                      )}
                                       {subtaskCount > 0 && (
                                         <span className="text-xs text-muted-foreground">{subtaskCount} sub-task{subtaskCount > 1 ? "s" : ""}</span>
                                       )}
@@ -1307,6 +1318,14 @@ export default function ProjectDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ApplyTemplateModal
+        open={applyTemplateOpen}
+        onOpenChange={setApplyTemplateOpen}
+        projectId={projectId}
+        projectStartDate={project.startDate ?? undefined}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) })}
+      />
     </Layout>
   );
 }

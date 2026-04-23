@@ -21,6 +21,8 @@ import type {
   ActivityItem,
   AddUserSkillBody,
   Allocation,
+  ApplyTemplateBody,
+  ApplyTemplateResult,
   ApproveTimesheetBody,
   AuditLogEntry,
   BillingSchedule,
@@ -58,6 +60,8 @@ import type {
   CreateTaskChecklistItemBody,
   CreateTaskCommentBody,
   CreateTaxCodeBody,
+  CreateTemplatePhaseBody,
+  CreateTemplateTaskBody,
   CreateTimeCategoryBody,
   CreateTimeEntryBody,
   CreateTimeOffRequestBody,
@@ -124,6 +128,8 @@ import type {
   TaskChecklistItem,
   TaskComment,
   TaxCode,
+  TemplatePhase,
+  TemplateTask,
   TimeCategory,
   TimeEntry,
   TimeOffRequest,
@@ -139,6 +145,7 @@ import type {
   UpdateOpportunityBody,
   UpdatePhaseBody,
   UpdateProjectBody,
+  UpdateProjectTemplateBody,
   UpdateProspectBody,
   UpdateRateCardBody,
   UpdateResourceRequestBody,
@@ -6185,7 +6192,7 @@ export function useGetProjectBurnDown<
 }
 
 /**
- * @summary List project templates
+ * @summary List project templates (with nested phases and tasks)
  */
 export const getListProjectTemplatesUrl = () => {
   return `/api/project-templates`;
@@ -6236,7 +6243,7 @@ export type ListProjectTemplatesQueryResult = NonNullable<
 export type ListProjectTemplatesQueryError = ErrorType<unknown>;
 
 /**
- * @summary List project templates
+ * @summary List project templates (with nested phases and tasks)
  */
 
 export function useListProjectTemplates<
@@ -6347,7 +6354,7 @@ export const useCreateProjectTemplate = <
 };
 
 /**
- * @summary Get a project template
+ * @summary Get a project template with phases and tasks
  */
 export const getGetProjectTemplateUrl = (id: number) => {
   return `/api/project-templates/${id}`;
@@ -6407,7 +6414,7 @@ export type GetProjectTemplateQueryResult = NonNullable<
 export type GetProjectTemplateQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get a project template
+ * @summary Get a project template with phases and tasks
  */
 
 export function useGetProjectTemplate<
@@ -6434,7 +6441,95 @@ export function useGetProjectTemplate<
 }
 
 /**
- * @summary Delete a project template
+ * @summary Update a project template
+ */
+export const getUpdateProjectTemplateUrl = (id: number) => {
+  return `/api/project-templates/${id}`;
+};
+
+export const updateProjectTemplate = async (
+  id: number,
+  updateProjectTemplateBody: UpdateProjectTemplateBody,
+  options?: RequestInit,
+): Promise<ProjectTemplate> => {
+  return customFetch<ProjectTemplate>(getUpdateProjectTemplateUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateProjectTemplateBody),
+  });
+};
+
+export const getUpdateProjectTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProjectTemplate>>,
+    TError,
+    { id: number; data: BodyType<UpdateProjectTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProjectTemplate>>,
+  TError,
+  { id: number; data: BodyType<UpdateProjectTemplateBody> },
+  TContext
+> => {
+  const mutationKey = ["updateProjectTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProjectTemplate>>,
+    { id: number; data: BodyType<UpdateProjectTemplateBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateProjectTemplate(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProjectTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProjectTemplate>>
+>;
+export type UpdateProjectTemplateMutationBody =
+  BodyType<UpdateProjectTemplateBody>;
+export type UpdateProjectTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a project template
+ */
+export const useUpdateProjectTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProjectTemplate>>,
+    TError,
+    { id: number; data: BodyType<UpdateProjectTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProjectTemplate>>,
+  TError,
+  { id: number; data: BodyType<UpdateProjectTemplateBody> },
+  TContext
+> => {
+  return useMutation(getUpdateProjectTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Delete a project template (cascades phases and tasks)
  */
 export const getDeleteProjectTemplateUrl = (id: number) => {
   return `/api/project-templates/${id}`;
@@ -6495,7 +6590,7 @@ export type DeleteProjectTemplateMutationResult = NonNullable<
 export type DeleteProjectTemplateMutationError = ErrorType<unknown>;
 
 /**
- * @summary Delete a project template
+ * @summary Delete a project template (cascades phases and tasks)
  */
 export const useDeleteProjectTemplate = <
   TError = ErrorType<unknown>,
@@ -6515,6 +6610,788 @@ export const useDeleteProjectTemplate = <
   TContext
 > => {
   return useMutation(getDeleteProjectTemplateMutationOptions(options));
+};
+
+/**
+ * @summary List phases for a template
+ */
+export const getListTemplatePhasesUrl = (id: number) => {
+  return `/api/project-templates/${id}/phases`;
+};
+
+export const listTemplatePhases = async (
+  id: number,
+  options?: RequestInit,
+): Promise<TemplatePhase[]> => {
+  return customFetch<TemplatePhase[]>(getListTemplatePhasesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTemplatePhasesQueryKey = (id: number) => {
+  return [`/api/project-templates/${id}/phases`] as const;
+};
+
+export const getListTemplatePhasesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTemplatePhases>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTemplatePhases>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListTemplatePhasesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTemplatePhases>>
+  > = ({ signal }) => listTemplatePhases(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTemplatePhases>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTemplatePhasesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTemplatePhases>>
+>;
+export type ListTemplatePhasesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List phases for a template
+ */
+
+export function useListTemplatePhases<
+  TData = Awaited<ReturnType<typeof listTemplatePhases>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTemplatePhases>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTemplatePhasesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a phase to a template
+ */
+export const getCreateTemplatePhaseUrl = (id: number) => {
+  return `/api/project-templates/${id}/phases`;
+};
+
+export const createTemplatePhase = async (
+  id: number,
+  createTemplatePhaseBody: CreateTemplatePhaseBody,
+  options?: RequestInit,
+): Promise<TemplatePhase> => {
+  return customFetch<TemplatePhase>(getCreateTemplatePhaseUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTemplatePhaseBody),
+  });
+};
+
+export const getCreateTemplatePhaseMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTemplatePhase>>,
+    TError,
+    { id: number; data: BodyType<CreateTemplatePhaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTemplatePhase>>,
+  TError,
+  { id: number; data: BodyType<CreateTemplatePhaseBody> },
+  TContext
+> => {
+  const mutationKey = ["createTemplatePhase"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTemplatePhase>>,
+    { id: number; data: BodyType<CreateTemplatePhaseBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createTemplatePhase(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTemplatePhaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTemplatePhase>>
+>;
+export type CreateTemplatePhaseMutationBody = BodyType<CreateTemplatePhaseBody>;
+export type CreateTemplatePhaseMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a phase to a template
+ */
+export const useCreateTemplatePhase = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTemplatePhase>>,
+    TError,
+    { id: number; data: BodyType<CreateTemplatePhaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createTemplatePhase>>,
+  TError,
+  { id: number; data: BodyType<CreateTemplatePhaseBody> },
+  TContext
+> => {
+  return useMutation(getCreateTemplatePhaseMutationOptions(options));
+};
+
+/**
+ * @summary Update a template phase
+ */
+export const getUpdateTemplatePhaseUrl = (phaseId: number) => {
+  return `/api/template-phases/${phaseId}`;
+};
+
+export const updateTemplatePhase = async (
+  phaseId: number,
+  createTemplatePhaseBody: CreateTemplatePhaseBody,
+  options?: RequestInit,
+): Promise<TemplatePhase> => {
+  return customFetch<TemplatePhase>(getUpdateTemplatePhaseUrl(phaseId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTemplatePhaseBody),
+  });
+};
+
+export const getUpdateTemplatePhaseMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTemplatePhase>>,
+    TError,
+    { phaseId: number; data: BodyType<CreateTemplatePhaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTemplatePhase>>,
+  TError,
+  { phaseId: number; data: BodyType<CreateTemplatePhaseBody> },
+  TContext
+> => {
+  const mutationKey = ["updateTemplatePhase"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTemplatePhase>>,
+    { phaseId: number; data: BodyType<CreateTemplatePhaseBody> }
+  > = (props) => {
+    const { phaseId, data } = props ?? {};
+
+    return updateTemplatePhase(phaseId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTemplatePhaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTemplatePhase>>
+>;
+export type UpdateTemplatePhaseMutationBody = BodyType<CreateTemplatePhaseBody>;
+export type UpdateTemplatePhaseMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a template phase
+ */
+export const useUpdateTemplatePhase = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTemplatePhase>>,
+    TError,
+    { phaseId: number; data: BodyType<CreateTemplatePhaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTemplatePhase>>,
+  TError,
+  { phaseId: number; data: BodyType<CreateTemplatePhaseBody> },
+  TContext
+> => {
+  return useMutation(getUpdateTemplatePhaseMutationOptions(options));
+};
+
+/**
+ * @summary Delete a template phase (cascades tasks)
+ */
+export const getDeleteTemplatePhaseUrl = (phaseId: number) => {
+  return `/api/template-phases/${phaseId}`;
+};
+
+export const deleteTemplatePhase = async (
+  phaseId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteTemplatePhaseUrl(phaseId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteTemplatePhaseMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTemplatePhase>>,
+    TError,
+    { phaseId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTemplatePhase>>,
+  TError,
+  { phaseId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteTemplatePhase"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTemplatePhase>>,
+    { phaseId: number }
+  > = (props) => {
+    const { phaseId } = props ?? {};
+
+    return deleteTemplatePhase(phaseId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTemplatePhaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTemplatePhase>>
+>;
+
+export type DeleteTemplatePhaseMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a template phase (cascades tasks)
+ */
+export const useDeleteTemplatePhase = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTemplatePhase>>,
+    TError,
+    { phaseId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTemplatePhase>>,
+  TError,
+  { phaseId: number },
+  TContext
+> => {
+  return useMutation(getDeleteTemplatePhaseMutationOptions(options));
+};
+
+/**
+ * @summary List tasks for a template phase
+ */
+export const getListTemplateTasksForPhaseUrl = (phaseId: number) => {
+  return `/api/template-phases/${phaseId}/tasks`;
+};
+
+export const listTemplateTasksForPhase = async (
+  phaseId: number,
+  options?: RequestInit,
+): Promise<TemplateTask[]> => {
+  return customFetch<TemplateTask[]>(getListTemplateTasksForPhaseUrl(phaseId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTemplateTasksForPhaseQueryKey = (phaseId: number) => {
+  return [`/api/template-phases/${phaseId}/tasks`] as const;
+};
+
+export const getListTemplateTasksForPhaseQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTemplateTasksForPhase>>,
+  TError = ErrorType<unknown>,
+>(
+  phaseId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTemplateTasksForPhase>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTemplateTasksForPhaseQueryKey(phaseId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTemplateTasksForPhase>>
+  > = ({ signal }) =>
+    listTemplateTasksForPhase(phaseId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!phaseId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTemplateTasksForPhase>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTemplateTasksForPhaseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTemplateTasksForPhase>>
+>;
+export type ListTemplateTasksForPhaseQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List tasks for a template phase
+ */
+
+export function useListTemplateTasksForPhase<
+  TData = Awaited<ReturnType<typeof listTemplateTasksForPhase>>,
+  TError = ErrorType<unknown>,
+>(
+  phaseId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTemplateTasksForPhase>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTemplateTasksForPhaseQueryOptions(
+    phaseId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a task to a template phase
+ */
+export const getCreateTemplateTaskUrl = (phaseId: number) => {
+  return `/api/template-phases/${phaseId}/tasks`;
+};
+
+export const createTemplateTask = async (
+  phaseId: number,
+  createTemplateTaskBody: CreateTemplateTaskBody,
+  options?: RequestInit,
+): Promise<TemplateTask> => {
+  return customFetch<TemplateTask>(getCreateTemplateTaskUrl(phaseId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTemplateTaskBody),
+  });
+};
+
+export const getCreateTemplateTaskMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTemplateTask>>,
+    TError,
+    { phaseId: number; data: BodyType<CreateTemplateTaskBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTemplateTask>>,
+  TError,
+  { phaseId: number; data: BodyType<CreateTemplateTaskBody> },
+  TContext
+> => {
+  const mutationKey = ["createTemplateTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTemplateTask>>,
+    { phaseId: number; data: BodyType<CreateTemplateTaskBody> }
+  > = (props) => {
+    const { phaseId, data } = props ?? {};
+
+    return createTemplateTask(phaseId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTemplateTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTemplateTask>>
+>;
+export type CreateTemplateTaskMutationBody = BodyType<CreateTemplateTaskBody>;
+export type CreateTemplateTaskMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a task to a template phase
+ */
+export const useCreateTemplateTask = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTemplateTask>>,
+    TError,
+    { phaseId: number; data: BodyType<CreateTemplateTaskBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createTemplateTask>>,
+  TError,
+  { phaseId: number; data: BodyType<CreateTemplateTaskBody> },
+  TContext
+> => {
+  return useMutation(getCreateTemplateTaskMutationOptions(options));
+};
+
+/**
+ * @summary Update a template task
+ */
+export const getUpdateTemplateTaskUrl = (taskId: number) => {
+  return `/api/template-tasks/${taskId}`;
+};
+
+export const updateTemplateTask = async (
+  taskId: number,
+  createTemplateTaskBody: CreateTemplateTaskBody,
+  options?: RequestInit,
+): Promise<TemplateTask> => {
+  return customFetch<TemplateTask>(getUpdateTemplateTaskUrl(taskId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTemplateTaskBody),
+  });
+};
+
+export const getUpdateTemplateTaskMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTemplateTask>>,
+    TError,
+    { taskId: number; data: BodyType<CreateTemplateTaskBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTemplateTask>>,
+  TError,
+  { taskId: number; data: BodyType<CreateTemplateTaskBody> },
+  TContext
+> => {
+  const mutationKey = ["updateTemplateTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTemplateTask>>,
+    { taskId: number; data: BodyType<CreateTemplateTaskBody> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return updateTemplateTask(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTemplateTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTemplateTask>>
+>;
+export type UpdateTemplateTaskMutationBody = BodyType<CreateTemplateTaskBody>;
+export type UpdateTemplateTaskMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a template task
+ */
+export const useUpdateTemplateTask = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTemplateTask>>,
+    TError,
+    { taskId: number; data: BodyType<CreateTemplateTaskBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTemplateTask>>,
+  TError,
+  { taskId: number; data: BodyType<CreateTemplateTaskBody> },
+  TContext
+> => {
+  return useMutation(getUpdateTemplateTaskMutationOptions(options));
+};
+
+/**
+ * @summary Delete a template task
+ */
+export const getDeleteTemplateTaskUrl = (taskId: number) => {
+  return `/api/template-tasks/${taskId}`;
+};
+
+export const deleteTemplateTask = async (
+  taskId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteTemplateTaskUrl(taskId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteTemplateTaskMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTemplateTask>>,
+    TError,
+    { taskId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTemplateTask>>,
+  TError,
+  { taskId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteTemplateTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTemplateTask>>,
+    { taskId: number }
+  > = (props) => {
+    const { taskId } = props ?? {};
+
+    return deleteTemplateTask(taskId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTemplateTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTemplateTask>>
+>;
+
+export type DeleteTemplateTaskMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a template task
+ */
+export const useDeleteTemplateTask = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTemplateTask>>,
+    TError,
+    { taskId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTemplateTask>>,
+  TError,
+  { taskId: number },
+  TContext
+> => {
+  return useMutation(getDeleteTemplateTaskMutationOptions(options));
+};
+
+/**
+ * @summary Apply a template to an existing project (supports multi-template composition)
+ */
+export const getApplyTemplateToProjectUrl = (id: number) => {
+  return `/api/project-templates/${id}/apply`;
+};
+
+export const applyTemplateToProject = async (
+  id: number,
+  applyTemplateBody: ApplyTemplateBody,
+  options?: RequestInit,
+): Promise<ApplyTemplateResult> => {
+  return customFetch<ApplyTemplateResult>(getApplyTemplateToProjectUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(applyTemplateBody),
+  });
+};
+
+export const getApplyTemplateToProjectMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyTemplateToProject>>,
+    TError,
+    { id: number; data: BodyType<ApplyTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyTemplateToProject>>,
+  TError,
+  { id: number; data: BodyType<ApplyTemplateBody> },
+  TContext
+> => {
+  const mutationKey = ["applyTemplateToProject"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyTemplateToProject>>,
+    { id: number; data: BodyType<ApplyTemplateBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return applyTemplateToProject(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyTemplateToProjectMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyTemplateToProject>>
+>;
+export type ApplyTemplateToProjectMutationBody = BodyType<ApplyTemplateBody>;
+export type ApplyTemplateToProjectMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Apply a template to an existing project (supports multi-template composition)
+ */
+export const useApplyTemplateToProject = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyTemplateToProject>>,
+    TError,
+    { id: number; data: BodyType<ApplyTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof applyTemplateToProject>>,
+  TError,
+  { id: number; data: BodyType<ApplyTemplateBody> },
+  TContext
+> => {
+  return useMutation(getApplyTemplateToProjectMutationOptions(options));
 };
 
 /**

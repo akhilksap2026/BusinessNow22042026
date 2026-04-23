@@ -240,7 +240,7 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
             {!selectedTemplateId ? (
               <div className="space-y-2">
                 <p className="text-sm font-medium">Select a template</p>
-                {templates?.map(tmpl => (
+                {(templates ?? []).filter((t: any) => !t.isArchived).map((tmpl: any) => (
                   <button
                     key={tmpl.id}
                     type="button"
@@ -255,7 +255,7 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
                       </div>
                       {tmpl.description && <p className="text-xs text-muted-foreground mt-0.5">{tmpl.description}</p>}
                       <div className="flex gap-3 mt-1.5 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{tmpl.durationDays} days</span>
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{tmpl.totalDurationDays} days</span>
                         {tmpl.phases && (tmpl.phases as any[]).length > 0 && (
                           <span className="flex items-center gap-1"><Layers className="h-3 w-3" />{(tmpl.phases as any[]).length} phases</span>
                         )}

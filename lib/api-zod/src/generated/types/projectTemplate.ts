@@ -5,16 +5,19 @@
  * BusinessNow PSA Platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { ProjectTemplatePhasesItem } from "./projectTemplatePhasesItem";
+import type { TemplatePhase } from "./templatePhase";
 
 export interface ProjectTemplate {
   id: number;
   name: string;
-  description?: string;
+  description?: string | null;
   billingType: string;
-  durationDays: number;
-  phases?: ProjectTemplatePhasesItem[];
-  createdByUserId?: number;
+  /** Total project duration in calendar days */
+  totalDurationDays: number;
+  accountId?: number | null;
+  isArchived: boolean;
+  createdByUserId?: number | null;
+  phases?: TemplatePhase[];
   createdAt?: string;
   updatedAt?: string;
 }

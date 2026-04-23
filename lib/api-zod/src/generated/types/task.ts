@@ -22,5 +22,15 @@ export interface Task {
   effort: number;
   billable: boolean;
   isMilestone: boolean;
+  /** True if this task was created by applying a template */
+  fromTemplate?: boolean;
+  /**
+   * ID of the template that created this task
+   * @nullable
+   */
+  appliedTemplateId?: number | null;
+  /** @nullable */
+  parentTaskId?: number | null;
+  visibleToClient?: boolean;
   createdAt: string;
 }

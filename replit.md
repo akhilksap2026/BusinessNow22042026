@@ -36,6 +36,23 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - When adding fields to the API contract, update all four places: `lib/api-zod/src/generated/api.ts` + `types/createXBody.ts`, `lib/api-client-react/src/generated/api.schemas.ts`, then rebuild both dists (`tsc --build --force`)
 - `lib/api-client-react/dist/index.d.ts` is the compiled declaration output — must rebuild after editing `custom-fetch.ts` or any generated schema file
 
+### Phase 2 Complete — Template Engine with Relative Dates
+- **Normalized schema**: Replaced JSON-blob `project_templates.phases` column with 3 normalized tables: `template_phases` (relativeStartOffset, relativeEndOffset, privacyDefault, order) and `template_tasks` (relativeDueDateOffset, effort, billableDefault, priority, assigneeRolePlaceholder, order)
+- **tasks table**: Added `from_template boolean` and `applied_template_id integer` columns — all template-derived tasks are flagged for scope-creep tracking
+- **Template API — full CRUD**:
+  - `GET/POST /project-templates`, `GET/PUT/DELETE /project-templates/:id` (returns full nested phases+tasks)
+  - `GET/POST /project-templates/:id/phases`, `PUT/DELETE /template-phases/:phaseId`
+  - `GET/POST /template-phases/:phaseId/tasks`, `PUT/DELETE /template-tasks/:taskId`
+  - `POST /project-templates/:id/apply { projectId, startDate }` — applies template to existing project, supports multi-template composition (call multiple times)
+  - `POST /projects/from-template` — creates new project + phases + tasks from normalized template
+- **Date logic**: `absolute_date = project.startDate + offset_days` (UTC calendar arithmetic, no timezone/weekend handling — documented gap)
+- **Template editor UI** (Admin > Project Templates): Full slide-out Sheet editor with inline-edit template name/description, billing type, total duration, collapsible phase cards with offset sliders, add/edit/delete phases and tasks, assignee role placeholders, archive/restore
+- **Apply Template modal** (Project detail header): Pick template → preview calculated dates for all phases and tasks → apply; supports multi-template composition
+- **fromTemplate badge**: Purple "Template" badge shown on Kanban board task cards when `fromTemplate=true`
+- **Create Project Wizard**: Updated to filter archived templates and use `totalDurationDays`
+- **OpenAPI + codegen**: Added TemplatePhase, TemplateTask, ApplyTemplateBody, ApplyTemplateResult schemas; added `fromTemplate` + `appliedTemplateId` to Task schema; 8 new React Query hooks generated
+- **Known gap**: No weekend/timezone handling in offset calculation (future sprint)
+
 ### Sprint 7 Progress (Wave 1 BRD gap-closure)
 - **T001 RBAC** — `requirePM` added to accounts, prospects, timeEntries, allocations routes
 - **T002 Project Creation Wizard** — 4-step wizard already existed at `create-project-wizard.tsx`

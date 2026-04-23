@@ -66,7 +66,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { TemplateEditor } from "@/components/template-editor";
 import { useToast } from "@/hooks/use-toast";
 
 function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: number; userName: string; allSkills: { id: number; name: string; categoryId: number }[]; onClose: () => void }) {
@@ -309,6 +311,8 @@ export default function Admin() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogId, setDeleteDialogId] = useState<number | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -628,19 +632,20 @@ export default function Admin() {
     name: "",
     description: "",
     billingType: "Fixed Fee",
-    durationDays: 90,
+    totalDurationDays: 30,
   });
 
   async function handleCreate() {
     if (!form.name) return;
     try {
-      await createTemplate.mutateAsync({
-        data: { name: form.name, description: form.description || undefined, billingType: form.billingType, durationDays: form.durationDays }
+      const row = await createTemplate.mutateAsync({
+        data: { name: form.name, description: form.description || undefined, billingType: form.billingType, totalDurationDays: form.totalDurationDays }
       });
       queryClient.invalidateQueries({ queryKey: getListProjectTemplatesQueryKey() });
-      toast({ title: "Template created" });
+      toast({ title: "Template created — add phases and tasks in the editor" });
       setCreateDialogOpen(false);
-      setForm({ name: "", description: "", billingType: "Fixed Fee", durationDays: 90 });
+      setForm({ name: "", description: "", billingType: "Fixed Fee", totalDurationDays: 30 });
+      setSelectedTemplateId((row as any).id);
     } catch {
       toast({ title: "Failed to create template", variant: "destructive" });
     }
@@ -915,14 +920,19 @@ export default function Admin() {
                   <CardTitle>Project Templates</CardTitle>
                   <CardDescription>Reusable project structures for faster onboarding</CardDescription>
                 </div>
-                <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" /> New Template
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setShowArchived(p => !p)}>
+                    <Archive className="h-4 w-4 mr-2" />{showArchived ? "Hide Archived" : "Show Archived"}
+                  </Button>
+                  <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" /> New Template
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoadingTemplates ? (
                   <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
-                ) : templates?.length === 0 ? (
+                ) : (templates ?? []).filter((t: any) => showArchived || !t.isArchived).length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <LayoutTemplate className="h-12 w-12 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">No templates yet</p>
@@ -930,32 +940,38 @@ export default function Admin() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {templates?.map(tmpl => (
-                      <div key={tmpl.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                        <div className="flex-1 space-y-1.5">
-                          <div className="flex items-center gap-2">
+                    {(templates ?? []).filter((t: any) => showArchived || !t.isArchived).map((tmpl: any) => (
+                      <div key={tmpl.id} className={`flex items-start justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors ${tmpl.isArchived ? "opacity-60" : ""}`}>
+                        <div className="flex-1 space-y-1.5 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold">{tmpl.name}</span>
                             <Badge variant="secondary" className="text-xs">{tmpl.billingType}</Badge>
+                            {tmpl.isArchived && <Badge variant="outline" className="text-xs text-muted-foreground">Archived</Badge>}
                           </div>
                           {tmpl.description && <p className="text-sm text-muted-foreground">{tmpl.description}</p>}
-                          <div className="flex gap-4 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {tmpl.durationDays} days</span>
+                          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {tmpl.totalDurationDays} days total</span>
                             {tmpl.phases && (tmpl.phases as any[]).length > 0 && (
-                              <span className="flex items-center gap-1"><Layers className="h-3.5 w-3.5" /> {(tmpl.phases as any[]).length} phases</span>
+                              <span className="flex items-center gap-1"><Layers className="h-3.5 w-3.5" /> {(tmpl.phases as any[]).length} phases · {(tmpl.phases as any[]).reduce((n: number, p: any) => n + (p.tasks?.length ?? 0), 0)} tasks</span>
                             )}
                             <span className="text-muted-foreground/60">Created {tmpl.createdAt ? new Date(tmpl.createdAt).toLocaleDateString() : ""}</span>
                           </div>
                           {tmpl.phases && (tmpl.phases as any[]).length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {(tmpl.phases as any[]).map((ph: any, i: number) => (
-                                <Badge key={i} variant="outline" className="text-xs font-normal">{ph.name}</Badge>
+                                <Badge key={i} variant="outline" className="text-xs font-normal">{ph.name} <span className="text-muted-foreground ml-1">(+{ph.relativeStartOffset}–+{ph.relativeEndOffset}d)</span></Badge>
                               ))}
                             </div>
                           )}
                         </div>
-                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-red-500 shrink-0 ml-4" onClick={() => setDeleteDialogId(tmpl.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1 shrink-0 ml-4">
+                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setSelectedTemplateId(tmpl.id)}>
+                            <Pencil className="h-3.5 w-3.5" /> Open Editor
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteDialogId(tmpl.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1731,7 +1747,7 @@ export default function Admin() {
               </div>
               <div className="space-y-1.5">
                 <Label>Duration (days)</Label>
-                <Input type="number" min={1} value={form.durationDays} onChange={e => setForm(f => ({ ...f, durationDays: parseInt(e.target.value) || 0 }))} />
+                <Input type="number" min={1} value={form.totalDurationDays} onChange={e => setForm(f => ({ ...f, totalDurationDays: parseInt(e.target.value) || 0 }))} />
               </div>
             </div>
           </div>
@@ -1755,6 +1771,17 @@ export default function Admin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!selectedTemplateId} onOpenChange={open => { if (!open) setSelectedTemplateId(null); }}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Template Editor</SheetTitle>
+          </SheetHeader>
+          {selectedTemplateId && (
+            <TemplateEditor templateId={selectedTemplateId} onClose={() => setSelectedTemplateId(null)} />
+          )}
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent>

@@ -6,11 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateProjectTemplateBody {
-  name: string;
+export interface UpdateProjectTemplateBody {
+  name?: string;
   description?: string | null;
   billingType?: string;
   totalDurationDays?: number;
   accountId?: number | null;
-  createdByUserId?: number | null;
+  isArchived?: boolean;
 }

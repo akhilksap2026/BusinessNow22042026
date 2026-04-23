@@ -1,0 +1,48 @@
+AUDIT EXISTING MODULES:
+- Do tasks have a status field? What statuses exist?
+- Is there any concept of "important checkpoint" or "key deliverable"?
+- Do you send any automated emails/notifications on task completion?
+
+GAP MAPPING:
+→ Can a task be designated as a milestone?
+→ Are customers notified when significant events occur?
+→ Is there any feedback collection mechanism?
+
+INTEGRATION STEPS:
+1. ADD `is_milestone` boolean to existing tasks table (default: false)
+   - Migration: assess existing tasks manually or by name pattern (e.g., "Go-Live", "Sign-off")
+
+2. ADD milestone visual treatment to existing views:
+   - Board view: different card icon/border if is_milestone=true
+   - List view: milestone badge/icon in task name column
+   - Timeline view: diamond shape instead of bar (CSS/class change only)
+
+3. CREATE `milestone_csat_settings` table (NEW) or ADD fields to tasks:
+   - task_id, csat_enabled (boolean, default: true for milestones)
+   - Only Admin/Super User can toggle
+
+4. CREATE `csat_surveys` table (NEW):
+   - id, milestone_task_id, recipient_id (customer champion), sent_at, rating (1-5), comment, completed_at
+
+5. EXTEND existing task status change hook:
+   - IF task.is_milestone = true AND new_status = 'Completed' AND csat_enabled = true:
+     a. Find project customer champion (from existing project members)
+     b. Create csat_surveys record, status='sent'
+     c. Trigger existing notification system (email + in-app) with survey link
+   
+6. ADD CSAT aggregation to existing project Overview:
+   - ADD "CSAT Score" card showing average rating
+   - ADD phase-level CSAT averages in phase list
+   - Reuse existing aggregation patterns (SUM/COUNT/AVG)
+
+7. ADD CSAT submission endpoint (customer-facing):
+   - Reuse existing form submission pattern
+   - Only accessible to users with customer role on project
+   - Update csat_surveys.rating and completed_at
+
+VERIFICATION:
+- [ ] Regular task completion → no CSAT sent
+- [ ] Milestone completion → CSAT survey sent to customer champion
+- [ ] Disable CSAT on milestone → completion sends no survey
+- [ ] Customer submits rating → appears in project Overview average
+- [ ] Customer cannot see other customers' ratings

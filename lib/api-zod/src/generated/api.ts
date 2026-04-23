@@ -164,15 +164,12 @@ export const ListProjectsResponseItem = zod.object({
   completion: zod.number(),
   health: zod.string(),
   description: zod.string().nullish(),
-  customerChampion: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
   opportunityId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
-  companyName: zod.string().optional(),
-  companyDomain: zod.string().optional(),
 });
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
 
@@ -190,7 +187,6 @@ export const CreateProjectBody = zod.object({
   budget: zod.number(),
   budgetedHours: zod.number(),
   description: zod.string().optional(),
-  internalExternal: zod.enum(["Internal", "External"]).optional(),
 });
 
 /**
@@ -315,6 +311,16 @@ export const ListTasksResponseItem = zod.object({
   effort: zod.number(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
+  fromTemplate: zod
+    .boolean()
+    .optional()
+    .describe("True if this task was created by applying a template"),
+  appliedTemplateId: zod
+    .number()
+    .nullish()
+    .describe("ID of the template that created this task"),
+  parentTaskId: zod.number().nullish(),
+  visibleToClient: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 export const ListTasksResponse = zod.array(ListTasksResponseItem);
@@ -356,6 +362,16 @@ export const GetTaskResponse = zod.object({
   effort: zod.number(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
+  fromTemplate: zod
+    .boolean()
+    .optional()
+    .describe("True if this task was created by applying a template"),
+  appliedTemplateId: zod
+    .number()
+    .nullish()
+    .describe("ID of the template that created this task"),
+  parentTaskId: zod.number().nullish(),
+  visibleToClient: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 
@@ -392,6 +408,16 @@ export const UpdateTaskResponse = zod.object({
   effort: zod.number(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
+  fromTemplate: zod
+    .boolean()
+    .optional()
+    .describe("True if this task was created by applying a template"),
+  appliedTemplateId: zod
+    .number()
+    .nullish()
+    .describe("ID of the template that created this task"),
+  parentTaskId: zod.number().nullish(),
+  visibleToClient: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 
@@ -415,7 +441,6 @@ export const ListUsersResponseItem = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
-  secondaryRoles: zod.array(zod.string()).optional().default([]),
   createdAt: zod.string(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
@@ -450,7 +475,6 @@ export const GetUserResponse = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
-  secondaryRoles: zod.array(zod.string()).optional().default([]),
   createdAt: zod.string(),
 });
 
@@ -481,7 +505,6 @@ export const UpdateUserResponse = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
-  secondaryRoles: zod.array(zod.string()).optional().default([]),
   createdAt: zod.string(),
 });
 
@@ -778,9 +801,6 @@ export const ListAllocationsResponseItem = zod.object({
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
   role: zod.string(),
-  isSoftAllocation: zod.boolean().optional().default(false),
-  isTimesheetApprover: zod.boolean().optional().default(false),
-  isLeaveApprover: zod.boolean().optional().default(false),
   createdAt: zod.string(),
 });
 export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);
@@ -1474,16 +1494,63 @@ export const GetProjectBurnDownResponse = zod.object({
 });
 
 /**
- * @summary List project templates
+ * @summary List project templates (with nested phases and tasks)
  */
 export const ListProjectTemplatesResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
-  description: zod.string().optional(),
+  description: zod.string().nullish(),
   billingType: zod.string(),
-  durationDays: zod.number(),
-  phases: zod.array(zod.object({}).passthrough()).optional(),
-  createdByUserId: zod.number().optional(),
+  totalDurationDays: zod
+    .number()
+    .describe("Total project duration in calendar days"),
+  accountId: zod.number().nullish(),
+  isArchived: zod.boolean(),
+  createdByUserId: zod.number().nullish(),
+  phases: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        templateId: zod.number(),
+        name: zod.string(),
+        relativeStartOffset: zod
+          .number()
+          .describe("Days from project start_date when this phase starts"),
+        relativeEndOffset: zod
+          .number()
+          .describe("Days from project start_date when this phase ends"),
+        privacyDefault: zod.enum(["shared", "internal"]),
+        order: zod.number(),
+        tasks: zod
+          .array(
+            zod.object({
+              id: zod.number(),
+              templatePhaseId: zod.number(),
+              templateId: zod.number(),
+              name: zod.string(),
+              relativeDueDateOffset: zod
+                .number()
+                .describe("Days from project start_date when this task is due"),
+              effort: zod.number(),
+              billableDefault: zod.boolean(),
+              priority: zod.enum(["Low", "Medium", "High", "Critical"]),
+              assigneeRolePlaceholder: zod
+                .string()
+                .nullish()
+                .describe(
+                  "Role placeholder (e.g. PM, Developer) — not a user ID",
+                ),
+              order: zod.number(),
+              createdAt: zod.string().optional(),
+              updatedAt: zod.string().optional(),
+            }),
+          )
+          .optional(),
+        createdAt: zod.string().optional(),
+        updatedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
   createdAt: zod.string().optional(),
   updatedAt: zod.string().optional(),
 });
@@ -1496,15 +1563,15 @@ export const ListProjectTemplatesResponse = zod.array(
  */
 export const CreateProjectTemplateBody = zod.object({
   name: zod.string(),
-  description: zod.string().optional(),
-  billingType: zod.string(),
-  durationDays: zod.number(),
-  phases: zod.array(zod.object({}).passthrough()).optional(),
-  createdByUserId: zod.number().optional(),
+  description: zod.string().nullish(),
+  billingType: zod.string().optional(),
+  totalDurationDays: zod.number().optional(),
+  accountId: zod.number().nullish(),
+  createdByUserId: zod.number().nullish(),
 });
 
 /**
- * @summary Get a project template
+ * @summary Get a project template with phases and tasks
  */
 export const GetProjectTemplateParams = zod.object({
   id: zod.coerce.number(),
@@ -1513,20 +1580,374 @@ export const GetProjectTemplateParams = zod.object({
 export const GetProjectTemplateResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
-  description: zod.string().optional(),
+  description: zod.string().nullish(),
   billingType: zod.string(),
-  durationDays: zod.number(),
-  phases: zod.array(zod.object({}).passthrough()).optional(),
-  createdByUserId: zod.number().optional(),
+  totalDurationDays: zod
+    .number()
+    .describe("Total project duration in calendar days"),
+  accountId: zod.number().nullish(),
+  isArchived: zod.boolean(),
+  createdByUserId: zod.number().nullish(),
+  phases: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        templateId: zod.number(),
+        name: zod.string(),
+        relativeStartOffset: zod
+          .number()
+          .describe("Days from project start_date when this phase starts"),
+        relativeEndOffset: zod
+          .number()
+          .describe("Days from project start_date when this phase ends"),
+        privacyDefault: zod.enum(["shared", "internal"]),
+        order: zod.number(),
+        tasks: zod
+          .array(
+            zod.object({
+              id: zod.number(),
+              templatePhaseId: zod.number(),
+              templateId: zod.number(),
+              name: zod.string(),
+              relativeDueDateOffset: zod
+                .number()
+                .describe("Days from project start_date when this task is due"),
+              effort: zod.number(),
+              billableDefault: zod.boolean(),
+              priority: zod.enum(["Low", "Medium", "High", "Critical"]),
+              assigneeRolePlaceholder: zod
+                .string()
+                .nullish()
+                .describe(
+                  "Role placeholder (e.g. PM, Developer) — not a user ID",
+                ),
+              order: zod.number(),
+              createdAt: zod.string().optional(),
+              updatedAt: zod.string().optional(),
+            }),
+          )
+          .optional(),
+        createdAt: zod.string().optional(),
+        updatedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
   createdAt: zod.string().optional(),
   updatedAt: zod.string().optional(),
 });
 
 /**
- * @summary Delete a project template
+ * @summary Update a project template
+ */
+export const UpdateProjectTemplateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateProjectTemplateBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().nullish(),
+  billingType: zod.string().optional(),
+  totalDurationDays: zod.number().optional(),
+  accountId: zod.number().nullish(),
+  isArchived: zod.boolean().optional(),
+});
+
+export const UpdateProjectTemplateResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  billingType: zod.string(),
+  totalDurationDays: zod
+    .number()
+    .describe("Total project duration in calendar days"),
+  accountId: zod.number().nullish(),
+  isArchived: zod.boolean(),
+  createdByUserId: zod.number().nullish(),
+  phases: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        templateId: zod.number(),
+        name: zod.string(),
+        relativeStartOffset: zod
+          .number()
+          .describe("Days from project start_date when this phase starts"),
+        relativeEndOffset: zod
+          .number()
+          .describe("Days from project start_date when this phase ends"),
+        privacyDefault: zod.enum(["shared", "internal"]),
+        order: zod.number(),
+        tasks: zod
+          .array(
+            zod.object({
+              id: zod.number(),
+              templatePhaseId: zod.number(),
+              templateId: zod.number(),
+              name: zod.string(),
+              relativeDueDateOffset: zod
+                .number()
+                .describe("Days from project start_date when this task is due"),
+              effort: zod.number(),
+              billableDefault: zod.boolean(),
+              priority: zod.enum(["Low", "Medium", "High", "Critical"]),
+              assigneeRolePlaceholder: zod
+                .string()
+                .nullish()
+                .describe(
+                  "Role placeholder (e.g. PM, Developer) — not a user ID",
+                ),
+              order: zod.number(),
+              createdAt: zod.string().optional(),
+              updatedAt: zod.string().optional(),
+            }),
+          )
+          .optional(),
+        createdAt: zod.string().optional(),
+        updatedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a project template (cascades phases and tasks)
  */
 export const DeleteProjectTemplateParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary List phases for a template
+ */
+export const ListTemplatePhasesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTemplatePhasesResponseItem = zod.object({
+  id: zod.number(),
+  templateId: zod.number(),
+  name: zod.string(),
+  relativeStartOffset: zod
+    .number()
+    .describe("Days from project start_date when this phase starts"),
+  relativeEndOffset: zod
+    .number()
+    .describe("Days from project start_date when this phase ends"),
+  privacyDefault: zod.enum(["shared", "internal"]),
+  order: zod.number(),
+  tasks: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        templatePhaseId: zod.number(),
+        templateId: zod.number(),
+        name: zod.string(),
+        relativeDueDateOffset: zod
+          .number()
+          .describe("Days from project start_date when this task is due"),
+        effort: zod.number(),
+        billableDefault: zod.boolean(),
+        priority: zod.enum(["Low", "Medium", "High", "Critical"]),
+        assigneeRolePlaceholder: zod
+          .string()
+          .nullish()
+          .describe("Role placeholder (e.g. PM, Developer) — not a user ID"),
+        order: zod.number(),
+        createdAt: zod.string().optional(),
+        updatedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+export const ListTemplatePhasesResponse = zod.array(
+  ListTemplatePhasesResponseItem,
+);
+
+/**
+ * @summary Add a phase to a template
+ */
+export const CreateTemplatePhaseParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateTemplatePhaseBody = zod.object({
+  name: zod.string(),
+  relativeStartOffset: zod.number().optional(),
+  relativeEndOffset: zod.number().optional(),
+  privacyDefault: zod.string().optional(),
+  order: zod.number().optional(),
+});
+
+/**
+ * @summary Update a template phase
+ */
+export const UpdateTemplatePhaseParams = zod.object({
+  phaseId: zod.coerce.number(),
+});
+
+export const UpdateTemplatePhaseBody = zod.object({
+  name: zod.string(),
+  relativeStartOffset: zod.number().optional(),
+  relativeEndOffset: zod.number().optional(),
+  privacyDefault: zod.string().optional(),
+  order: zod.number().optional(),
+});
+
+export const UpdateTemplatePhaseResponse = zod.object({
+  id: zod.number(),
+  templateId: zod.number(),
+  name: zod.string(),
+  relativeStartOffset: zod
+    .number()
+    .describe("Days from project start_date when this phase starts"),
+  relativeEndOffset: zod
+    .number()
+    .describe("Days from project start_date when this phase ends"),
+  privacyDefault: zod.enum(["shared", "internal"]),
+  order: zod.number(),
+  tasks: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        templatePhaseId: zod.number(),
+        templateId: zod.number(),
+        name: zod.string(),
+        relativeDueDateOffset: zod
+          .number()
+          .describe("Days from project start_date when this task is due"),
+        effort: zod.number(),
+        billableDefault: zod.boolean(),
+        priority: zod.enum(["Low", "Medium", "High", "Critical"]),
+        assigneeRolePlaceholder: zod
+          .string()
+          .nullish()
+          .describe("Role placeholder (e.g. PM, Developer) — not a user ID"),
+        order: zod.number(),
+        createdAt: zod.string().optional(),
+        updatedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a template phase (cascades tasks)
+ */
+export const DeleteTemplatePhaseParams = zod.object({
+  phaseId: zod.coerce.number(),
+});
+
+/**
+ * @summary List tasks for a template phase
+ */
+export const ListTemplateTasksForPhaseParams = zod.object({
+  phaseId: zod.coerce.number(),
+});
+
+export const ListTemplateTasksForPhaseResponseItem = zod.object({
+  id: zod.number(),
+  templatePhaseId: zod.number(),
+  templateId: zod.number(),
+  name: zod.string(),
+  relativeDueDateOffset: zod
+    .number()
+    .describe("Days from project start_date when this task is due"),
+  effort: zod.number(),
+  billableDefault: zod.boolean(),
+  priority: zod.enum(["Low", "Medium", "High", "Critical"]),
+  assigneeRolePlaceholder: zod
+    .string()
+    .nullish()
+    .describe("Role placeholder (e.g. PM, Developer) — not a user ID"),
+  order: zod.number(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+export const ListTemplateTasksForPhaseResponse = zod.array(
+  ListTemplateTasksForPhaseResponseItem,
+);
+
+/**
+ * @summary Add a task to a template phase
+ */
+export const CreateTemplateTaskParams = zod.object({
+  phaseId: zod.coerce.number(),
+});
+
+export const CreateTemplateTaskBody = zod.object({
+  name: zod.string(),
+  relativeDueDateOffset: zod.number().optional(),
+  effort: zod.number().optional(),
+  billableDefault: zod.boolean().optional(),
+  priority: zod.string().optional(),
+  assigneeRolePlaceholder: zod.string().nullish(),
+  order: zod.number().optional(),
+});
+
+/**
+ * @summary Update a template task
+ */
+export const UpdateTemplateTaskParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const UpdateTemplateTaskBody = zod.object({
+  name: zod.string(),
+  relativeDueDateOffset: zod.number().optional(),
+  effort: zod.number().optional(),
+  billableDefault: zod.boolean().optional(),
+  priority: zod.string().optional(),
+  assigneeRolePlaceholder: zod.string().nullish(),
+  order: zod.number().optional(),
+});
+
+export const UpdateTemplateTaskResponse = zod.object({
+  id: zod.number(),
+  templatePhaseId: zod.number(),
+  templateId: zod.number(),
+  name: zod.string(),
+  relativeDueDateOffset: zod
+    .number()
+    .describe("Days from project start_date when this task is due"),
+  effort: zod.number(),
+  billableDefault: zod.boolean(),
+  priority: zod.enum(["Low", "Medium", "High", "Critical"]),
+  assigneeRolePlaceholder: zod
+    .string()
+    .nullish()
+    .describe("Role placeholder (e.g. PM, Developer) — not a user ID"),
+  order: zod.number(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a template task
+ */
+export const DeleteTemplateTaskParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+/**
+ * @summary Apply a template to an existing project (supports multi-template composition)
+ */
+export const ApplyTemplateToProjectParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ApplyTemplateToProjectBody = zod.object({
+  projectId: zod.number(),
+  startDate: zod
+    .string()
+    .describe(
+      "ISO date string (YYYY-MM-DD) — used as the base for offset calculations",
+    ),
 });
 
 /**

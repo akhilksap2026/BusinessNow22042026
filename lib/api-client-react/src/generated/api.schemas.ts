@@ -115,7 +115,6 @@ export interface CreateProjectBody {
   budget: number;
   budgetedHours: number;
   description?: string;
-  internalExternal?: "Internal" | "External";
 }
 
 export interface UpdateProjectBody {
@@ -148,6 +147,16 @@ export interface Task {
   effort: number;
   billable: boolean;
   isMilestone: boolean;
+  /** True if this task was created by applying a template */
+  fromTemplate?: boolean;
+  /**
+   * ID of the template that created this task
+   * @nullable
+   */
+  appliedTemplateId?: number | null;
+  /** @nullable */
+  parentTaskId?: number | null;
+  visibleToClient?: boolean;
   createdAt: string;
 }
 
@@ -644,29 +653,120 @@ export interface BurnDownReport {
   dataPoints: BurnDownReportDataPointsItem[];
 }
 
-export type ProjectTemplatePhasesItem = { [key: string]: unknown };
+export type TemplateTaskPriority =
+  (typeof TemplateTaskPriority)[keyof typeof TemplateTaskPriority];
 
-export interface ProjectTemplate {
+export const TemplateTaskPriority = {
+  Low: "Low",
+  Medium: "Medium",
+  High: "High",
+  Critical: "Critical",
+} as const;
+
+export interface TemplateTask {
   id: number;
+  templatePhaseId: number;
+  templateId: number;
   name: string;
-  description?: string;
-  billingType: string;
-  durationDays: number;
-  phases?: ProjectTemplatePhasesItem[];
-  createdByUserId?: number;
+  /** Days from project start_date when this task is due */
+  relativeDueDateOffset: number;
+  effort: number;
+  billableDefault: boolean;
+  priority: TemplateTaskPriority;
+  /** Role placeholder (e.g. PM, Developer) — not a user ID */
+  assigneeRolePlaceholder?: string | null;
+  order: number;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export type CreateProjectTemplateBodyPhasesItem = { [key: string]: unknown };
+export interface CreateTemplateTaskBody {
+  name: string;
+  relativeDueDateOffset?: number;
+  effort?: number;
+  billableDefault?: boolean;
+  priority?: string;
+  assigneeRolePlaceholder?: string | null;
+  order?: number;
+}
+
+export type TemplatePhasePrivacyDefault =
+  (typeof TemplatePhasePrivacyDefault)[keyof typeof TemplatePhasePrivacyDefault];
+
+export const TemplatePhasePrivacyDefault = {
+  shared: "shared",
+  internal: "internal",
+} as const;
+
+export interface TemplatePhase {
+  id: number;
+  templateId: number;
+  name: string;
+  /** Days from project start_date when this phase starts */
+  relativeStartOffset: number;
+  /** Days from project start_date when this phase ends */
+  relativeEndOffset: number;
+  privacyDefault: TemplatePhasePrivacyDefault;
+  order: number;
+  tasks?: TemplateTask[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateTemplatePhaseBody {
+  name: string;
+  relativeStartOffset?: number;
+  relativeEndOffset?: number;
+  privacyDefault?: string;
+  order?: number;
+}
+
+export interface ProjectTemplate {
+  id: number;
+  name: string;
+  description?: string | null;
+  billingType: string;
+  /** Total project duration in calendar days */
+  totalDurationDays: number;
+  accountId?: number | null;
+  isArchived: boolean;
+  createdByUserId?: number | null;
+  phases?: TemplatePhase[];
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface CreateProjectTemplateBody {
   name: string;
-  description?: string;
-  billingType: string;
-  durationDays: number;
-  phases?: CreateProjectTemplateBodyPhasesItem[];
-  createdByUserId?: number;
+  description?: string | null;
+  billingType?: string;
+  totalDurationDays?: number;
+  accountId?: number | null;
+  createdByUserId?: number | null;
+}
+
+export interface UpdateProjectTemplateBody {
+  name?: string;
+  description?: string | null;
+  billingType?: string;
+  totalDurationDays?: number;
+  accountId?: number | null;
+  isArchived?: boolean;
+}
+
+export interface ApplyTemplateBody {
+  projectId: number;
+  /** ISO date string (YYYY-MM-DD) — used as the base for offset calculations */
+  startDate: string;
+}
+
+export interface ApplyTemplateResult {
+  templateId: number;
+  templateName: string;
+  projectId: number;
+  startDate: string;
+  phasesCreated: number;
+  tasksCreated: number;
 }
 
 export interface CreateProjectFromTemplateBody {
@@ -1092,7 +1192,6 @@ export interface Opportunity {
   closeDate?: string | null;
   ownerId?: number | null;
   projectId?: number | null;
-  projectName?: string | null;
   accountName?: string | null;
   ownerName?: string | null;
   createdAt: string;

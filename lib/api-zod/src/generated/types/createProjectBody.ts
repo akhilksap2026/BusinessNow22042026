@@ -17,5 +17,4 @@ export interface CreateProjectBody {
   budget: number;
   budgetedHours: number;
   description?: string;
-  internalExternal?: "Internal" | "External";
 }

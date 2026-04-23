@@ -1438,7 +1438,7 @@ paths:
     get:
       operationId: listProjectTemplates
       tags: [projects]
-      summary: List project templates
+      summary: List project templates (with nested phases and tasks)
       responses:
         "200":
           description: Templates list
@@ -1470,7 +1470,7 @@ paths:
     get:
       operationId: getProjectTemplate
       tags: [projects]
-      summary: Get a project template
+      summary: Get a project template with phases and tasks
       parameters:
         - name: id
           in: path
@@ -1484,10 +1484,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProjectTemplate"
+    put:
+      operationId: updateProjectTemplate
+      tags: [projects]
+      summary: Update a project template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectTemplateBody"
+      responses:
+        "200":
+          description: Updated template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTemplate"
     delete:
       operationId: deleteProjectTemplate
       tags: [projects]
-      summary: Delete a project template
+      summary: Delete a project template (cascades phases and tasks)
       parameters:
         - name: id
           in: path
@@ -1497,6 +1520,195 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /project-templates/{id}/phases:
+    get:
+      operationId: listTemplatePhases
+      tags: [projects]
+      summary: List phases for a template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Phases list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TemplatePhase"
+    post:
+      operationId: createTemplatePhase
+      tags: [projects]
+      summary: Add a phase to a template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTemplatePhaseBody"
+      responses:
+        "201":
+          description: Created phase
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplatePhase"
+
+  /template-phases/{phaseId}:
+    put:
+      operationId: updateTemplatePhase
+      tags: [projects]
+      summary: Update a template phase
+      parameters:
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTemplatePhaseBody"
+      responses:
+        "200":
+          description: Updated phase
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplatePhase"
+    delete:
+      operationId: deleteTemplatePhase
+      tags: [projects]
+      summary: Delete a template phase (cascades tasks)
+      parameters:
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /template-phases/{phaseId}/tasks:
+    get:
+      operationId: listTemplateTasksForPhase
+      tags: [projects]
+      summary: List tasks for a template phase
+      parameters:
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tasks list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TemplateTask"
+    post:
+      operationId: createTemplateTask
+      tags: [projects]
+      summary: Add a task to a template phase
+      parameters:
+        - name: phaseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTemplateTaskBody"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateTask"
+
+  /template-tasks/{taskId}:
+    put:
+      operationId: updateTemplateTask
+      tags: [projects]
+      summary: Update a template task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTemplateTaskBody"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateTask"
+    delete:
+      operationId: deleteTemplateTask
+      tags: [projects]
+      summary: Delete a template task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /project-templates/{id}/apply:
+    post:
+      operationId: applyTemplateToProject
+      tags: [projects]
+      summary: Apply a template to an existing project (supports multi-template composition)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyTemplateBody"
+      responses:
+        "201":
+          description: Apply result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplyTemplateResult"
 
   /projects/from-template:
     post:
@@ -3434,6 +3646,16 @@ components:
           type: boolean
         isMilestone:
           type: boolean
+        fromTemplate:
+          type: boolean
+          description: True if this task was created by applying a template
+        appliedTemplateId:
+          type: ["integer", "null"]
+          description: ID of the template that created this task
+        parentTaskId:
+          type: ["integer", "null"]
+        visibleToClient:
+          type: boolean
         createdAt:
           type: string
       required:
@@ -4583,6 +4805,122 @@ components:
         - completedTasks
         - dataPoints
 
+    TemplateTask:
+      type: object
+      properties:
+        id:
+          type: integer
+        templatePhaseId:
+          type: integer
+        templateId:
+          type: integer
+        name:
+          type: string
+        relativeDueDateOffset:
+          type: integer
+          description: Days from project start_date when this task is due
+        effort:
+          type: number
+        billableDefault:
+          type: boolean
+        priority:
+          type: string
+          enum: [Low, Medium, High, Critical]
+        assigneeRolePlaceholder:
+          type: string
+          nullable: true
+          description: Role placeholder (e.g. PM, Developer) — not a user ID
+        order:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - templatePhaseId
+        - templateId
+        - name
+        - relativeDueDateOffset
+        - effort
+        - billableDefault
+        - priority
+        - order
+
+    CreateTemplateTaskBody:
+      type: object
+      properties:
+        name:
+          type: string
+        relativeDueDateOffset:
+          type: integer
+        effort:
+          type: number
+        billableDefault:
+          type: boolean
+        priority:
+          type: string
+        assigneeRolePlaceholder:
+          type: string
+          nullable: true
+        order:
+          type: integer
+      required:
+        - name
+
+    TemplatePhase:
+      type: object
+      properties:
+        id:
+          type: integer
+        templateId:
+          type: integer
+        name:
+          type: string
+        relativeStartOffset:
+          type: integer
+          description: Days from project start_date when this phase starts
+        relativeEndOffset:
+          type: integer
+          description: Days from project start_date when this phase ends
+        privacyDefault:
+          type: string
+          enum: [shared, internal]
+        order:
+          type: integer
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateTask"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - templateId
+        - name
+        - relativeStartOffset
+        - relativeEndOffset
+        - privacyDefault
+        - order
+
+    CreateTemplatePhaseBody:
+      type: object
+      properties:
+        name:
+          type: string
+        relativeStartOffset:
+          type: integer
+        relativeEndOffset:
+          type: integer
+        privacyDefault:
+          type: string
+        order:
+          type: integer
+      required:
+        - name
+
     ProjectTemplate:
       type: object
       properties:
@@ -4592,16 +4930,24 @@ components:
           type: string
         description:
           type: string
+          nullable: true
         billingType:
           type: string
-        durationDays:
+        totalDurationDays:
           type: integer
+          description: Total project duration in calendar days
+        accountId:
+          type: integer
+          nullable: true
+        isArchived:
+          type: boolean
+        createdByUserId:
+          type: integer
+          nullable: true
         phases:
           type: array
           items:
-            type: object
-        createdByUserId:
-          type: integer
+            $ref: "#/components/schemas/TemplatePhase"
         createdAt:
           type: string
         updatedAt:
@@ -4610,7 +4956,8 @@ components:
         - id
         - name
         - billingType
-        - durationDays
+        - totalDurationDays
+        - isArchived
 
     CreateProjectTemplateBody:
       type: object
@@ -4619,20 +4966,72 @@ components:
           type: string
         description:
           type: string
+          nullable: true
         billingType:
           type: string
-        durationDays:
+        totalDurationDays:
           type: integer
-        phases:
-          type: array
-          items:
-            type: object
+        accountId:
+          type: integer
+          nullable: true
         createdByUserId:
           type: integer
+          nullable: true
       required:
         - name
-        - billingType
-        - durationDays
+
+    UpdateProjectTemplateBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        billingType:
+          type: string
+        totalDurationDays:
+          type: integer
+        accountId:
+          type: integer
+          nullable: true
+        isArchived:
+          type: boolean
+
+    ApplyTemplateBody:
+      type: object
+      properties:
+        projectId:
+          type: integer
+        startDate:
+          type: string
+          description: ISO date string (YYYY-MM-DD) — used as the base for offset calculations
+      required:
+        - projectId
+        - startDate
+
+    ApplyTemplateResult:
+      type: object
+      properties:
+        templateId:
+          type: integer
+        templateName:
+          type: string
+        projectId:
+          type: integer
+        startDate:
+          type: string
+        phasesCreated:
+          type: integer
+        tasksCreated:
+          type: integer
+      required:
+        - templateId
+        - templateName
+        - projectId
+        - startDate
+        - phasesCreated
+        - tasksCreated
 
     CreateProjectFromTemplateBody:
       type: object

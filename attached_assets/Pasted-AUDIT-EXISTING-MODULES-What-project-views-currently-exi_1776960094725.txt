@@ -1,0 +1,56 @@
+AUDIT EXISTING MODULES:
+- What project views currently exist? (List? Board/Kanban? Calendar?)
+- Do tasks already have start_date, due_date, duration?
+- Is there any dependency or blocking relationship between tasks?
+
+GAP MAPPING:
+→ Can users see tasks on a timeline?
+→ Can users create links between tasks (Task A must finish before Task B starts)?
+→ Can users save snapshots of schedules for comparison?
+
+INTEGRATION STEPS:
+1. VERIFY existing task table has: start_date, due_date, duration (or calculate duration)
+   - If missing: ADD `start_date` and `duration` fields, migrate from existing `due_date` if that's all you have
+
+2. CREATE `task_dependencies` table (NEW):
+   - predecessor_task_id, successor_task_id, dependency_type (default: 'finish_to_start')
+   - Foreign keys to your existing tasks table
+   - ADD unique constraint: no duplicate pairs, no self-references
+
+3. EXTEND existing project Plan page/tab:
+   - ADD "Timeline" toggle next to existing Board/List toggles
+   - Reuse existing task data API, render as horizontal bars on time axis
+   - Use existing task color coding or derive from phase colors
+   - ADD zoom controls (Quarter/Month/Week/Day) — state-only, no backend changes
+
+4. ADD dependency creation to existing task drawer:
+   - ADD "Dependencies" section with search dropdown (reuse existing task search)
+   - ADD visual dependency creation in Timeline: drag from task bar end to another's start
+   - On create: insert into `task_dependencies`, then cascade dates
+
+5. ADD date cascading logic (backend only):
+   - When predecessor due_date changes: calculate delta, apply to successor start_date + due_date
+   - Recurse through dependency chain (your existing task update hook)
+   - Prevent circular dependencies: detect cycle before save, reject with error
+
+6. CREATE `baselines` table (NEW):
+   - id, name, notes, snapshot_date, project_id
+   - `phase_snapshot` JSON: [{phase_id, start_date, end_date}]
+   - `task_snapshot` JSON: [{task_id, start_date, due_date}]
+   
+7. ADD baseline overlay to Timeline view:
+   - Fetch baselines for project, render grey bars behind live bars
+   - Reuse existing bar rendering, different color class
+   - ADD "Snapshot Baseline" button before Shift Dates operation
+
+8. ADD "Shift Dates" modal to existing Timeline toolbar:
+   - Inputs: shift_days (number), from_task_id (optional, null = all tasks)
+   - Backend: update task dates by delta, respect dependencies (cascade)
+   - ADD checkbox: "Save baseline before shifting" → triggers baseline creation first
+
+VERIFICATION:
+- [ ] Existing Board view unchanged when Timeline not selected
+- [ ] Create dependency: Task A ends day 5, Task B starts day 6. Shift Task A to end day 8 → Task B auto-shifts to start day 9
+- [ ] Circular dependency attempt → rejected with clear error
+- [ ] Save baseline, change dates, overlay shows original grey bars
+- [ ] Shift Dates +10 days on all tasks → all dates updated, dependencies respected

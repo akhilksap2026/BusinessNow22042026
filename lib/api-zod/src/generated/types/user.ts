@@ -16,6 +16,5 @@ export interface User {
   department: string;
   costRate: number;
   skills: string[];
-  secondaryRoles?: string[];
   createdAt: string;
 }
