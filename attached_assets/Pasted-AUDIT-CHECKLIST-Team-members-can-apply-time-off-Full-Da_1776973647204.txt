@@ -1,0 +1,31 @@
+AUDIT CHECKLIST
+[ ] Team members can apply time-off: Full Day, Half Day, Custom hours
+[ ] Admins/approvers can apply time-off on behalf of others
+[ ] Admins can create multi-region holiday calendars with single or multi-day holidays
+[ ] Holiday calendars assignable per team member
+[ ] System deducts both time-off and holidays from capacity for utilisation calculations
+[ ] Formula used: Available Capacity = Total Capacity - Time-Off Hours - Holiday Hours
+[ ] Time-off and holidays visually indicated on timesheet grid column headers
+[ ] System skips time-off requests on dates already marked as holidays (no duplicate deduction)
+
+INTEGRATION PROMPT
+Audit capacity and time-off logic. Overlay ONLY missing capabilities:
+
+1. Implement Time-Off self-service: Profile → Apply Time Off. Fields: Date Range, Duration Type (Full Day = daily capacity, Half Day = half capacity, Custom = user-specified hours), Notes, Notify Project Owners checkbox, Additional Notifications emails.
+2. Implement Time-Off on behalf: Approvals tab → select team member → Time Off button. Same fields.
+3. Implement Holiday Calendars: admin creates named calendars, adds holidays (single date or date range), toggles ON/OFF. Must be manually updated annually.
+4. Implement per-user calendar assignment: team member profile → Holiday Calendar dropdown.
+5. Implement correct capacity math: Available Capacity = Total Capacity - Time-Off Hours - Holiday Hours. This must be the denominator for ALL utilisation calculations. Using raw capacity without deductions is incorrect.
+6. Implement visual indicators: time-off icon on day column header, holiday icon on day column header. Expected hours for that day reduced accordingly.
+7. Implement deduplication logic: if user applies time-off on date already in their assigned holiday calendar, system skips time-off entry — no duplicate capacity deduction.
+8. Cross-module reflection: time-off must reduce available capacity in timesheets, resource management warnings, utilisation reports, and capacity planning reports.
+
+DO NOT BUILD YET
+- OOO auto-reply or stand-in assignment
+- Resource allocation conflict resolution beyond warnings
+
+VALIDATION
+[ ] User with 40h capacity takes one Full Day off. Verify Available Capacity = 32h.
+[ ] Assign holiday calendar with Monday holiday. Verify Monday shows holiday icon and capacity = 32h.
+[ ] Apply time-off on same Monday. Verify system rejects or skips duplicate.
+[ ] Check utilisation report. Verify denominator uses 32h, not 40h.

@@ -1,0 +1,26 @@
+AUDIT CHECKLIST
+[ ] Utilisation sub-report showing overall and billable utilisation
+[ ] Formula: (Time Tracked / Available Capacity) x 100 and (Billable Time Tracked / Available Capacity) x 100
+[ ] Available Capacity correctly calculated as Total Capacity - Time-Off - Holidays
+[ ] Timesheet Submissions compliance report (submitted/approved/not submitted indicators)
+[ ] Reports filterable by date range, role, team member, project, status
+[ ] Reports groupable and savable as named views
+[ ] Exports are asynchronous (delivered by email) for large datasets
+[ ] Tracked hours feed cross-module reports (People Performance, Ops Insights)
+
+INTEGRATION PROMPT
+Audit reporting capabilities. Overlay ONLY missing capabilities:
+
+1. Implement Utilisation Sub-Report: heatmap or tabular view. Rows = team members. Columns = time periods (week/month/quarter). Cell values = Utilisation %, color-coded. Formula must use Available Capacity (Total - Time-Off - Holidays) as denominator. Show both Overall Utilisation and Billable Utilisation.
+2. Implement Timesheet Submissions Sub-Report: compliance dashboard. Status indicators per team member per week: Green = Submitted/Approved, Yellow = Partial, Red = Not Submitted. Toggle between submission view and approval view. Toggle to show actual hours instead of icons.
+3. Implement common controls: Date Range filter, Filters panel, Group By, Save Filter as named view, asynchronous CSV export delivered by email.
+4. Implement cross-module feeds: push approved tracked hours to People Performance (utilisation, billable %) and Ops Insights (tracked vs planned at task/phase/project level).
+
+DO NOT BUILD YET
+- Deep drill-downs for Category Time, Project Time, or People Time beyond summary tables
+- Real-time synchronous exports
+
+VALIDATION
+[ ] User tracks 32h against 32h Available Capacity. Verify Utilisation = 100%.
+[ ] User tracks 16h billable against 32h Available. Verify Billable Utilisation = 50%.
+[ ] Export large date range. Verify async email delivery, not browser download timeout.

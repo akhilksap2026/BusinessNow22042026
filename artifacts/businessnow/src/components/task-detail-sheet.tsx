@@ -32,6 +32,7 @@ interface TaskDetailSheetProps {
   taskId: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isParent?: boolean;
 }
 
 const STATUS_OPTIONS = ["Not Started", "In Progress", "Blocked", "In Review", "Done"];
@@ -53,7 +54,7 @@ function priorityColor(p: string) {
   return "bg-slate-100 text-slate-600";
 }
 
-export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetProps) {
+export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }: TaskDetailSheetProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -272,12 +273,25 @@ export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetP
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Effort (hrs)</label>
-                  <Input
-                    type="number"
-                    className="h-8 text-sm"
-                    defaultValue={task?.effort ?? 0}
-                    onBlur={(e) => { if (e.target.value !== "") handleUpdateField("effort", Number(e.target.value)); }}
-                  />
+                  {isParent ? (
+                    <div className="h-8 flex items-center gap-1.5 rounded border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-2 text-xs text-amber-700 dark:text-amber-400">
+                      <span className="font-medium">Auto-calculated</span>
+                      <span className="text-amber-500">—</span>
+                      <span>sum of child tasks</span>
+                    </div>
+                  ) : (
+                    <Input
+                      type="number"
+                      className="h-8 text-sm"
+                      defaultValue={task?.effort ?? 0}
+                      onBlur={(e) => { if (e.target.value !== "") handleUpdateField("effort", Number(e.target.value)); }}
+                    />
+                  )}
+                  {isParent && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-500">
+                      This task has sub-tasks. Log time on leaf tasks only.
+                    </p>
+                  )}
                 </div>
               </div>
 

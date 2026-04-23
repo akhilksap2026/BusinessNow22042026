@@ -68,7 +68,6 @@ export default function ProjectDetail() {
   const [taskFilter, setTaskFilter] = useState<"overdue" | "blocked" | "at_risk" | "on_track" | null>(null);
   const [updateForm, setUpdateForm] = useState({ subject: "", body: "", type: "internal" });
   const [sendingUpdate, setSendingUpdate] = useState(false);
-  const [showPhaseProgress, setShowPhaseProgress] = useState(true);
   const updateTask = useUpdateTask();
 
   const [editProjectOpen, setEditProjectOpen] = useState(false);
@@ -613,44 +612,6 @@ export default function ProjectDetail() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* ── Phase Progress ──────────────────────────────── */}
-                {healthStats && healthStats.phases.length > 0 && (
-                  <div className="mb-5 border rounded-lg overflow-hidden">
-                    <button
-                      className="w-full flex items-center justify-between px-4 py-2.5 bg-muted/50 hover:bg-muted text-sm font-medium transition-colors"
-                      onClick={() => setShowPhaseProgress(v => !v)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                        Phase Progress
-                        <span className="text-xs text-muted-foreground font-normal">({healthStats.completionPct}% overall)</span>
-                      </span>
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showPhaseProgress ? "rotate-180" : ""}`} />
-                    </button>
-                    {showPhaseProgress && (
-                      <div className="divide-y">
-                        {healthStats.phases.map(ph => (
-                          <div key={ph.id} className="flex items-center gap-4 px-4 py-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium truncate">{ph.name}</span>
-                                <div className="flex items-center gap-2 ml-2 shrink-0">
-                                  {ph.overdueTasks > 0 && (
-                                    <span className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-1.5 py-0.5 rounded-full">{ph.overdueTasks} overdue</span>
-                                  )}
-                                  <span className="text-xs text-muted-foreground">{ph.completedTasks}/{ph.totalTasks}</span>
-                                  <span className="text-xs font-semibold">{ph.completionPct}%</span>
-                                </div>
-                              </div>
-                              <Progress value={ph.completionPct} className="h-1.5" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {/* ── Active Filter Banner ──────────────────────────── */}
                 {taskFilter && (
                   <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">

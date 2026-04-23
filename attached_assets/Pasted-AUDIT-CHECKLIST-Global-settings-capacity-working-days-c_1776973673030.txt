@@ -1,0 +1,30 @@
+AUDIT CHECKLIST
+[ ] Global settings: capacity, working days, calendar start day, due date/time, reminder timing, billable default
+[ ] Admin can create, reorder, edit, delete Time Entry Categories
+[ ] Admin can create custom time entry fields: Text, Dropdown single/multi, Date, Number
+[ ] Custom fields support inheritance (auto-pull from task/project/account-level fields)
+[ ] Inherited fields have configurable fallback values if source is empty
+[ ] Custom fields organized into sections with view/edit permissions per role/group
+[ ] Mandatory fields override section-level permissions (always visible to submitters)
+[ ] Admin can set default values for predefined activities
+[ ] Project templates can set per-task billable default and category default
+
+INTEGRATION PROMPT
+Audit configuration flexibility. Overlay ONLY missing capabilities:
+
+1. Implement Global Settings: enable/disable module, Team Member Capacity (hrs/week), Working Days checkboxes, Calendar Start Day (Monday/Sunday), Timesheet Due On (day + time), Send Reminders (pre/post deadline timing), Track Time Against (task/milestone/phase/activity combinations), Team Members Can Only Report Time For (scope restrictions), Hours to Be Reported (min/max/exact), Billable Default, Approval Settings (Project Owner vs Timesheet Approver), Lock toggles, Rejected Hours toggle, Timesheet Exclusion List.
+2. Implement Time Entry Categories: admin CRUD with drag-drop reorder. Deleting category does not delete historical entries (they retain label in reports).
+3. Implement Custom Time Entry Fields: types Text, Dropdown (single/multi), Date, Number. Properties: Field Name, Description, Section assignment, Mandatory toggle, Population Method (Manual or Inherited from task/project/account field), Fallback Value.
+4. Implement Section-Level Permissions: view and edit permissions per section per role/group. Mandatory fields ignore these permissions — always visible to everyone submitting an entry.
+5. Implement Default Values for Activities: admin-configured defaults auto-populate fields when team members log time against predefined activities.
+6. Implement Template-Level Config: project templates gain Time Entry Settings on each task — (a) Mark task as Billable default, (b) Map task to specific Category. These carry forward to projects created from template.
+
+DO NOT BUILD YET
+- Enterprise RBAC (Group & Visible scopes)
+- Field-level conditional logic
+
+VALIDATION
+[ ] Create custom field "Jira Ticket ID" (Text, Mandatory). Verify appears on all entry forms.
+[ ] Set field to inherit from Task-level "External ID". Verify auto-populates. Clear source field → verify fallback value appears.
+[ ] Hide section from Team Member role. Verify mandatory field in that section still appears.
+[ ] Set template task default to Non-Billable + Category = Meetings. Create project from template. Verify defaults apply.
