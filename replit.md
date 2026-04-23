@@ -152,6 +152,15 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **T009 Holiday Calendar capacity subtraction** — `/resources/capacity` now fetches this week's holidays from `holidayDatesTable` and subtracts 8h per holiday day from each user's weekly capacity
 - **DB** — `milestoneType` column (text) + `task_roles` column (jsonb) added to tasks table and pushed to production DB
 
+### Audit pass — Resource Mgmt & Capacity Planning (2026-04-23)
+Ran the comprehensive audit checklist (`docs/comprehensive-audit-2026-04.md`). Critical/high gaps fixed:
+- **Capacity-planning report (NEW)** — `GET /api/reports/capacity-planning?weeks=N` (max 52). Returns weekly buckets with `availableFTE`, `assignedDemandFTE` (named users), `unassignedDemandFTE` (placeholders), `totalDemandFTE`, `surplusFTE`, plus per-role `byRole[]`. New "Capacity Planning" tab on Reports page renders a stacked Demand-vs-Supply chart (ComposedChart: Available area + Assigned/Unassigned bars), CSV export, and a Role-level Surplus/Deficit table sorted worst-first.
+- **Archived projects excluded from utilization** — `/resources/capacity` now filters allocations by `projects.deletedAt IS NULL`.
+- **Resources page tab persisted** — `localStorage["resources.activeTab"]` (defaultValue, uncontrolled).
+- False-positive in audit corrected: template allocations DO carry over (`projectTemplates.ts:642–696`).
+- Backlog (documented in audit doc): per-placeholder Find Team Member, blocking Replacement Requests on auto-allocate projects, configurable FTE workweek, row-level GET ownership for Team Member role.
+- Files: `artifacts/api-server/src/routes/allocations.ts`, `artifacts/api-server/src/routes/reports.ts`, `artifacts/businessnow/src/pages/reports.tsx`, `artifacts/businessnow/src/pages/resources.tsx`, `docs/comprehensive-audit-2026-04.md`.
+
 ### Sprint 14 — Saved Views (filter configurations)
 - **DB**: New `saved_views` table (id, name, entity enum projects/people/resource_requests, filters JSONB, visibility private/public, createdByUserId, createdAt, updatedAt) with indexes on (entity) and (createdByUserId). Filters JSON shape: `{ matchMode: "all"|"any", conditions: [{ field, operator, value }] }`. Pushed via `cd lib/db && pnpm run push-force`.
 - **API endpoints** (`savedViews.ts`): `GET /saved-views?entity=` (returns own private + all public, with `isOwner` flag), `POST /saved-views`, `PUT /saved-views/:id`, `DELETE /saved-views/:id`, `POST /saved-views/:id/duplicate` (creates a private copy owned by caller). All write routes require PM+. Permission model: owner can edit/delete their views; Admin/Super User can edit/delete public views. Current user identified via `x-user-id` header.

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, phasesTable, accountsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, phasesTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable } from "@workspace/db";
+import { eq, and, isNull } from "drizzle-orm";
 import {
   GetUtilizationReportResponse,
   GetRevenueReportResponse,
@@ -447,6 +447,133 @@ router.post("/reports/interval-iq/intervals", async (req, res): Promise<void> =>
     benchmarkDays: parseInt(benchmarkDays, 10) || 0,
   }).returning();
   res.status(201).json(row);
+});
+
+// ─── Capacity Planning Report ────────────────────────────────────────────────
+// Demand vs Supply (FTE) by week for up to 52 weeks. Demand split into
+// assigned (named user) and unassigned (placeholder). Includes role breakdown.
+router.get("/reports/capacity-planning", async (req, res): Promise<void> => {
+  const STD_WEEK = 40;
+  const requested = parseInt(String(req.query.weeks ?? "12"), 10);
+  const weeks = Math.min(52, Math.max(1, isNaN(requested) ? 12 : requested));
+
+  const startParam = req.query.startDate ? String(req.query.startDate) : null;
+  const startDate = startParam ? new Date(startParam) : new Date();
+  // Snap to Monday
+  const dow = startDate.getDay();
+  const diffMon = dow === 0 ? -6 : 1 - dow;
+  startDate.setDate(startDate.getDate() + diffMon);
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + weeks * 7 - 1);
+  const startStr = startDate.toISOString().slice(0, 10);
+  const endStr = endDate.toISOString().slice(0, 10);
+
+  const [users, allocations, projects, holidays, timeOffs] = await Promise.all([
+    db.select().from(usersTable),
+    db.select().from(allocationsTable),
+    db.select().from(projectsTable),
+    db.select().from(holidayDatesTable),
+    db.select().from(timeOffRequestsTable).where(eq(timeOffRequestsTable.status, "Approved")),
+  ]);
+
+  const internalActiveUsers = users.filter(u => u.isInternal !== false && u.isActive === 1);
+  const activeProjectIds = new Set(projects.filter(p => !p.deletedAt).map(p => p.id));
+  const activeAllocs = allocations.filter(a => activeProjectIds.has(a.projectId));
+
+  function intersectsWeek(allocStart: string, allocEnd: string, wStart: string, wEnd: string) {
+    return allocStart <= wEnd && allocEnd >= wStart;
+  }
+  function workingDaysInWeek(wStart: Date) {
+    const days: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(wStart); d.setDate(wStart.getDate() + i);
+      const dn = d.getDay();
+      if (dn !== 0 && dn !== 6) days.push(d.toISOString().slice(0, 10));
+    }
+    return days;
+  }
+
+  const buckets: any[] = [];
+  for (let w = 0; w < weeks; w++) {
+    const wStart = new Date(startDate); wStart.setDate(startDate.getDate() + w * 7);
+    const wEnd = new Date(wStart); wEnd.setDate(wStart.getDate() + 6);
+    const wStartStr = wStart.toISOString().slice(0, 10);
+    const wEndStr = wEnd.toISOString().slice(0, 10);
+    const workDays = workingDaysInWeek(wStart);
+    const holidaySet = new Set(
+      holidays.filter(h => workDays.includes(h.date)).map(h => h.date)
+    );
+
+    let supplyHours = 0;
+    let timeOffHours = 0;
+    let holidayHours = 0;
+    const roleSupply = new Map<string, number>();
+
+    for (const u of internalActiveUsers) {
+      const dailyCap = u.capacity / 5;
+      const userHolidayHours = holidaySet.size * dailyCap;
+      const userTOs = timeOffs.filter(
+        t => t.userId === u.id && t.startDate <= wEndStr && t.endDate >= wStartStr
+      );
+      let toDays = 0;
+      for (const t of userTOs) {
+        const tStart = t.startDate > wStartStr ? t.startDate : wStartStr;
+        const tEnd = t.endDate < wEndStr ? t.endDate : wEndStr;
+        for (const wd of workDays) {
+          if (wd >= tStart && wd <= tEnd) toDays++;
+        }
+      }
+      const userTOHours = toDays * dailyCap;
+      const cap = Math.max(0, u.capacity - userHolidayHours - userTOHours);
+      supplyHours += cap;
+      holidayHours += userHolidayHours;
+      timeOffHours += userTOHours;
+      const r = u.role || "Unspecified";
+      roleSupply.set(r, (roleSupply.get(r) ?? 0) + cap);
+    }
+
+    let assignedHours = 0;
+    let unassignedHours = 0;
+    const roleDemand = new Map<string, number>();
+    for (const a of activeAllocs) {
+      if (!intersectsWeek(a.startDate, a.endDate, wStartStr, wEndStr)) continue;
+      const hpw = Number(a.hoursPerWeek);
+      if (a.userId !== null) assignedHours += hpw;
+      else unassignedHours += hpw;
+      const r = a.role || a.placeholderRole || "Unspecified";
+      roleDemand.set(r, (roleDemand.get(r) ?? 0) + hpw);
+    }
+
+    const allRoles = new Set<string>([...roleSupply.keys(), ...roleDemand.keys()]);
+    const byRole = Array.from(allRoles).map(role => {
+      const supply = roleSupply.get(role) ?? 0;
+      const demand = roleDemand.get(role) ?? 0;
+      return {
+        role,
+        supplyFTE: Math.round((supply / STD_WEEK) * 100) / 100,
+        demandFTE: Math.round((demand / STD_WEEK) * 100) / 100,
+        surplusFTE: Math.round(((supply - demand) / STD_WEEK) * 100) / 100,
+      };
+    }).sort((a, b) => a.role.localeCompare(b.role));
+
+    buckets.push({
+      weekStart: wStartStr,
+      weekEnd: wEndStr,
+      totalCapacityFTE: Math.round((internalActiveUsers.reduce((s, u) => s + u.capacity, 0) / STD_WEEK) * 100) / 100,
+      timeOffFTE: Math.round((timeOffHours / STD_WEEK) * 100) / 100,
+      holidayFTE: Math.round((holidayHours / STD_WEEK) * 100) / 100,
+      availableFTE: Math.round((supplyHours / STD_WEEK) * 100) / 100,
+      assignedDemandFTE: Math.round((assignedHours / STD_WEEK) * 100) / 100,
+      unassignedDemandFTE: Math.round((unassignedHours / STD_WEEK) * 100) / 100,
+      totalDemandFTE: Math.round(((assignedHours + unassignedHours) / STD_WEEK) * 100) / 100,
+      surplusFTE: Math.round(((supplyHours - assignedHours - unassignedHours) / STD_WEEK) * 100) / 100,
+      byRole,
+    });
+  }
+
+  res.json({ weeks, startDate: startStr, endDate: endStr, standardWeekHours: STD_WEEK, buckets });
 });
 
 export default router;

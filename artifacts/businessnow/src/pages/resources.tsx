@@ -278,7 +278,13 @@ export default function Resources() {
           )}
         </div>
 
-        <Tabs defaultValue={pendingRequests.length > 0 ? "requests" : "capacity"}>
+        <Tabs
+          defaultValue={
+            (typeof window !== "undefined" ? localStorage.getItem("resources.activeTab") : null) ||
+            (pendingRequests.length > 0 ? "requests" : "capacity")
+          }
+          onValueChange={(v) => { try { localStorage.setItem("resources.activeTab", v); } catch {} }}
+        >
           <TabsList className="mb-4">
             <TabsTrigger value="capacity" className="flex items-center gap-2">
               <Users className="h-4 w-4" /> Capacity

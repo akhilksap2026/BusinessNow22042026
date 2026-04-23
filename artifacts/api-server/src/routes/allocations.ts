@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, isNull } from "drizzle-orm";
 import { requirePM } from "../middleware/rbac";
-import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable } from "@workspace/db";
+import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable, projectsTable } from "@workspace/db";
 import {
   ListAllocationsResponse,
   ListAllocationsQueryParams,
@@ -228,7 +228,11 @@ router.get("/resources/capacity", async (_req, res): Promise<void> => {
   const allUsers = await db.select().from(usersTable);
   // Exclude external contacts (is_internal=false) from resource pool
   const users = allUsers.filter(u => u.isInternal !== false);
-  const allocations = await db.select().from(allocationsTable);
+  // Exclude allocations from soft-deleted (archived) projects
+  const activeProjects = await db.select({ id: projectsTable.id }).from(projectsTable).where(isNull(projectsTable.deletedAt));
+  const activeProjectIds = new Set(activeProjects.map(p => p.id));
+  const allAllocations = await db.select().from(allocationsTable);
+  const allocations = allAllocations.filter(a => activeProjectIds.has(a.projectId));
   const now = new Date();
   const nowStr = now.toISOString().slice(0, 10);
 

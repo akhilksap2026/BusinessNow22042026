@@ -22,7 +22,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend,
   ResponsiveContainer, LineChart, Line, Cell, ReferenceLine,
 } from "recharts";
-import { Download, AlertTriangle, CheckCircle2, Star, TrendingUp, Clock, Filter } from "lucide-react";
+import { Download, AlertTriangle, CheckCircle2, Star, TrendingUp, Clock, Filter, Activity } from "lucide-react";
+import { ComposedChart, Area } from "recharts";
 
 function downloadCSV(filename: string, rows: Record<string, any>[]) {
   if (!rows.length) return;
@@ -664,6 +665,155 @@ function IntervalIqReport() {
   );
 }
 
+function CapacityPlanningReport() {
+  const [weeks, setWeeks] = useState(12);
+  const { data, isLoading } = useQuery({
+    queryKey: ["/api/reports/capacity-planning", weeks],
+    queryFn: async () => {
+      const r = await fetch(`/api/reports/capacity-planning?weeks=${weeks}`);
+      if (!r.ok) throw new Error("Failed to load capacity planning");
+      return r.json() as Promise<{
+        weeks: number;
+        startDate: string;
+        endDate: string;
+        standardWeekHours: number;
+        buckets: Array<{
+          weekStart: string; weekEnd: string;
+          totalCapacityFTE: number; timeOffFTE: number; holidayFTE: number;
+          availableFTE: number; assignedDemandFTE: number; unassignedDemandFTE: number;
+          totalDemandFTE: number; surplusFTE: number;
+          byRole: Array<{ role: string; supplyFTE: number; demandFTE: number; surplusFTE: number }>;
+        }>;
+      }>;
+    },
+  });
+
+  const chartData = useMemo(() => (data?.buckets ?? []).map(b => ({
+    week: b.weekStart.slice(5),
+    Available: b.availableFTE,
+    Assigned: b.assignedDemandFTE,
+    Unassigned: b.unassignedDemandFTE,
+    Total: b.totalDemandFTE,
+  })), [data]);
+
+  const roleSummary = useMemo(() => {
+    if (!data?.buckets.length) return [];
+    const acc = new Map<string, { role: string; supply: number; demand: number; n: number }>();
+    for (const b of data.buckets) {
+      for (const r of b.byRole) {
+        const cur = acc.get(r.role) ?? { role: r.role, supply: 0, demand: 0, n: 0 };
+        cur.supply += r.supplyFTE; cur.demand += r.demandFTE; cur.n += 1;
+        acc.set(r.role, cur);
+      }
+    }
+    return Array.from(acc.values()).map(x => ({
+      role: x.role,
+      avgSupplyFTE: Math.round((x.supply / x.n) * 10) / 10,
+      avgDemandFTE: Math.round((x.demand / x.n) * 10) / 10,
+      avgSurplusFTE: Math.round(((x.supply - x.demand) / x.n) * 10) / 10,
+    })).sort((a, b) => a.avgSurplusFTE - b.avgSurplusFTE);
+  }, [data]);
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle>Capacity Planning — Demand vs Supply</CardTitle>
+            <CardDescription>FTE forecast by week. Standard week = {data?.standardWeekHours ?? 40}h.</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={String(weeks)} onValueChange={(v) => setWeeks(parseInt(v, 10))}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="4">4 weeks</SelectItem>
+                <SelectItem value="8">8 weeks</SelectItem>
+                <SelectItem value="12">12 weeks</SelectItem>
+                <SelectItem value="26">26 weeks</SelectItem>
+                <SelectItem value="52">52 weeks (1 yr max)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!data?.buckets.length}
+              onClick={() => downloadCSV("capacity-planning.csv", (data?.buckets ?? []).map(b => ({
+                weekStart: b.weekStart,
+                availableFTE: b.availableFTE,
+                assignedDemandFTE: b.assignedDemandFTE,
+                unassignedDemandFTE: b.unassignedDemandFTE,
+                totalDemandFTE: b.totalDemandFTE,
+                surplusFTE: b.surplusFTE,
+              })))}
+            >
+              <Download className="h-4 w-4 mr-1" /> CSV
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-72 w-full" />
+          ) : !chartData.length ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No data.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={320}>
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="week" />
+                <YAxis label={{ value: "FTE", angle: -90, position: "insideLeft" }} />
+                <RechartsTooltip />
+                <Legend />
+                <Area type="monotone" dataKey="Available" fill="hsl(142 70% 45% / 0.25)" stroke="hsl(142 70% 45%)" />
+                <Bar dataKey="Assigned" stackId="d" fill="hsl(217 91% 60%)" />
+                <Bar dataKey="Unassigned" stackId="d" fill="hsl(38 92% 50%)" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Role-level Surplus / Deficit</CardTitle>
+          <CardDescription>Average FTE per week across the selected horizon. Negative surplus = deficit.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-48 w-full" />
+          ) : !roleSummary.length ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">No role data.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="py-2 px-2">Role</th>
+                    <th className="py-2 px-2 text-right">Avg Supply (FTE)</th>
+                    <th className="py-2 px-2 text-right">Avg Demand (FTE)</th>
+                    <th className="py-2 px-2 text-right">Surplus (FTE)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roleSummary.map(r => (
+                    <tr key={r.role} className="border-b last:border-0">
+                      <td className="py-2 px-2 font-medium">{r.role}</td>
+                      <td className="py-2 px-2 text-right">{r.avgSupplyFTE}</td>
+                      <td className="py-2 px-2 text-right">{r.avgDemandFTE}</td>
+                      <td className={`py-2 px-2 text-right font-semibold ${r.avgSurplusFTE < 0 ? "text-red-600" : "text-green-600"}`}>
+                        {r.avgSurplusFTE > 0 ? "+" : ""}{r.avgSurplusFTE}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function Reports() {
   const { data: utilization, isLoading: isLoadingUtilization } = useGetUtilizationReport();
   const { data: revenue, isLoading: isLoadingRevenue } = useGetRevenueReport();
@@ -689,6 +839,7 @@ export default function Reports() {
         <Tabs defaultValue="performance" className="w-full">
           <TabsList className="mb-4 flex-wrap h-auto gap-1">
             <TabsTrigger value="performance" className="flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Performance</TabsTrigger>
+            <TabsTrigger value="capacity-planning" className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Capacity Planning</TabsTrigger>
             <TabsTrigger value="operations">Operations</TabsTrigger>
             <TabsTrigger value="csat" className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5" /> CSAT Trend</TabsTrigger>
             <TabsTrigger value="interval-iq" className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Interval IQ</TabsTrigger>
@@ -701,6 +852,10 @@ export default function Reports() {
 
           <TabsContent value="performance" className="m-0">
             <ProjectPerformanceReport />
+          </TabsContent>
+
+          <TabsContent value="capacity-planning" className="space-y-4 m-0">
+            <CapacityPlanningReport />
           </TabsContent>
 
           <TabsContent value="operations" className="m-0">
