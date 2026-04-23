@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/contexts/current-user";
+import { useDensity } from "@/contexts/density";
 import {
   LayoutDashboard,
   Briefcase,
@@ -32,6 +33,7 @@ import {
   X,
   ChevronDown,
   ShieldCheck,
+  SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -74,6 +76,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { currentUser, activeRole, availableRoles, switchRole } = useCurrentUser();
+  const { density, setDensity } = useDensity();
   const { data: notifications } = useListNotifications();
   const markRead = useMarkNotificationRead();
   const unreadCount = notifications?.filter(n => !n.read).length ?? 0;
@@ -275,6 +278,29 @@ export function Layout({ children }: { children: ReactNode }) {
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               )}
+              {availableRoles.length > 1 && <DropdownMenuSeparator />}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2 cursor-pointer">
+                  <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                  Density
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem
+                    className={cn("cursor-pointer gap-2", density === "compact" && "font-semibold text-primary")}
+                    onClick={() => setDensity("compact")}
+                  >
+                    {density === "compact" && <span className="text-primary">✓</span>}
+                    Compact
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className={cn("cursor-pointer gap-2", density === "comfortable" && "font-semibold text-primary")}
+                    onClick={() => setDensity("comfortable")}
+                  >
+                    {density === "comfortable" && <span className="text-primary">✓</span>}
+                    Comfortable
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 cursor-pointer gap-2"

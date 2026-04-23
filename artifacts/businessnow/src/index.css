@@ -215,11 +215,15 @@
   }
 
   html {
-    /* 14.25px root: keeps ~12% global scale-down for density,
-       while ensuring h-9 / min-h-9 controls land at 32.06px so
-       buttons, inputs, selects and icon-buttons stay >= 32px tall
-       (touch-target floor, per WCAG-friendly target sizing). */
+    /* Compact (default): 14.25px root keeps ~11% global scale-down while
+       ensuring h-9 / min-h-9 controls land at 32.06px >= touch-target floor. */
     font-size: 14.25px;
+  }
+
+  /* Comfortable density: opt-in via the DensityProvider toggling this class. */
+  html.density-comfortable {
+    font-size: 16px;
+    --radius: .5rem;
   }
 
   body {
