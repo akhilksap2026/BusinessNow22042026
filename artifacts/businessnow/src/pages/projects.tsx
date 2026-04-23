@@ -13,6 +13,30 @@ import { Plus, MoreHorizontal, Search, X, Archive, RotateCcw } from "lucide-reac
 import { CreateProjectWizard } from "@/components/create-project-wizard";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { SavedViewsBar } from "@/components/saved-views-bar";
+import { type FieldDef, type FilterValue, EMPTY_FILTER, evaluateFilters } from "@/lib/filter-evaluator";
+
+const PROJECT_FIELDS: FieldDef[] = [
+  { id: "name", label: "Name", type: "text" },
+  { id: "status", label: "Status", type: "enum", options: [
+    { value: "Not Started", label: "Not Started" },
+    { value: "In Progress", label: "In Progress" },
+    { value: "At Risk", label: "At Risk" },
+    { value: "Completed", label: "Completed" },
+  ] },
+  { id: "health", label: "Health", type: "enum", options: [
+    { value: "On Track", label: "On Track" },
+    { value: "At Risk", label: "At Risk" },
+    { value: "Off Track", label: "Off Track" },
+  ] },
+  { id: "internalExternal", label: "Type", type: "enum", options: [
+    { value: "Internal", label: "Internal" },
+    { value: "External", label: "External" },
+  ] },
+  { id: "startDate", label: "Start date", type: "date" },
+  { id: "endDate", label: "End date", type: "date" },
+  { id: "budget", label: "Budget", type: "number" },
+];
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -67,6 +91,7 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("All Health");
   const [showArchived, setShowArchived] = useState(false);
+  const [viewFilter, setViewFilter] = useState<FilterValue>(EMPTY_FILTER);
   const qc = useQueryClient();
   const { toast } = useToast();
   const deleteMut = useDeleteProject();
@@ -105,12 +130,13 @@ export default function Projects() {
     });
   }
 
-  const visibleProjects = (projects?.filter(p => !p.isAdminProject) ?? [])
+  const baseFiltered = (projects?.filter(p => !p.isAdminProject) ?? [])
     .filter(p => statusFilter === "All" || p.status === statusFilter)
     .filter(p => healthFilter === "All Health" || p.health === healthFilter)
     .filter(p => !searchText || p.name.toLowerCase().includes(searchText.toLowerCase()));
+  const visibleProjects = evaluateFilters(baseFiltered, PROJECT_FIELDS, viewFilter);
 
-  const hasActiveFilters = statusFilter !== "All" || healthFilter !== "All Health" || searchText;
+  const hasActiveFilters = statusFilter !== "All" || healthFilter !== "All Health" || searchText || viewFilter.conditions.length > 0;
 
   function clearFilters() {
     setStatusFilter("All");
@@ -184,6 +210,10 @@ export default function Projects() {
               <X className="h-3.5 w-3.5" /> Clear
             </Button>
           )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <SavedViewsBar entity="projects" fields={PROJECT_FIELDS} value={viewFilter} onChange={setViewFilter} />
         </div>
 
         <Card>

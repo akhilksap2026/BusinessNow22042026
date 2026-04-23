@@ -35,6 +35,8 @@ tags:
     description: Reporting endpoints
   - name: notifications
     description: Notifications
+  - name: savedViews
+    description: Saved views (filter configurations)
 
 paths:
   /healthz:
@@ -3403,6 +3405,111 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AuditLogEntry'
+
+  /saved-views:
+    get:
+      summary: List saved views for an entity
+      operationId: listSavedViews
+      tags: [savedViews]
+      parameters:
+        - in: query
+          name: entity
+          required: true
+          schema:
+            type: string
+            enum: [projects, people, resource_requests]
+      responses:
+        '200':
+          description: Saved views visible to the current user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SavedView'
+    post:
+      summary: Create a saved view
+      operationId: createSavedView
+      tags: [savedViews]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSavedViewBody'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedView'
+
+  /saved-views/{id}:
+    put:
+      summary: Update a saved view
+      operationId: updateSavedView
+      tags: [savedViews]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSavedViewBody'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedView'
+    delete:
+      summary: Delete a saved view
+      operationId: deleteSavedView
+      tags: [savedViews]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
+  /saved-views/{id}/duplicate:
+    post:
+      summary: Duplicate a saved view as a private copy owned by current user
+      operationId: duplicateSavedView
+      tags: [savedViews]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Duplicated view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedView'
 
 components:
   schemas:
@@ -6808,3 +6915,92 @@ components:
         - entityId
         - action
         - timestamp
+
+    SavedViewCondition:
+      type: object
+      properties:
+        field:
+          type: string
+        operator:
+          type: string
+        value: {}
+      required:
+        - field
+        - operator
+
+    SavedViewFilters:
+      type: object
+      properties:
+        matchMode:
+          type: string
+          enum: [all, any]
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedViewCondition'
+      required:
+        - matchMode
+        - conditions
+
+    SavedView:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        entity:
+          type: string
+          enum: [projects, people, resource_requests]
+        filters:
+          $ref: '#/components/schemas/SavedViewFilters'
+        visibility:
+          type: string
+          enum: [private, public]
+        createdByUserId:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        isOwner:
+          type: boolean
+      required:
+        - id
+        - name
+        - entity
+        - filters
+        - visibility
+        - createdByUserId
+        - createdAt
+        - updatedAt
+        - isOwner
+
+    CreateSavedViewBody:
+      type: object
+      properties:
+        name:
+          type: string
+        entity:
+          type: string
+          enum: [projects, people, resource_requests]
+        filters:
+          $ref: '#/components/schemas/SavedViewFilters'
+        visibility:
+          type: string
+          enum: [private, public]
+      required:
+        - name
+        - entity
+        - filters
+
+    UpdateSavedViewBody:
+      type: object
+      properties:
+        name:
+          type: string
+        filters:
+          $ref: '#/components/schemas/SavedViewFilters'
+        visibility:
+          type: string
+          enum: [private, public]

@@ -54,6 +54,7 @@ import type {
   CreateRateCardBody,
   CreateResourceRequestBody,
   CreateRevenueEntryBody,
+  CreateSavedViewBody,
   CreateSkillBody,
   CreateSkillCategoryBody,
   CreateTaskBody,
@@ -74,6 +75,7 @@ import type {
   CustomFieldValue,
   DashboardSummary,
   DocumentVersion,
+  DuplicateSavedViewBody,
   FinanceSummary,
   FormField,
   FormResponse,
@@ -98,6 +100,7 @@ import type {
   ListProspectsParams,
   ListResourceRequestsParams,
   ListRevenueEntriesParams,
+  ListSavedViewsParams,
   ListSkillsParams,
   ListTasksParams,
   ListTimeEntriesParams,
@@ -122,6 +125,7 @@ import type {
   RevenueByPeriodReport,
   RevenueEntry,
   RevenueReport,
+  SavedView,
   Skill,
   SkillCategory,
   SubmitFormResponseBody,
@@ -153,6 +157,7 @@ import type {
   UpdateRateCardBody,
   UpdateResourceRequestBody,
   UpdateResourceRequestStatusBody,
+  UpdateSavedViewBody,
   UpdateTaskBody,
   UpdateTaskChecklistItemBody,
   UpdateTemplateAllocationBody,
@@ -15341,3 +15346,441 @@ export function useListAuditLog<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List saved views for an entity
+ */
+export const getListSavedViewsUrl = (params: ListSavedViewsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/saved-views?${stringifiedParams}`
+    : `/api/saved-views`;
+};
+
+export const listSavedViews = async (
+  params: ListSavedViewsParams,
+  options?: RequestInit,
+): Promise<SavedView[]> => {
+  return customFetch<SavedView[]>(getListSavedViewsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSavedViewsQueryKey = (params?: ListSavedViewsParams) => {
+  return [`/api/saved-views`, ...(params ? [params] : [])] as const;
+};
+
+export const getListSavedViewsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSavedViews>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ListSavedViewsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSavedViews>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSavedViewsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSavedViews>>> = ({
+    signal,
+  }) => listSavedViews(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSavedViews>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSavedViewsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSavedViews>>
+>;
+export type ListSavedViewsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List saved views for an entity
+ */
+
+export function useListSavedViews<
+  TData = Awaited<ReturnType<typeof listSavedViews>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ListSavedViewsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSavedViews>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSavedViewsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a saved view
+ */
+export const getCreateSavedViewUrl = () => {
+  return `/api/saved-views`;
+};
+
+export const createSavedView = async (
+  createSavedViewBody: CreateSavedViewBody,
+  options?: RequestInit,
+): Promise<SavedView> => {
+  return customFetch<SavedView>(getCreateSavedViewUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSavedViewBody),
+  });
+};
+
+export const getCreateSavedViewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSavedView>>,
+    TError,
+    { data: BodyType<CreateSavedViewBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSavedView>>,
+  TError,
+  { data: BodyType<CreateSavedViewBody> },
+  TContext
+> => {
+  const mutationKey = ["createSavedView"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSavedView>>,
+    { data: BodyType<CreateSavedViewBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSavedView(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSavedViewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSavedView>>
+>;
+export type CreateSavedViewMutationBody = BodyType<CreateSavedViewBody>;
+export type CreateSavedViewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a saved view
+ */
+export const useCreateSavedView = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSavedView>>,
+    TError,
+    { data: BodyType<CreateSavedViewBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSavedView>>,
+  TError,
+  { data: BodyType<CreateSavedViewBody> },
+  TContext
+> => {
+  return useMutation(getCreateSavedViewMutationOptions(options));
+};
+
+/**
+ * @summary Update a saved view
+ */
+export const getUpdateSavedViewUrl = (id: number) => {
+  return `/api/saved-views/${id}`;
+};
+
+export const updateSavedView = async (
+  id: number,
+  updateSavedViewBody: UpdateSavedViewBody,
+  options?: RequestInit,
+): Promise<SavedView> => {
+  return customFetch<SavedView>(getUpdateSavedViewUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSavedViewBody),
+  });
+};
+
+export const getUpdateSavedViewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSavedView>>,
+    TError,
+    { id: number; data: BodyType<UpdateSavedViewBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSavedView>>,
+  TError,
+  { id: number; data: BodyType<UpdateSavedViewBody> },
+  TContext
+> => {
+  const mutationKey = ["updateSavedView"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSavedView>>,
+    { id: number; data: BodyType<UpdateSavedViewBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSavedView(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSavedViewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSavedView>>
+>;
+export type UpdateSavedViewMutationBody = BodyType<UpdateSavedViewBody>;
+export type UpdateSavedViewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a saved view
+ */
+export const useUpdateSavedView = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSavedView>>,
+    TError,
+    { id: number; data: BodyType<UpdateSavedViewBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSavedView>>,
+  TError,
+  { id: number; data: BodyType<UpdateSavedViewBody> },
+  TContext
+> => {
+  return useMutation(getUpdateSavedViewMutationOptions(options));
+};
+
+/**
+ * @summary Delete a saved view
+ */
+export const getDeleteSavedViewUrl = (id: number) => {
+  return `/api/saved-views/${id}`;
+};
+
+export const deleteSavedView = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteSavedViewUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSavedViewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSavedView>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSavedView>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteSavedView"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSavedView>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSavedView(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSavedViewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSavedView>>
+>;
+
+export type DeleteSavedViewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a saved view
+ */
+export const useDeleteSavedView = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSavedView>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSavedView>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteSavedViewMutationOptions(options));
+};
+
+/**
+ * @summary Duplicate a saved view as a private copy owned by current user
+ */
+export const getDuplicateSavedViewUrl = (id: number) => {
+  return `/api/saved-views/${id}/duplicate`;
+};
+
+export const duplicateSavedView = async (
+  id: number,
+  duplicateSavedViewBody?: DuplicateSavedViewBody,
+  options?: RequestInit,
+): Promise<SavedView> => {
+  return customFetch<SavedView>(getDuplicateSavedViewUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(duplicateSavedViewBody),
+  });
+};
+
+export const getDuplicateSavedViewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof duplicateSavedView>>,
+    TError,
+    { id: number; data: BodyType<DuplicateSavedViewBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof duplicateSavedView>>,
+  TError,
+  { id: number; data: BodyType<DuplicateSavedViewBody> },
+  TContext
+> => {
+  const mutationKey = ["duplicateSavedView"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof duplicateSavedView>>,
+    { id: number; data: BodyType<DuplicateSavedViewBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return duplicateSavedView(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DuplicateSavedViewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof duplicateSavedView>>
+>;
+export type DuplicateSavedViewMutationBody = BodyType<DuplicateSavedViewBody>;
+export type DuplicateSavedViewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Duplicate a saved view as a private copy owned by current user
+ */
+export const useDuplicateSavedView = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof duplicateSavedView>>,
+    TError,
+    { id: number; data: BodyType<DuplicateSavedViewBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof duplicateSavedView>>,
+  TError,
+  { id: number; data: BodyType<DuplicateSavedViewBody> },
+  TContext
+> => {
+  return useMutation(getDuplicateSavedViewMutationOptions(options));
+};

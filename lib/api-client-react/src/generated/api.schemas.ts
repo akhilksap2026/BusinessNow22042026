@@ -1466,6 +1466,92 @@ export interface AuditLogEntry {
   timestamp: string;
 }
 
+export interface SavedViewCondition {
+  field: string;
+  operator: string;
+  value?: unknown;
+}
+
+export type SavedViewFiltersMatchMode =
+  (typeof SavedViewFiltersMatchMode)[keyof typeof SavedViewFiltersMatchMode];
+
+export const SavedViewFiltersMatchMode = {
+  all: "all",
+  any: "any",
+} as const;
+
+export interface SavedViewFilters {
+  matchMode: SavedViewFiltersMatchMode;
+  conditions: SavedViewCondition[];
+}
+
+export type SavedViewEntity =
+  (typeof SavedViewEntity)[keyof typeof SavedViewEntity];
+
+export const SavedViewEntity = {
+  projects: "projects",
+  people: "people",
+  resource_requests: "resource_requests",
+} as const;
+
+export type SavedViewVisibility =
+  (typeof SavedViewVisibility)[keyof typeof SavedViewVisibility];
+
+export const SavedViewVisibility = {
+  private: "private",
+  public: "public",
+} as const;
+
+export interface SavedView {
+  id: number;
+  name: string;
+  entity: SavedViewEntity;
+  filters: SavedViewFilters;
+  visibility: SavedViewVisibility;
+  createdByUserId: number;
+  createdAt: string;
+  updatedAt: string;
+  isOwner: boolean;
+}
+
+export type CreateSavedViewBodyEntity =
+  (typeof CreateSavedViewBodyEntity)[keyof typeof CreateSavedViewBodyEntity];
+
+export const CreateSavedViewBodyEntity = {
+  projects: "projects",
+  people: "people",
+  resource_requests: "resource_requests",
+} as const;
+
+export type CreateSavedViewBodyVisibility =
+  (typeof CreateSavedViewBodyVisibility)[keyof typeof CreateSavedViewBodyVisibility];
+
+export const CreateSavedViewBodyVisibility = {
+  private: "private",
+  public: "public",
+} as const;
+
+export interface CreateSavedViewBody {
+  name: string;
+  entity: CreateSavedViewBodyEntity;
+  filters: SavedViewFilters;
+  visibility?: CreateSavedViewBodyVisibility;
+}
+
+export type UpdateSavedViewBodyVisibility =
+  (typeof UpdateSavedViewBodyVisibility)[keyof typeof UpdateSavedViewBodyVisibility];
+
+export const UpdateSavedViewBodyVisibility = {
+  private: "private",
+  public: "public",
+} as const;
+
+export interface UpdateSavedViewBody {
+  name?: string;
+  filters?: SavedViewFilters;
+  visibility?: UpdateSavedViewBodyVisibility;
+}
+
 export type ListProjectsParams = {
   status?: string;
   accountId?: number;
@@ -1589,4 +1675,21 @@ export type ListAuditLogParams = {
   entityType?: string;
   actorUserId?: number;
   limit?: number;
+};
+
+export type ListSavedViewsParams = {
+  entity: ListSavedViewsEntity;
+};
+
+export type ListSavedViewsEntity =
+  (typeof ListSavedViewsEntity)[keyof typeof ListSavedViewsEntity];
+
+export const ListSavedViewsEntity = {
+  projects: "projects",
+  people: "people",
+  resource_requests: "resource_requests",
+} as const;
+
+export type DuplicateSavedViewBody = {
+  name?: string;
 };

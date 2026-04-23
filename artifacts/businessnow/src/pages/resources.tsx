@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
 import ResourceTimeline from "@/components/resource-timeline";
@@ -16,6 +16,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SavedViewsBar } from "@/components/saved-views-bar";
+import { type FieldDef, type FilterValue, EMPTY_FILTER, evaluateFilters } from "@/lib/filter-evaluator";
+
+const REQUEST_STATUSES = ["Pending", "Approved", "Blocked", "Rejected", "Fulfilled", "Cancelled"];
+
+const REQUEST_FIELDS: FieldDef[] = [
+  { id: "status", label: "Status", type: "enum", options: REQUEST_STATUSES.map(s => ({ value: s, label: s })) },
+  { id: "role", label: "Role", type: "text" },
+  { id: "skillName", label: "Skill", type: "text" },
+  { id: "hours", label: "Hours", type: "number" },
+  { id: "neededByDate", label: "Needed by", type: "date" },
+];
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
@@ -98,6 +110,8 @@ export default function Resources() {
   const [chatMessages, setChatMessages] = useState<Record<number, any[]>>({});
   const [chatInput, setChatInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [peopleViewFilter, setPeopleViewFilter] = useState<FilterValue>(EMPTY_FILTER);
+  const [requestsViewFilter, setRequestsViewFilter] = useState<FilterValue>(EMPTY_FILTER);
   const [allUserSkills, setAllUserSkills] = useState<any[]>([]);
 
   // Bulk-load all user skills once on mount for skill match scoring
@@ -124,7 +138,21 @@ export default function Resources() {
   const pendingRequests = requests?.filter((r: any) => r.status === "Pending") ?? [];
   const allRequests = (requests ?? []) as any[];
 
-  const filteredRequests = statusFilter === "all" ? allRequests : allRequests.filter((r: any) => r.status === statusFilter);
+  const baseFilteredRequests = statusFilter === "all" ? allRequests : allRequests.filter((r: any) => r.status === statusFilter);
+  const filteredRequests = evaluateFilters(baseFilteredRequests, REQUEST_FIELDS, requestsViewFilter);
+
+  const departmentOptions = useMemo(
+    () => [...new Set((capacity ?? []).map((u: any) => u.department).filter(Boolean))].sort().map((d: any) => ({ value: d, label: d })),
+    [capacity],
+  );
+  const peopleFields: FieldDef[] = useMemo(() => ([
+    { id: "userName", label: "Name", type: "text" },
+    { id: "department", label: "Department", type: "enum", options: departmentOptions },
+    { id: "role", label: "Role", type: "text" },
+    { id: "utilizationPercent", label: "Utilization %", type: "number" },
+    { id: "capacity", label: "Capacity (h)", type: "number" },
+    { id: "available", label: "Available (h)", type: "number" },
+  ]), [departmentOptions]);
 
   // Forecasted utilization: current allocated hpw + proposed hpw, optionally ignoring soft allocations
   const { data: rawAllocs } = useListAllocations();
@@ -304,15 +332,19 @@ export default function Resources() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="mb-4">
+                  <SavedViewsBar entity="people" fields={peopleFields} value={peopleViewFilter} onChange={setPeopleViewFilter} />
+                </div>
                 {isLoading ? (
                   <div className="space-y-4">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
                 ) : (() => {
                   const q = capacitySearch.toLowerCase();
-                  const filtered = (capacity ?? []).filter(u => {
+                  const baseFiltered = (capacity ?? []).filter(u => {
                     const matchSearch = !q || u.userName?.toLowerCase().includes(q) || u.role?.toLowerCase().includes(q);
                     const matchDept = deptFilter === "all" || u.department === deptFilter;
                     return matchSearch && matchDept;
                   });
+                  const filtered = evaluateFilters(baseFiltered, peopleFields, peopleViewFilter);
                   return (
                   <Table>
                     <TableHeader>
@@ -398,6 +430,7 @@ export default function Resources() {
           </TabsContent>
 
           <TabsContent value="requests" className="m-0 space-y-4">
+            <SavedViewsBar entity="resource_requests" fields={REQUEST_FIELDS} value={requestsViewFilter} onChange={setRequestsViewFilter} />
             {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={statusFilter} onValueChange={setStatusFilter}>

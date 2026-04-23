@@ -32,7 +32,7 @@ const CurrentUserContext = createContext<CurrentUserCtx>({
 
 function applyRoleHeaders(role: string, userId?: number) {
   const headers: Record<string, string> = { "x-user-role": role };
-  if (role === "Customer" && userId) headers["x-user-id"] = String(userId);
+  if (userId) headers["x-user-id"] = String(userId);
   setDefaultHeaders(headers);
 }
 

@@ -27,3 +27,4 @@ export * from "./companySettings";
 export * from "./changeOrders";
 export * from "./projectUpdates";
 export * from "./intervalIq";
+export * from "./savedViews";

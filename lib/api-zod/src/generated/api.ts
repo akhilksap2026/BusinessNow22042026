@@ -3623,3 +3623,114 @@ export const ListAuditLogResponseItem = zod.object({
   timestamp: zod.string(),
 });
 export const ListAuditLogResponse = zod.array(ListAuditLogResponseItem);
+
+/**
+ * @summary List saved views for an entity
+ */
+export const ListSavedViewsQueryParams = zod.object({
+  entity: zod.enum(["projects", "people", "resource_requests"]),
+});
+
+export const ListSavedViewsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  entity: zod.enum(["projects", "people", "resource_requests"]),
+  filters: zod.object({
+    matchMode: zod.enum(["all", "any"]),
+    conditions: zod.array(
+      zod.object({
+        field: zod.string(),
+        operator: zod.string(),
+        value: zod.unknown().optional(),
+      }),
+    ),
+  }),
+  visibility: zod.enum(["private", "public"]),
+  createdByUserId: zod.number(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  isOwner: zod.boolean(),
+});
+export const ListSavedViewsResponse = zod.array(ListSavedViewsResponseItem);
+
+/**
+ * @summary Create a saved view
+ */
+export const CreateSavedViewBody = zod.object({
+  name: zod.string(),
+  entity: zod.enum(["projects", "people", "resource_requests"]),
+  filters: zod.object({
+    matchMode: zod.enum(["all", "any"]),
+    conditions: zod.array(
+      zod.object({
+        field: zod.string(),
+        operator: zod.string(),
+        value: zod.unknown().optional(),
+      }),
+    ),
+  }),
+  visibility: zod.enum(["private", "public"]).optional(),
+});
+
+/**
+ * @summary Update a saved view
+ */
+export const UpdateSavedViewParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateSavedViewBody = zod.object({
+  name: zod.string().optional(),
+  filters: zod
+    .object({
+      matchMode: zod.enum(["all", "any"]),
+      conditions: zod.array(
+        zod.object({
+          field: zod.string(),
+          operator: zod.string(),
+          value: zod.unknown().optional(),
+        }),
+      ),
+    })
+    .optional(),
+  visibility: zod.enum(["private", "public"]).optional(),
+});
+
+export const UpdateSavedViewResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  entity: zod.enum(["projects", "people", "resource_requests"]),
+  filters: zod.object({
+    matchMode: zod.enum(["all", "any"]),
+    conditions: zod.array(
+      zod.object({
+        field: zod.string(),
+        operator: zod.string(),
+        value: zod.unknown().optional(),
+      }),
+    ),
+  }),
+  visibility: zod.enum(["private", "public"]),
+  createdByUserId: zod.number(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  isOwner: zod.boolean(),
+});
+
+/**
+ * @summary Delete a saved view
+ */
+export const DeleteSavedViewParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Duplicate a saved view as a private copy owned by current user
+ */
+export const DuplicateSavedViewParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DuplicateSavedViewBody = zod.object({
+  name: zod.string().optional(),
+});
