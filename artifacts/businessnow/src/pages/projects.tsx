@@ -210,32 +210,24 @@ export default function Projects() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-              <Table className="min-w-[1600px]">
+              <Table>
                 <TableHeader>
                   <TableRow className="text-xs">
-                    <TableHead className="w-[180px]">Project Name</TableHead>
-                    <TableHead>Company ID</TableHead>
-                    <TableHead>Company Name</TableHead>
-                    <TableHead>Account Owner</TableHead>
-                    <TableHead className="max-w-[200px]">Description</TableHead>
-                    <TableHead className="text-right">Tracked Min</TableHead>
-                    <TableHead className="text-right">Billable Min</TableHead>
-                    <TableHead className="text-right">Actual Revenue</TableHead>
-                    <TableHead className="text-right">Actual Cost</TableHead>
-                    <TableHead className="text-right">Actual Profit</TableHead>
-                    <TableHead className="text-right">Actual Margin</TableHead>
-                    <TableHead>Champions</TableHead>
-                    <TableHead className="text-right">Allocated Min</TableHead>
-                    <TableHead>Account Notes</TableHead>
+                    <TableHead className="w-[220px]">Project Name</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Health</TableHead>
+                    <TableHead className="text-right">Tracked Hrs</TableHead>
+                    <TableHead className="text-right">Allocated Hrs</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {visibleProjects.map((project) => {
-                    const trackedMin = Math.round((project.trackedHours ?? 0) * 60);
-                    const allocatedMin = Math.round((project.allocatedHours ?? 0) * 60);
+                    const trackedHrs = Math.round((project.trackedHours ?? 0) * 10) / 10;
+                    const allocatedHrs = Math.round((project.allocatedHours ?? 0) * 10) / 10;
                     return (
                     <TableRow
                       key={project.id}
@@ -251,21 +243,15 @@ export default function Projects() {
                           {project.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{project.accountId}</TableCell>
-                      <TableCell className="whitespace-nowrap">{(project as any).companyName ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {(project as any).companyName ?? `Account #${project.accountId}`}
+                      </TableCell>
                       <TableCell className="text-muted-foreground whitespace-nowrap">{users?.find(u => u.id === project.ownerId)?.name ?? "—"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground">{project.description ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{trackedMin.toLocaleString()}</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
-                      <TableCell className="whitespace-nowrap">{(project as any).customerChampion ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{allocatedMin.toLocaleString()}</TableCell>
-                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell><InternalExternalBadge value={(project as any).internalExternal} /></TableCell>
                       <TableCell><StatusBadge status={project.status} /></TableCell>
                       <TableCell><StatusBadge status={project.health} /></TableCell>
+                      <TableCell className="text-right tabular-nums">{trackedHrs.toLocaleString()}h</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">{allocatedHrs > 0 ? `${allocatedHrs.toLocaleString()}h` : "—"}</TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -296,7 +282,7 @@ export default function Projects() {
                   })}
                   {visibleProjects.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                         No projects found.
                       </TableCell>
                     </TableRow>

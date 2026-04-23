@@ -1,0 +1,64 @@
+You are working on the Resource Management module of a Project Management Portal.
+
+STEP 1 — AUDIT CURRENT STATE:
+Inspect the resource request and allocation screens. Identify:
+- Whether the Role field is a free-text or dropdown
+- Whether a talent pool / employee skill profile exists
+- Whether any matching or scoring algorithm exists
+- Whether a heat map or utilization view exists
+- How resource requests are currently fulfilled
+
+STEP 2 — IMPLEMENT CHANGES:
+
+2a. ROLE FIELD:
+- Convert the Role field in team allocation from free-text to a 
+  controlled dropdown. The dropdown list should be admin-configurable 
+  (managed in the admin panel). No free-text entry permitted.
+
+2b. EMPLOYEE SKILL PROFILES (TALENT POOL):
+- Create an Employee Profile page (if not existing) that stores:
+    - Multiple skills per employee (add/remove skills dynamically)
+    - For each skill: competency level selected from a fixed set: 
+      "Can Lead", "Independent", "Needs Help"
+    - Role (from the controlled dropdown defined above)
+- Remove any "years of experience" field — it is not used in matching.
+
+2c. RESOURCE REQUEST WORKFLOW:
+- When a PM creates a resource request, they specify:
+    - Required role
+    - Required skills (multi-select from the same skill list)
+    - Required competency level per skill
+    - Date range and hours per week
+- On submitting the request, the system runs a matching algorithm:
+    - Score each employee by: (matched skills at required competency 
+      level or above / total required skills) × 100
+    - Filter to show only candidates scoring 50% or above.
+    - Sort candidates by score descending.
+    - Display score as "XX% Match" badge next to each candidate name.
+
+2d. HEAT MAP INTEGRATION:
+- Within the candidate selection view, display a utilization heat map 
+  per candidate showing week-by-week availability for the requested 
+  date range.
+- Color coding: Green (available), Amber (partially allocated), 
+  Red (fully booked).
+- The heat map should appear inline below each candidate card, 
+  expandable on click.
+
+STEP 3 — REMOVE REDUNDANT ELEMENTS:
+- Remove any years-of-experience field from employee profiles entirely.
+- Remove any unstructured skill text fields — replace with the 
+  controlled skill + competency model.
+- Remove any resource list view that is not integrated with scoring — 
+  replace with the new scored candidate view.
+
+STEP 4 — VALIDATION:
+After changes, confirm:
+[ ] Role field is a dropdown with no free-text option
+[ ] Each employee can have multiple skills, each with a competency level
+[ ] No years-of-experience field exists anywhere in resource profiles
+[ ] Resource request correctly filters candidates by skill + competency
+[ ] Percentage match score is displayed per candidate
+[ ] Candidates below 50% match are hidden (with an option to "show all")
+[ ] Heat map shows utilization for the requested date range per candidate
+[ ] Candidates are sorted by match score by default
