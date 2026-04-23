@@ -138,7 +138,7 @@ export default function ResourceTimeline({ mode }: Props) {
   const [drag, setDrag] = useState<DragState | null>(null);
   const [editAlloc, setEditAlloc] = useState<any | null>(null);
   const [showAvail, setShowAvail] = useState(false);
-  const [availFilter, setAvailFilter] = useState<AvailFilter>({ startDate: "", endDate: "", minHoursPerDay: "", role: "", requiredSkillIds: [], minProficiency: "Intermediate" });
+  const [availFilter, setAvailFilter] = useState<AvailFilter>({ startDate: "", endDate: "", minHoursPerDay: "", role: "", requiredSkillIds: [], minProficiency: "Independent" });
   const [allUserSkillsForFilter, setAllUserSkillsForFilter] = useState<any[]>([]);
   const { data: allSkillsList } = useListSkills();
 
@@ -438,7 +438,7 @@ export default function ResourceTimeline({ mode }: Props) {
   }
 
   // ─── Availability search ──────────────────────────────────────────────────
-  const PROFICIENCY_RANK: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3, Expert: 4 };
+  const PROFICIENCY_RANK: Record<string, number> = { "Needs Help": 1, Independent: 2, "Can Lead": 3 };
 
   function runAvailSearch() {
     if (!availFilter.startDate || !availFilter.endDate) {
@@ -597,7 +597,7 @@ export default function ResourceTimeline({ mode }: Props) {
                 <Select value={availFilter.minProficiency} onValueChange={v => setAvailFilter(f => ({ ...f, minProficiency: v }))}>
                   <SelectTrigger className="h-7 text-xs w-36"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {["Beginner","Intermediate","Advanced","Expert"].map(l => (
+                    {["Needs Help","Independent","Can Lead"].map(l => (
                       <SelectItem key={l} value={l}>{l}+</SelectItem>
                     ))}
                   </SelectContent>

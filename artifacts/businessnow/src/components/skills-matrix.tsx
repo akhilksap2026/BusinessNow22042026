@@ -29,13 +29,12 @@ interface Skill {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const LEVEL_RANK: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3, Expert: 4, Yes: 5, No: 0 };
-const LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced", "Expert"];
+const LEVEL_RANK: Record<string, number> = { "Needs Help": 1, Independent: 2, "Can Lead": 3, Yes: 5, No: 0 };
+const LEVEL_OPTIONS = ["Needs Help", "Independent", "Can Lead"];
 const LEVEL_COLORS: Record<string, string> = {
-  Beginner: "bg-slate-100 text-slate-600 border-slate-200",
-  Intermediate: "bg-blue-100 text-blue-700 border-blue-200",
-  Advanced: "bg-green-100 text-green-700 border-green-200",
-  Expert: "bg-purple-100 text-purple-700 border-purple-200",
+  "Needs Help": "bg-amber-100 text-amber-700 border-amber-200",
+  Independent: "bg-blue-100 text-blue-700 border-blue-200",
+  "Can Lead": "bg-green-100 text-green-700 border-green-200",
   Yes: "bg-green-100 text-green-700 border-green-200",
   No: "bg-red-100 text-red-600 border-red-200",
 };
