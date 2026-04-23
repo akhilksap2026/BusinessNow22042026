@@ -6,11 +6,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, addWeeks, startOfWeek, endOfWeek } from "date-fns";
 
-function getWeeksFromNow(count: number) {
+function getWeeksFromDate(fromDate: Date, count: number) {
   const weeks: Array<{ start: Date; end: Date; label: string }> = [];
-  const now = new Date();
   for (let i = 0; i < count; i++) {
-    const start = startOfWeek(addWeeks(now, i), { weekStartsOn: 1 });
+    const start = startOfWeek(addWeeks(fromDate, i), { weekStartsOn: 1 });
     const end = endOfWeek(start, { weekStartsOn: 1 });
     weeks.push({ start, end, label: format(start, "MMM d") });
   }
@@ -26,7 +25,14 @@ function cellColor(pct: number): string {
   return "bg-red-200 border-red-300 text-red-800 font-bold";
 }
 
-export function UtilisationHeatmap() {
+interface UtilisationHeatmapProps {
+  userId?: number;
+  weekCount?: number;
+  fromDate?: Date;
+  compact?: boolean;
+}
+
+export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact = false }: UtilisationHeatmapProps) {
   const { data: users, isLoading: loadingUsers } = useListUsers();
   const { data: allAllocations, isLoading: loadingAllocs } = useQuery<any[]>({
     queryKey: ["all-allocations"],
@@ -38,9 +44,13 @@ export function UtilisationHeatmap() {
   });
 
   const isLoading = loadingUsers || loadingAllocs;
-  const weeks = getWeeksFromNow(12);
+  const startFrom = fromDate ?? new Date();
+  const weeks = getWeeksFromDate(startFrom, weekCount);
 
   if (isLoading) {
+    if (compact) {
+      return <div className="flex gap-1">{Array.from({ length: weekCount }).map((_, i) => <Skeleton key={i} className="h-6 w-10" />)}</div>;
+    }
     return (
       <Card>
         <CardHeader><CardTitle>Resource Utilisation Heat Map</CardTitle></CardHeader>
@@ -53,7 +63,44 @@ export function UtilisationHeatmap() {
     );
   }
 
-  const activeUsers = (users ?? []).filter(u => (u as any).isActive !== 0);
+  const allActiveUsers = (users ?? []).filter(u => (u as any).isActive !== 0);
+  const displayUsers = userId ? allActiveUsers.filter(u => u.id === userId) : allActiveUsers;
+
+  if (compact && userId) {
+    const user = displayUsers[0];
+    if (!user) return null;
+    const capacity = (user.capacity ?? 40);
+    const userAllocs = (allAllocations ?? []).filter((a: any) => a.userId === user.id);
+    return (
+      <TooltipProvider>
+        <div className="flex gap-0.5 mt-1">
+          {weeks.map(week => {
+            const allocatedHours = userAllocs.reduce((sum: number, a: any) => {
+              const aStart = new Date(a.startDate + "T00:00:00");
+              const aEnd = new Date(a.endDate + "T00:00:00");
+              if (aEnd < week.start || aStart > week.end) return sum;
+              return sum + (a.hoursPerWeek ?? 0);
+            }, 0);
+            const pct = capacity > 0 ? Math.round((allocatedHours / capacity) * 100) : 0;
+            const color = cellColor(pct);
+            return (
+              <Tooltip key={week.label}>
+                <TooltipTrigger asChild>
+                  <div className={`border rounded text-center text-[9px] font-medium cursor-default min-w-[28px] py-0.5 ${color}`}>
+                    {allocatedHours > 0 ? `${pct}%` : <span className="text-slate-300">—</span>}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="font-medium">{week.label}</p>
+                  <p>{allocatedHours}h / {capacity}h ({pct}%)</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -61,7 +108,7 @@ export function UtilisationHeatmap() {
         <CardHeader>
           <CardTitle>Resource Utilisation Heat Map</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Showing allocated hours vs capacity for next 12 weeks.
+            Showing allocated hours vs capacity for next {weekCount} weeks.
             <span className="inline-flex gap-2 ml-4 items-center">
               <span className="w-3 h-3 rounded bg-green-100 border border-green-200 inline-block" /> &lt;80%
               <span className="w-3 h-3 rounded bg-amber-100 border border-amber-200 inline-block" /> 80–99%
@@ -82,7 +129,7 @@ export function UtilisationHeatmap() {
               </tr>
             </thead>
             <tbody>
-              {activeUsers.map(user => {
+              {displayUsers.map(user => {
                 const capacity = (user.capacity ?? 40);
                 const userAllocs = (allAllocations ?? []).filter((a: any) => a.userId === user.id);
 

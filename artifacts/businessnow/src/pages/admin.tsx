@@ -66,7 +66,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TemplateEditor } from "@/components/template-editor";
 import { useToast } from "@/hooks/use-toast";
@@ -328,6 +328,57 @@ export default function Admin() {
 
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [skillsUser, setSkillsUser] = useState<{ id: number; name: string } | null>(null);
+
+  const [jobRoles, setJobRoles] = useState<{ id: number; name: string }[]>([]);
+  const [jobRolesLoading, setJobRolesLoading] = useState(false);
+  const [newJobRoleName, setNewJobRoleName] = useState("");
+  const [jobRoleSaving, setJobRoleSaving] = useState(false);
+
+  async function fetchJobRoles() {
+    setJobRolesLoading(true);
+    try {
+      const res = await fetch("/api/job-roles");
+      if (res.ok) setJobRoles(await res.json());
+    } finally {
+      setJobRolesLoading(false);
+    }
+  }
+
+  async function handleCreateJobRole() {
+    if (!newJobRoleName.trim()) return;
+    setJobRoleSaving(true);
+    try {
+      const res = await fetch("/api/job-roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify({ name: newJobRoleName.trim() }),
+      });
+      if (res.ok) {
+        setNewJobRoleName("");
+        fetchJobRoles();
+        toast({ title: "Job role added" });
+      } else {
+        const err = await res.json();
+        toast({ title: err.error ?? "Failed to create job role", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Failed to create job role", variant: "destructive" });
+    } finally {
+      setJobRoleSaving(false);
+    }
+  }
+
+  async function handleDeleteJobRole(id: number) {
+    try {
+      await fetch(`/api/job-roles/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      fetchJobRoles();
+      toast({ title: "Job role deleted" });
+    } catch {
+      toast({ title: "Failed to delete job role", variant: "destructive" });
+    }
+  }
+
+  useEffect(() => { fetchJobRoles(); }, []);
 
   const { data: taxCodes, isLoading: isLoadingTaxCodes } = useListTaxCodes();
   const createTaxCode = useCreateTaxCode();
@@ -861,6 +912,9 @@ export default function Admin() {
               <TabsTrigger value="skills" className="flex items-center gap-2">
                 <Cpu className="h-4 w-4" /> Skills Matrix
               </TabsTrigger>
+              <TabsTrigger value="jobroles" className="flex items-center gap-2" onClick={fetchJobRoles}>
+                <Briefcase className="h-4 w-4" /> Job Roles
+              </TabsTrigger>
               <TabsTrigger value="taxcodes" className="flex items-center gap-2">
                 <Percent className="h-4 w-4" /> Tax Codes
               </TabsTrigger>
@@ -1143,6 +1197,49 @@ export default function Admin() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="jobroles" className="m-0">
+            <Card className="max-w-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Briefcase className="h-4 w-4" /> Job Roles</CardTitle>
+                <CardDescription>Manage the list of configurable job roles available for team members, allocations, and resource requests.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Role name, e.g. Senior Developer"
+                    value={newJobRoleName}
+                    onChange={e => setNewJobRoleName(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleCreateJobRole(); }}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleCreateJobRole} disabled={jobRoleSaving || !newJobRoleName.trim()}>
+                    <Plus className="h-4 w-4 mr-1" /> Add
+                  </Button>
+                </div>
+                {jobRolesLoading ? (
+                  <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+                ) : jobRoles.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No job roles defined yet.</p>
+                    <p className="text-xs mt-1">Add roles to use them as dropdowns in allocations and resource requests.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y border rounded-lg">
+                    {jobRoles.map(role => (
+                      <div key={role.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors">
+                        <span className="text-sm font-medium">{role.name}</span>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => handleDeleteJobRole(role.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="taxcodes" className="m-0">
@@ -2362,7 +2459,16 @@ export default function Admin() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Role</Label>
-                <Input value={userForm.role} onChange={e => setUserForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Consultant" />
+                {jobRoles.length > 0 ? (
+                  <Select value={userForm.role} onValueChange={v => setUserForm(f => ({ ...f, role: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
+                    <SelectContent>
+                      {jobRoles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={userForm.role} onChange={e => setUserForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Consultant" />
+                )}
               </div>
               <div className="space-y-1">
                 <Label>Department</Label>

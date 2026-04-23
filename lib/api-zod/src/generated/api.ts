@@ -1392,6 +1392,7 @@ export const CreateResourceRequestBody = zod.object({
   requestedByUserId: zod.number(),
   role: zod.string(),
   requiredSkills: zod.array(zod.string()).optional(),
+  requiredSkillsWithLevel: zod.array(zod.object({ skillId: zod.number(), skillName: zod.string(), competencyLevel: zod.string() })).optional(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
@@ -1409,6 +1410,7 @@ export const UpdateResourceRequestParams = zod.object({
 export const UpdateResourceRequestBody = zod.object({
   role: zod.string().optional(),
   requiredSkills: zod.array(zod.string()).optional(),
+  requiredSkillsWithLevel: zod.array(zod.object({ skillId: zod.number(), skillName: zod.string(), competencyLevel: zod.string() })).optional(),
   startDate: zod.string().optional(),
   endDate: zod.string().optional(),
   hoursPerWeek: zod.number().optional(),

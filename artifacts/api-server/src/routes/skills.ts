@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, skillCategoriesTable, skillsTable, userSkillsTable } from "@workspace/db";
+import { db, skillCategoriesTable, skillsTable, userSkillsTable, jobRolesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import {
   ListSkillsQueryParams,
@@ -95,7 +95,7 @@ router.post("/users/:id/skills", async (req, res): Promise<void> => {
   const [us] = await db.insert(userSkillsTable).values({
     userId: params.data.id,
     skillId: parsed.data.skillId,
-    proficiencyLevel: parsed.data.proficiencyLevel ?? "Intermediate",
+    proficiencyLevel: parsed.data.proficiencyLevel ?? "Independent",
   }).returning();
 
   const [skill] = await db.select().from(skillsTable).where(eq(skillsTable.id, us.skillId));
@@ -119,7 +119,7 @@ router.patch("/users/:id/skills/:skillId", async (req, res): Promise<void> => {
   const skillId = parseInt(req.params.skillId);
   const { proficiencyLevel, value } = req.body;
   if (isNaN(userId) || isNaN(skillId)) { res.status(400).json({ error: "Invalid ids" }); return; }
-  const newLevel = proficiencyLevel ?? value ?? "Intermediate";
+  const newLevel = proficiencyLevel ?? value ?? "Independent";
   const [row] = await db.update(userSkillsTable)
     .set({ proficiencyLevel: newLevel, updatedAt: new Date() })
     .where(and(eq(userSkillsTable.userId, userId), eq(userSkillsTable.skillId, skillId)))
@@ -160,6 +160,34 @@ router.get("/user-skills", async (_req, res): Promise<void> => {
     };
   });
   res.json(result);
+});
+
+// ─── Job Roles ────────────────────────────────────────────────────────────────
+
+router.get("/job-roles", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(jobRolesTable).orderBy(jobRolesTable.name);
+  res.json(rows.map(r => ({ ...r, createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt })));
+});
+
+router.post("/job-roles", async (req, res): Promise<void> => {
+  const { name } = req.body;
+  if (!name || typeof name !== "string" || !name.trim()) {
+    res.status(400).json({ error: "name is required" }); return;
+  }
+  try {
+    const [row] = await db.insert(jobRolesTable).values({ name: name.trim() }).returning();
+    res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
+  } catch (e: any) {
+    if (e.code === "23505") { res.status(409).json({ error: "Role already exists" }); return; }
+    throw e;
+  }
+});
+
+router.delete("/job-roles/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(jobRolesTable).where(eq(jobRolesTable.id, id));
+  res.status(204).send();
 });
 
 export default router;

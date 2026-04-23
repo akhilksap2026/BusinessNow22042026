@@ -14,6 +14,7 @@ function mapRR(r: typeof resourceRequestsTable.$inferSelect) {
     ...r,
     hoursPerWeek: Number(r.hoursPerWeek),
     methodValue: r.methodValue !== null && r.methodValue !== undefined ? Number(r.methodValue) : null,
+    requiredSkillsWithLevel: r.requiredSkillsWithLevel ?? [],
     createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
     updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt,
   };
@@ -58,11 +59,12 @@ router.get("/resource-requests", async (req, res): Promise<void> => {
 router.post("/resource-requests", async (req, res): Promise<void> => {
   const parsed = CreateResourceRequestBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { type, region, allocationMethod, methodValue, targetResourceId, ...rest } = req.body;
+  const { type, region, allocationMethod, methodValue, targetResourceId, requiredSkillsWithLevel, ...rest } = req.body;
   const [row] = await db.insert(resourceRequestsTable).values({
     ...parsed.data,
     hoursPerWeek: String(parsed.data.hoursPerWeek),
     requiredSkills: parsed.data.requiredSkills ?? [],
+    requiredSkillsWithLevel: requiredSkillsWithLevel ?? null,
     priority: parsed.data.priority ?? "Medium",
     type: type ?? "add_member",
     region: region ?? null,
@@ -86,6 +88,7 @@ router.patch("/resource-requests/:id", async (req, res): Promise<void> => {
   if (extra.methodValue !== undefined) updates.methodValue = extra.methodValue !== null ? String(extra.methodValue) : null;
   if (extra.targetResourceId !== undefined) updates.targetResourceId = extra.targetResourceId;
   if (extra.approverId !== undefined) updates.approverId = extra.approverId;
+  if (extra.requiredSkillsWithLevel !== undefined) updates.requiredSkillsWithLevel = extra.requiredSkillsWithLevel;
   const [row] = await db.update(resourceRequestsTable).set(updates).where(eq(resourceRequestsTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(mapRR(row));
@@ -116,7 +119,6 @@ router.patch("/resource-requests/:id/status", async (req, res): Promise<void> =>
   if (rejectionReason !== undefined) updates.rejectionReason = rejectionReason;
   if (blockedReason !== undefined) updates.blockedReason = blockedReason;
   if (status === "Fulfilled" && assignedUserId) updates.fulfilledByUserId = assignedUserId;
-  // On Approved or Fulfilled: record approver
   if ((status === "Approved" || status === "Fulfilled") && req.body.approverId) {
     updates.approverId = req.body.approverId;
   }
@@ -144,7 +146,6 @@ router.patch("/resource-requests/:id/status", async (req, res): Promise<void> =>
         isSoftAllocation: false,
       } as any);
     } catch (e) {
-      // Non-fatal — allocation creation failure should not block the status update response
       console.error("Auto-allocation creation failed:", e);
     }
   }

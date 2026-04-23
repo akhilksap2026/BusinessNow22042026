@@ -2,6 +2,12 @@ import { pgTable, serial, text, integer, numeric, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
+export type RequiredSkillWithLevel = {
+  skillId: number;
+  skillName: string;
+  competencyLevel: "Needs Help" | "Independent" | "Can Lead";
+};
+
 export const resourceRequestsTable = pgTable("resource_requests", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
@@ -9,6 +15,7 @@ export const resourceRequestsTable = pgTable("resource_requests", {
   type: text("type").notNull().default("add_member"),
   role: text("role").notNull(),
   requiredSkills: text("required_skills").array().notNull().default([]),
+  requiredSkillsWithLevel: jsonb("required_skills_with_level").$type<RequiredSkillWithLevel[]>(),
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
   hoursPerWeek: numeric("hours_per_week", { precision: 6, scale: 2 }).notNull(),

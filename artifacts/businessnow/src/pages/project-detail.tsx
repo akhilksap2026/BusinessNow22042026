@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken, useListSkills } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -156,9 +156,15 @@ export default function ProjectDetail() {
     type: "add_member",
     role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "",
     region: "", targetUserId: "", skillIds: [] as number[],
+    skillCompetencies: {} as Record<number, string>,
   });
   const { data: allSkillsList } = useListSkills();
   const { data: users } = useListUsers();
+
+  const [jobRoles, setJobRoles] = useState<{ id: number; name: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/job-roles").then(r => r.ok ? r.json() : []).then(setJobRoles).catch(() => {});
+  }, []);
 
   const getUser = (userId: number) => users?.find(u => u.id === userId);
 
@@ -180,7 +186,13 @@ export default function ProjectDetail() {
   async function handleSaveResReq() {
     if (!resReqForm.role || !resReqForm.startDate || !resReqForm.endDate) return;
     try {
-      const skills = (allSkillsList as any[] ?? []).filter((s: any) => resReqForm.skillIds.includes(s.id)).map((s: any) => s.name);
+      const selectedSkills = (allSkillsList as any[] ?? []).filter((s: any) => resReqForm.skillIds.includes(s.id));
+      const skillNames = selectedSkills.map((s: any) => s.name);
+      const requiredSkillsWithLevel = selectedSkills.map((s: any) => ({
+        skillId: s.id,
+        skillName: s.name,
+        competencyLevel: resReqForm.skillCompetencies[s.id] ?? "Independent",
+      }));
       await createResourceRequest.mutateAsync({
         data: {
           projectId,
@@ -191,7 +203,8 @@ export default function ProjectDetail() {
           hoursPerWeek: parseFloat(resReqForm.hoursPerWeek) || 40,
           priority: resReqForm.priority,
           notes: resReqForm.notes || undefined,
-          requiredSkills: skills,
+          requiredSkills: skillNames,
+          requiredSkillsWithLevel,
         } as any,
       });
       // Patch the extra fields (type, region, targetResourceId) separately since Zod schema may not include them
@@ -1306,7 +1319,16 @@ export default function ProjectDetail() {
             </div>
             <div className="space-y-1.5">
               <Label>Role *</Label>
-              <Input placeholder="e.g. Senior Developer, Project Manager" value={allocForm.role} onChange={e => setAllocForm(f => ({ ...f, role: e.target.value }))} />
+              {jobRoles.length > 0 ? (
+                <Select value={allocForm.role} onValueChange={v => setAllocForm(f => ({ ...f, role: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
+                  <SelectContent>
+                    {jobRoles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input placeholder="e.g. Senior Developer, Project Manager" value={allocForm.role} onChange={e => setAllocForm(f => ({ ...f, role: e.target.value }))} />
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -1473,7 +1495,16 @@ export default function ProjectDetail() {
             {["add_member","assign_placeholder","replacement"].includes(resReqForm.type) && (
               <div className="space-y-1.5">
                 <Label>Role Needed *</Label>
-                <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Senior Developer, UX Designer" />
+                {jobRoles.length > 0 ? (
+                  <Select value={resReqForm.role} onValueChange={v => setResReqForm(f => ({ ...f, role: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
+                    <SelectContent>
+                      {jobRoles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Senior Developer, UX Designer" />
+                )}
                 {/* Relevant matches */}
                 {resReqMatches.length > 0 && (
                   <div className="mt-1.5 rounded-lg border bg-green-50 dark:bg-green-950/20 p-2 space-y-1">
@@ -1492,22 +1523,36 @@ export default function ProjectDetail() {
 
             {resReqForm.type === "add_member" && (
               <div className="space-y-1.5">
-                <Label>Required Skills</Label>
+                <Label>Required Skills &amp; Competency Level</Label>
                 {(allSkillsList as any[] ?? []).length === 0 ? (
                   <p className="text-xs text-muted-foreground">No skills defined yet. Add skills in Admin → Skills Matrix.</p>
                 ) : (
-                  <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border bg-slate-50 min-h-10">
+                  <div className="space-y-1.5 p-2 rounded-lg border bg-slate-50 min-h-10">
                     {(allSkillsList as any[] ?? []).map((s: any) => {
                       const selected = resReqForm.skillIds.includes(s.id);
+                      const competency = resReqForm.skillCompetencies[s.id] ?? "Independent";
                       return (
-                        <button key={s.id} type="button"
-                          onClick={() => setResReqForm(f => ({
-                            ...f,
-                            skillIds: selected ? f.skillIds.filter(id => id !== s.id) : [...f.skillIds, s.id]
-                          }))}
-                          className={`px-2.5 py-0.5 rounded-full border text-xs font-medium transition-colors ${selected ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600"}`}>
-                          {s.name}
-                        </button>
+                        <div key={s.id} className="flex items-center gap-2">
+                          <button type="button"
+                            onClick={() => setResReqForm(f => ({
+                              ...f,
+                              skillIds: selected ? f.skillIds.filter(id => id !== s.id) : [...f.skillIds, s.id]
+                            }))}
+                            className={`flex-1 text-left px-2.5 py-1 rounded border text-xs font-medium transition-colors ${selected ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600"}`}>
+                            {s.name}
+                          </button>
+                          {selected && (
+                            <select
+                              value={competency}
+                              onChange={e => setResReqForm(f => ({ ...f, skillCompetencies: { ...f.skillCompetencies, [s.id]: e.target.value } }))}
+                              className="text-xs border rounded px-1.5 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                            >
+                              <option value="Needs Help">Needs Help</option>
+                              <option value="Independent">Independent</option>
+                              <option value="Can Lead">Can Lead</option>
+                            </select>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -1537,7 +1582,16 @@ export default function ProjectDetail() {
                 {resReqForm.type !== "delete_allocation" && (
                   <div className="space-y-1.5 mt-2">
                     <Label>Role Needed *</Label>
-                    <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="Role for this request" />
+                    {jobRoles.length > 0 ? (
+                      <Select value={resReqForm.role} onValueChange={v => setResReqForm(f => ({ ...f, role: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
+                        <SelectContent>
+                          {jobRoles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="Role for this request" />
+                    )}
                   </div>
                 )}
               </div>

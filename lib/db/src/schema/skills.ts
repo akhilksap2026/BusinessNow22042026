@@ -32,7 +32,7 @@ export const userSkillsTable = pgTable("user_skills", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   skillId: integer("skill_id").notNull(),
-  proficiencyLevel: text("proficiency_level").notNull().default("Intermediate"),
+  proficiencyLevel: text("proficiency_level").notNull().default("Independent"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -40,3 +40,13 @@ export const userSkillsTable = pgTable("user_skills", {
 export const insertUserSkillSchema = createInsertSchema(userSkillsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertUserSkill = z.infer<typeof insertUserSkillSchema>;
 export type UserSkill = typeof userSkillsTable.$inferSelect;
+
+export const jobRolesTable = pgTable("job_roles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertJobRoleSchema = createInsertSchema(jobRolesTable).omit({ id: true, createdAt: true });
+export type InsertJobRole = z.infer<typeof insertJobRoleSchema>;
+export type JobRole = typeof jobRolesTable.$inferSelect;

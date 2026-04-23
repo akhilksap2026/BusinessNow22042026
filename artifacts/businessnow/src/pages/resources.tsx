@@ -33,9 +33,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
+
+const PROFICIENCY_RANK: Record<string, number> = { "Needs Help": 1, "Independent": 2, "Can Lead": 3 };
 
 function PriorityBadge({ priority }: { priority: string }) {
   const cls =
@@ -47,13 +49,25 @@ function PriorityBadge({ priority }: { priority: string }) {
 
 function ProficiencyDot({ level }: { level: string }) {
   const colors: Record<string, string> = {
-    Beginner: "bg-gray-400",
-    Intermediate: "bg-blue-500",
-    Advanced: "bg-green-500",
-    Expert: "bg-purple-500",
+    "Needs Help": "bg-amber-400",
+    "Independent": "bg-blue-500",
+    "Can Lead": "bg-green-600",
   };
   return (
     <span title={level} className={`inline-block h-2 w-2 rounded-full ${colors[level] ?? "bg-gray-400"}`} />
+  );
+}
+
+function ProficiencyLabel({ level }: { level: string }) {
+  const colors: Record<string, string> = {
+    "Needs Help": "text-amber-700 bg-amber-50 border-amber-200",
+    "Independent": "text-blue-700 bg-blue-50 border-blue-200",
+    "Can Lead": "text-green-700 bg-green-50 border-green-200",
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${colors[level] ?? "text-gray-600 bg-gray-50 border-gray-200"}`}>
+      <ProficiencyDot level={level} /> {level}
+    </span>
   );
 }
 
@@ -73,6 +87,20 @@ function UserSkillsCell({ userId }: { userId: number }) {
         <span className="px-1.5 py-0.5 rounded bg-muted text-xs text-muted-foreground">+{userSkills.length - 4}</span>
       )}
     </div>
+  );
+}
+
+function MatchScoreBadge({ score, total }: { score: number; total: number }) {
+  if (total === 0) return null;
+  const pct = Math.round(score);
+  const cls = pct >= 100 ? "bg-green-100 text-green-700 border-green-300"
+    : pct >= 75 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : pct >= 50 ? "bg-amber-50 text-amber-700 border-amber-200"
+    : "bg-red-50 text-red-600 border-red-200";
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-bold ${cls}`}>
+      {pct}% match
+    </span>
   );
 }
 
@@ -104,21 +132,41 @@ export default function Resources() {
   const [peopleViewFilter, setPeopleViewFilter] = useState<FilterValue>(EMPTY_FILTER);
   const [requestsViewFilter, setRequestsViewFilter] = useState<FilterValue>(EMPTY_FILTER);
   const [allUserSkills, setAllUserSkills] = useState<any[]>([]);
+  const [showLowMatchMap, setShowLowMatchMap] = useState<Record<number, boolean>>({});
 
   // Bulk-load all user skills once on mount for skill match scoring
   useState(() => {
     fetch("/api/user-skills").then(r => r.json()).then(setAllUserSkills).catch(() => {});
   });
 
-  const PROFICIENCY_RANK: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3, Expert: 4 };
+  function scoreCandidate(userId: number, req: any): { score: number; matched: number; total: number; details: { skillName: string; required: string; userLevel: string | null; meets: boolean }[] } {
+    const skillsWithLevel: { skillId: number; skillName: string; competencyLevel: string }[] = req.requiredSkillsWithLevel ?? [];
+    const legacySkills: string[] = req.requiredSkills ?? [];
 
-  function skillMatchScore(userId: number, requiredSkillNames: string[]): { matched: number; total: number } {
-    if (!requiredSkillNames || requiredSkillNames.length === 0) return { matched: 0, total: 0 };
-    const userSkillNames = allUserSkills
-      .filter((us: any) => us.userId === userId)
-      .map((us: any) => us.skillName.toLowerCase());
-    const matched = requiredSkillNames.filter(s => userSkillNames.includes(s.toLowerCase())).length;
-    return { matched, total: requiredSkillNames.length };
+    if (skillsWithLevel.length > 0) {
+      const userSkillsForUser = allUserSkills.filter((us: any) => us.userId === userId);
+      const details = skillsWithLevel.map(req => {
+        const us = userSkillsForUser.find((s: any) => s.skillId === req.skillId || s.skillName.toLowerCase() === req.skillName.toLowerCase());
+        const userLevel = us?.proficiencyLevel ?? null;
+        const userRank = userLevel ? (PROFICIENCY_RANK[userLevel] ?? 0) : 0;
+        const reqRank = PROFICIENCY_RANK[req.competencyLevel] ?? 1;
+        const meets = userRank >= reqRank;
+        return { skillName: req.skillName, required: req.competencyLevel, userLevel, meets };
+      });
+      const matched = details.filter(d => d.meets).length;
+      const score = skillsWithLevel.length > 0 ? (matched / skillsWithLevel.length) * 100 : 0;
+      return { score, matched, total: skillsWithLevel.length, details };
+    }
+
+    if (legacySkills.length > 0) {
+      const userSkillNames = allUserSkills.filter((us: any) => us.userId === userId).map((us: any) => us.skillName.toLowerCase());
+      const matched = legacySkills.filter(s => userSkillNames.includes(s.toLowerCase())).length;
+      const score = legacySkills.length > 0 ? (matched / legacySkills.length) * 100 : 0;
+      const details = legacySkills.map(s => ({ skillName: s, required: "Independent", userLevel: userSkillNames.includes(s.toLowerCase()) ? "Independent" : null, meets: userSkillNames.includes(s.toLowerCase()) }));
+      return { score, matched, total: legacySkills.length, details };
+    }
+
+    return { score: 0, matched: 0, total: 0, details: [] };
   }
 
   const getProject = (id: number) => projects?.find((p: any) => p.id === id);
@@ -145,7 +193,6 @@ export default function Resources() {
     { id: "available", label: "Available (h)", type: "number" },
   ]), [departmentOptions]);
 
-  // Forecasted utilization: current allocated hpw + proposed hpw, optionally ignoring soft allocations
   const { data: rawAllocs } = useListAllocations();
   function forecastedUtil(userId: number, proposedHpw: number, ignoreSoftFlag: boolean): { current: number; proposed: number; capacity: number; pct: number } {
     const cap = (getUser(userId) as any)?.capacity ?? 40;
@@ -428,7 +475,6 @@ export default function Resources() {
 
           <TabsContent value="requests" className="m-0 space-y-4">
             <SavedViewsBar entity="resource_requests" fields={REQUEST_FIELDS} value={requestsViewFilter} onChange={setRequestsViewFilter} />
-            {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
@@ -462,8 +508,8 @@ export default function Resources() {
                 const assignedUser = req.assignedUserId ? getUser(req.assignedUserId) : null;
                 const isChatOpen = openChatId === req.id;
                 const threadMsgs = chatMessages[req.id] ?? [];
+                const showLow = showLowMatchMap[req.id] ?? false;
 
-                // Type label mapping
                 const typeLabels: Record<string,string> = {
                   add_member: "Add Member", add_hours: "Add Hours",
                   assign_placeholder: "Assign Placeholder", replacement: "Replacement",
@@ -474,6 +520,9 @@ export default function Resources() {
                   : req.status === "Blocked" ? "border-red-300 dark:border-red-800"
                   : req.status === "Approved" ? "border-blue-200 dark:border-blue-800"
                   : "";
+
+                const hasStructuredSkills = (req.requiredSkillsWithLevel ?? []).length > 0;
+                const hasAnySkills = hasStructuredSkills || (req.requiredSkills ?? []).length > 0;
 
                 return (
                   <Card key={req.id} className={cardBorder}>
@@ -495,7 +544,18 @@ export default function Resources() {
                             <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />By {requester?.name ?? `User #${req.requestedByUserId}`}</span>
                             {req.region && <span className="flex items-center gap-1.5">🌍 {req.region}</span>}
                           </div>
-                          {req.requiredSkills && req.requiredSkills.length > 0 && (
+
+                          {hasStructuredSkills && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {(req.requiredSkillsWithLevel as any[]).map((s: any) => (
+                                <span key={s.skillId ?? s.skillName} className="flex items-center gap-1 px-2 py-0.5 rounded border bg-slate-50 text-xs font-medium">
+                                  {s.skillName}
+                                  <ProficiencyLabel level={s.competencyLevel} />
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {!hasStructuredSkills && (req.requiredSkills ?? []).length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
                               {req.requiredSkills.map((skill: string) => (
                                 <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
@@ -558,66 +618,90 @@ export default function Resources() {
 
                       {/* Candidate panel (shows on Pending requests) */}
                       {req.status === "Pending" && users && (users as any[]).length > 0 && (() => {
-                        const reqSkills = req.requiredSkills ?? [];
-                        const hasSkillFilter = reqSkills.length > 0;
-
-                        const candidates = (users as any[])
-                          .filter((u: any) => {
-                            if (!u.isInternal && u.isInternal !== undefined) return false;
-                            const roleMatch = !req.role || u.role?.toLowerCase().includes(req.role.toLowerCase().split(" ").pop() ?? "");
-                            return roleMatch;
-                          })
+                        const allCandidates = (users as any[])
+                          .filter((u: any) => u.isInternal !== false)
                           .map((u: any) => {
                             const fc = forecastedUtil(u.id, Number(req.hoursPerWeek), ignoreSoft);
-                            const sm = skillMatchScore(u.id, reqSkills);
+                            const sm = scoreCandidate(u.id, req);
                             return { ...u, fc, sm };
                           })
                           .sort((a: any, b: any) => {
-                            if (hasSkillFilter) {
-                              if (b.sm.matched !== a.sm.matched) return b.sm.matched - a.sm.matched;
+                            if (hasAnySkills) {
+                              const diff = b.sm.score - a.sm.score;
+                              if (Math.abs(diff) > 0.5) return diff;
                             }
                             return a.fc.pct - b.fc.pct;
-                          })
-                          .slice(0, 5);
+                          });
 
-                        if (candidates.length === 0) return null;
+                        const qualifiedCandidates = hasAnySkills ? allCandidates.filter((c: any) => c.sm.score >= 50) : allCandidates;
+                        const lowCandidates = hasAnySkills ? allCandidates.filter((c: any) => c.sm.score < 50) : [];
+                        const displayCandidates = (showLow ? allCandidates : qualifiedCandidates).slice(0, 8);
+
+                        if (allCandidates.length === 0) return null;
 
                         return (
                           <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900/30 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Relevant team members</p>
-                              {hasSkillFilter && <span className="text-xs text-indigo-600">sorted by skill match</span>}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Candidate Matches</p>
+                                {hasAnySkills && (
+                                  <span className="text-xs text-indigo-600">{qualifiedCandidates.length} of {allCandidates.length} meet ≥50%</span>
+                                )}
+                              </div>
+                              {hasAnySkills && lowCandidates.length > 0 && (
+                                <button
+                                  className="text-xs text-muted-foreground flex items-center gap-0.5 hover:text-foreground"
+                                  onClick={() => setShowLowMatchMap(m => ({ ...m, [req.id]: !showLow }))}
+                                >
+                                  {showLow ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                  {showLow ? "Hide low matches" : `Show ${lowCandidates.length} low match${lowCandidates.length !== 1 ? "es" : ""}`}
+                                </button>
+                              )}
                             </div>
-                            <div className="space-y-1.5">
-                              {candidates.map((u: any) => {
+
+                            <div className="space-y-2">
+                              {displayCandidates.map((u: any) => {
                                 const { fc, sm } = u;
                                 const pctClass = fc.pct > 100 ? "text-red-600" : fc.pct > 80 ? "text-amber-600" : "text-green-600";
-                                const matchDot = hasSkillFilter
-                                  ? sm.matched === sm.total ? "bg-green-500"
-                                    : sm.matched > 0 ? "bg-amber-500" : "bg-red-500"
-                                  : (fc.pct > 100 ? "bg-red-500" : fc.pct > 80 ? "bg-amber-500" : "bg-green-500");
                                 return (
-                                  <div key={u.id} className="flex items-center gap-3 text-xs">
-                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${matchDot}`} />
-                                    <span className="font-medium w-32 truncate">{u.name}</span>
-                                    <span className="text-muted-foreground w-24 truncate">{u.role}</span>
-                                    {hasSkillFilter && (
-                                      <span className={`font-semibold ${sm.matched === sm.total ? "text-green-600" : sm.matched > 0 ? "text-amber-600" : "text-red-600"}`}>
-                                        {sm.matched}/{sm.total} skills
+                                  <div key={u.id} className="rounded-md border bg-white dark:bg-slate-950 p-2 space-y-1.5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <Avatar className="h-6 w-6 shrink-0">
+                                        <AvatarFallback className="text-[10px]">{u.initials}</AvatarFallback>
+                                      </Avatar>
+                                      <span className="font-medium text-xs">{u.name}</span>
+                                      <span className="text-muted-foreground text-xs">{u.role}</span>
+                                      {hasAnySkills && <MatchScoreBadge score={sm.score} total={sm.total} />}
+                                      <span className={`text-xs font-medium ml-auto ${pctClass}`}>
+                                        {fc.current}h → {fc.proposed}h ({fc.pct}% cap)
                                       </span>
+                                    </div>
+
+                                    {hasAnySkills && sm.details.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {sm.details.map(d => (
+                                          <span key={d.skillName} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${d.meets ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-600 border-red-200"}`}>
+                                            {d.meets ? "✓" : "✗"} {d.skillName}
+                                            {d.userLevel ? <ProficiencyLabel level={d.userLevel} /> : <span className="opacity-60">—</span>}
+                                            <span className="opacity-60">/ needed: {d.required}</span>
+                                          </span>
+                                        ))}
+                                      </div>
                                     )}
-                                    <span className="text-muted-foreground">{fc.current}h → <span className={`font-semibold ${pctClass}`}>{fc.proposed}h ({fc.pct}%)</span></span>
-                                    <span className="text-muted-foreground">cap {fc.capacity}h</span>
+
+                                    <UtilisationHeatmap userId={u.id} weekCount={8} compact fromDate={new Date(req.startDate)} />
                                   </div>
                                 );
                               })}
                             </div>
+
                             {ignoreSoft && <p className="text-xs text-indigo-500">* Soft allocations excluded from utilization</p>}
-                            {hasSkillFilter && (
-                              <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1 border-t">
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> All {reqSkills.length} skills matched</span>
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Partial match</span>
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> No match</span>
+
+                            {hasAnySkills && (
+                              <div className="flex items-center gap-4 text-[10px] text-muted-foreground pt-1 border-t">
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-100 border border-green-300 inline-block" /> ≥100% — all skills met</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-50 border border-amber-300 inline-block" /> 50–99% — partial match</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-50 border border-red-300 inline-block" /> &lt;50% — low match</span>
                               </div>
                             )}
                           </div>
@@ -703,31 +787,81 @@ export default function Resources() {
 
       {/* Assign & Allocate dialog */}
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Assign & Allocate</DialogTitle>
             <DialogDescription>Select a team member to assign. An allocation record will be automatically created on approval.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Select onValueChange={setAssignUserId} value={assignUserId}>
-              <SelectTrigger><SelectValue placeholder="Select team member…" /></SelectTrigger>
-              <SelectContent>
-                {(users as any[])?.map((u: any) => <SelectItem key={u.id} value={u.id.toString()}>{u.name} — {u.role}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {/* Forecasted utilization preview */}
-            {assignUserId && fulfillRequestId && (() => {
-              const req = allRequests.find((r: any) => r.id === fulfillRequestId);
-              if (!req) return null;
-              const fc = forecastedUtil(parseInt(assignUserId), Number(req.hoursPerWeek), ignoreSoft);
-              const pctClass = fc.pct > 100 ? "text-red-600 font-bold" : fc.pct > 80 ? "text-amber-600 font-semibold" : "text-green-600 font-semibold";
+            {(() => {
+              const req = fulfillRequestId ? allRequests.find((r: any) => r.id === fulfillRequestId) : null;
+              if (!req || !users) return null;
+
+              const scoredUsers = (users as any[])
+                .filter((u: any) => u.isInternal !== false)
+                .map((u: any) => {
+                  const fc = forecastedUtil(u.id, Number(req.hoursPerWeek), ignoreSoft);
+                  const sm = scoreCandidate(u.id, req);
+                  return { ...u, fc, sm };
+                })
+                .sort((a: any, b: any) => {
+                  const hasSkills = (req.requiredSkillsWithLevel ?? []).length > 0 || (req.requiredSkills ?? []).length > 0;
+                  if (hasSkills) return b.sm.score - a.sm.score;
+                  return a.fc.pct - b.fc.pct;
+                });
+
               return (
-                <div className="rounded-lg border p-3 bg-slate-50 text-sm space-y-1">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Forecasted utilization after assignment</p>
-                  <p>Current: <span className="font-medium">{fc.current}h/wk</span> + Proposed: <span className="font-medium">{req.hoursPerWeek}h/wk</span> = <span className={pctClass}>{fc.proposed}h ({fc.pct}% of {fc.capacity}h capacity)</span></p>
-                  {fc.pct > 100 && <p className="text-red-600 text-xs">⚠ This will over-allocate the team member. Consider reassigning or adjusting hours.</p>}
-                  {ignoreSoft && <p className="text-xs text-indigo-500">* Soft allocations excluded</p>}
-                </div>
+                <>
+                  <div className="max-h-64 overflow-y-auto border rounded-lg divide-y">
+                    {scoredUsers.map((u: any) => {
+                      const { fc, sm } = u;
+                      const isSelected = assignUserId === String(u.id);
+                      const pctClass = fc.pct > 100 ? "text-red-600" : fc.pct > 80 ? "text-amber-600" : "text-green-600";
+                      return (
+                        <button
+                          key={u.id}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-muted/50 transition-colors ${isSelected ? "bg-indigo-50 dark:bg-indigo-900/20" : ""}`}
+                          onClick={() => setAssignUserId(String(u.id))}
+                        >
+                          <Avatar className="h-7 w-7 shrink-0">
+                            <AvatarFallback className="text-[10px]">{u.initials}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-xs">{u.name}</span>
+                              <span className="text-muted-foreground text-xs">{u.role}</span>
+                              {sm.total > 0 && <MatchScoreBadge score={sm.score} total={sm.total} />}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className={`text-xs ${pctClass}`}>{fc.proposed}h/wk ({fc.pct}% cap)</span>
+                              {fc.pct > 100 && <span className="text-red-500 text-[10px]">⚠ Overallocated</span>}
+                            </div>
+                          </div>
+                          {isSelected && <CheckCircle className="h-4 w-4 text-indigo-600 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {assignUserId && (() => {
+                    const sel = scoredUsers.find((u: any) => String(u.id) === assignUserId);
+                    if (!sel) return null;
+                    const { fc } = sel;
+                    const pctClass = fc.pct > 100 ? "text-red-600 font-bold" : fc.pct > 80 ? "text-amber-600 font-semibold" : "text-green-600 font-semibold";
+                    return (
+                      <div className="rounded-lg border p-3 bg-slate-50 text-sm space-y-2">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Forecasted utilization after assignment</p>
+                        <p>Current: <span className="font-medium">{fc.current}h/wk</span> + Proposed: <span className="font-medium">{req.hoursPerWeek}h/wk</span> = <span className={pctClass}>{fc.proposed}h ({fc.pct}% of {fc.capacity}h capacity)</span></p>
+                        {fc.pct > 100 && <p className="text-red-600 text-xs">⚠ This will over-allocate the team member. Consider reassigning or adjusting hours.</p>}
+                        {ignoreSoft && <p className="text-xs text-indigo-500">* Soft allocations excluded</p>}
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 mb-1">Availability next 8 weeks from request start:</p>
+                          <UtilisationHeatmap userId={sel.id} weekCount={8} compact fromDate={new Date(req.startDate)} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
               );
             })()}
           </div>
@@ -796,6 +930,11 @@ export default function Resources() {
                 <div>
                   <h3 className="text-sm font-semibold mb-2">Skills</h3>
                   <UserSkillsCell userId={profileUser.userId} />
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Utilization Heat Map (next 12 weeks)</h3>
+                  <UtilisationHeatmap userId={profileUser.userId} weekCount={12} compact />
                 </div>
               </div>
             );
