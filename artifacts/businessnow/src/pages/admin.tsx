@@ -850,47 +850,49 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="mb-4">
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> Users
-            </TabsTrigger>
-            <TabsTrigger value="templates" className="flex items-center gap-2">
-              <LayoutTemplate className="h-4 w-4" /> Project Templates
-            </TabsTrigger>
-            <TabsTrigger value="skills" className="flex items-center gap-2">
-              <Cpu className="h-4 w-4" /> Skills Matrix
-            </TabsTrigger>
-            <TabsTrigger value="taxcodes" className="flex items-center gap-2">
-              <Percent className="h-4 w-4" /> Tax Codes
-            </TabsTrigger>
-            <TabsTrigger value="timecategories" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" /> Time Categories
-            </TabsTrigger>
-            <TabsTrigger value="timesettings" className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4" /> Time Settings
-            </TabsTrigger>
-            <TabsTrigger value="holidays" className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4" /> Holiday Calendars
-            </TabsTrigger>
-            <TabsTrigger value="ratecards" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" /> Rate Cards
-            </TabsTrigger>
-            <TabsTrigger value="customfields" className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4" /> Custom Fields
-            </TabsTrigger>
-            <TabsTrigger value="placeholders" className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> Placeholders
-            </TabsTrigger>
-            <TabsTrigger value="auditlog" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" /> Audit Log
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" /> Company Settings
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="flex items-center gap-2">
-              <RotateCcw className="h-4 w-4" /> Archived Projects
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto scrollbar-none mb-4">
+            <TabsList className="w-max">
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" /> Users
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="flex items-center gap-2">
+                <LayoutTemplate className="h-4 w-4" /> Project Templates
+              </TabsTrigger>
+              <TabsTrigger value="skills" className="flex items-center gap-2">
+                <Cpu className="h-4 w-4" /> Skills Matrix
+              </TabsTrigger>
+              <TabsTrigger value="taxcodes" className="flex items-center gap-2">
+                <Percent className="h-4 w-4" /> Tax Codes
+              </TabsTrigger>
+              <TabsTrigger value="timecategories" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Time Categories
+              </TabsTrigger>
+              <TabsTrigger value="timesettings" className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4" /> Time Settings
+              </TabsTrigger>
+              <TabsTrigger value="holidays" className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4" /> Holiday Calendars
+              </TabsTrigger>
+              <TabsTrigger value="ratecards" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" /> Rate Cards
+              </TabsTrigger>
+              <TabsTrigger value="customfields" className="flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4" /> Custom Fields
+              </TabsTrigger>
+              <TabsTrigger value="placeholders" className="flex items-center gap-2">
+                <Users className="h-4 w-4" /> Placeholders
+              </TabsTrigger>
+              <TabsTrigger value="auditlog" className="flex items-center gap-2">
+                <Activity className="h-4 w-4" /> Audit Log
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" /> Company Settings
+              </TabsTrigger>
+              <TabsTrigger value="archived" className="flex items-center gap-2">
+                <RotateCcw className="h-4 w-4" /> Archived Projects
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="users" className="m-0">
             <Tabs defaultValue="management">

@@ -4,7 +4,8 @@ import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useLis
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -438,6 +439,19 @@ export default function ProjectDetail() {
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
+            <Breadcrumb className="mb-1.5">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/projects" className="hover:text-foreground transition-colors">Projects</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{project.name}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
               <StatusBadge status={project.status} />
@@ -564,43 +578,45 @@ export default function ProjectDetail() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="team">Team & Allocations</TabsTrigger>
-            <TabsTrigger value="financials">Financials</TabsTrigger>
-            <TabsTrigger value="csat" className="flex items-center gap-1.5">
-              <MessageSquare className="h-4 w-4" />
-              CSAT
-              {csatSummary && csatSummary.totalResponses > 0 && (
-                <span className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 rounded-full text-xs px-1.5 py-0.5 leading-none">
-                  {csatSummary.totalResponses}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-1.5">
-              <FileText className="h-4 w-4" />
-              Documents
-            </TabsTrigger>
-            <TabsTrigger value="forms" className="flex items-center gap-1.5">
-              <FileQuestion className="h-4 w-4" />
-              Forms
-            </TabsTrigger>
-            <TabsTrigger value="gantt" className="flex items-center gap-1.5">
-              <BarChart2 className="h-4 w-4" />
-              Timeline
-            </TabsTrigger>
-            <TabsTrigger value="time" className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4" />
-              Time
-            </TabsTrigger>
-            <TabsTrigger value="updates" className="flex items-center gap-1.5">
-              <Bell className="h-4 w-4" />
-              Updates
-              {projectUpdates.length > 0 && (
-                <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{projectUpdates.length}</span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto scrollbar-none mb-4">
+            <TabsList className="w-max">
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="team">Team & Allocations</TabsTrigger>
+              <TabsTrigger value="financials">Financials</TabsTrigger>
+              <TabsTrigger value="csat" className="flex items-center gap-1.5">
+                <MessageSquare className="h-4 w-4" />
+                CSAT
+                {csatSummary && csatSummary.totalResponses > 0 && (
+                  <span className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 rounded-full text-xs px-1.5 py-0.5 leading-none">
+                    {csatSummary.totalResponses}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="flex items-center gap-1.5">
+                <FileText className="h-4 w-4" />
+                Documents
+              </TabsTrigger>
+              <TabsTrigger value="forms" className="flex items-center gap-1.5">
+                <FileQuestion className="h-4 w-4" />
+                Forms
+              </TabsTrigger>
+              <TabsTrigger value="gantt" className="flex items-center gap-1.5">
+                <BarChart2 className="h-4 w-4" />
+                Timeline
+              </TabsTrigger>
+              <TabsTrigger value="time" className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" />
+                Time
+              </TabsTrigger>
+              <TabsTrigger value="updates" className="flex items-center gap-1.5">
+                <Bell className="h-4 w-4" />
+                Updates
+                {projectUpdates.length > 0 && (
+                  <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{projectUpdates.length}</span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="tasks" className="m-0">
             <Card>

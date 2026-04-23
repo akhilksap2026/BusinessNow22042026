@@ -230,3 +230,11 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

@@ -837,18 +837,20 @@ export default function Reports() {
         </div>
 
         <Tabs defaultValue="performance" className="w-full">
-          <TabsList className="mb-4 flex-wrap h-auto gap-1">
-            <TabsTrigger value="performance" className="flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Performance</TabsTrigger>
-            <TabsTrigger value="capacity-planning" className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Capacity Planning</TabsTrigger>
-            <TabsTrigger value="operations">Operations</TabsTrigger>
-            <TabsTrigger value="csat" className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5" /> CSAT Trend</TabsTrigger>
-            <TabsTrigger value="interval-iq" className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Interval IQ</TabsTrigger>
-            <TabsTrigger value="budget">Budget vs Actuals</TabsTrigger>
-            <TabsTrigger value="burndown">Burn-Down</TabsTrigger>
-            <TabsTrigger value="revenue">Revenue</TabsTrigger>
-            <TabsTrigger value="utilization">Utilization</TabsTrigger>
-            <TabsTrigger value="health">Project Health</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto scrollbar-none mb-4">
+            <TabsList className="w-max">
+              <TabsTrigger value="performance" className="flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Performance</TabsTrigger>
+              <TabsTrigger value="capacity-planning" className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Capacity Planning</TabsTrigger>
+              <TabsTrigger value="operations">Operations</TabsTrigger>
+              <TabsTrigger value="csat" className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5" /> CSAT Trend</TabsTrigger>
+              <TabsTrigger value="interval-iq" className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Interval IQ</TabsTrigger>
+              <TabsTrigger value="budget">Budget vs Actuals</TabsTrigger>
+              <TabsTrigger value="burndown">Burn-Down</TabsTrigger>
+              <TabsTrigger value="revenue">Revenue</TabsTrigger>
+              <TabsTrigger value="utilization">Utilization</TabsTrigger>
+              <TabsTrigger value="health">Project Health</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="performance" className="m-0">
             <ProjectPerformanceReport />
