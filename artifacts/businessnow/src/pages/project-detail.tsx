@@ -26,7 +26,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { ProjectDocuments } from "@/components/project-documents";
 import { ProjectForms } from "@/components/project-forms";
+import { useCurrentUser } from "@/contexts/current-user";
 import ProjectGantt from "@/components/project-gantt";
+import { TrackedTimeTab } from "@/components/tracked-time-tab";
 
 
 export default function ProjectDetail() {
@@ -55,6 +57,8 @@ export default function ProjectDetail() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { currentUser, activeRole } = useCurrentUser();
+  const viewerRole = activeRole ?? "PM";
   const createAllocation = useCreateAllocation();
   const updateAllocation = useUpdateAllocation();
   const deleteAllocation = useDeleteAllocation();
@@ -994,6 +998,9 @@ export default function ProjectDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Tracked Time — full editable table */}
+            <TrackedTimeTab projectId={projectId} viewerRole={viewerRole} />
           </TabsContent>
 
           {/* ── Change Requests tab ─────────────────────────────────────────── */}
@@ -1231,6 +1238,9 @@ export default function ProjectDetail() {
           </TabsContent>
 
           <TabsContent value="time" className="m-0 space-y-4">
+            {currentUser?.id && (
+              <TrackedTimeTab projectId={projectId} viewerRole={viewerRole} scopedUserId={currentUser.id} />
+            )}
             {(() => {
               const entries = projectTimeEntries ?? [];
               const totalHours = entries.reduce((s, e) => s + Number(e.hours), 0);

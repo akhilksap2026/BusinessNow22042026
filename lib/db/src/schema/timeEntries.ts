@@ -17,6 +17,7 @@ export const timeEntriesTable = pgTable("time_entries", {
   approved: boolean("approved").notNull().default(false),
   rejected: boolean("rejected").notNull().default(false),
   rejectionNote: text("rejection_note"),
+  role: text("role"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

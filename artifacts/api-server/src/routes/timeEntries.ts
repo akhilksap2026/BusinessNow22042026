@@ -74,6 +74,21 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   if (invErr) { res.status(invErr.status).json({ error: invErr.error }); return; }
   const teUpdates: any = { ...parsed.data };
   if (teUpdates.hours !== undefined) teUpdates.hours = String(teUpdates.hours);
+  // Pass-through fields not in generated UpdateTimeEntryBody Zod schema
+  const body = req.body ?? {};
+  if (body.categoryId !== undefined) teUpdates.categoryId = body.categoryId === null ? null : Number(body.categoryId);
+  if (body.taskId !== undefined) teUpdates.taskId = body.taskId === null ? null : Number(body.taskId);
+  if (typeof body.role === "string") teUpdates.role = body.role.trim() || null;
+  if (typeof body.rejected === "boolean") teUpdates.rejected = body.rejected;
+  if (typeof body.rejectionNote === "string") teUpdates.rejectionNote = body.rejectionNote.trim() || null;
+  // Status changes (approved / rejected) require status-change permission
+  if (body.approved !== undefined || body.rejected !== undefined) {
+    const statusErr = checkEntryStatusChangeable(existing, role, settings);
+    if (statusErr) { res.status(statusErr.status).json({ error: statusErr.error }); return; }
+    if (teUpdates.approved === true) teUpdates.rejected = false;
+    if (teUpdates.rejected === true) teUpdates.approved = false;
+  }
+  teUpdates.updatedAt = new Date();
   const [row] = await db.update(timeEntriesTable).set(teUpdates).where(eq(timeEntriesTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Time entry not found" }); return; }
   res.json(UpdateTimeEntryResponse.parse(mapEntry(row)));
@@ -142,6 +157,48 @@ router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<vo
     } catch {}
   }
   res.json({ rejected: ids.length });
+});
+
+// Bulk approve: { ids: number[] }
+router.post("/time-entries/bulk-approve", requirePM, async (req, res): Promise<void> => {
+  const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
+  if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
+  const { inArray } = await import("drizzle-orm");
+  const existing = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
+  const role = String(req.headers["x-user-role"] ?? "");
+  const settings = await getGovernanceSettings();
+  for (const e of existing) {
+    const err = checkEntryStatusChangeable(e, role, settings);
+    if (err) { res.status(err.status).json({ error: err.error, blockedEntryId: e.id }); return; }
+  }
+  await db.update(timeEntriesTable)
+    .set({ approved: true, rejected: false, rejectionNote: null, updatedAt: new Date() })
+    .where(inArray(timeEntriesTable.id, ids));
+  res.json({ approved: ids.length });
+});
+
+// Bulk delete: { ids: number[] }
+router.post("/time-entries/bulk-delete", requirePM, async (req, res): Promise<void> => {
+  const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
+  if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
+  const { inArray } = await import("drizzle-orm");
+  const existing = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
+  const role = String(req.headers["x-user-role"] ?? "");
+  const settings = await getGovernanceSettings();
+  const { getInvoicedLink } = await import("../lib/governance");
+  for (const e of existing) {
+    const dateErr = checkEntryEditable(e, role, settings);
+    if (dateErr) { res.status(dateErr.status).json({ error: dateErr.error, blockedEntryId: e.id }); return; }
+    const ts = await getTimesheetForEntry(e);
+    if (ts) {
+      const tsErr = checkTimesheetEditable(ts, role, settings);
+      if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error, blockedEntryId: e.id }); return; }
+    }
+    const link = await getInvoicedLink(e.id);
+    if (link) { res.status(409).json({ error: `Cannot delete entry ${e.id}: it is on invoice ${link.invoiceId} (${link.invoiceStatus}).`, blockedEntryId: e.id }); return; }
+  }
+  await db.delete(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
+  res.json({ deleted: ids.length });
 });
 
 router.delete("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
