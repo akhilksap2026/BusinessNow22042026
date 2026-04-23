@@ -75,45 +75,103 @@ export default function ProjectDetail() {
     name: "", status: "", health: "", budget: "", description: "", autoAllocate: false,
   });
 
+  const emptyCoForm = {
+    title: "", description: "", amount: "", additionalHours: "",
+    requestedDate: "", submittedDate: "", decisionDate: "",
+    status: "Draft", submittedByUserId: "", approvedByUserId: "",
+    newResourceRole: "", linkedTaskTitlesRaw: "",
+  };
   const [coDialogOpen, setCoDialogOpen] = useState(false);
-  const [coForm, setCoForm] = useState({ title: "", description: "", amount: "", requestedDate: "", status: "Pending" });
+  const [editCrId, setEditCrId] = useState<number | null>(null);
+  const [coForm, setCoForm] = useState(emptyCoForm);
 
-  async function handleCreateCO() {
+  function openNewCR() {
+    setEditCrId(null);
+    setCoForm(emptyCoForm);
+    setCoDialogOpen(true);
+  }
+
+  function openEditCR(co: any) {
+    setEditCrId(co.id);
+    setCoForm({
+      title: co.title ?? "",
+      description: co.description ?? "",
+      amount: String(co.amount ?? ""),
+      additionalHours: String(co.additionalHours ?? ""),
+      requestedDate: co.requestedDate ?? "",
+      submittedDate: co.submittedDate ?? "",
+      decisionDate: co.decisionDate ?? "",
+      status: co.status ?? "Draft",
+      submittedByUserId: co.submittedByUserId ? String(co.submittedByUserId) : "",
+      approvedByUserId: co.approvedByUserId ? String(co.approvedByUserId) : "",
+      newResourceRole: co.newResourceRole ?? "",
+      linkedTaskTitlesRaw: (co.linkedTaskTitles ?? []).join(", "),
+    });
+    setCoDialogOpen(true);
+  }
+
+  async function handleSaveCR() {
     if (!coForm.title) return;
+    const linkedTaskTitles = coForm.linkedTaskTitlesRaw
+      .split(",").map(s => s.trim()).filter(Boolean);
+    const payload = {
+      title: coForm.title,
+      description: coForm.description || undefined,
+      amount: parseFloat(coForm.amount) || 0,
+      additionalHours: parseFloat(coForm.additionalHours) || 0,
+      status: coForm.status,
+      requestedDate: coForm.requestedDate || undefined,
+      submittedDate: coForm.submittedDate || undefined,
+      decisionDate: coForm.decisionDate || undefined,
+      submittedByUserId: coForm.submittedByUserId ? parseInt(coForm.submittedByUserId) : undefined,
+      approvedByUserId: coForm.approvedByUserId ? parseInt(coForm.approvedByUserId) : undefined,
+      newResourceRole: coForm.newResourceRole || undefined,
+      linkedTaskTitles,
+    };
     try {
-      await fetch(`/api/projects/${projectId}/change-orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...coForm, amount: parseFloat(coForm.amount) || 0 }),
-      });
+      if (editCrId) {
+        await fetch(`/api/change-orders/${editCrId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+          body: JSON.stringify(payload),
+        });
+        toast({ title: "Change request updated" });
+      } else {
+        await fetch(`/api/projects/${projectId}/change-orders`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+          body: JSON.stringify(payload),
+        });
+        toast({ title: "Change request created" });
+      }
       refetchChangeOrders();
       setCoDialogOpen(false);
-      setCoForm({ title: "", description: "", amount: "", requestedDate: "", status: "Pending" });
-      toast({ title: "Change order created" });
     } catch {
-      toast({ title: "Failed to create change order", variant: "destructive" });
+      toast({ title: "Failed to save change request", variant: "destructive" });
     }
   }
 
   async function handleUpdateCOStatus(coId: number, status: string) {
     try {
+      const decisionDate = ["Approved", "Rejected"].includes(status)
+        ? new Date().toISOString().slice(0, 10) : undefined;
       await fetch(`/api/change-orders/${coId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+        body: JSON.stringify({ status, ...(decisionDate ? { decisionDate } : {}) }),
       });
       refetchChangeOrders();
     } catch {
-      toast({ title: "Failed to update change order", variant: "destructive" });
+      toast({ title: "Failed to update change request", variant: "destructive" });
     }
   }
 
   async function handleDeleteCO(coId: number) {
     try {
-      await fetch(`/api/change-orders/${coId}`, { method: "DELETE" });
+      await fetch(`/api/change-orders/${coId}`, { method: "DELETE", headers: { "x-user-role": "PM" } });
       refetchChangeOrders();
     } catch {
-      toast({ title: "Failed to delete change order", variant: "destructive" });
+      toast({ title: "Failed to delete change request", variant: "destructive" });
     }
   }
 
@@ -573,6 +631,13 @@ export default function ProjectDetail() {
               <TabsTrigger value="tasks">Tasks</TabsTrigger>
               <TabsTrigger value="team">Team & Allocations</TabsTrigger>
               <TabsTrigger value="financials">Financials</TabsTrigger>
+              <TabsTrigger value="changes" className="flex items-center gap-1.5">
+                <PackagePlus className="h-4 w-4" />
+                Change Requests
+                {changeOrders && changeOrders.length > 0 && (
+                  <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{changeOrders.length}</span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="csat" className="flex items-center gap-1.5">
                 <MessageSquare className="h-4 w-4" />
                 CSAT
@@ -906,88 +971,229 @@ export default function ProjectDetail() {
               );
             })()}
 
-            {/* Change Orders */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle>Change Orders</CardTitle>
-                <Button size="sm" onClick={() => { setCoForm({ title: "", description: "", amount: "", requestedDate: "", status: "Pending" }); setCoDialogOpen(true); }}>
-                  <Plus className="h-4 w-4 mr-1" /> New Change Order
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                {!changeOrders || changeOrders.length === 0 ? (
-                  <div className="py-10 text-center text-muted-foreground text-sm">No change orders yet.</div>
-                ) : (
+            {/* Change Requests summary callout */}
+            {changeOrders && changeOrders.length > 0 && (
+              <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <PackagePlus className="h-5 w-5 text-amber-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                          {changeOrders.filter((co: any) => co.status === "Approved").length} Approved Change Request{changeOrders.filter((co: any) => co.status === "Approved").length !== 1 ? "s" : ""} of {changeOrders.length} total
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          Budget impact already reflected in Total Revenue above.
+                        </p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-100" onClick={() => setActiveTab("changes")}>
+                      View All CRs
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ── Change Requests tab ─────────────────────────────────────────── */}
+          <TabsContent value="changes" className="m-0 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Change Requests</h3>
+                <p className="text-sm text-muted-foreground">Track scope changes, budget adjustments, and approval workflow.</p>
+              </div>
+              <Button size="sm" onClick={openNewCR}>
+                <Plus className="h-4 w-4 mr-1" /> New CR
+              </Button>
+            </div>
+
+            {!changeOrders || changeOrders.length === 0 ? (
+              <Card>
+                <CardContent className="py-16 text-center text-muted-foreground">
+                  <PackagePlus className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium">No change requests yet</p>
+                  <p className="text-xs mt-1">Create one to document scope changes and budget adjustments.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-0">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-20">CR #</TableHead>
                         <TableHead>Title</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Requested</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead className="w-24" />
+                        <TableHead>Submitted by</TableHead>
+                        <TableHead className="text-right">Cost Impact</TableHead>
+                        <TableHead className="text-right">Hours</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead>Decision</TableHead>
+                        <TableHead className="w-20" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {changeOrders.map((co: any) => (
-                        <TableRow key={co.id}>
-                          <TableCell className="font-medium">{co.title}</TableCell>
-                          <TableCell>
-                            <Select value={co.status} onValueChange={val => handleUpdateCOStatus(co.id, val)}>
-                              <SelectTrigger className="h-7 w-28 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {["Pending", "Approved", "Rejected"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>{co.requestedDate ? new Date(co.requestedDate + "T00:00:00").toLocaleDateString() : "—"}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(Number(co.amount))}</TableCell>
-                          <TableCell>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => handleDeleteCO(co.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {(changeOrders ?? []).map((co: any) => {
+                        const submitter = (users as any[])?.find((u: any) => u.id === co.submittedByUserId);
+                        const statusColors: Record<string, string> = {
+                          Draft: "bg-slate-100 text-slate-700",
+                          Submitted: "bg-blue-100 text-blue-700",
+                          Approved: "bg-green-100 text-green-700",
+                          Rejected: "bg-red-100 text-red-700",
+                        };
+                        return (
+                          <TableRow key={co.id}>
+                            <TableCell className="font-mono text-xs font-semibold text-muted-foreground">{co.crNumber ?? "—"}</TableCell>
+                            <TableCell>
+                              <div className="font-medium">{co.title}</div>
+                              {co.description && <div className="text-xs text-muted-foreground truncate max-w-48">{co.description}</div>}
+                            </TableCell>
+                            <TableCell>
+                              <Select value={co.status} onValueChange={val => handleUpdateCOStatus(co.id, val)}>
+                                <SelectTrigger className={`h-7 w-28 text-xs border-0 ${statusColors[co.status] ?? ""}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {["Draft", "Submitted", "Approved", "Rejected"].map(s => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="text-sm">{submitter?.name ?? (co.submittedByUserId ? `User ${co.submittedByUserId}` : "—")}</TableCell>
+                            <TableCell className="text-right font-medium text-green-700">+{formatCurrency(Number(co.amount))}</TableCell>
+                            <TableCell className="text-right text-sm">{Number(co.additionalHours) > 0 ? `+${Number(co.additionalHours)}h` : "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{co.submittedDate ? new Date(co.submittedDate + "T00:00:00").toLocaleDateString() : "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{co.decisionDate ? new Date(co.decisionDate + "T00:00:00").toLocaleDateString() : "—"}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground" onClick={() => openEditCR(co)}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => handleDeleteCO(co.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
-          {/* Change Order Dialog */}
+          {/* ── Full CR Form Dialog ──────────────────────────────────────────── */}
           <Dialog open={coDialogOpen} onOpenChange={setCoDialogOpen}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>New Change Order</DialogTitle>
-                <DialogDescription>Document scope changes and budget adjustments.</DialogDescription>
+                <DialogTitle>{editCrId ? "Edit Change Request" : "New Change Request"}</DialogTitle>
+                <DialogDescription>Document scope changes, budget impact, and approval workflow.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label>Title *</Label>
-                  <Input placeholder="e.g. Additional API integrations" value={coForm.title} onChange={e => setCoForm(f => ({ ...f, title: e.target.value }))} />
+                {/* Title + Status */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Title *</Label>
+                    <Input placeholder="e.g. Additional API integrations" value={coForm.title} onChange={e => setCoForm(f => ({ ...f, title: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Status</Label>
+                    <Select value={coForm.status} onValueChange={v => setCoForm(f => ({ ...f, status: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["Draft", "Submitted", "Approved", "Rejected"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                {/* Description */}
                 <div className="space-y-1.5">
-                  <Label>Description</Label>
-                  <Textarea placeholder="Describe the scope change…" rows={3} value={coForm.description} onChange={e => setCoForm(f => ({ ...f, description: e.target.value }))} />
+                  <Label>Description of Scope Change</Label>
+                  <Textarea placeholder="Describe what is changing and why…" rows={3} value={coForm.description} onChange={e => setCoForm(f => ({ ...f, description: e.target.value }))} />
                 </div>
+
+                {/* Budget + Hours impact */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label>Amount ($)</Label>
+                    <Label>Additional Cost ($)</Label>
                     <Input type="number" min={0} placeholder="0" value={coForm.amount} onChange={e => setCoForm(f => ({ ...f, amount: e.target.value }))} />
                   </div>
+                  <div className="space-y-1.5">
+                    <Label>Additional Hours</Label>
+                    <Input type="number" min={0} placeholder="0" value={coForm.additionalHours} onChange={e => setCoForm(f => ({ ...f, additionalHours: e.target.value }))} />
+                  </div>
+                </div>
+
+                {/* People */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Submitted By</Label>
+                    <Select value={coForm.submittedByUserId || "__none__"} onValueChange={v => setCoForm(f => ({ ...f, submittedByUserId: v === "__none__" ? "" : v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select team member…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— None —</SelectItem>
+                        {(users as any[] ?? []).map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Approved By</Label>
+                    <Select value={coForm.approvedByUserId || "__none__"} onValueChange={v => setCoForm(f => ({ ...f, approvedByUserId: v === "__none__" ? "" : v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select team member…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— None —</SelectItem>
+                        {(users as any[] ?? []).map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Dates */}
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label>Requested Date</Label>
                     <Input type="date" value={coForm.requestedDate} onChange={e => setCoForm(f => ({ ...f, requestedDate: e.target.value }))} />
                   </div>
+                  <div className="space-y-1.5">
+                    <Label>Submission Date</Label>
+                    <Input type="date" value={coForm.submittedDate} onChange={e => setCoForm(f => ({ ...f, submittedDate: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Decision Date</Label>
+                    <Input type="date" value={coForm.decisionDate} onChange={e => setCoForm(f => ({ ...f, decisionDate: e.target.value }))} />
+                  </div>
+                </div>
+
+                {/* Tasks to create on approval */}
+                <div className="space-y-1.5">
+                  <Label>Tasks Added / Modified (comma-separated)</Label>
+                  <Input
+                    placeholder="e.g. Set up new API endpoint, Write tests, Deploy to staging"
+                    value={coForm.linkedTaskTitlesRaw}
+                    onChange={e => setCoForm(f => ({ ...f, linkedTaskTitlesRaw: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">These tasks will be added to the project task list when this CR is Approved.</p>
+                </div>
+
+                {/* Resource required */}
+                <div className="space-y-1.5">
+                  <Label>Resources Required (role to request)</Label>
+                  <Input
+                    placeholder="e.g. Senior Backend Engineer"
+                    value={coForm.newResourceRole}
+                    onChange={e => setCoForm(f => ({ ...f, newResourceRole: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">A resource request for this role will be auto-created when the CR is Approved.</p>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCoDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreateCO} disabled={!coForm.title}>Create</Button>
+                <Button onClick={handleSaveCR} disabled={!coForm.title}>{editCrId ? "Save Changes" : "Create CR"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

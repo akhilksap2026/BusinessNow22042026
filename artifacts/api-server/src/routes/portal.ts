@@ -7,6 +7,7 @@ import {
   documentsTable,
   accountsTable,
   taskDependenciesTable,
+  changeOrdersTable,
 } from "@workspace/db";
 import { eq, and, desc, inArray } from "drizzle-orm";
 
@@ -170,6 +171,24 @@ router.get("/portal/:token", async (req, res) => {
     documents = [];
   }
 
+  // Approved change requests — visible to clients
+  let approvedChangeRequests: any[] = [];
+  try {
+    const cos = await db.select().from(changeOrdersTable)
+      .where(and(eq(changeOrdersTable.projectId, project.id), eq(changeOrdersTable.status, "Approved")));
+    approvedChangeRequests = cos.map(co => ({
+      id: co.id,
+      crNumber: co.crNumber,
+      title: co.title,
+      description: co.description,
+      amount: Number(co.amount),
+      additionalHours: Number(co.additionalHours ?? 0),
+      decisionDate: co.decisionDate ?? co.approvedDate,
+    }));
+  } catch {
+    approvedChangeRequests = [];
+  }
+
   return res.json({
     project: {
       id: project.id,
@@ -184,6 +203,7 @@ router.get("/portal/:token", async (req, res) => {
     },
     milestones,
     documents,
+    approvedChangeRequests,
     overallProgress: tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0,
     totalTasks: tasks.length,
     completedTasks,

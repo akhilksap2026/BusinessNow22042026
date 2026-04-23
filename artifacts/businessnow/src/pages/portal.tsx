@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { getPortal } from "@workspace/api-client-react";
-import { CheckCircle, Clock, FileText, AlertTriangle, Activity } from "lucide-react";
+import { CheckCircle, Clock, FileText, AlertTriangle, Activity, PackagePlus } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 const HEALTH_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -58,7 +58,7 @@ export default function PortalPage() {
     );
   }
 
-  const { project, milestones, documents, overallProgress, totalTasks, completedTasks } = data;
+  const { project, milestones, documents, approvedChangeRequests = [], overallProgress, totalTasks, completedTasks } = data;
   const health = HEALTH_COLORS[project.health] ?? HEALTH_COLORS.Green;
 
   return (
@@ -171,6 +171,43 @@ export default function PortalPage() {
                     <p className="text-xs text-slate-400 mt-0.5">
                       {doc.type} · Updated {new Date(doc.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Approved Change Requests */}
+        {approvedChangeRequests.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold text-slate-800 mb-3">Approved Scope Changes</h2>
+            <div className="space-y-3">
+              {approvedChangeRequests.map((cr: any) => (
+                <div key={cr.id} className="bg-white border border-slate-200 rounded-xl px-5 py-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <PackagePlus className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {cr.crNumber && <span className="text-xs font-mono font-semibold text-slate-400">{cr.crNumber}</span>}
+                          <p className="text-sm font-semibold text-slate-800">{cr.title}</p>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Approved</span>
+                        </div>
+                        {cr.description && <p className="text-xs text-slate-500 mt-1">{cr.description}</p>}
+                        {cr.decisionDate && (
+                          <p className="text-xs text-slate-400 mt-1">
+                            Decision: {new Date(cr.decisionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      {cr.amount > 0 && <p className="text-sm font-bold text-green-700">+${Number(cr.amount).toLocaleString()}</p>}
+                      {cr.additionalHours > 0 && <p className="text-xs text-slate-500">+{cr.additionalHours}h</p>}
+                    </div>
                   </div>
                 </div>
               ))}
