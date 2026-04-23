@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { db, timeEntriesTable, projectsTable, usersTable } from "@workspace/db";
+import { db, timeEntriesTable, projectsTable, usersTable, tasksTable, activityDefaultsTable, timeSettingsTable, timeCategoriesTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import { getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable, checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry } from "../lib/governance";
 import {
@@ -45,8 +45,41 @@ router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const data: any = { ...parsed.data, hours: String(parsed.data.hours) };
+  // Pass-through fields not in generated schema
+  const body = req.body ?? {};
+  if (body.categoryId !== undefined && data.categoryId === undefined) {
+    data.categoryId = body.categoryId === null ? null : Number(body.categoryId);
+  }
+  if (body.taskId !== undefined && data.taskId === undefined) {
+    data.taskId = body.taskId === null ? null : Number(body.taskId);
+  }
   // Enforce: non-project activities must be non-billable
   if (!data.projectId) { data.projectId = null; data.billable = false; }
+  // Default cascade: task → activity-default → time-settings.defaultBillable / time-category.defaultBillable
+  const billableMissing = data.billable === undefined || data.billable === null;
+  const categoryMissing = data.categoryId === undefined || data.categoryId === null;
+  if ((billableMissing || categoryMissing) && data.taskId) {
+    const [t] = await db.select().from(tasksTable).where(eq(tasksTable.id, Number(data.taskId)));
+    if (t) {
+      if (billableMissing && data.projectId) data.billable = !!t.billable;
+      if (categoryMissing && t.categoryId) data.categoryId = t.categoryId;
+    }
+  }
+  if ((data.billable === undefined || data.billable === null || data.categoryId === undefined || data.categoryId === null) && body.activityName) {
+    const [ad] = await db.select().from(activityDefaultsTable).where(eq(activityDefaultsTable.activityName, String(body.activityName)));
+    if (ad && ad.isActive) {
+      if ((data.billable === undefined || data.billable === null) && data.projectId) data.billable = !!ad.billable;
+      if ((data.categoryId === undefined || data.categoryId === null) && ad.categoryId) data.categoryId = ad.categoryId;
+    }
+  }
+  if (data.billable === undefined || data.billable === null) {
+    const [ts] = await db.select().from(timeSettingsTable).limit(1);
+    if (ts && data.projectId) data.billable = ts.defaultBillable !== false;
+  }
+  if ((data.billable === undefined || data.billable === null) && data.categoryId) {
+    const [cat] = await db.select().from(timeCategoriesTable).where(eq(timeCategoriesTable.id, Number(data.categoryId)));
+    if (cat && data.projectId) data.billable = cat.defaultBillable !== false;
+  }
   const [row] = await db.insert(timeEntriesTable).values(data).returning();
   res.status(201).json(mapEntry(row));
 });

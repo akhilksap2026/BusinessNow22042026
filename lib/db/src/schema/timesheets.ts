@@ -29,6 +29,8 @@ export const timeCategoriesTable = pgTable("time_categories", {
   name: text("name").notNull(),
   description: text("description"),
   isActive: integer("is_active").notNull().default(1),
+  sortOrder: integer("sort_order").notNull().default(0),
+  defaultBillable: boolean("default_billable").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -95,8 +97,37 @@ export const timeSettingsTable = pgTable("time_settings", {
   statusLockEnabled: boolean("status_lock_enabled").notNull().default(false),
   dateLockEditOverrideRoles: text("date_lock_edit_override_roles").notNull().default(""),
   dateLockStatusOverrideRoles: text("date_lock_status_override_roles").notNull().default(""),
+  // Configuration flexibility additions
+  moduleEnabled: boolean("module_enabled").notNull().default(true),
+  timesheetDueTime: text("timesheet_due_time").notNull().default("17:00"),
+  reminderDaysBefore: integer("reminder_days_before").notNull().default(0),
+  reminderDaysAfter: integer("reminder_days_after").notNull().default(0),
+  trackTimeAgainst: text("track_time_against").notNull().default("task,activity"),
+  reportingScope: text("reporting_scope").notNull().default("assigned"),
+  maxSubmitHours: integer("max_submit_hours"),
+  exactSubmitHours: integer("exact_submit_hours"),
+  defaultBillable: boolean("default_billable").notNull().default(true),
+  rejectedHoursBehavior: text("rejected_hours_behavior").notNull().default("keep_visible"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Predefined activity defaults: when a team member logs time against a named
+// activity (non-project work like "Internal Meetings", "Training"), these
+// settings auto-populate billable + category + arbitrary custom-field values.
+export const activityDefaultsTable = pgTable("activity_defaults", {
+  id: serial("id").primaryKey(),
+  activityName: text("activity_name").notNull(),
+  billable: boolean("billable").notNull().default(false),
+  categoryId: integer("category_id"),
+  defaultFieldValues: text("default_field_values"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertActivityDefaultSchema = createInsertSchema(activityDefaultsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertActivityDefault = z.infer<typeof insertActivityDefaultSchema>;
+export type ActivityDefault = typeof activityDefaultsTable.$inferSelect;
 
 export const timesheetMessagesTable = pgTable("timesheet_messages", {
   id: serial("id").primaryKey(),

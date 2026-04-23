@@ -44,6 +44,7 @@ export const templateTasksTable = pgTable("template_tasks", {
   relativeDueDateOffset: integer("relative_due_date_offset").notNull().default(7),
   effort: numeric("effort", { precision: 8, scale: 2 }).notNull().default("0"),
   billableDefault: boolean("billable_default").notNull().default(true),
+  categoryId: integer("category_id"),
   priority: text("priority").notNull().default("Medium"),
   assigneeRolePlaceholder: text("assignee_role_placeholder"),
   order: integer("order").notNull().default(0),

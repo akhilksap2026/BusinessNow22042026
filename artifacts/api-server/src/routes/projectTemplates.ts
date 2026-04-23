@@ -257,7 +257,7 @@ router.post("/template-phases/:phaseId/tasks", requirePM, async (req, res): Prom
     .from(templatePhasesTable)
     .where(eq(templatePhasesTable.id, phaseId));
   if (!phase) { res.status(404).json({ error: "Phase not found" }); return; }
-  const { name, relativeDueDateOffset, effort, billableDefault, priority, assigneeRolePlaceholder, order } = req.body;
+  const { name, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
   const [row] = await db
     .insert(templateTasksTable)
@@ -268,6 +268,7 @@ router.post("/template-phases/:phaseId/tasks", requirePM, async (req, res): Prom
       relativeDueDateOffset: relativeDueDateOffset ?? phase.relativeEndOffset,
       effort: String(effort ?? 0),
       billableDefault: billableDefault ?? true,
+      categoryId: categoryId === null || categoryId === undefined ? null : Number(categoryId),
       priority: priority ?? "Medium",
       assigneeRolePlaceholder: assigneeRolePlaceholder ?? null,
       order: order ?? 0,
@@ -278,7 +279,7 @@ router.post("/template-phases/:phaseId/tasks", requirePM, async (req, res): Prom
 
 router.put("/template-tasks/:taskId", requirePM, async (req, res): Promise<void> => {
   const taskId = parseInt(req.params.taskId, 10);
-  const { name, relativeDueDateOffset, effort, billableDefault, priority, assigneeRolePlaceholder, order } = req.body;
+  const { name, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = req.body;
   const [row] = await db
     .update(templateTasksTable)
     .set({
@@ -286,6 +287,7 @@ router.put("/template-tasks/:taskId", requirePM, async (req, res): Promise<void>
       ...(relativeDueDateOffset !== undefined && { relativeDueDateOffset }),
       ...(effort !== undefined && { effort: String(effort) }),
       ...(billableDefault !== undefined && { billableDefault }),
+      ...(categoryId !== undefined && { categoryId: categoryId === null ? null : Number(categoryId) }),
       ...(priority !== undefined && { priority }),
       ...(assigneeRolePlaceholder !== undefined && { assigneeRolePlaceholder }),
       ...(order !== undefined && { order }),
@@ -520,6 +522,7 @@ router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise
           priority: tTask.priority,
           effort: String(tTask.effort),
           billable: tTask.billableDefault,
+          categoryId: tTask.categoryId ?? null,
           assigneeIds: [],
           startDate: phaseStart,
           dueDate: taskDue,
@@ -621,6 +624,7 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
         priority: tTask.priority,
         effort: String(tTask.effort),
         billable: tTask.billableDefault,
+        categoryId: tTask.categoryId ?? null,
         assigneeIds: [],
         startDate: phaseStart,
         dueDate: taskDue,

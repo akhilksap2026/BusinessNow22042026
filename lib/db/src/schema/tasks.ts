@@ -15,6 +15,7 @@ export const tasksTable = pgTable("tasks", {
   dueDate: text("due_date"),
   effort: numeric("effort", { precision: 8, scale: 2 }).notNull().default("0"),
   billable: boolean("billable").notNull().default(true),
+  categoryId: integer("category_id"),
   isMilestone: boolean("is_milestone").notNull().default(false),
   milestoneType: text("milestone_type"),
   taskRoles: jsonb("task_roles").$type<Record<string, string>>().default({}),

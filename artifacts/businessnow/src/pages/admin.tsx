@@ -66,7 +66,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TemplateEditor } from "@/components/template-editor";
 import { useToast } from "@/hooks/use-toast";
@@ -409,7 +409,7 @@ export default function Admin() {
   const [timeCategoryDialogOpen, setTimeCategoryDialogOpen] = useState(false);
   const [editTimeCategoryId, setEditTimeCategoryId] = useState<number | null>(null);
   const [deleteTimeCategoryId, setDeleteTimeCategoryId] = useState<number | null>(null);
-  const [timeCategoryForm, setTimeCategoryForm] = useState({ name: "", description: "" });
+  const [timeCategoryForm, setTimeCategoryForm] = useState({ name: "", description: "", defaultBillable: true });
 
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
   const [deleteCalendarId, setDeleteCalendarId] = useState<number | null>(null);
@@ -441,7 +441,99 @@ export default function Admin() {
   const [cfDialogOpen, setCfDialogOpen] = useState(false);
   const [editCfId, setEditCfId] = useState<number | null>(null);
   const [deleteCfId, setDeleteCfId] = useState<number | null>(null);
-  const [cfForm, setCfForm] = useState({ entityType: "project", name: "", fieldType: "text", isRequired: false, options: "" });
+  const [cfForm, setCfForm] = useState({
+    entityType: "project", name: "", fieldType: "text", isRequired: false, options: "",
+    description: "", sectionId: "" as string,
+    populationMethod: "manual",
+    inheritFromEntity: "" as string,
+    inheritFromFieldId: "" as string,
+    fallbackValue: "",
+  });
+  // Custom field sections (for grouping fields with role-based visibility)
+  const { data: cfSections, refetch: refetchCfSections } = useQuery({
+    queryKey: ["custom-field-sections"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/custom-field-sections`);
+      if (!res.ok) return [] as any[];
+      return res.json() as Promise<any[]>;
+    },
+  });
+  const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
+  const [editSectionId, setEditSectionId] = useState<number | null>(null);
+  const [sectionForm, setSectionForm] = useState({ entityType: "time_entry", name: "", description: "", viewRoles: "", editRoles: "", isActive: true });
+  const [deleteSectionId, setDeleteSectionId] = useState<number | null>(null);
+
+  async function handleSaveSection() {
+    if (!sectionForm.name) return;
+    try {
+      const url = editSectionId ? `${BASE}/api/custom-field-sections/${editSectionId}` : `${BASE}/api/custom-field-sections`;
+      const res = await fetch(url, {
+        method: editSectionId ? "PUT" : "POST",
+        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify(sectionForm),
+      });
+      if (!res.ok) throw new Error();
+      toast({ title: editSectionId ? "Section updated" : "Section created" });
+      setSectionDialogOpen(false); setEditSectionId(null);
+      setSectionForm({ entityType: "time_entry", name: "", description: "", viewRoles: "", editRoles: "", isActive: true });
+      refetchCfSections();
+    } catch { toast({ title: "Failed to save section", variant: "destructive" }); }
+  }
+  async function handleDeleteSection(id: number) {
+    try {
+      const res = await fetch(`${BASE}/api/custom-field-sections/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      if (!res.ok) throw new Error();
+      toast({ title: "Section deleted" });
+      setDeleteSectionId(null);
+      refetchCfSections();
+      queryClient.invalidateQueries({ queryKey: getListCustomFieldDefinitionsQueryKey() });
+    } catch { toast({ title: "Failed to delete section", variant: "destructive" }); }
+  }
+
+  // Activity Defaults state
+  const { data: activityDefaults, refetch: refetchActivityDefaults } = useQuery({
+    queryKey: ["activity-defaults"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/activity-defaults`);
+      if (!res.ok) return [] as any[];
+      return res.json() as Promise<any[]>;
+    },
+  });
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [editActivityId, setEditActivityId] = useState<number | null>(null);
+  const [activityForm, setActivityForm] = useState({ activityName: "", billable: false, categoryId: "" as string, isActive: true });
+  const [deleteActivityId, setDeleteActivityId] = useState<number | null>(null);
+  async function handleSaveActivity() {
+    if (!activityForm.activityName) return;
+    try {
+      const payload: any = {
+        activityName: activityForm.activityName,
+        billable: activityForm.billable,
+        categoryId: activityForm.categoryId ? Number(activityForm.categoryId) : null,
+        isActive: activityForm.isActive,
+      };
+      const url = editActivityId ? `${BASE}/api/activity-defaults/${editActivityId}` : `${BASE}/api/activity-defaults`;
+      const res = await fetch(url, {
+        method: editActivityId ? "PUT" : "POST",
+        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error();
+      toast({ title: editActivityId ? "Activity default updated" : "Activity default created" });
+      setActivityDialogOpen(false); setEditActivityId(null);
+      setActivityForm({ activityName: "", billable: false, categoryId: "", isActive: true });
+      refetchActivityDefaults();
+    } catch { toast({ title: "Failed to save activity default", variant: "destructive" }); }
+  }
+  async function handleDeleteActivity(id: number) {
+    try {
+      const res = await fetch(`${BASE}/api/activity-defaults/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      if (!res.ok) throw new Error();
+      toast({ title: "Activity default deleted" });
+      setDeleteActivityId(null);
+      refetchActivityDefaults();
+    } catch { toast({ title: "Failed to delete activity default", variant: "destructive" }); }
+  }
 
   const [auditEntityFilter, setAuditEntityFilter] = useState<string>("all");
   const { data: auditEntries, isLoading: isLoadingAudit } = useListAuditLog(
@@ -566,6 +658,16 @@ export default function Admin() {
     statusLockEnabled: false,
     dateLockEditOverrideRoles: "",
     dateLockStatusOverrideRoles: "",
+    moduleEnabled: true,
+    timesheetDueTime: "17:00",
+    reminderDaysBefore: 1,
+    reminderDaysAfter: 1,
+    trackTimeAgainst: "task",
+    reportingScope: "all",
+    maxSubmitHours: "" as string | number,
+    exactSubmitHours: "" as string | number,
+    defaultBillable: true,
+    rejectedHoursBehavior: "keep",
   });
   const [timeSettingsDirty, setTimeSettingsDirty] = useState(false);
 
@@ -585,6 +687,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (timeSettings && !timeSettingsDirty) {
+      const ts = timeSettings as any;
       setTimeSettingsForm({
         weeklyCapacityHours: timeSettings.weeklyCapacityHours ?? 40,
         workingDays: timeSettings.workingDays ? timeSettings.workingDays.split(",").map(d => d.trim()) : ["Mon", "Tue", "Wed", "Thu", "Fri"],
@@ -594,11 +697,21 @@ export default function Admin() {
         lockBeforeDate: timeSettings.lockBeforeDate ?? "",
         weekStartDay: timeSettings.weekStartDay ?? 1,
         minSubmitHours: timeSettings.minSubmitHours ?? 0,
-        approverRoutingMode: (timeSettings as any).approverRoutingMode ?? "admin_default",
-        lockOnApprovalEnabled: (timeSettings as any).lockOnApprovalEnabled ?? false,
-        statusLockEnabled: (timeSettings as any).statusLockEnabled ?? false,
-        dateLockEditOverrideRoles: (timeSettings as any).dateLockEditOverrideRoles ?? "",
-        dateLockStatusOverrideRoles: (timeSettings as any).dateLockStatusOverrideRoles ?? "",
+        approverRoutingMode: ts.approverRoutingMode ?? "admin_default",
+        lockOnApprovalEnabled: ts.lockOnApprovalEnabled ?? false,
+        statusLockEnabled: ts.statusLockEnabled ?? false,
+        dateLockEditOverrideRoles: ts.dateLockEditOverrideRoles ?? "",
+        dateLockStatusOverrideRoles: ts.dateLockStatusOverrideRoles ?? "",
+        moduleEnabled: ts.moduleEnabled ?? true,
+        timesheetDueTime: ts.timesheetDueTime ?? "17:00",
+        reminderDaysBefore: ts.reminderDaysBefore ?? 1,
+        reminderDaysAfter: ts.reminderDaysAfter ?? 1,
+        trackTimeAgainst: ts.trackTimeAgainst ?? "task",
+        reportingScope: ts.reportingScope ?? "all",
+        maxSubmitHours: ts.maxSubmitHours ?? "",
+        exactSubmitHours: ts.exactSubmitHours ?? "",
+        defaultBillable: ts.defaultBillable ?? true,
+        rejectedHoursBehavior: ts.rejectedHoursBehavior ?? "keep",
       });
     }
   }, [timeSettings, timeSettingsDirty]);
@@ -678,18 +791,41 @@ export default function Admin() {
   async function handleSaveTimeCategory() {
     if (!timeCategoryForm.name) return;
     try {
+      const payload: any = { name: timeCategoryForm.name, description: timeCategoryForm.description, defaultBillable: timeCategoryForm.defaultBillable };
       if (editTimeCategoryId) {
-        await updateTimeCategory.mutateAsync({ id: editTimeCategoryId, data: { name: timeCategoryForm.name, description: timeCategoryForm.description } });
+        await updateTimeCategory.mutateAsync({ id: editTimeCategoryId, data: payload });
       } else {
-        await createTimeCategory.mutateAsync({ data: { name: timeCategoryForm.name, description: timeCategoryForm.description } });
+        await createTimeCategory.mutateAsync({ data: payload });
       }
       queryClient.invalidateQueries({ queryKey: getListTimeCategoriesQueryKey() });
       toast({ title: editTimeCategoryId ? "Category updated" : "Category created" });
       setTimeCategoryDialogOpen(false);
       setEditTimeCategoryId(null);
-      setTimeCategoryForm({ name: "", description: "" });
+      setTimeCategoryForm({ name: "", description: "", defaultBillable: true });
     } catch {
       toast({ title: "Failed to save category", variant: "destructive" });
+    }
+  }
+
+  async function handleReorderTimeCategory(id: number, direction: -1 | 1) {
+    if (!timeCategories) return;
+    const ordered = [...timeCategories].sort((a, b) => ((a as any).sortOrder ?? 0) - ((b as any).sortOrder ?? 0));
+    const idx = ordered.findIndex(c => c.id === id);
+    if (idx < 0) return;
+    const swap = idx + direction;
+    if (swap < 0 || swap >= ordered.length) return;
+    const newOrder = [...ordered];
+    [newOrder[idx], newOrder[swap]] = [newOrder[swap], newOrder[idx]];
+    try {
+      const res = await fetch(`${BASE}/api/time-categories/reorder`, {
+        method: "PUT",
+        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify({ ids: newOrder.map(c => c.id) }),
+      });
+      if (!res.ok) throw new Error("reorder failed");
+      queryClient.invalidateQueries({ queryKey: getListTimeCategoriesQueryKey() });
+    } catch {
+      toast({ title: "Failed to reorder", variant: "destructive" });
     }
   }
 
@@ -874,7 +1010,19 @@ export default function Admin() {
   async function handleSaveCfDef() {
     if (!cfForm.name || !cfForm.entityType) return;
     const optionsArr = cfForm.options ? cfForm.options.split(",").map(s => s.trim()).filter(Boolean) : [];
-    const payload = { entityType: cfForm.entityType, name: cfForm.name, fieldType: cfForm.fieldType, isRequired: cfForm.isRequired, options: optionsArr };
+    const payload: any = {
+      entityType: cfForm.entityType,
+      name: cfForm.name,
+      fieldType: cfForm.fieldType,
+      isRequired: cfForm.isRequired,
+      options: optionsArr,
+      description: cfForm.description || null,
+      sectionId: cfForm.sectionId ? Number(cfForm.sectionId) : null,
+      populationMethod: cfForm.populationMethod,
+      inheritFromEntity: cfForm.inheritFromEntity || null,
+      inheritFromFieldId: cfForm.inheritFromFieldId ? Number(cfForm.inheritFromFieldId) : null,
+      fallbackValue: cfForm.fallbackValue || null,
+    };
     try {
       if (editCfId) {
         await updateCfDef.mutateAsync({ id: editCfId, data: payload });
@@ -886,7 +1034,7 @@ export default function Admin() {
       toast({ title: editCfId ? "Field updated" : "Field created" });
       setCfDialogOpen(false);
       setEditCfId(null);
-      setCfForm({ entityType: "project", name: "", fieldType: "text", isRequired: false, options: "" });
+      setCfForm({ entityType: "project", name: "", fieldType: "text", isRequired: false, options: "", description: "", sectionId: "", populationMethod: "manual", inheritFromEntity: "", inheritFromFieldId: "", fallbackValue: "" });
     } catch {
       toast({ title: "Failed to save custom field", variant: "destructive" });
     }
@@ -947,6 +1095,9 @@ export default function Admin() {
               </TabsTrigger>
               <TabsTrigger value="customfields" className="flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4" /> Custom Fields
+              </TabsTrigger>
+              <TabsTrigger value="activitydefaults" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" /> Activity Defaults
               </TabsTrigger>
               <TabsTrigger value="placeholders" className="flex items-center gap-2">
                 <Users className="h-4 w-4" /> Placeholders
@@ -1328,7 +1479,7 @@ export default function Admin() {
                   <CardTitle className="flex items-center gap-2"><Clock className="h-4 w-4" /> Time Categories</CardTitle>
                   <CardDescription>Define labels for time entries (e.g. Development, Design, Meetings)</CardDescription>
                 </div>
-                <Button size="sm" onClick={() => { setEditTimeCategoryId(null); setTimeCategoryForm({ name: "", description: "" }); setTimeCategoryDialogOpen(true); }}>
+                <Button size="sm" onClick={() => { setEditTimeCategoryId(null); setTimeCategoryForm({ name: "", description: "", defaultBillable: true }); setTimeCategoryDialogOpen(true); }}>
                   <Plus className="h-4 w-4 mr-2" /> Add Category
                 </Button>
               </CardHeader>
@@ -1342,19 +1493,28 @@ export default function Admin() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {timeCategories?.map(tc => (
+                    {timeCategories?.map((tc, idx, arr) => (
                       <div key={tc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
                         <div>
                           <p className="font-medium text-sm">{tc.name}</p>
                           {tc.description && <p className="text-xs text-muted-foreground mt-0.5">{tc.description}</p>}
                         </div>
                         <div className="flex items-center gap-1">
-                          <Badge variant={tc.isActive ? "outline" : "secondary"} className="text-xs mr-2">
+                          <Badge variant={(tc as any).defaultBillable === false ? "secondary" : "outline"} className="text-xs mr-1">
+                            {(tc as any).defaultBillable === false ? "Non-Billable" : "Billable"}
+                          </Badge>
+                          <Badge variant={tc.isActive ? "outline" : "secondary"} className="text-xs mr-1">
                             {tc.isActive ? "Active" : "Inactive"}
                           </Badge>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={idx === 0} onClick={() => handleReorderTimeCategory(tc.id, -1)} title="Move up">
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={idx === arr.length - 1} onClick={() => handleReorderTimeCategory(tc.id, 1)} title="Move down">
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
                             setEditTimeCategoryId(tc.id);
-                            setTimeCategoryForm({ name: tc.name, description: tc.description ?? "" });
+                            setTimeCategoryForm({ name: tc.name, description: tc.description ?? "", defaultBillable: (tc as any).defaultBillable !== false });
                             setTimeCategoryDialogOpen(true);
                           }}><Pencil className="h-3.5 w-3.5" /></Button>
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteTimeCategoryId(tc.id)}>
@@ -1561,6 +1721,91 @@ export default function Admin() {
                   </div>
                 </div>
 
+                <div className="rounded-lg border p-4 space-y-4">
+                  <div>
+                    <p className="text-sm font-medium">Time Module Configuration</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Configuration-flexibility controls for the time module.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Track Time Against</Label>
+                      <Select value={timeSettingsForm.trackTimeAgainst} onValueChange={v => { setTimeSettingsForm(f => ({ ...f, trackTimeAgainst: v })); setTimeSettingsDirty(true); }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="task">Tasks only</SelectItem>
+                          <SelectItem value="project">Projects only</SelectItem>
+                          <SelectItem value="both">Tasks &amp; Projects</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Reporting Scope</Label>
+                      <Select value={timeSettingsForm.reportingScope} onValueChange={v => { setTimeSettingsForm(f => ({ ...f, reportingScope: v })); setTimeSettingsDirty(true); }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All entries</SelectItem>
+                          <SelectItem value="approved">Approved only</SelectItem>
+                          <SelectItem value="submitted">Submitted &amp; approved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Timesheet Due Time</Label>
+                      <Input type="time" value={timeSettingsForm.timesheetDueTime} onChange={e => { setTimeSettingsForm(f => ({ ...f, timesheetDueTime: e.target.value })); setTimeSettingsDirty(true); }} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Reminder Days Before Due</Label>
+                      <Input type="number" min={0} max={14} value={timeSettingsForm.reminderDaysBefore} onChange={e => { setTimeSettingsForm(f => ({ ...f, reminderDaysBefore: parseInt(e.target.value) || 0 })); setTimeSettingsDirty(true); }} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Reminder Days After Due</Label>
+                      <Input type="number" min={0} max={14} value={timeSettingsForm.reminderDaysAfter} onChange={e => { setTimeSettingsForm(f => ({ ...f, reminderDaysAfter: parseInt(e.target.value) || 0 })); setTimeSettingsDirty(true); }} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Maximum Hours per Submission</Label>
+                      <Input type="number" min={0} value={timeSettingsForm.maxSubmitHours as any} onChange={e => { setTimeSettingsForm(f => ({ ...f, maxSubmitHours: e.target.value === "" ? "" : Number(e.target.value) })); setTimeSettingsDirty(true); }} placeholder="No maximum" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Exact Hours Required</Label>
+                      <Input type="number" min={0} value={timeSettingsForm.exactSubmitHours as any} onChange={e => { setTimeSettingsForm(f => ({ ...f, exactSubmitHours: e.target.value === "" ? "" : Number(e.target.value) })); setTimeSettingsDirty(true); }} placeholder="Disabled" />
+                      <p className="text-xs text-muted-foreground">If set, the timesheet total must equal this number of hours.</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Rejected Hours Behavior</Label>
+                      <Select value={timeSettingsForm.rejectedHoursBehavior} onValueChange={v => { setTimeSettingsForm(f => ({ ...f, rejectedHoursBehavior: v })); setTimeSettingsDirty(true); }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="keep">Keep on timesheet (editable)</SelectItem>
+                          <SelectItem value="remove">Remove from timesheet</SelectItem>
+                          <SelectItem value="archive">Archive (read-only)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border p-3">
+                    <div>
+                      <p className="text-sm font-medium">Default Billable on New Entries</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Apply to new project entries when no other default fires (task/category/activity).</p>
+                    </div>
+                    <button type="button" role="switch" aria-checked={timeSettingsForm.defaultBillable}
+                      onClick={() => { setTimeSettingsForm(f => ({ ...f, defaultBillable: !f.defaultBillable })); setTimeSettingsDirty(true); }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${timeSettingsForm.defaultBillable ? "bg-indigo-600" : "bg-muted-foreground/30"}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${timeSettingsForm.defaultBillable ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border p-3">
+                    <div>
+                      <p className="text-sm font-medium">Time Module Enabled</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">When off, time entry features are hidden across the app.</p>
+                    </div>
+                    <button type="button" role="switch" aria-checked={timeSettingsForm.moduleEnabled}
+                      onClick={() => { setTimeSettingsForm(f => ({ ...f, moduleEnabled: !f.moduleEnabled })); setTimeSettingsDirty(true); }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${timeSettingsForm.moduleEnabled ? "bg-indigo-600" : "bg-muted-foreground/30"}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${timeSettingsForm.moduleEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                  </div>
+                </div>
+
                 {timeSettings && (
                   <p className="text-xs text-muted-foreground">Last saved: {new Date(timeSettings.updatedAt).toLocaleString()}</p>
                 )}
@@ -1725,11 +1970,79 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="customfields" className="m-0">
+            <Tabs defaultValue="fields">
+              <TabsList className="mb-4">
+                <TabsTrigger value="fields"><SlidersHorizontal className="h-4 w-4 mr-2" /> Fields</TabsTrigger>
+                <TabsTrigger value="sections"><Folder className="h-4 w-4 mr-2" /> Sections</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="sections" className="m-0">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2"><Folder className="h-4 w-4" /> Sections</CardTitle>
+                      <CardDescription>Group custom fields and control which roles can view or edit them. Mandatory fields apply even if the section is hidden.</CardDescription>
+                    </div>
+                    <Button size="sm" onClick={() => { setEditSectionId(null); setSectionForm({ entityType: "time_entry", name: "", description: "", viewRoles: "", editRoles: "", isActive: true }); setSectionDialogOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-2" /> Add Section
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {(cfSections?.length ?? 0) === 0 ? (
+                      <div className="text-center py-10 text-muted-foreground">
+                        <Folder className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">No sections yet. Create a section to group custom fields by role permissions.</p>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Entity</TableHead>
+                            <TableHead>Section</TableHead>
+                            <TableHead>View Roles</TableHead>
+                            <TableHead>Edit Roles</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-20" />
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(cfSections ?? []).map((s: any) => (
+                            <TableRow key={s.id}>
+                              <TableCell><Badge variant="outline" className="text-xs capitalize">{s.entityType.replace("_", " ")}</Badge></TableCell>
+                              <TableCell>
+                                <p className="font-medium text-sm">{s.name}</p>
+                                {s.description && <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{s.viewRoles || "All"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{s.editRoles || "All"}</TableCell>
+                              <TableCell><Badge variant={s.isActive ? "outline" : "secondary"} className="text-xs">{s.isActive ? "Active" : "Inactive"}</Badge></TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
+                                    setEditSectionId(s.id);
+                                    setSectionForm({ entityType: s.entityType, name: s.name, description: s.description ?? "", viewRoles: s.viewRoles ?? "", editRoles: s.editRoles ?? "", isActive: !!s.isActive });
+                                    setSectionDialogOpen(true);
+                                  }}><Pencil className="h-3.5 w-3.5" /></Button>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteSectionId(s.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="fields" className="m-0">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" /> Custom Fields</CardTitle>
-                  <CardDescription>Define extra fields that appear on projects and tasks</CardDescription>
+                  <CardDescription>Define extra fields that appear on projects, tasks, time entries, and accounts</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Select value={cfEntityFilter} onValueChange={setCfEntityFilter}>
@@ -1740,9 +2053,11 @@ export default function Admin() {
                       <SelectItem value="all">All entities</SelectItem>
                       <SelectItem value="project">Project</SelectItem>
                       <SelectItem value="task">Task</SelectItem>
+                      <SelectItem value="time_entry">Time Entry</SelectItem>
+                      <SelectItem value="account">Account</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button size="sm" onClick={() => { setEditCfId(null); setCfForm({ entityType: "project", name: "", fieldType: "text", isRequired: false, options: "" }); setCfDialogOpen(true); }}>
+                  <Button size="sm" onClick={() => { setEditCfId(null); setCfForm({ entityType: cfEntityFilter !== "all" ? cfEntityFilter : "project", name: "", fieldType: "text", isRequired: false, options: "", description: "", sectionId: "", populationMethod: "manual", inheritFromEntity: "", inheritFromFieldId: "", fallbackValue: "" }); setCfDialogOpen(true); }}>
                     <Plus className="h-4 w-4 mr-2" /> Add Field
                   </Button>
                 </div>
@@ -1788,7 +2103,19 @@ export default function Admin() {
                             <div className="flex items-center gap-1">
                               <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
                                 setEditCfId(cf.id);
-                                setCfForm({ entityType: cf.entityType, name: cf.name, fieldType: cf.fieldType, isRequired: cf.isRequired, options: cf.options?.join(", ") ?? "" });
+                                setCfForm({
+                                  entityType: cf.entityType,
+                                  name: cf.name,
+                                  fieldType: cf.fieldType,
+                                  isRequired: cf.isRequired,
+                                  options: cf.options?.join(", ") ?? "",
+                                  description: (cf as any).description ?? "",
+                                  sectionId: (cf as any).sectionId ? String((cf as any).sectionId) : "",
+                                  populationMethod: (cf as any).populationMethod ?? "manual",
+                                  inheritFromEntity: (cf as any).inheritFromEntity ?? "",
+                                  inheritFromFieldId: (cf as any).inheritFromFieldId ? String((cf as any).inheritFromFieldId) : "",
+                                  fallbackValue: (cf as any).fallbackValue ?? "",
+                                });
                                 setCfDialogOpen(true);
                               }}><Pencil className="h-3.5 w-3.5" /></Button>
                               <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteCfId(cf.id)}>
@@ -1798,6 +2125,69 @@ export default function Admin() {
                           </TableCell>
                         </TableRow>
                       ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          <TabsContent value="activitydefaults" className="m-0">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2"><Zap className="h-4 w-4" /> Activity Defaults</CardTitle>
+                  <CardDescription>Predefined activity names with default billable + category. Applied when a user logs time using one of these activities (and the field hasn't already been set by task or project defaults).</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => { setEditActivityId(null); setActivityForm({ activityName: "", billable: false, categoryId: "", isActive: true }); setActivityDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-2" /> Add Activity
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {(activityDefaults?.length ?? 0) === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <Zap className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No activity defaults configured.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Activity Name</TableHead>
+                        <TableHead>Billable</TableHead>
+                        <TableHead>Default Category</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-20" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(activityDefaults ?? []).map((a: any) => {
+                        const cat = (timeCategories ?? []).find((c: any) => c.id === a.categoryId);
+                        return (
+                          <TableRow key={a.id}>
+                            <TableCell className="font-medium">{a.activityName}</TableCell>
+                            <TableCell>
+                              <Badge variant={a.billable ? "outline" : "secondary"} className="text-xs">{a.billable ? "Billable" : "Non-Billable"}</Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{cat ? cat.name : "—"}</TableCell>
+                            <TableCell><Badge variant={a.isActive ? "outline" : "secondary"} className="text-xs">{a.isActive ? "Active" : "Inactive"}</Badge></TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
+                                  setEditActivityId(a.id);
+                                  setActivityForm({ activityName: a.activityName, billable: !!a.billable, categoryId: a.categoryId ? String(a.categoryId) : "", isActive: !!a.isActive });
+                                  setActivityDialogOpen(true);
+                                }}><Pencil className="h-3.5 w-3.5" /></Button>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteActivityId(a.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
@@ -2308,6 +2698,10 @@ export default function Admin() {
               <Label>Description</Label>
               <Textarea placeholder="Optional description" value={timeCategoryForm.description} onChange={e => setTimeCategoryForm(f => ({ ...f, description: e.target.value }))} />
             </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={timeCategoryForm.defaultBillable} onChange={e => setTimeCategoryForm(f => ({ ...f, defaultBillable: e.target.checked }))} className="rounded" />
+              <span className="text-sm">Billable by default — entries using this category are marked billable unless overridden by task or activity defaults.</span>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTimeCategoryDialogOpen(false)}>Cancel</Button>
@@ -2478,11 +2872,13 @@ export default function Admin() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Entity Type *</Label>
-                <Select value={cfForm.entityType} onValueChange={v => setCfForm(f => ({ ...f, entityType: v }))}>
+                <Select value={cfForm.entityType} onValueChange={v => setCfForm(f => ({ ...f, entityType: v, sectionId: "" }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="project">Project</SelectItem>
                     <SelectItem value="task">Task</SelectItem>
+                    <SelectItem value="time_entry">Time Entry</SelectItem>
+                    <SelectItem value="account">Account</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2495,7 +2891,7 @@ export default function Admin() {
                     <SelectItem value="number">Number</SelectItem>
                     <SelectItem value="date">Date</SelectItem>
                     <SelectItem value="boolean">Yes/No</SelectItem>
-                    <SelectItem value="select">Select</SelectItem>
+                    <SelectItem value="select">Dropdown</SelectItem>
                     <SelectItem value="textarea">Long Text</SelectItem>
                   </SelectContent>
                 </Select>
@@ -2503,7 +2899,36 @@ export default function Admin() {
             </div>
             <div className="space-y-1.5">
               <Label>Field Name *</Label>
-              <Input placeholder="e.g. Client Industry, Priority Score" value={cfForm.name} onChange={e => setCfForm(f => ({ ...f, name: e.target.value }))} />
+              <Input placeholder="e.g. Jira Ticket ID, Priority Score" value={cfForm.name} onChange={e => setCfForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input placeholder="Optional helper text shown next to the field" value={cfForm.description} onChange={e => setCfForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Section</Label>
+                <Select value={cfForm.sectionId || "__none"} onValueChange={v => setCfForm(f => ({ ...f, sectionId: v === "__none" ? "" : v }))}>
+                  <SelectTrigger><SelectValue placeholder="No section" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">No section</SelectItem>
+                    {(cfSections ?? []).filter(s => s.entityType === cfForm.entityType).map((s: any) => (
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Sections control role-based visibility &amp; edit permissions.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Population</Label>
+                <Select value={cfForm.populationMethod} onValueChange={v => setCfForm(f => ({ ...f, populationMethod: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual entry</SelectItem>
+                    <SelectItem value="inherited">Inherited from another entity</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             {cfForm.fieldType === "select" && (
               <div className="space-y-1.5">
@@ -2511,9 +2936,44 @@ export default function Admin() {
                 <Input placeholder="e.g. Low, Medium, High" value={cfForm.options} onChange={e => setCfForm(f => ({ ...f, options: e.target.value }))} />
               </div>
             )}
+            {cfForm.populationMethod === "inherited" && (
+              <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+                <p className="text-xs font-medium text-muted-foreground">Inheritance</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>From Entity</Label>
+                    <Select value={cfForm.inheritFromEntity || "__none"} onValueChange={v => setCfForm(f => ({ ...f, inheritFromEntity: v === "__none" ? "" : v, inheritFromFieldId: "" }))}>
+                      <SelectTrigger><SelectValue placeholder="Select entity" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">— select —</SelectItem>
+                        <SelectItem value="task">Task</SelectItem>
+                        <SelectItem value="project">Project</SelectItem>
+                        <SelectItem value="account">Account</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>From Field</Label>
+                    <Select value={cfForm.inheritFromFieldId || "__none"} onValueChange={v => setCfForm(f => ({ ...f, inheritFromFieldId: v === "__none" ? "" : v }))} disabled={!cfForm.inheritFromEntity}>
+                      <SelectTrigger><SelectValue placeholder="Select field" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">— select —</SelectItem>
+                        {(cfDefinitions ?? []).filter(d => d.entityType === cfForm.inheritFromEntity).map(d => (
+                          <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Fallback Value</Label>
+                  <Input placeholder="Used when source field is empty" value={cfForm.fallbackValue} onChange={e => setCfForm(f => ({ ...f, fallbackValue: e.target.value }))} />
+                </div>
+              </div>
+            )}
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={cfForm.isRequired} onChange={e => setCfForm(f => ({ ...f, isRequired: e.target.checked }))} className="rounded" />
-              <span className="text-sm">Required field</span>
+              <span className="text-sm">Mandatory — applies even when the section is hidden for the user's role.</span>
             </label>
           </div>
           <DialogFooter>
@@ -2521,6 +2981,110 @@ export default function Admin() {
             <Button onClick={handleSaveCfDef} disabled={!cfForm.name || createCfDef.isPending || updateCfDef.isPending}>
               {editCfId ? "Save Changes" : "Add Field"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sectionDialogOpen} onOpenChange={(open) => { setSectionDialogOpen(open); if (!open) setEditSectionId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editSectionId ? "Edit Section" : "Add Section"}</DialogTitle>
+            <DialogDescription>Group custom fields and control which roles can view or edit them. Mandatory fields apply even when the section is hidden.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Entity Type *</Label>
+              <Select value={sectionForm.entityType} onValueChange={v => setSectionForm(f => ({ ...f, entityType: v }))} disabled={!!editSectionId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="time_entry">Time Entry</SelectItem>
+                  <SelectItem value="project">Project</SelectItem>
+                  <SelectItem value="task">Task</SelectItem>
+                  <SelectItem value="account">Account</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Section Name *</Label>
+              <Input placeholder="e.g. Internal Notes, Finance Fields" value={sectionForm.name} onChange={e => setSectionForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input placeholder="Optional helper text shown above the section" value={sectionForm.description} onChange={e => setSectionForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>View Roles <span className="text-muted-foreground font-normal">(comma-separated, blank = all)</span></Label>
+              <Input placeholder="e.g. Admin, Finance, PM" value={sectionForm.viewRoles} onChange={e => setSectionForm(f => ({ ...f, viewRoles: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Edit Roles <span className="text-muted-foreground font-normal">(comma-separated, blank = all viewers)</span></Label>
+              <Input placeholder="e.g. Admin, Finance" value={sectionForm.editRoles} onChange={e => setSectionForm(f => ({ ...f, editRoles: e.target.value }))} />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={sectionForm.isActive} onChange={e => setSectionForm(f => ({ ...f, isActive: e.target.checked }))} className="rounded" />
+              <span className="text-sm">Active</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSectionDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveSection} disabled={!sectionForm.name}>{editSectionId ? "Save Changes" : "Add Section"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteSectionId} onOpenChange={() => setDeleteSectionId(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Delete Section</DialogTitle><DialogDescription>Fields in this section will be detached (kept, but un-grouped).</DialogDescription></DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteSectionId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteSectionId && handleDeleteSection(deleteSectionId)}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={activityDialogOpen} onOpenChange={(open) => { setActivityDialogOpen(open); if (!open) setEditActivityId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editActivityId ? "Edit Activity Default" : "Add Activity Default"}</DialogTitle>
+            <DialogDescription>Predefined activity name with default billable + category for time entries.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Activity Name *</Label>
+              <Input placeholder="e.g. Internal Meeting, Training" value={activityForm.activityName} onChange={e => setActivityForm(f => ({ ...f, activityName: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Default Category</Label>
+              <Select value={activityForm.categoryId || "__none"} onValueChange={v => setActivityForm(f => ({ ...f, categoryId: v === "__none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="No category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">No category</SelectItem>
+                  {(timeCategories ?? []).map((c: any) => (<SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={activityForm.billable} onChange={e => setActivityForm(f => ({ ...f, billable: e.target.checked }))} className="rounded" />
+              <span className="text-sm">Billable by default</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={activityForm.isActive} onChange={e => setActivityForm(f => ({ ...f, isActive: e.target.checked }))} className="rounded" />
+              <span className="text-sm">Active</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveActivity} disabled={!activityForm.activityName}>{editActivityId ? "Save Changes" : "Add Activity"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteActivityId} onOpenChange={() => setDeleteActivityId(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Delete Activity Default</DialogTitle><DialogDescription>Existing time entries that used this activity name retain their saved values.</DialogDescription></DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteActivityId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteActivityId && handleDeleteActivity(deleteActivityId)}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
