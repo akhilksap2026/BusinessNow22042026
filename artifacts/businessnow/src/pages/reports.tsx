@@ -22,7 +22,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend,
   ResponsiveContainer, LineChart, Line, Cell, ReferenceLine,
 } from "recharts";
-import { Download, AlertTriangle, CheckCircle2, Star, TrendingUp, Clock, Filter, Activity } from "lucide-react";
+import { Download, AlertTriangle, CheckCircle2, Star, TrendingUp, Clock, Filter, Activity, Mail, FileSpreadsheet, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { ComposedChart, Area } from "recharts";
 
 function downloadCSV(filename: string, rows: Record<string, any>[]) {
@@ -814,6 +815,350 @@ function CapacityPlanningReport() {
   );
 }
 
+// ─── Common controls ──────────────────────────────────────────────────────────
+function isoDate(d: Date) { return d.toISOString().slice(0, 10); }
+function defaultRange(weeks = 8): [string, string] {
+  const end = new Date();
+  const start = new Date(); start.setDate(end.getDate() - weeks * 7);
+  return [isoDate(start), isoDate(end)];
+}
+
+function utilColor(pct: number | null, kind: "overall" | "billable") {
+  if (pct === null) return "bg-muted/40 text-muted-foreground";
+  // Overall: anything >100 is over-utilized (red). Billable: higher = better.
+  if (kind === "overall") {
+    if (pct > 110) return "bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-200";
+    if (pct >= 90) return "bg-emerald-200 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200";
+    if (pct >= 70) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300";
+    if (pct >= 40) return "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300";
+    return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300";
+  }
+  if (pct >= 80) return "bg-emerald-200 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200";
+  if (pct >= 60) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300";
+  if (pct >= 30) return "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300";
+  return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300";
+}
+
+async function requestAsyncExport(reportType: string, filters: any, email: string | null, toast: ReturnType<typeof useToast>["toast"]) {
+  try {
+    const r = await fetch("/api/reports/export-async", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reportType, filters, deliveryEmail: email }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Failed to queue export");
+    toast({ title: "Export queued", description: data.message });
+  } catch (e: any) {
+    toast({ title: "Export failed", description: e.message, variant: "destructive" });
+  }
+}
+
+function SaveViewButton({ entity, filters, disabled }: { entity: string; filters: any; disabled?: boolean }) {
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  async function save() {
+    const name = prompt("Name this view");
+    if (!name) return;
+    setSaving(true);
+    try {
+      const r = await fetch("/api/saved-views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-id": "1" },
+        body: JSON.stringify({
+          name, entity,
+          filters: { matchMode: "all", conditions: Object.entries(filters).map(([k, v]) => ({ field: k, operator: "eq", value: v })) },
+          visibility: "private",
+        }),
+      });
+      if (!r.ok) throw new Error("Failed");
+      toast({ title: `Saved view: ${name}` });
+    } catch (e: any) {
+      toast({ title: "Could not save view", description: e.message, variant: "destructive" });
+    } finally { setSaving(false); }
+  }
+  return (
+    <Button size="sm" variant="outline" className="gap-2" onClick={save} disabled={disabled || saving}>
+      <Save className="h-4 w-4" /> Save View
+    </Button>
+  );
+}
+
+// ─── Utilization Sub-Report (grid) ────────────────────────────────────────────
+function UtilizationGridReport() {
+  const { toast } = useToast();
+  const [from, setFrom] = useState(defaultRange(8)[0]);
+  const [to, setTo] = useState(defaultRange(8)[1]);
+  const [grouping, setGrouping] = useState<"week" | "month">("week");
+  const [view, setView] = useState<"overall" | "billable">("overall");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [emailOverride, setEmailOverride] = useState("");
+
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["report-utilization-grid", from, to, grouping],
+    queryFn: () => fetch(`/api/reports/utilization-grid?from=${from}&to=${to}&grouping=${grouping}`).then(r => r.json()),
+  });
+
+  const periods: any[] = data?.periods ?? [];
+  const rows = (data?.rows ?? []).filter((r: any) => roleFilter === "all" || r.role === roleFilter);
+  const allRoles = Array.from(new Set((data?.rows ?? []).map((r: any) => r.role))).filter(Boolean) as string[];
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between flex-wrap gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2"><Activity className="h-4 w-4" /> Utilization Sub-Report</CardTitle>
+            <CardDescription>(Tracked hrs / Available Capacity) × 100 — heat-mapped per team member per {grouping}. Available Capacity = Total Capacity − Time-Off − Holidays.</CardDescription>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <SaveViewButton entity="people" filters={{ from, to, grouping, view, roleFilter }} />
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => requestAsyncExport("utilization-grid", { from, to, grouping, roleFilter }, emailOverride || null, toast)}>
+              <Mail className="h-4 w-4" /> Export to Email
+            </Button>
+          </div>
+        </CardHeader>
+        <CardHeader className="pt-0 flex flex-row flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">From</label>
+            <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="h-8 w-[150px]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">To</label>
+            <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="h-8 w-[150px]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Group By</label>
+            <Select value={grouping} onValueChange={v => setGrouping(v as any)}>
+              <SelectTrigger className="h-8 w-[110px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">Week</SelectItem>
+                <SelectItem value="month">Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">View</label>
+            <Select value={view} onValueChange={v => setView(v as any)}>
+              <SelectTrigger className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="overall">Overall Util %</SelectItem>
+                <SelectItem value="billable">Billable Util %</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Role</label>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="h-8 w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All roles</SelectItem>
+                {allRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Deliver to (optional)</label>
+            <Input type="email" placeholder="me@company.com" value={emailOverride} onChange={e => setEmailOverride(e.target.value)} className="h-8 w-[200px]" />
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto p-0">
+          {isLoading ? (
+            <div className="space-y-2 p-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">No team members in the selected range.</p>
+          ) : (
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="px-3 py-2 font-medium sticky left-0 bg-background z-10">Team Member</th>
+                  <th className="px-2 py-2 font-medium text-right">Total</th>
+                  {periods.map((p: any) => <th key={p.key} className="px-2 py-2 font-medium text-center text-xs whitespace-nowrap">{p.label}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r: any) => (
+                  <tr key={r.userId} className="border-b last:border-0">
+                    <td className="px-3 py-2 sticky left-0 bg-background">
+                      <div className="font-medium">{r.userName}</div>
+                      {r.role && <div className="text-xs text-muted-foreground">{r.role}</div>}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums font-semibold">
+                      <div>{view === "overall" ? r.totals.utilization : r.totals.billableUtilization}%</div>
+                      <div className="text-xs text-muted-foreground font-normal">
+                        {view === "overall" ? r.totals.trackedHours : r.totals.billableHours}h / {r.totals.availableHours}h
+                      </div>
+                    </td>
+                    {r.cells.map((c: any) => {
+                      const val = view === "overall" ? c.utilization : c.billableUtilization;
+                      return (
+                        <td key={c.period} className="px-1 py-1 text-center">
+                          <div className={`rounded px-2 py-1 text-xs font-medium tabular-nums ${utilColor(val, view)}`} title={`${c.trackedHours}h tracked (${c.billableHours}h billable) / ${c.availableHours}h available`}>
+                            {val === null ? "—" : `${val}%`}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Timesheet Submissions Sub-Report ─────────────────────────────────────────
+function TimesheetSubmissionsReport() {
+  const { toast } = useToast();
+  const [from, setFrom] = useState(defaultRange(6)[0]);
+  const [to, setTo] = useState(defaultRange(6)[1]);
+  const [view, setView] = useState<"submission" | "approval">("submission");
+  const [showHours, setShowHours] = useState(false);
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [emailOverride, setEmailOverride] = useState("");
+
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["report-timesheet-submissions", from, to, view],
+    queryFn: () => fetch(`/api/reports/timesheet-submissions?from=${from}&to=${to}&view=${view}`).then(r => r.json()),
+  });
+
+  const weeks: any[] = data?.weeks ?? [];
+  const rows = (data?.rows ?? []).filter((r: any) => roleFilter === "all" || r.role === roleFilter);
+  const allRoles = Array.from(new Set((data?.rows ?? []).map((r: any) => r.role))).filter(Boolean) as string[];
+
+  function indicatorClass(ind: string) {
+    if (ind === "green") return "bg-emerald-500 text-white";
+    if (ind === "yellow") return "bg-amber-400 text-amber-950";
+    return "bg-red-400 text-red-950";
+  }
+  function indicatorIcon(ind: string, status: string) {
+    if (ind === "green") return view === "approval" ? "✓✓" : (status === "approved" ? "✓✓" : "✓");
+    if (ind === "yellow") return "◐";
+    return "✗";
+  }
+
+  const totalGreen = rows.reduce((s: number, r: any) => s + r.counts.green, 0);
+  const totalYellow = rows.reduce((s: number, r: any) => s + r.counts.yellow, 0);
+  const totalRed = rows.reduce((s: number, r: any) => s + r.counts.red, 0);
+  const grandTotal = totalGreen + totalYellow + totalRed;
+  const compliancePct = grandTotal ? Math.round((totalGreen / grandTotal) * 100) : 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="p-4"><p className="text-xs text-muted-foreground">Compliance</p><p className="text-2xl font-bold text-emerald-600">{compliancePct}%</p></Card>
+        <Card className="p-4"><p className="text-xs text-muted-foreground">{view === "approval" ? "Approved" : "Submitted"}</p><p className="text-2xl font-bold text-emerald-600">{totalGreen}</p></Card>
+        <Card className="p-4"><p className="text-xs text-muted-foreground">Partial</p><p className="text-2xl font-bold text-amber-600">{totalYellow}</p></Card>
+        <Card className="p-4"><p className="text-xs text-muted-foreground">Not {view === "approval" ? "Approved" : "Submitted"}</p><p className="text-2xl font-bold text-red-600">{totalRed}</p></Card>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between flex-wrap gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Timesheet Submissions Sub-Report</CardTitle>
+            <CardDescription>Per-user weekly compliance dashboard. Toggle between submission and approval view.</CardDescription>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <SaveViewButton entity="people" filters={{ from, to, view, roleFilter }} />
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => requestAsyncExport("timesheet-submissions", { from, to, view, roleFilter }, emailOverride || null, toast)}>
+              <Mail className="h-4 w-4" /> Export to Email
+            </Button>
+          </div>
+        </CardHeader>
+        <CardHeader className="pt-0 flex flex-row flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">From</label>
+            <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="h-8 w-[150px]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">To</label>
+            <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="h-8 w-[150px]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">View</label>
+            <Select value={view} onValueChange={v => setView(v as any)}>
+              <SelectTrigger className="h-8 w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="submission">Submission</SelectItem>
+                <SelectItem value="approval">Approval</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Role</label>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="h-8 w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All roles</SelectItem>
+                {allRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer h-8">
+            <input type="checkbox" checked={showHours} onChange={e => setShowHours(e.target.checked)} className="rounded" />
+            <span className="text-sm">Show actual hours instead of icons</span>
+          </label>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Deliver to (optional)</label>
+            <Input type="email" placeholder="me@company.com" value={emailOverride} onChange={e => setEmailOverride(e.target.value)} className="h-8 w-[200px]" />
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto p-0">
+          {isLoading ? (
+            <div className="space-y-2 p-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">No team members in the selected range.</p>
+          ) : (
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="px-3 py-2 font-medium sticky left-0 bg-background z-10">Team Member</th>
+                  {weeks.map(w => <th key={w.weekStart} className="px-2 py-2 font-medium text-center text-xs whitespace-nowrap">{w.weekStart.slice(5)}</th>)}
+                  <th className="px-3 py-2 font-medium text-right">Compliance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r: any) => {
+                  const total = r.counts.green + r.counts.yellow + r.counts.red;
+                  const pct = total ? Math.round((r.counts.green / total) * 100) : 0;
+                  return (
+                    <tr key={r.userId} className="border-b last:border-0">
+                      <td className="px-3 py-2 sticky left-0 bg-background">
+                        <div className="font-medium">{r.userName}</div>
+                        {r.role && <div className="text-xs text-muted-foreground">{r.role}</div>}
+                      </td>
+                      {r.cells.map((c: any) => (
+                        <td key={c.weekStart} className="px-1 py-1 text-center">
+                          <div
+                            className={`rounded px-2 py-1 text-xs font-medium ${indicatorClass(c.indicator)}`}
+                            title={`${c.status} — ${c.trackedHours}h tracked (${c.billableHours}h billable)${c.submittedAt ? `, submitted ${new Date(c.submittedAt).toLocaleDateString()}` : ""}${c.approvedAt ? `, approved ${new Date(c.approvedAt).toLocaleDateString()}` : ""}`}
+                          >
+                            {showHours ? `${c.trackedHours}h` : indicatorIcon(c.indicator, c.status)}
+                          </div>
+                        </td>
+                      ))}
+                      <td className="px-3 py-2 text-right tabular-nums font-medium">
+                        <span className={pct >= 80 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-red-600"}>{pct}%</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+
+      <p className="text-xs text-muted-foreground">
+        Approved tracked hours feed into <a href="#" className="underline">People Performance</a> (utilisation, billable %) and <a href="#" className="underline">Operations Insights</a> (tracked vs planned).
+      </p>
+    </div>
+  );
+}
+
 export default function Reports() {
   const { data: utilization, isLoading: isLoadingUtilization } = useGetUtilizationReport();
   const { data: revenue, isLoading: isLoadingRevenue } = useGetRevenueReport();
@@ -840,6 +1185,8 @@ export default function Reports() {
           <div className="overflow-x-auto scrollbar-none mb-4">
             <TabsList className="w-max">
               <TabsTrigger value="performance" className="flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Performance</TabsTrigger>
+              <TabsTrigger value="utilization-grid" className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Utilization Grid</TabsTrigger>
+              <TabsTrigger value="timesheet-submissions" className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Timesheet Submissions</TabsTrigger>
               <TabsTrigger value="capacity-planning" className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Capacity Planning</TabsTrigger>
               <TabsTrigger value="operations">Operations</TabsTrigger>
               <TabsTrigger value="csat" className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5" /> CSAT Trend</TabsTrigger>
@@ -854,6 +1201,14 @@ export default function Reports() {
 
           <TabsContent value="performance" className="m-0">
             <ProjectPerformanceReport />
+          </TabsContent>
+
+          <TabsContent value="utilization-grid" className="m-0">
+            <UtilizationGridReport />
+          </TabsContent>
+
+          <TabsContent value="timesheet-submissions" className="m-0">
+            <TimesheetSubmissionsReport />
           </TabsContent>
 
           <TabsContent value="capacity-planning" className="space-y-4 m-0">

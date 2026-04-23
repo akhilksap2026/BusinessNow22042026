@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, phasesTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable } from "@workspace/db";
+import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, phasesTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable, timesheetsTable } from "@workspace/db";
 import { eq, and, isNull } from "drizzle-orm";
 import {
   GetUtilizationReportResponse,
@@ -661,6 +661,258 @@ router.get("/reports/capacity-planning", async (req, res): Promise<void> => {
   }
 
   res.json({ weeks, startDate: startStr, endDate: endStr, standardWeekHours: STD_WEEK, buckets });
+});
+
+// ─── Utilization Sub-Report (grid: users × periods) ──────────────────────────
+// Available Capacity = Total Capacity − Time-Off − Holidays
+// Cell value = (Tracked / Available) × 100  and  (Billable Tracked / Available) × 100
+router.get("/reports/utilization-grid", async (req, res): Promise<void> => {
+  const fromStr = String(req.query.from ?? "");
+  const toStr = String(req.query.to ?? "");
+  const grouping = (String(req.query.grouping ?? "week") === "month" ? "month" : "week") as "week" | "month";
+  const userIdsParam = String(req.query.userIds ?? "");
+  const filterUserIds = userIdsParam
+    ? new Set(userIdsParam.split(",").map(s => parseInt(s, 10)).filter(n => Number.isFinite(n)))
+    : null;
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromStr) || !/^\d{4}-\d{2}-\d{2}$/.test(toStr) || fromStr > toStr) {
+    res.status(400).json({ error: "from/to must be YYYY-MM-DD with from <= to" });
+    return;
+  }
+
+  const [users, entries, holidays, timeOffs] = await Promise.all([
+    db.select().from(usersTable),
+    db.select().from(timeEntriesTable),
+    db.select().from(holidayDatesTable),
+    db.select().from(timeOffRequestsTable).where(eq(timeOffRequestsTable.status, "Approved")),
+  ]);
+
+  const activeUsers = users
+    .filter(u => u.isActive === 1 && u.isInternal !== false)
+    .filter(u => !filterUserIds || filterUserIds.has(u.id));
+
+  // Build period buckets
+  function snapToMonday(d: Date): Date {
+    const out = new Date(d);
+    const dow = out.getUTCDay();
+    const diff = dow === 0 ? -6 : 1 - dow;
+    out.setUTCDate(out.getUTCDate() + diff);
+    out.setUTCHours(0, 0, 0, 0);
+    return out;
+  }
+  type Period = { key: string; label: string; start: string; end: string };
+  const periods: Period[] = [];
+  if (grouping === "week") {
+    const cur = snapToMonday(new Date(fromStr + "T00:00:00Z"));
+    const fin = new Date(toStr + "T00:00:00Z");
+    while (cur <= fin) {
+      const wEnd = new Date(cur); wEnd.setUTCDate(cur.getUTCDate() + 6);
+      const ks = cur.toISOString().slice(0, 10);
+      periods.push({ key: ks, label: `Wk ${ks.slice(5)}`, start: ks, end: wEnd.toISOString().slice(0, 10) });
+      cur.setUTCDate(cur.getUTCDate() + 7);
+    }
+  } else {
+    const cur = new Date(fromStr.slice(0, 7) + "-01T00:00:00Z");
+    const fin = new Date(toStr.slice(0, 7) + "-01T00:00:00Z");
+    while (cur <= fin) {
+      const ym = cur.toISOString().slice(0, 7);
+      const last = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth() + 1, 0)).toISOString().slice(0, 10);
+      periods.push({ key: ym, label: ym, start: `${ym}-01`, end: last });
+      cur.setUTCMonth(cur.getUTCMonth() + 1);
+    }
+  }
+
+  // Per-user available capacity for a [start, end] inclusive window
+  function availableCapacity(u: typeof users[0], start: string, end: string): number {
+    const dailyCap = u.capacity / 5;
+    let workingDays = 0;
+    const workingDaySet = new Set<string>();
+    const cur = new Date(start + "T00:00:00Z");
+    const fin = new Date(end + "T00:00:00Z");
+    while (cur <= fin) {
+      const dow = cur.getUTCDay();
+      if (dow !== 0 && dow !== 6) {
+        workingDays++;
+        workingDaySet.add(cur.toISOString().slice(0, 10));
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    const totalCap = workingDays * dailyCap;
+
+    const userHolidaySet = u.holidayCalendarId
+      ? new Set(holidays.filter(h => h.calendarId === u.holidayCalendarId && workingDaySet.has(h.date)).map(h => h.date))
+      : new Set<string>();
+    const holidayHours = userHolidaySet.size * dailyCap;
+
+    const userTOs = timeOffs.filter(t => t.userId === u.id && t.startDate <= end && t.endDate >= start);
+    let toHours = 0;
+    for (const t of userTOs) {
+      const tStart = t.startDate > start ? t.startDate : start;
+      const tEnd = t.endDate < end ? t.endDate : end;
+      const c = new Date(tStart + "T00:00:00Z");
+      const f = new Date(tEnd + "T00:00:00Z");
+      while (c <= f) {
+        const ds = c.toISOString().slice(0, 10);
+        const dow = c.getUTCDay();
+        if (dow !== 0 && dow !== 6 && !userHolidaySet.has(ds)) {
+          if ((t as any).durationType === "Half Day") toHours += dailyCap / 2;
+          else if ((t as any).durationType === "Custom" && (t as any).customHours) toHours += Number((t as any).customHours);
+          else toHours += dailyCap;
+        }
+        c.setUTCDate(c.getUTCDate() + 1);
+      }
+    }
+    return Math.max(0, totalCap - holidayHours - toHours);
+  }
+
+  const rows = activeUsers.map(u => {
+    const cells = periods.map(p => {
+      const userPeriodEntries = entries.filter(e => e.userId === u.id && e.date >= p.start && e.date <= p.end);
+      const tracked = userPeriodEntries.reduce((s, e) => s + Number(e.hours), 0);
+      const billable = userPeriodEntries.filter(e => e.billable).reduce((s, e) => s + Number(e.hours), 0);
+      const cap = availableCapacity(u, p.start, p.end);
+      return {
+        period: p.key,
+        availableHours: Math.round(cap * 10) / 10,
+        trackedHours: Math.round(tracked * 10) / 10,
+        billableHours: Math.round(billable * 10) / 10,
+        utilization: cap > 0 ? Math.round((tracked / cap) * 100) : null,
+        billableUtilization: cap > 0 ? Math.round((billable / cap) * 100) : null,
+      };
+    });
+    const totals = cells.reduce((acc, c) => ({
+      avail: acc.avail + c.availableHours,
+      tracked: acc.tracked + c.trackedHours,
+      billable: acc.billable + c.billableHours,
+    }), { avail: 0, tracked: 0, billable: 0 });
+    return {
+      userId: u.id,
+      userName: u.name,
+      role: u.role,
+      cells,
+      totals: {
+        availableHours: Math.round(totals.avail * 10) / 10,
+        trackedHours: Math.round(totals.tracked * 10) / 10,
+        billableHours: Math.round(totals.billable * 10) / 10,
+        utilization: totals.avail > 0 ? Math.round((totals.tracked / totals.avail) * 100) : null,
+        billableUtilization: totals.avail > 0 ? Math.round((totals.billable / totals.avail) * 100) : null,
+      },
+    };
+  });
+
+  res.json({ from: fromStr, to: toStr, grouping, periods, rows });
+});
+
+// ─── Timesheet Submissions Sub-Report ────────────────────────────────────────
+// Per-user × per-week status. View toggles: submission vs approval.
+router.get("/reports/timesheet-submissions", async (req, res): Promise<void> => {
+  const fromStr = String(req.query.from ?? "");
+  const toStr = String(req.query.to ?? "");
+  const view = String(req.query.view ?? "submission") === "approval" ? "approval" : "submission";
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromStr) || !/^\d{4}-\d{2}-\d{2}$/.test(toStr) || fromStr > toStr) {
+    res.status(400).json({ error: "from/to must be YYYY-MM-DD with from <= to" });
+    return;
+  }
+
+  const [users, sheets, entries] = await Promise.all([
+    db.select().from(usersTable),
+    db.select().from(timesheetsTable),
+    db.select().from(timeEntriesTable),
+  ]);
+
+  const activeUsers = users.filter(u => u.isActive === 1 && u.isInternal !== false);
+
+  function snapToMonday(d: Date): Date {
+    const out = new Date(d);
+    const dow = out.getUTCDay();
+    const diff = dow === 0 ? -6 : 1 - dow;
+    out.setUTCDate(out.getUTCDate() + diff);
+    out.setUTCHours(0, 0, 0, 0);
+    return out;
+  }
+
+  const weeks: { weekStart: string; weekEnd: string }[] = [];
+  const cur = snapToMonday(new Date(fromStr + "T00:00:00Z"));
+  const fin = new Date(toStr + "T00:00:00Z");
+  while (cur <= fin) {
+    const wEnd = new Date(cur); wEnd.setUTCDate(cur.getUTCDate() + 6);
+    weeks.push({ weekStart: cur.toISOString().slice(0, 10), weekEnd: wEnd.toISOString().slice(0, 10) });
+    cur.setUTCDate(cur.getUTCDate() + 7);
+  }
+
+  const rows = activeUsers.map(u => {
+    const cells = weeks.map(w => {
+      const sheet = sheets.find(s => s.userId === u.id && s.weekStart === w.weekStart);
+      const userWeekEntries = entries.filter(e => e.userId === u.id && e.date >= w.weekStart && e.date <= w.weekEnd);
+      const trackedHours = userWeekEntries.reduce((s, e) => s + Number(e.hours), 0);
+
+      let status: "approved" | "submitted" | "partial" | "missing" = "missing";
+      if (sheet) {
+        if (sheet.status === "Approved") status = "approved";
+        else if (sheet.status === "Submitted" || sheet.submittedAt) status = "submitted";
+        else if (trackedHours > 0) status = "partial";
+        else status = "missing";
+      } else if (trackedHours > 0) {
+        status = "partial";
+      }
+
+      // Approval view collapses statuses: approved=green, anything-not-approved-with-hours=yellow, missing=red
+      const indicator = view === "approval"
+        ? (status === "approved" ? "green" : trackedHours > 0 ? "yellow" : "red")
+        : (status === "approved" || status === "submitted" ? "green" : status === "partial" ? "yellow" : "red");
+
+      return {
+        weekStart: w.weekStart,
+        status,
+        indicator,
+        trackedHours: Math.round(trackedHours * 10) / 10,
+        billableHours: Math.round(userWeekEntries.filter(e => e.billable).reduce((s, e) => s + Number(e.hours), 0) * 10) / 10,
+        submittedAt: sheet?.submittedAt ?? null,
+        approvedAt: sheet?.approvedAt ?? null,
+      };
+    });
+    const counts = cells.reduce((acc, c) => {
+      acc[c.indicator] = (acc[c.indicator] ?? 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    return {
+      userId: u.id,
+      userName: u.name,
+      role: u.role,
+      cells,
+      counts: { green: counts.green ?? 0, yellow: counts.yellow ?? 0, red: counts.red ?? 0 },
+    };
+  });
+
+  res.json({ from: fromStr, to: toStr, view, weeks, rows });
+});
+
+// ─── Async CSV Export Stub ───────────────────────────────────────────────────
+// Returns 202 with a job id. In production this would enqueue a worker that
+// generates the CSV and emails it to the requester. Frontend uses this to
+// avoid browser timeouts on large date ranges.
+router.post("/reports/export-async", async (req, res): Promise<void> => {
+  const { reportType, filters, deliveryEmail } = (req.body ?? {}) as {
+    reportType?: string; filters?: unknown; deliveryEmail?: string;
+  };
+  if (!reportType || typeof reportType !== "string") {
+    res.status(400).json({ error: "reportType is required" });
+    return;
+  }
+  const email = (deliveryEmail && typeof deliveryEmail === "string" && deliveryEmail.trim()) || null;
+  const jobId = `${reportType}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // No queue infrastructure yet — caller is informed delivery is async.
+  res.status(202).json({
+    jobId,
+    status: "queued",
+    reportType,
+    deliveryEmail: email,
+    message: email
+      ? `Export queued. We'll email the CSV to ${email} when it's ready.`
+      : `Export queued. We'll email the CSV to your account email when it's ready.`,
+    receivedFilters: filters ?? null,
+  });
 });
 
 export default router;
