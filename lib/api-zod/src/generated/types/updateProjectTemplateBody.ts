@@ -13,4 +13,5 @@ export interface UpdateProjectTemplateBody {
   totalDurationDays?: number;
   accountId?: number | null;
   isArchived?: boolean;
+  autoAllocate?: boolean;
 }

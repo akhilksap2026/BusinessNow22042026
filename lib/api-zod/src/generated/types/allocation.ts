@@ -9,10 +9,21 @@
 export interface Allocation {
   id: number;
   projectId: number;
-  userId: number;
+  /** Null for placeholder allocations (placeholderId is set instead) */
+  userId?: number | null;
+  placeholderId?: number | null;
+  placeholderRole?: string | null;
   startDate: string;
   endDate: string;
   hoursPerWeek: number;
+  hoursPerDay?: number;
+  totalHours?: number;
+  allocationMethod?: string;
+  methodValue?: number | null;
+  percentOfCapacity?: number | null;
   role: string;
+  isSoftAllocation?: boolean;
+  isTimesheetApprover?: boolean;
+  isLeaveApprover?: boolean;
   createdAt: string;
 }

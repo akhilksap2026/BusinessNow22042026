@@ -360,11 +360,22 @@ export interface UpdateRateCardBody {
 export interface Allocation {
   id: number;
   projectId: number;
-  userId: number;
+  /** Null for placeholder allocations (placeholderId is set instead) */
+  userId?: number | null;
+  placeholderId?: number | null;
+  placeholderRole?: string | null;
   startDate: string;
   endDate: string;
   hoursPerWeek: number;
+  hoursPerDay?: number;
+  totalHours?: number;
+  allocationMethod?: string;
+  methodValue?: number | null;
+  percentOfCapacity?: number | null;
   role: string;
+  isSoftAllocation?: boolean;
+  isTimesheetApprover?: boolean;
+  isLeaveApprover?: boolean;
   createdAt: string;
 }
 
@@ -721,6 +732,25 @@ export interface CreateTemplatePhaseBody {
   order?: number;
 }
 
+export interface TemplateAllocation {
+  id: number;
+  templateId: number;
+  templatePhaseId?: number | null;
+  placeholderId?: number | null;
+  userId?: number | null;
+  role: string;
+  /** 1-based day index from project start (Day 1 = project.startDate) */
+  relativeStartDay: number;
+  /** Inclusive end day (1-based) */
+  relativeEndDay: number;
+  hoursPerDay: number;
+  allocationMethod: string;
+  methodValue?: number | null;
+  isSoftAllocation: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface ProjectTemplate {
   id: number;
   name: string;
@@ -730,10 +760,54 @@ export interface ProjectTemplate {
   totalDurationDays: number;
   accountId?: number | null;
   isArchived: boolean;
+  /** When true, projects created from this template inherit autoAllocate=true */
+  autoAllocate?: boolean;
   createdByUserId?: number | null;
   phases?: TemplatePhase[];
+  allocations?: TemplateAllocation[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CreateTemplateAllocationBody {
+  placeholderId?: number | null;
+  userId?: number | null;
+  role: string;
+  relativeStartDay: number;
+  relativeEndDay: number;
+  hoursPerDay: number;
+  allocationMethod?: string;
+  methodValue?: number | null;
+  isSoftAllocation?: boolean;
+  templatePhaseId?: number | null;
+}
+
+export interface UpdateTemplateAllocationBody {
+  placeholderId?: number | null;
+  userId?: number | null;
+  role?: string;
+  relativeStartDay?: number;
+  relativeEndDay?: number;
+  hoursPerDay?: number;
+  allocationMethod?: string;
+  methodValue?: number | null;
+  isSoftAllocation?: boolean;
+  templatePhaseId?: number | null;
+}
+
+export type TemplateAllocationsSummaryByRoleItem = {
+  role: string;
+  allocations: number;
+  totalHours: number;
+  personDays: number;
+};
+
+export interface TemplateAllocationsSummary {
+  templateId: number;
+  totalAllocations: number;
+  totalHours: number;
+  totalPersonDays: number;
+  byRole: TemplateAllocationsSummaryByRoleItem[];
 }
 
 export interface CreateProjectTemplateBody {
@@ -743,6 +817,7 @@ export interface CreateProjectTemplateBody {
   totalDurationDays?: number;
   accountId?: number | null;
   createdByUserId?: number | null;
+  autoAllocate?: boolean;
 }
 
 export interface UpdateProjectTemplateBody {
@@ -752,6 +827,7 @@ export interface UpdateProjectTemplateBody {
   totalDurationDays?: number;
   accountId?: number | null;
   isArchived?: boolean;
+  autoAllocate?: boolean;
 }
 
 export interface ApplyTemplateBody {

@@ -166,7 +166,6 @@ export const ListProjectsResponseItem = zod.object({
   description: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
-  autoAllocate: zod.boolean().nullish(),
   opportunityId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
@@ -188,7 +187,6 @@ export const CreateProjectBody = zod.object({
   budget: zod.number(),
   budgetedHours: zod.number(),
   description: zod.string().optional(),
-  autoAllocate: zod.boolean().optional(),
 });
 
 /**
@@ -216,7 +214,6 @@ export const GetProjectResponse = zod.object({
   description: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
-  autoAllocate: zod.boolean().nullish(),
   opportunityId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
@@ -242,7 +239,6 @@ export const UpdateProjectBody = zod.object({
   completion: zod.number().optional(),
   health: zod.string().optional(),
   description: zod.string().optional(),
-  autoAllocate: zod.boolean().optional(),
 });
 
 export const UpdateProjectResponse = zod.object({
@@ -325,7 +321,6 @@ export const ListTasksResponseItem = zod.object({
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
   visibleToClient: zod.boolean().optional(),
-  privateNotes: zod.string().nullish().describe("Internal PM-only notes; not visible to Viewers or Collaborators"),
   createdAt: zod.string(),
 });
 export const ListTasksResponse = zod.array(ListTasksResponseItem);
@@ -377,7 +372,6 @@ export const GetTaskResponse = zod.object({
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
   visibleToClient: zod.boolean().optional(),
-  privateNotes: zod.string().nullish().describe("Internal PM-only notes; not visible to Viewers or Collaborators"),
   createdAt: zod.string(),
 });
 
@@ -399,7 +393,6 @@ export const UpdateTaskBody = zod.object({
   effort: zod.number().optional(),
   billable: zod.boolean().optional(),
   isMilestone: zod.boolean().optional(),
-  privateNotes: zod.string().nullish().describe("Internal PM-only notes"),
 });
 
 export const UpdateTaskResponse = zod.object({
@@ -425,7 +418,6 @@ export const UpdateTaskResponse = zod.object({
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
   visibleToClient: zod.boolean().optional(),
-  privateNotes: zod.string().nullish().describe("Internal PM-only notes; not visible to Viewers or Collaborators"),
   createdAt: zod.string(),
 });
 
@@ -447,11 +439,8 @@ export const ListUsersResponseItem = zod.object({
   email: zod.string(),
   capacity: zod.number(),
   department: zod.string(),
-  region: zod.string().nullish(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
-  isInternal: zod.boolean().nullish(),
-  activeStatus: zod.string().nullish(),
   createdAt: zod.string(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
@@ -465,11 +454,8 @@ export const CreateUserBody = zod.object({
   email: zod.string(),
   capacity: zod.number(),
   department: zod.string(),
-  region: zod.string().optional(),
   costRate: zod.number(),
   skills: zod.array(zod.string()).optional(),
-  isInternal: zod.boolean().optional(),
-  activeStatus: zod.string().optional(),
 });
 
 /**
@@ -487,11 +473,8 @@ export const GetUserResponse = zod.object({
   email: zod.string(),
   capacity: zod.number(),
   department: zod.string(),
-  region: zod.string().nullish(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
-  isInternal: zod.boolean().nullish(),
-  activeStatus: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -508,11 +491,8 @@ export const UpdateUserBody = zod.object({
   email: zod.string().optional(),
   capacity: zod.number().optional(),
   department: zod.string().optional(),
-  region: zod.string().optional(),
   costRate: zod.number().optional(),
   skills: zod.array(zod.string()).optional(),
-  isInternal: zod.boolean().optional(),
-  activeStatus: zod.string().optional(),
 });
 
 export const UpdateUserResponse = zod.object({
@@ -523,11 +503,8 @@ export const UpdateUserResponse = zod.object({
   email: zod.string(),
   capacity: zod.number(),
   department: zod.string(),
-  region: zod.string().nullish(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
-  isInternal: zod.boolean().nullish(),
-  activeStatus: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -819,19 +796,26 @@ export const ListAllocationsQueryParams = zod.object({
 export const ListAllocationsResponseItem = zod.object({
   id: zod.number(),
   projectId: zod.number(),
-  userId: zod.number().nullish(),
-  placeholderRole: zod.string().nullish(),
+  userId: zod
+    .number()
+    .nullish()
+    .describe(
+      "Null for placeholder allocations (placeholderId is set instead)",
+    ),
   placeholderId: zod.number().nullish(),
+  placeholderRole: zod.string().nullish(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
-  hoursPerDay: zod.number().nullish(),
-  totalHours: zod.number().nullish(),
-  allocationMethod: zod.string().nullish(),
+  hoursPerDay: zod.number().optional(),
+  totalHours: zod.number().optional(),
+  allocationMethod: zod.string().optional(),
   methodValue: zod.number().nullish(),
   percentOfCapacity: zod.number().nullish(),
   role: zod.string(),
   isSoftAllocation: zod.boolean().optional(),
+  isTimesheetApprover: zod.boolean().optional(),
+  isLeaveApprover: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);
@@ -841,16 +825,11 @@ export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);
  */
 export const CreateAllocationBody = zod.object({
   projectId: zod.number(),
-  userId: zod.number().nullish(),
-  placeholderId: zod.number().nullish(),
-  placeholderRole: zod.string().nullish(),
+  userId: zod.number(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
-  allocationMethod: zod.string().optional(),
-  methodValue: zod.number().optional(),
   role: zod.string(),
-  isSoftAllocation: zod.boolean().optional(),
 });
 
 /**
@@ -861,34 +840,35 @@ export const UpdateAllocationParams = zod.object({
 });
 
 export const UpdateAllocationBody = zod.object({
-  userId: zod.number().nullish(),
-  placeholderId: zod.number().nullish(),
-  placeholderRole: zod.string().nullish(),
   startDate: zod.string().optional(),
   endDate: zod.string().optional(),
   hoursPerWeek: zod.number().optional(),
-  allocationMethod: zod.string().optional(),
-  methodValue: zod.number().optional(),
   role: zod.string().optional(),
-  isSoftAllocation: zod.boolean().optional(),
 });
 
 export const UpdateAllocationResponse = zod.object({
   id: zod.number(),
   projectId: zod.number(),
-  userId: zod.number().nullish(),
+  userId: zod
+    .number()
+    .nullish()
+    .describe(
+      "Null for placeholder allocations (placeholderId is set instead)",
+    ),
   placeholderId: zod.number().nullish(),
   placeholderRole: zod.string().nullish(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
-  hoursPerDay: zod.number().nullish(),
-  totalHours: zod.number().nullish(),
-  allocationMethod: zod.string().nullish(),
+  hoursPerDay: zod.number().optional(),
+  totalHours: zod.number().optional(),
+  allocationMethod: zod.string().optional(),
   methodValue: zod.number().nullish(),
   percentOfCapacity: zod.number().nullish(),
   role: zod.string(),
   isSoftAllocation: zod.boolean().optional(),
+  isTimesheetApprover: zod.boolean().optional(),
+  isLeaveApprover: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 
@@ -912,9 +892,6 @@ export const GetCapacityOverviewResponseItem = zod.object({
   utilizationPercent: zod.number(),
   department: zod.string(),
   role: zod.string(),
-  region: zod.string().nullish(),
-  isInternal: zod.boolean().nullish(),
-  activeStatus: zod.string().nullish(),
 });
 export const GetCapacityOverviewResponse = zod.array(
   GetCapacityOverviewResponseItem,
@@ -1559,6 +1536,12 @@ export const ListProjectTemplatesResponseItem = zod.object({
     .describe("Total project duration in calendar days"),
   accountId: zod.number().nullish(),
   isArchived: zod.boolean(),
+  autoAllocate: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, projects created from this template inherit autoAllocate=true",
+    ),
   createdByUserId: zod.number().nullish(),
   phases: zod
     .array(
@@ -1604,6 +1587,30 @@ export const ListProjectTemplatesResponseItem = zod.object({
       }),
     )
     .optional(),
+  allocations: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        templateId: zod.number(),
+        templatePhaseId: zod.number().nullish(),
+        placeholderId: zod.number().nullish(),
+        userId: zod.number().nullish(),
+        role: zod.string(),
+        relativeStartDay: zod
+          .number()
+          .describe(
+            "1-based day index from project start (Day 1 = project.startDate)",
+          ),
+        relativeEndDay: zod.number().describe("Inclusive end day (1-based)"),
+        hoursPerDay: zod.number(),
+        allocationMethod: zod.string(),
+        methodValue: zod.number().nullish(),
+        isSoftAllocation: zod.boolean(),
+        createdAt: zod.string().optional(),
+        updatedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
   createdAt: zod.string().optional(),
   updatedAt: zod.string().optional(),
 });
@@ -1621,6 +1628,7 @@ export const CreateProjectTemplateBody = zod.object({
   totalDurationDays: zod.number().optional(),
   accountId: zod.number().nullish(),
   createdByUserId: zod.number().nullish(),
+  autoAllocate: zod.boolean().optional(),
 });
 
 /**
@@ -1640,6 +1648,12 @@ export const GetProjectTemplateResponse = zod.object({
     .describe("Total project duration in calendar days"),
   accountId: zod.number().nullish(),
   isArchived: zod.boolean(),
+  autoAllocate: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, projects created from this template inherit autoAllocate=true",
+    ),
   createdByUserId: zod.number().nullish(),
   phases: zod
     .array(
@@ -1680,6 +1694,30 @@ export const GetProjectTemplateResponse = zod.object({
             }),
           )
           .optional(),
+        createdAt: zod.string().optional(),
+        updatedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  allocations: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        templateId: zod.number(),
+        templatePhaseId: zod.number().nullish(),
+        placeholderId: zod.number().nullish(),
+        userId: zod.number().nullish(),
+        role: zod.string(),
+        relativeStartDay: zod
+          .number()
+          .describe(
+            "1-based day index from project start (Day 1 = project.startDate)",
+          ),
+        relativeEndDay: zod.number().describe("Inclusive end day (1-based)"),
+        hoursPerDay: zod.number(),
+        allocationMethod: zod.string(),
+        methodValue: zod.number().nullish(),
+        isSoftAllocation: zod.boolean(),
         createdAt: zod.string().optional(),
         updatedAt: zod.string().optional(),
       }),
@@ -1703,6 +1741,7 @@ export const UpdateProjectTemplateBody = zod.object({
   totalDurationDays: zod.number().optional(),
   accountId: zod.number().nullish(),
   isArchived: zod.boolean().optional(),
+  autoAllocate: zod.boolean().optional(),
 });
 
 export const UpdateProjectTemplateResponse = zod.object({
@@ -1715,6 +1754,12 @@ export const UpdateProjectTemplateResponse = zod.object({
     .describe("Total project duration in calendar days"),
   accountId: zod.number().nullish(),
   isArchived: zod.boolean(),
+  autoAllocate: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, projects created from this template inherit autoAllocate=true",
+    ),
   createdByUserId: zod.number().nullish(),
   phases: zod
     .array(
@@ -1755,6 +1800,30 @@ export const UpdateProjectTemplateResponse = zod.object({
             }),
           )
           .optional(),
+        createdAt: zod.string().optional(),
+        updatedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  allocations: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        templateId: zod.number(),
+        templatePhaseId: zod.number().nullish(),
+        placeholderId: zod.number().nullish(),
+        userId: zod.number().nullish(),
+        role: zod.string(),
+        relativeStartDay: zod
+          .number()
+          .describe(
+            "1-based day index from project start (Day 1 = project.startDate)",
+          ),
+        relativeEndDay: zod.number().describe("Inclusive end day (1-based)"),
+        hoursPerDay: zod.number(),
+        allocationMethod: zod.string(),
+        methodValue: zod.number().nullish(),
+        isSoftAllocation: zod.boolean(),
         createdAt: zod.string().optional(),
         updatedAt: zod.string().optional(),
       }),
@@ -1985,6 +2054,127 @@ export const UpdateTemplateTaskResponse = zod.object({
  */
 export const DeleteTemplateTaskParams = zod.object({
   taskId: zod.coerce.number(),
+});
+
+/**
+ * @summary List allocations for a template
+ */
+export const ListTemplateAllocationsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTemplateAllocationsResponseItem = zod.object({
+  id: zod.number(),
+  templateId: zod.number(),
+  templatePhaseId: zod.number().nullish(),
+  placeholderId: zod.number().nullish(),
+  userId: zod.number().nullish(),
+  role: zod.string(),
+  relativeStartDay: zod
+    .number()
+    .describe(
+      "1-based day index from project start (Day 1 = project.startDate)",
+    ),
+  relativeEndDay: zod.number().describe("Inclusive end day (1-based)"),
+  hoursPerDay: zod.number(),
+  allocationMethod: zod.string(),
+  methodValue: zod.number().nullish(),
+  isSoftAllocation: zod.boolean(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+export const ListTemplateAllocationsResponse = zod.array(
+  ListTemplateAllocationsResponseItem,
+);
+
+/**
+ * @summary Add a resource allocation to a template (relative-day)
+ */
+export const CreateTemplateAllocationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateTemplateAllocationBody = zod.object({
+  placeholderId: zod.number().nullish(),
+  userId: zod.number().nullish(),
+  role: zod.string(),
+  relativeStartDay: zod.number(),
+  relativeEndDay: zod.number(),
+  hoursPerDay: zod.number(),
+  allocationMethod: zod.string().optional(),
+  methodValue: zod.number().nullish(),
+  isSoftAllocation: zod.boolean().optional(),
+  templatePhaseId: zod.number().nullish(),
+});
+
+/**
+ * @summary Update a template allocation
+ */
+export const UpdateTemplateAllocationParams = zod.object({
+  allocId: zod.coerce.number(),
+});
+
+export const UpdateTemplateAllocationBody = zod.object({
+  placeholderId: zod.number().nullish(),
+  userId: zod.number().nullish(),
+  role: zod.string().optional(),
+  relativeStartDay: zod.number().optional(),
+  relativeEndDay: zod.number().optional(),
+  hoursPerDay: zod.number().optional(),
+  allocationMethod: zod.string().optional(),
+  methodValue: zod.number().nullish(),
+  isSoftAllocation: zod.boolean().optional(),
+  templatePhaseId: zod.number().nullish(),
+});
+
+export const UpdateTemplateAllocationResponse = zod.object({
+  id: zod.number(),
+  templateId: zod.number(),
+  templatePhaseId: zod.number().nullish(),
+  placeholderId: zod.number().nullish(),
+  userId: zod.number().nullish(),
+  role: zod.string(),
+  relativeStartDay: zod
+    .number()
+    .describe(
+      "1-based day index from project start (Day 1 = project.startDate)",
+    ),
+  relativeEndDay: zod.number().describe("Inclusive end day (1-based)"),
+  hoursPerDay: zod.number(),
+  allocationMethod: zod.string(),
+  methodValue: zod.number().nullish(),
+  isSoftAllocation: zod.boolean(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a template allocation
+ */
+export const DeleteTemplateAllocationParams = zod.object({
+  allocId: zod.coerce.number(),
+});
+
+/**
+ * @summary Aggregate template allocation totals (per role + grand totals)
+ */
+export const GetTemplateAllocationsSummaryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetTemplateAllocationsSummaryResponse = zod.object({
+  templateId: zod.number(),
+  totalAllocations: zod.number(),
+  totalHours: zod.number(),
+  totalPersonDays: zod.number(),
+  byRole: zod.array(
+    zod.object({
+      role: zod.string(),
+      allocations: zod.number(),
+      totalHours: zod.number(),
+      personDays: zod.number(),
+    }),
+  ),
 });
 
 /**
@@ -2354,10 +2544,6 @@ export const ListSkillsResponseItem = zod.object({
   id: zod.number(),
   categoryId: zod.number().optional(),
   name: zod.string(),
-  skillType: zod.string().nullish(),
-  section: zod.string().nullish(),
-  associatedRoles: zod.array(zod.string()).nullish(),
-  description: zod.string().nullish(),
   isActive: zod.number(),
   createdAt: zod.string(),
 });
@@ -2369,10 +2555,6 @@ export const ListSkillsResponse = zod.array(ListSkillsResponseItem);
 export const CreateSkillBody = zod.object({
   name: zod.string(),
   categoryId: zod.number().optional(),
-  skillType: zod.string().optional(),
-  section: zod.string().optional(),
-  associatedRoles: zod.array(zod.string()).optional(),
-  description: zod.string().optional(),
 });
 
 /**

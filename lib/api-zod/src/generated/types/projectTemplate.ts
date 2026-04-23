@@ -5,6 +5,7 @@
  * BusinessNow PSA Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { TemplateAllocation } from "./templateAllocation";
 import type { TemplatePhase } from "./templatePhase";
 
 export interface ProjectTemplate {
@@ -16,8 +17,11 @@ export interface ProjectTemplate {
   totalDurationDays: number;
   accountId?: number | null;
   isArchived: boolean;
+  /** When true, projects created from this template inherit autoAllocate=true */
+  autoAllocate?: boolean;
   createdByUserId?: number | null;
   phases?: TemplatePhase[];
+  allocations?: TemplateAllocation[];
   createdAt?: string;
   updatedAt?: string;
 }

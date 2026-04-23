@@ -1685,6 +1685,107 @@ paths:
         "204":
           description: Deleted
 
+  /project-templates/{id}/allocations:
+    get:
+      operationId: listTemplateAllocations
+      tags: [projects]
+      summary: List allocations for a template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Allocations list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TemplateAllocation"
+    post:
+      operationId: createTemplateAllocation
+      tags: [projects]
+      summary: Add a resource allocation to a template (relative-day)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTemplateAllocationBody"
+      responses:
+        "201":
+          description: Created allocation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateAllocation"
+
+  /template-allocations/{allocId}:
+    put:
+      operationId: updateTemplateAllocation
+      tags: [projects]
+      summary: Update a template allocation
+      parameters:
+        - name: allocId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTemplateAllocationBody"
+      responses:
+        "200":
+          description: Updated allocation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateAllocation"
+    delete:
+      operationId: deleteTemplateAllocation
+      tags: [projects]
+      summary: Delete a template allocation
+      parameters:
+        - name: allocId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /project-templates/{id}/allocations/summary:
+    get:
+      operationId: getTemplateAllocationsSummary
+      tags: [projects]
+      summary: Aggregate template allocation totals (per role + grand totals)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateAllocationsSummary"
+
   /project-templates/{id}/apply:
     post:
       operationId: applyTemplateToProject
@@ -4146,20 +4247,45 @@ components:
           type: integer
         userId:
           type: integer
+          nullable: true
+          description: Null for placeholder allocations (placeholderId is set instead)
+        placeholderId:
+          type: integer
+          nullable: true
+        placeholderRole:
+          type: string
+          nullable: true
         startDate:
           type: string
         endDate:
           type: string
         hoursPerWeek:
           type: number
+        hoursPerDay:
+          type: number
+        totalHours:
+          type: number
+        allocationMethod:
+          type: string
+        methodValue:
+          type: number
+          nullable: true
+        percentOfCapacity:
+          type: number
+          nullable: true
         role:
           type: string
+        isSoftAllocation:
+          type: boolean
+        isTimesheetApprover:
+          type: boolean
+        isLeaveApprover:
+          type: boolean
         createdAt:
           type: string
       required:
         - id
         - projectId
-        - userId
         - startDate
         - endDate
         - hoursPerWeek
@@ -4941,6 +5067,9 @@ components:
           nullable: true
         isArchived:
           type: boolean
+        autoAllocate:
+          type: boolean
+          description: When true, projects created from this template inherit autoAllocate=true
         createdByUserId:
           type: integer
           nullable: true
@@ -4948,6 +5077,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TemplatePhase"
+        allocations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateAllocation"
         createdAt:
           type: string
         updatedAt:
@@ -4958,6 +5091,150 @@ components:
         - billingType
         - totalDurationDays
         - isArchived
+
+    TemplateAllocation:
+      type: object
+      properties:
+        id:
+          type: integer
+        templateId:
+          type: integer
+        templatePhaseId:
+          type: integer
+          nullable: true
+        placeholderId:
+          type: integer
+          nullable: true
+        userId:
+          type: integer
+          nullable: true
+        role:
+          type: string
+        relativeStartDay:
+          type: integer
+          description: 1-based day index from project start (Day 1 = project.startDate)
+        relativeEndDay:
+          type: integer
+          description: Inclusive end day (1-based)
+        hoursPerDay:
+          type: number
+        allocationMethod:
+          type: string
+        methodValue:
+          type: number
+          nullable: true
+        isSoftAllocation:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - templateId
+        - role
+        - relativeStartDay
+        - relativeEndDay
+        - hoursPerDay
+        - allocationMethod
+        - isSoftAllocation
+
+    CreateTemplateAllocationBody:
+      type: object
+      properties:
+        placeholderId:
+          type: integer
+          nullable: true
+        userId:
+          type: integer
+          nullable: true
+        role:
+          type: string
+        relativeStartDay:
+          type: integer
+        relativeEndDay:
+          type: integer
+        hoursPerDay:
+          type: number
+        allocationMethod:
+          type: string
+        methodValue:
+          type: number
+          nullable: true
+        isSoftAllocation:
+          type: boolean
+        templatePhaseId:
+          type: integer
+          nullable: true
+      required:
+        - role
+        - relativeStartDay
+        - relativeEndDay
+        - hoursPerDay
+
+    UpdateTemplateAllocationBody:
+      type: object
+      properties:
+        placeholderId:
+          type: integer
+          nullable: true
+        userId:
+          type: integer
+          nullable: true
+        role:
+          type: string
+        relativeStartDay:
+          type: integer
+        relativeEndDay:
+          type: integer
+        hoursPerDay:
+          type: number
+        allocationMethod:
+          type: string
+        methodValue:
+          type: number
+          nullable: true
+        isSoftAllocation:
+          type: boolean
+        templatePhaseId:
+          type: integer
+          nullable: true
+
+    TemplateAllocationsSummary:
+      type: object
+      properties:
+        templateId:
+          type: integer
+        totalAllocations:
+          type: integer
+        totalHours:
+          type: number
+        totalPersonDays:
+          type: integer
+        byRole:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+              allocations:
+                type: integer
+              totalHours:
+                type: number
+              personDays:
+                type: integer
+            required:
+              - role
+              - allocations
+              - totalHours
+              - personDays
+      required:
+        - templateId
+        - totalAllocations
+        - totalHours
+        - totalPersonDays
+        - byRole
 
     CreateProjectTemplateBody:
       type: object
@@ -4977,6 +5254,8 @@ components:
         createdByUserId:
           type: integer
           nullable: true
+        autoAllocate:
+          type: boolean
       required:
         - name
 
@@ -4996,6 +5275,8 @@ components:
           type: integer
           nullable: true
         isArchived:
+          type: boolean
+        autoAllocate:
           type: boolean
 
     ApplyTemplateBody:

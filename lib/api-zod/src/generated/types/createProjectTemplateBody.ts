@@ -13,4 +13,5 @@ export interface CreateProjectTemplateBody {
   totalDurationDays?: number;
   accountId?: number | null;
   createdByUserId?: number | null;
+  autoAllocate?: boolean;
 }

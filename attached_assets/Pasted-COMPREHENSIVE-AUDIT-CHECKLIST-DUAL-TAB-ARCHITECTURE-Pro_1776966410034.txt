@@ -1,0 +1,71 @@
+COMPREHENSIVE AUDIT CHECKLIST:
+
+DUAL-TAB ARCHITECTURE:
+- [ ] Projects tab shows project-centric allocation view
+- [ ] People tab shows person-centric allocation view
+- [ ] Both tabs use same allocation data source (no duplication)
+- [ ] View toggle persists per user per session
+
+ALLOCATION MECHANICS:
+- [ ] Four allocation methods work: Total Hours, Hours per Day, Hours per Week, Percentage of Capacity
+- [ ] Hard vs Soft allocations visually distinct
+- [ ] Soft allocations included in utilization by default
+- [ ] "Ignore Soft Allocation" toggle works in approval views
+- [ ] Percentage capacity does NOT account for existing allocations (by design)
+- [ ] Auto-Allocate creates allocations from task assignments
+- [ ] Split Time divides bar into two independent segments
+
+PLACEHOLDER SYSTEM:
+- [ ] Placeholders are first-class entities with allocation bars
+- [ ] Default placeholders cannot be renamed
+- [ ] User-created placeholders are editable
+- [ ] "Find Team Member" available next to each placeholder
+- [ ] Replacement Requests disabled for auto-allocate projects
+
+CAPACITY CALCULATIONS:
+- [ ] Utilization = allocated_hours / (capacity - time_off - holidays)
+- [ ] FTE = hours / 40 (configurable standard workweek)
+- [ ] 1 day time-off = -0.2 FTE
+- [ ] Archived project allocations excluded from capacity planning
+- [ ] Over-allocation triggers red visual indicator
+
+RESOURCE REQUEST WORKFLOW:
+- [ ] Six request types all functional
+- [ ] Approval required before allocation committed
+- [ ] Requester can view all their requests with status
+- [ ] Approver sees forecasted utilization before deciding
+- [ ] Blocked requests enable chat for resolution
+- [ ] Approved requests auto-create allocations
+
+SKILLS MATRIX:
+- [ ] Skills have configurable types (Yes-No, Number, Level, Single, Multiple)
+- [ ] Proficiency assigned per team member per skill
+- [ ] Matrix view: rows=people, columns=skills, cells=proficiency
+- [ ] Filter by skill + proficiency in Find Availability, Find Team Member, Resource Requests
+
+CAPACITY PLANNING REPORT:
+- [ ] Demand vs Supply chart shows FTE over time
+- [ ] Available Capacity = Total - Time Off - Holidays
+- [ ] Assigned + Unassigned = Total Demand
+- [ ] Role-level surplus/deficit visible
+- [ ] Max time range: 1 year
+
+TEMPLATE INTEGRATION:
+- [ ] Templates have Allocations tab with relative-day timeline
+- [ ] Placeholder allocations carry over to new projects
+- [ ] Named resource allocations carry over if still active
+- [ ] Auto-allocate setting propagates from template
+- [ ] Total allocation hours summarized per template
+
+PERMISSION MATRIX (Section 3.2):
+- [ ] Admin: full access to all capabilities
+- [ ] Super User: can approve requests (if permitted), view all allocations
+- [ ] Project Manager: view own projects, raise requests, cannot approve
+- [ ] Team Member: view self only, cannot raise requests
+
+GAP CLOSURE PROCESS:
+1. Run all audit checks against existing system + new overlays
+2. Log failures: module, severity (critical/high/medium/low), description
+3. Fix critical (data integrity, security, broken workflows) before release
+4. Document accepted medium/low gaps with workarounds
+5. Re-run audit until all critical/high gaps closed

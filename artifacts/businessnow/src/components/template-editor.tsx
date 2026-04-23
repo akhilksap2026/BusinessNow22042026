@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   useGetProjectTemplate,
   useUpdateProjectTemplate,
@@ -9,11 +9,21 @@ import {
   useCreateTemplateTask,
   useUpdateTemplateTask,
   useDeleteTemplateTask,
+  useListTemplateAllocations,
+  useCreateTemplateAllocation,
+  useUpdateTemplateAllocation,
+  useDeleteTemplateAllocation,
+  useGetTemplateAllocationsSummary,
+  useListUsers,
   getListProjectTemplatesQueryKey,
   getGetProjectTemplateQueryKey,
+  getListTemplateAllocationsQueryKey,
+  getGetTemplateAllocationsSummaryQueryKey,
   type TemplatePhase,
   type TemplateTask,
+  type TemplateAllocation,
 } from "@workspace/api-client-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -411,6 +421,418 @@ function PhaseCard({
   );
 }
 
+// ─── Allocations section ──────────────────────────────────────────────────────
+
+type Placeholder = { id: number; name: string; role: string };
+
+function useApiBase() {
+  return (import.meta as { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL ?? "";
+}
+
+function usePlaceholders() {
+  const base = useApiBase();
+  return useQuery({
+    queryKey: ["placeholders"],
+    queryFn: async (): Promise<Placeholder[]> => {
+      const r = await fetch(`${base}/api/placeholders`);
+      if (!r.ok) throw new Error("Failed to load placeholders");
+      return r.json();
+    },
+  });
+}
+
+const ALLOCATION_ROLES = ["PM", "Developer", "Designer", "QA", "Finance", "Analyst", "Consultant", "Tech Lead"];
+
+function AllocationRow({
+  alloc, totalDays, placeholders, users, onUpdate, onDelete,
+}: {
+  alloc: TemplateAllocation;
+  totalDays: number;
+  placeholders: Placeholder[];
+  users: { id: number; name: string }[];
+  onUpdate: (data: Partial<TemplateAllocation>) => Promise<void>;
+  onDelete: () => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [form, setForm] = useState({
+    relativeStartDay: alloc.relativeStartDay,
+    relativeEndDay: alloc.relativeEndDay,
+    hoursPerDay: alloc.hoursPerDay,
+    role: alloc.role,
+    isSoftAllocation: alloc.isSoftAllocation,
+  });
+  useEffect(() => {
+    setForm({
+      relativeStartDay: alloc.relativeStartDay,
+      relativeEndDay: alloc.relativeEndDay,
+      hoursPerDay: alloc.hoursPerDay,
+      role: alloc.role,
+      isSoftAllocation: alloc.isSoftAllocation,
+    });
+  }, [alloc]);
+
+  const isPlaceholder = alloc.placeholderId != null;
+  const ph = isPlaceholder ? placeholders.find(p => p.id === alloc.placeholderId) : null;
+  const usr = !isPlaceholder ? users.find(u => u.id === alloc.userId) : null;
+  const days = Math.max(0, alloc.relativeEndDay - alloc.relativeStartDay + 1);
+  const total = days * alloc.hoursPerDay;
+
+  const safeTotal = Math.max(totalDays, 1);
+  const startPct = ((alloc.relativeStartDay - 1) / safeTotal) * 100;
+  const widthPct = (days / safeTotal) * 100;
+
+  async function commitEdit() {
+    await onUpdate(form);
+    setEditing(false);
+  }
+
+  return (
+    <div className="border rounded-md bg-background" data-testid={`row-allocation-${alloc.id}`}>
+      <div className="flex items-center gap-3 px-3 py-2">
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          {isPlaceholder ? (
+            <Badge variant="outline" className="text-xs text-purple-700 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800">
+              {ph?.name ?? `Placeholder #${alloc.placeholderId}`}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              {usr?.name ?? `User #${alloc.userId}`}
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-xs">{alloc.role}</Badge>
+          {alloc.isSoftAllocation && <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400">Soft</Badge>}
+        </div>
+        <div className="text-xs text-muted-foreground shrink-0 tabular-nums">
+          Day {alloc.relativeStartDay}–{alloc.relativeEndDay} · {alloc.hoursPerDay}h/day · <strong className="text-foreground">{total}h</strong>
+        </div>
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setEditing(p => !p)}>
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-500" onClick={() => setDeleteOpen(true)}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* Timeline bar */}
+      <div className="px-3 pb-2">
+        <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+          <div
+            className={`absolute top-0 h-full rounded-full ${alloc.isSoftAllocation ? "bg-amber-400/70" : isPlaceholder ? "bg-purple-500/70" : "bg-primary/70"}`}
+            style={{ left: `${startPct}%`, width: `${Math.max(widthPct, 1)}%` }}
+          />
+        </div>
+      </div>
+
+      {editing && (
+        <div className="px-3 pb-3 pt-0 grid grid-cols-5 gap-2 border-t bg-muted/20">
+          <div className="space-y-1 mt-2">
+            <Label className="text-xs text-muted-foreground">Start day</Label>
+            <Input type="number" min={1} value={form.relativeStartDay} className="h-7 text-sm"
+              onChange={e => setForm(f => ({ ...f, relativeStartDay: parseInt(e.target.value, 10) || 1 }))} />
+          </div>
+          <div className="space-y-1 mt-2">
+            <Label className="text-xs text-muted-foreground">End day</Label>
+            <Input type="number" min={1} value={form.relativeEndDay} className="h-7 text-sm"
+              onChange={e => setForm(f => ({ ...f, relativeEndDay: parseInt(e.target.value, 10) || 1 }))} />
+          </div>
+          <div className="space-y-1 mt-2">
+            <Label className="text-xs text-muted-foreground">Hours/day</Label>
+            <Input type="number" min={0} step={0.5} value={form.hoursPerDay} className="h-7 text-sm"
+              onChange={e => setForm(f => ({ ...f, hoursPerDay: parseFloat(e.target.value) || 0 }))} />
+          </div>
+          <div className="space-y-1 mt-2">
+            <Label className="text-xs text-muted-foreground">Role</Label>
+            <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
+              <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ALLOCATION_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1 mt-2">
+            <Label className="text-xs text-muted-foreground">Type</Label>
+            <Select value={form.isSoftAllocation ? "soft" : "hard"} onValueChange={v => setForm(f => ({ ...f, isSoftAllocation: v === "soft" }))}>
+              <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hard">Hard</SelectItem>
+                <SelectItem value="soft">Soft (tentative)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-5 flex justify-end gap-2 mt-1">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button size="sm" onClick={commitEdit}>Save</Button>
+          </div>
+        </div>
+      )}
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove allocation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove this {alloc.role} allocation (Day {alloc.relativeStartDay}–{alloc.relativeEndDay}). This won't affect existing projects.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={onDelete}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function AllocationsSection({ templateId, totalDays }: { templateId: number; totalDays: number }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: allocations = [], isLoading } = useListTemplateAllocations(templateId);
+  const { data: summary } = useGetTemplateAllocationsSummary(templateId);
+  const { data: placeholders = [] } = usePlaceholders();
+  const { data: users = [] } = useListUsers();
+
+  const createAlloc = useCreateTemplateAllocation();
+  const updateAlloc = useUpdateTemplateAllocation();
+  const deleteAlloc = useDeleteTemplateAllocation();
+
+  const [adding, setAdding] = useState(false);
+  type AssignType = "placeholder" | "user";
+  const [form, setForm] = useState<{
+    assignType: AssignType; placeholderId: string; userId: string; role: string;
+    relativeStartDay: number; relativeEndDay: number; hoursPerDay: number; isSoftAllocation: boolean;
+  }>({
+    assignType: "placeholder", placeholderId: "", userId: "", role: "Developer",
+    relativeStartDay: 1, relativeEndDay: Math.max(totalDays, 1), hoursPerDay: 6, isSoftAllocation: false,
+  });
+  const [saving, setSaving] = useState(false);
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: getListTemplateAllocationsQueryKey(templateId) });
+    queryClient.invalidateQueries({ queryKey: getGetTemplateAllocationsSummaryQueryKey(templateId) });
+    queryClient.invalidateQueries({ queryKey: getGetProjectTemplateQueryKey(templateId) });
+    // List view embeds nested allocations[] in every template — refresh it too.
+    queryClient.invalidateQueries({ queryKey: getListProjectTemplatesQueryKey() });
+  }
+
+  async function submitAdd() {
+    if (form.assignType === "placeholder" && !form.placeholderId) {
+      toast({ title: "Select a placeholder", variant: "destructive" }); return;
+    }
+    if (form.assignType === "user" && !form.userId) {
+      toast({ title: "Select a user", variant: "destructive" }); return;
+    }
+    if (form.relativeEndDay < form.relativeStartDay) {
+      toast({ title: "End day must be on or after start day", variant: "destructive" }); return;
+    }
+    setSaving(true);
+    try {
+      await createAlloc.mutateAsync({
+        id: templateId,
+        data: {
+          placeholderId: form.assignType === "placeholder" ? parseInt(form.placeholderId, 10) : undefined,
+          userId: form.assignType === "user" ? parseInt(form.userId, 10) : undefined,
+          role: form.role,
+          relativeStartDay: form.relativeStartDay,
+          relativeEndDay: form.relativeEndDay,
+          hoursPerDay: form.hoursPerDay,
+          isSoftAllocation: form.isSoftAllocation,
+        } as never,
+      });
+      invalidate();
+      setForm(f => ({ ...f, placeholderId: "", userId: "" }));
+      setAdding(false);
+      toast({ title: "Allocation added" });
+    } catch {
+      toast({ title: "Failed to add allocation", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUpdate(allocId: number, data: Partial<TemplateAllocation>) {
+    try {
+      await updateAlloc.mutateAsync({ allocId, data: data as never });
+      invalidate();
+    } catch {
+      toast({ title: "Failed to update allocation", variant: "destructive" });
+    }
+  }
+
+  async function handleDelete(allocId: number) {
+    try {
+      await deleteAlloc.mutateAsync({ allocId });
+      invalidate();
+      toast({ title: "Allocation removed" });
+    } catch {
+      toast({ title: "Failed to remove allocation", variant: "destructive" });
+    }
+  }
+
+  const safeTotal = Math.max(totalDays, 1);
+  const tickStep = safeTotal <= 14 ? 1 : safeTotal <= 30 ? 5 : safeTotal <= 90 ? 10 : 30;
+  const ticks = [] as number[];
+  for (let d = 1; d <= safeTotal; d += tickStep) ticks.push(d);
+  if (ticks[ticks.length - 1] !== safeTotal) ticks.push(safeTotal);
+
+  return (
+    <div className="space-y-3" data-testid="section-allocations">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-sm">Resource Allocations</h3>
+          <p className="text-xs text-muted-foreground">Pre-plan resource time using relative days. Day 1 = project start date.</p>
+        </div>
+        {!adding && (
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setAdding(true)} data-testid="button-add-allocation">
+            <Plus className="h-3.5 w-3.5" /> Add Allocation
+          </Button>
+        )}
+      </div>
+
+      {/* Day-axis ruler */}
+      <div className="px-3 py-2 rounded-md bg-muted/30 border">
+        <div className="relative h-4 text-[10px] text-muted-foreground">
+          {ticks.map(d => (
+            <div key={d} className="absolute top-0 -translate-x-1/2 tabular-nums" style={{ left: `${((d - 1) / safeTotal) * 100}%` }}>
+              D{d}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {isLoading && <Skeleton className="h-16 w-full rounded-md" />}
+
+      {!isLoading && allocations.length === 0 && !adding && (
+        <div className="text-center py-8 border border-dashed rounded-lg text-muted-foreground">
+          <p className="text-sm font-medium">No allocations yet</p>
+          <p className="text-xs mt-1">Add placeholders or named resources with day-range coverage.</p>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {allocations.map(a => (
+          <AllocationRow
+            key={a.id}
+            alloc={a}
+            totalDays={safeTotal}
+            placeholders={placeholders}
+            users={users.map(u => ({ id: u.id, name: u.name }))}
+            onUpdate={data => handleUpdate(a.id, data)}
+            onDelete={() => handleDelete(a.id)}
+          />
+        ))}
+      </div>
+
+      {adding && (
+        <Card className="border-dashed border-primary/40">
+          <CardContent className="pt-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Assign to *</Label>
+                <Select value={form.assignType} onValueChange={v => setForm(f => ({ ...f, assignType: v as AssignType }))}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="placeholder">Placeholder (role to fill)</SelectItem>
+                    <SelectItem value="user">Named user</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">{form.assignType === "placeholder" ? "Placeholder *" : "User *"}</Label>
+                {form.assignType === "placeholder" ? (
+                  <Select value={form.placeholderId} onValueChange={v => setForm(f => ({ ...f, placeholderId: v }))}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select placeholder…" /></SelectTrigger>
+                    <SelectContent>
+                      {placeholders.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Select value={form.userId} onValueChange={v => setForm(f => ({ ...f, userId: v }))}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select user…" /></SelectTrigger>
+                    <SelectContent>
+                      {users.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Role *</Label>
+                <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ALLOCATION_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Start day *</Label>
+                <Input type="number" min={1} value={form.relativeStartDay} className="h-8 text-sm"
+                  onChange={e => setForm(f => ({ ...f, relativeStartDay: parseInt(e.target.value, 10) || 1 }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">End day *</Label>
+                <Input type="number" min={1} value={form.relativeEndDay} className="h-8 text-sm"
+                  onChange={e => setForm(f => ({ ...f, relativeEndDay: parseInt(e.target.value, 10) || 1 }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Hours/day *</Label>
+                <Input type="number" min={0} step={0.5} value={form.hoursPerDay} className="h-8 text-sm"
+                  onChange={e => setForm(f => ({ ...f, hoursPerDay: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Type</Label>
+                <Select value={form.isSoftAllocation ? "soft" : "hard"} onValueChange={v => setForm(f => ({ ...f, isSoftAllocation: v === "soft" }))}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hard">Hard</SelectItem>
+                    <SelectItem value="soft">Soft (tentative)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-muted-foreground">
+                {Math.max(0, form.relativeEndDay - form.relativeStartDay + 1)} days × {form.hoursPerDay}h ={" "}
+                <strong className="text-foreground">{Math.max(0, form.relativeEndDay - form.relativeStartDay + 1) * form.hoursPerDay}h total</strong>
+              </p>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancel</Button>
+                <Button size="sm" disabled={saving} onClick={submitAdd} data-testid="button-save-allocation">
+                  {saving ? "Adding…" : "Add Allocation"}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Summary */}
+      {summary && summary.byRole && summary.byRole.length > 0 && (
+        <div className="border rounded-lg p-3 bg-muted/20">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total Effort by Role</span>
+            <span className="text-sm">
+              <strong className="text-foreground tabular-nums">{summary.totalHours}h</strong>
+              <span className="text-muted-foreground"> · {summary.totalPersonDays} person-days</span>
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2" data-testid="allocation-summary">
+            {summary.byRole.map(t => (
+              <Badge key={t.role} variant="secondary" className="text-xs">
+                {t.role}: <strong className="ml-1 tabular-nums">{t.totalHours}h</strong>
+                <span className="ml-1 text-muted-foreground">({t.personDays}pd)</span>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main TemplateEditor ──────────────────────────────────────────────────────
 
 interface TemplateEditorProps {
@@ -577,7 +999,7 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
       </div>
 
       {/* Template metadata */}
-      <div className="grid grid-cols-3 gap-3 p-3 bg-muted/30 rounded-lg border">
+      <div className="grid grid-cols-4 gap-3 p-3 bg-muted/30 rounded-lg border">
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Billing Type</Label>
           <Select value={template.billingType} onValueChange={v => handleUpdateTemplate({ billingType: v })}>
@@ -602,6 +1024,20 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
           <div className="h-8 flex items-center gap-3 text-sm text-muted-foreground">
             <span><strong className="text-foreground">{phases.length}</strong> phases</span>
             <span><strong className="text-foreground">{totalTasks}</strong> tasks</span>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground" htmlFor="auto-alloc-toggle">Auto-allocate on use</Label>
+          <div className="h-8 flex items-center gap-2">
+            <Switch
+              id="auto-alloc-toggle"
+              checked={!!template.autoAllocate}
+              onCheckedChange={v => handleUpdateTemplate({ autoAllocate: v })}
+              data-testid="switch-auto-allocate"
+            />
+            <span className="text-xs text-muted-foreground">
+              {template.autoAllocate ? "Allocations copied to project" : "Manual allocation"}
+            </span>
           </div>
         </div>
       </div>
@@ -638,7 +1074,7 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
         ))}
 
         {addingPhase && (
-          <Card className="border-dashed border-primary/40">
+          <Card className="border-dashed border-primary/40" data-testid="form-add-phase">
             <CardContent className="pt-4 space-y-3">
               <div className="space-y-1">
                 <Label className="text-xs">Phase Name *</Label>
@@ -689,6 +1125,9 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
           </Card>
         )}
       </div>
+
+      {/* Allocations */}
+      <AllocationsSection templateId={templateId} totalDays={template.totalDurationDays} />
     </div>
   );
 }

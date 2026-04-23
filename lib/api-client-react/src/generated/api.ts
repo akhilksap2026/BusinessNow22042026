@@ -60,6 +60,7 @@ import type {
   CreateTaskChecklistItemBody,
   CreateTaskCommentBody,
   CreateTaxCodeBody,
+  CreateTemplateAllocationBody,
   CreateTemplatePhaseBody,
   CreateTemplateTaskBody,
   CreateTimeCategoryBody,
@@ -128,6 +129,8 @@ import type {
   TaskChecklistItem,
   TaskComment,
   TaxCode,
+  TemplateAllocation,
+  TemplateAllocationsSummary,
   TemplatePhase,
   TemplateTask,
   TimeCategory,
@@ -152,6 +155,7 @@ import type {
   UpdateResourceRequestStatusBody,
   UpdateTaskBody,
   UpdateTaskChecklistItemBody,
+  UpdateTemplateAllocationBody,
   UpdateTimeEntryBody,
   UpdateTimeOffRequestStatusBody,
   UpdateTimesheetBody,
@@ -7306,6 +7310,453 @@ export const useDeleteTemplateTask = <
 > => {
   return useMutation(getDeleteTemplateTaskMutationOptions(options));
 };
+
+/**
+ * @summary List allocations for a template
+ */
+export const getListTemplateAllocationsUrl = (id: number) => {
+  return `/api/project-templates/${id}/allocations`;
+};
+
+export const listTemplateAllocations = async (
+  id: number,
+  options?: RequestInit,
+): Promise<TemplateAllocation[]> => {
+  return customFetch<TemplateAllocation[]>(getListTemplateAllocationsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTemplateAllocationsQueryKey = (id: number) => {
+  return [`/api/project-templates/${id}/allocations`] as const;
+};
+
+export const getListTemplateAllocationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTemplateAllocations>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTemplateAllocations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTemplateAllocationsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTemplateAllocations>>
+  > = ({ signal }) =>
+    listTemplateAllocations(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTemplateAllocations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTemplateAllocationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTemplateAllocations>>
+>;
+export type ListTemplateAllocationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List allocations for a template
+ */
+
+export function useListTemplateAllocations<
+  TData = Awaited<ReturnType<typeof listTemplateAllocations>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTemplateAllocations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTemplateAllocationsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a resource allocation to a template (relative-day)
+ */
+export const getCreateTemplateAllocationUrl = (id: number) => {
+  return `/api/project-templates/${id}/allocations`;
+};
+
+export const createTemplateAllocation = async (
+  id: number,
+  createTemplateAllocationBody: CreateTemplateAllocationBody,
+  options?: RequestInit,
+): Promise<TemplateAllocation> => {
+  return customFetch<TemplateAllocation>(getCreateTemplateAllocationUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTemplateAllocationBody),
+  });
+};
+
+export const getCreateTemplateAllocationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTemplateAllocation>>,
+    TError,
+    { id: number; data: BodyType<CreateTemplateAllocationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTemplateAllocation>>,
+  TError,
+  { id: number; data: BodyType<CreateTemplateAllocationBody> },
+  TContext
+> => {
+  const mutationKey = ["createTemplateAllocation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTemplateAllocation>>,
+    { id: number; data: BodyType<CreateTemplateAllocationBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createTemplateAllocation(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTemplateAllocationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTemplateAllocation>>
+>;
+export type CreateTemplateAllocationMutationBody =
+  BodyType<CreateTemplateAllocationBody>;
+export type CreateTemplateAllocationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a resource allocation to a template (relative-day)
+ */
+export const useCreateTemplateAllocation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTemplateAllocation>>,
+    TError,
+    { id: number; data: BodyType<CreateTemplateAllocationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createTemplateAllocation>>,
+  TError,
+  { id: number; data: BodyType<CreateTemplateAllocationBody> },
+  TContext
+> => {
+  return useMutation(getCreateTemplateAllocationMutationOptions(options));
+};
+
+/**
+ * @summary Update a template allocation
+ */
+export const getUpdateTemplateAllocationUrl = (allocId: number) => {
+  return `/api/template-allocations/${allocId}`;
+};
+
+export const updateTemplateAllocation = async (
+  allocId: number,
+  updateTemplateAllocationBody: UpdateTemplateAllocationBody,
+  options?: RequestInit,
+): Promise<TemplateAllocation> => {
+  return customFetch<TemplateAllocation>(
+    getUpdateTemplateAllocationUrl(allocId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateTemplateAllocationBody),
+    },
+  );
+};
+
+export const getUpdateTemplateAllocationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTemplateAllocation>>,
+    TError,
+    { allocId: number; data: BodyType<UpdateTemplateAllocationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTemplateAllocation>>,
+  TError,
+  { allocId: number; data: BodyType<UpdateTemplateAllocationBody> },
+  TContext
+> => {
+  const mutationKey = ["updateTemplateAllocation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTemplateAllocation>>,
+    { allocId: number; data: BodyType<UpdateTemplateAllocationBody> }
+  > = (props) => {
+    const { allocId, data } = props ?? {};
+
+    return updateTemplateAllocation(allocId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTemplateAllocationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTemplateAllocation>>
+>;
+export type UpdateTemplateAllocationMutationBody =
+  BodyType<UpdateTemplateAllocationBody>;
+export type UpdateTemplateAllocationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a template allocation
+ */
+export const useUpdateTemplateAllocation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTemplateAllocation>>,
+    TError,
+    { allocId: number; data: BodyType<UpdateTemplateAllocationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTemplateAllocation>>,
+  TError,
+  { allocId: number; data: BodyType<UpdateTemplateAllocationBody> },
+  TContext
+> => {
+  return useMutation(getUpdateTemplateAllocationMutationOptions(options));
+};
+
+/**
+ * @summary Delete a template allocation
+ */
+export const getDeleteTemplateAllocationUrl = (allocId: number) => {
+  return `/api/template-allocations/${allocId}`;
+};
+
+export const deleteTemplateAllocation = async (
+  allocId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteTemplateAllocationUrl(allocId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteTemplateAllocationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTemplateAllocation>>,
+    TError,
+    { allocId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTemplateAllocation>>,
+  TError,
+  { allocId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteTemplateAllocation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTemplateAllocation>>,
+    { allocId: number }
+  > = (props) => {
+    const { allocId } = props ?? {};
+
+    return deleteTemplateAllocation(allocId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTemplateAllocationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTemplateAllocation>>
+>;
+
+export type DeleteTemplateAllocationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a template allocation
+ */
+export const useDeleteTemplateAllocation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTemplateAllocation>>,
+    TError,
+    { allocId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTemplateAllocation>>,
+  TError,
+  { allocId: number },
+  TContext
+> => {
+  return useMutation(getDeleteTemplateAllocationMutationOptions(options));
+};
+
+/**
+ * @summary Aggregate template allocation totals (per role + grand totals)
+ */
+export const getGetTemplateAllocationsSummaryUrl = (id: number) => {
+  return `/api/project-templates/${id}/allocations/summary`;
+};
+
+export const getTemplateAllocationsSummary = async (
+  id: number,
+  options?: RequestInit,
+): Promise<TemplateAllocationsSummary> => {
+  return customFetch<TemplateAllocationsSummary>(
+    getGetTemplateAllocationsSummaryUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetTemplateAllocationsSummaryQueryKey = (id: number) => {
+  return [`/api/project-templates/${id}/allocations/summary`] as const;
+};
+
+export const getGetTemplateAllocationsSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTemplateAllocationsSummary>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTemplateAllocationsSummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTemplateAllocationsSummaryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTemplateAllocationsSummary>>
+  > = ({ signal }) =>
+    getTemplateAllocationsSummary(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTemplateAllocationsSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTemplateAllocationsSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTemplateAllocationsSummary>>
+>;
+export type GetTemplateAllocationsSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Aggregate template allocation totals (per role + grand totals)
+ */
+
+export function useGetTemplateAllocationsSummary<
+  TData = Awaited<ReturnType<typeof getTemplateAllocationsSummary>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTemplateAllocationsSummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTemplateAllocationsSummaryQueryOptions(
+    id,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Apply a template to an existing project (supports multi-template composition)
