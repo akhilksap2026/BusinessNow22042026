@@ -5,9 +5,11 @@ export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
       if (query.state.data !== undefined) return;
+      const msg = error instanceof Error ? error.message : "";
+      if (/\b40[13]\b/.test(msg)) return;
       toast({
         title: "Failed to load data",
-        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+        description: msg || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     },
