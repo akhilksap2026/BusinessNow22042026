@@ -36,6 +36,21 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - When adding fields to the API contract, update all four places: `lib/api-zod/src/generated/api.ts` + `types/createXBody.ts`, `lib/api-client-react/src/generated/api.schemas.ts`, then rebuild both dists (`tsc --build --force`)
 - `lib/api-client-react/dist/index.d.ts` is the compiled declaration output — must rebuild after editing `custom-fetch.ts` or any generated schema file
 
+### Phase 4 Complete — Milestone CSAT Surveys (Auto-Trigger, Submit, Toggle)
+- **DB**: Added `csat_enabled boolean` to `tasks` (default true); new `csat_surveys` table (`id, milestone_task_id, project_id, recipient_user_id, sent_at, rating, comment, completed_at, token UUID`)
+- **Auto-trigger**: When any milestone task is marked Completed AND `csat_enabled=true` → `csat_surveys` record created + in-app notification sent to first project allocation member; duplicate-safe (one survey per milestone)
+- **`GET /projects/:id/csat-surveys`** — list surveys with task name, status (pending/completed), rating, dates
+- **`POST /csat-surveys/:id/submit { rating, comment }`** — submit 1–5 star rating; marks completedAt; sends "csat_submitted" notification
+- **`PATCH /tasks/:id/csat-enabled { csatEnabled }`** — toggle per-milestone (Admin role)
+- **`GET /projects/:id/csat-summary`** — now aggregates from both `csat_responses` + completed `csat_surveys`; adds `pendingSurveys` + `completedSurveys` counts
+- **Enhanced CSAT tab**:
+  - 4-card summary row: Average Score / Surveys Pending / Surveys Completed / Distribution
+  - Milestone surveys list — green/amber dot, sent date, completion date, rating stars
+  - "Submit Rating" button → dialog with interactive star picker + comment → submits survey
+  - "CSAT On/Off" toggle per survey row (Admin action, fires `PATCH /tasks/:id/csat-enabled`)
+  - Recent comments section shows written feedback from submitted responses
+- **Verification**: regular task completion → no survey; milestone completion → survey created; disable CSAT → no survey on next completion; duplicate milestone completion → idempotent (no second survey)
+
 ### Phase 3 Complete — Interactive Timeline (Gantt) with Dependencies, Baselines & Shift Dates
 - **`baselines` table** — `id, project_id, name, notes, snapshot_date, phase_snapshot JSONB, task_snapshot JSONB`; `GET/POST /projects/:id/baselines`, `DELETE /baselines/:id`
 - **Circular dependency detection** — BFS from successorId; rejects with error before insert if a cycle would be created

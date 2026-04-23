@@ -301,6 +301,15 @@ export default function ProjectDetail() {
     query: { enabled: !!projectId, queryKey: getGetProjectCsatSummaryQueryKey(projectId) }
   });
 
+  const { data: csatSurveys = [], refetch: refetchSurveys } = useQuery<any[]>({
+    queryKey: ["csat-surveys", projectId],
+    queryFn: async () => {
+      const r = await fetch(`/api/projects/${projectId}/csat-surveys`);
+      return r.json();
+    },
+    enabled: !!projectId,
+  });
+
   const { data: changeOrders, refetch: refetchChangeOrders } = useQuery<any[]>({
     queryKey: ["change-orders", projectId],
     queryFn: async () => {
@@ -801,112 +810,12 @@ export default function ProjectDetail() {
           </Dialog>
 
           <TabsContent value="csat" className="m-0">
-            {!csatSummary || csatSummary.totalResponses === 0 ? (
-              <Card>
-                <CardContent className="py-14 text-center text-muted-foreground">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="font-medium">No CSAT responses yet</p>
-                  <p className="text-sm mt-1">Satisfaction responses submitted after milestones will appear here.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2">
-                        <span className="text-3xl font-bold">{csatSummary.averageRating.toFixed(1)}</span>
-                        <span className="text-muted-foreground text-sm">/ 5</span>
-                        <div className="flex ml-1">
-                          {[1, 2, 3, 4, 5].map(star => (
-                            <Star
-                              key={star}
-                              className={`h-4 w-4 ${star <= Math.round(csatSummary.averageRating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Total Responses</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold">{csatSummary.totalResponses}</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Score Distribution</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-1.5">
-                        {([5, 4, 3, 2, 1] as const).map(score => {
-                          const dist = csatSummary.ratingDistribution as Record<string, number>;
-                          const count = dist[score.toString()] || 0;
-                          const pct = csatSummary.totalResponses > 0 ? Math.round(count / csatSummary.totalResponses * 100) : 0;
-                          return (
-                            <div key={score} className="flex items-center gap-2 text-xs">
-                              <span className="w-3 text-right text-muted-foreground">{score}</span>
-                              <Star className="h-3 w-3 text-amber-400 fill-amber-400 shrink-0" />
-                              <div className="flex-1 bg-muted rounded-full h-2">
-                                <div
-                                  className="h-2 rounded-full bg-amber-400"
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                              <span className="w-6 text-right text-muted-foreground">{count}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Feedback</CardTitle>
-                    <CardDescription>Latest satisfaction responses from stakeholders</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {csatSummary.recentResponses.map((resp: any) => (
-                        <div key={resp.id} className="flex items-start gap-3 p-3 rounded-lg border bg-muted/20">
-                          <Avatar className="h-8 w-8 shrink-0">
-                            <AvatarFallback className="text-xs">
-                              {resp.submittedByUserId.toString().substring(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <div className="flex">
-                                {[1, 2, 3, 4, 5].map(star => (
-                                  <Star
-                                    key={star}
-                                    className={`h-3.5 w-3.5 ${star <= resp.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'}`}
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(resp.submittedAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            {resp.comment && (
-                              <p className="text-sm text-muted-foreground italic">"{resp.comment}"</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            <CsatTab
+              projectId={projectId}
+              csatSummary={csatSummary}
+              csatSurveys={csatSurveys}
+              refetchSurveys={refetchSurveys}
+            />
           </TabsContent>
 
           <TabsContent value="documents" className="m-0">
@@ -1327,5 +1236,260 @@ export default function ProjectDetail() {
         onSuccess={() => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) })}
       />
     </Layout>
+  );
+}
+
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map(s => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onChange(s)}
+          onMouseEnter={() => setHovered(s)}
+          onMouseLeave={() => setHovered(0)}
+          className="focus:outline-none"
+        >
+          <Star className={`h-6 w-6 transition-colors ${s <= (hovered || value) ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}`} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CsatTab({ projectId, csatSummary, csatSurveys, refetchSurveys }: {
+  projectId: number;
+  csatSummary: any;
+  csatSurveys: any[];
+  refetchSurveys: () => void;
+}) {
+  const { toast } = useToast();
+  const [submitDialog, setSubmitDialog] = useState<{ surveyId: number; taskName: string } | null>(null);
+  const [submitRating, setSubmitRating] = useState(0);
+  const [submitComment, setSubmitComment] = useState("");
+  const queryClient = useQueryClient();
+
+  const pending = csatSurveys.filter(s => s.status === "pending");
+  const completed = csatSurveys.filter(s => s.status === "completed");
+
+  const submitMut = useMutation({
+    mutationFn: async ({ id, rating, comment }: { id: number; rating: number; comment: string }) => {
+      const r = await fetch(`/api/csat-surveys/${id}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+        body: JSON.stringify({ rating, comment }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
+      return r.json();
+    },
+    onSuccess: () => {
+      refetchSurveys();
+      queryClient.invalidateQueries({ queryKey: getGetProjectCsatSummaryQueryKey(projectId) });
+      toast({ title: "Survey submitted" });
+      setSubmitDialog(null);
+      setSubmitRating(0);
+      setSubmitComment("");
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const toggleCsatMut = useMutation({
+    mutationFn: async ({ taskId, enabled }: { taskId: number; enabled: boolean }) => {
+      const r = await fetch(`/api/tasks/${taskId}/csat-enabled`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-user-role": "Admin" },
+        body: JSON.stringify({ csatEnabled: enabled }),
+      });
+      if (!r.ok) throw new Error("Failed to update");
+      return r.json();
+    },
+    onSuccess: () => refetchSurveys(),
+  });
+
+  return (
+    <div className="space-y-4">
+      {/* Summary cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle></CardHeader>
+          <CardContent>
+            {csatSummary && csatSummary.totalResponses > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-3xl font-bold">{csatSummary.averageRating.toFixed(1)}</span>
+                <span className="text-muted-foreground text-sm">/ 5</span>
+                <div className="flex ml-1">
+                  {[1,2,3,4,5].map(s => (
+                    <Star key={s} className={`h-4 w-4 ${s <= Math.round(csatSummary.averageRating) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />
+                  ))}
+                </div>
+              </div>
+            ) : <span className="text-muted-foreground text-sm">No data yet</span>}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Surveys Pending</CardTitle></CardHeader>
+          <CardContent>
+            <div className={`text-3xl font-bold ${pending.length > 0 ? "text-amber-500" : "text-emerald-600"}`}>{pending.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Surveys Completed</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-emerald-600">{completed.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Score Distribution</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {([5,4,3,2,1] as const).map(score => {
+                const dist = csatSummary?.ratingDistribution as Record<string, number> ?? {};
+                const count = dist[score.toString()] || 0;
+                const total = csatSummary?.totalResponses ?? 0;
+                const pct = total > 0 ? Math.round(count / total * 100) : 0;
+                return (
+                  <div key={score} className="flex items-center gap-1.5 text-xs">
+                    <span className="w-3 text-right text-muted-foreground">{score}</span>
+                    <Star className="h-3 w-3 text-amber-400 fill-amber-400 shrink-0" />
+                    <div className="flex-1 bg-muted rounded-full h-1.5">
+                      <div className="h-1.5 rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-5 text-right text-muted-foreground">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Milestone surveys table */}
+      {csatSurveys.length === 0 ? (
+        <Card>
+          <CardContent className="py-14 text-center text-muted-foreground">
+            <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">No milestone surveys yet</p>
+            <p className="text-sm mt-1">CSAT surveys are auto-sent when milestone tasks are marked complete.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Milestone Surveys</CardTitle>
+            <CardDescription>Auto-generated after milestone completion. Submit ratings on behalf of your client champion.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {csatSurveys.map((s: any) => (
+                <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`h-2 w-2 rounded-full shrink-0 ${s.status === "completed" ? "bg-emerald-500" : "bg-amber-400"}`} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{s.milestoneTaskName}</p>
+                      <p className="text-xs text-muted-foreground">Sent {new Date(s.sentAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    {s.status === "completed" ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex">
+                          {[1,2,3,4,5].map(star => (
+                            <Star key={star} className={`h-3.5 w-3.5 ${star <= s.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/20"}`} />
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{new Date(s.completedAt).toLocaleDateString()}</span>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => { setSubmitDialog({ surveyId: s.id, taskName: s.milestoneTaskName }); setSubmitRating(0); setSubmitComment(""); }}
+                      >
+                        Submit Rating
+                      </Button>
+                    )}
+                    {/* Toggle csat_enabled */}
+                    <button
+                      className={`text-xs px-2 py-0.5 rounded border transition-colors ${s.csatEnabled ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100"}`}
+                      onClick={() => toggleCsatMut.mutate({ taskId: s.milestoneTaskId, enabled: !s.csatEnabled })}
+                      title={s.csatEnabled ? "Disable CSAT for this milestone" : "Enable CSAT for this milestone"}
+                    >
+                      {s.csatEnabled ? "CSAT On" : "CSAT Off"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent written comments */}
+      {csatSummary && csatSummary.recentResponses?.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Feedback Comments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {csatSummary.recentResponses.map((resp: any) => (
+                resp.comment ? (
+                  <div key={resp.id} className="flex items-start gap-3 p-3 rounded-lg border bg-muted/20">
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarFallback className="text-xs">{String(resp.submittedByUserId).padStart(2, "0")}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="flex">{[1,2,3,4,5].map(s => <Star key={s} className={`h-3.5 w-3.5 ${s <= resp.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />)}</div>
+                        <span className="text-xs text-muted-foreground">{new Date(resp.submittedAt).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground italic">"{resp.comment}"</p>
+                    </div>
+                  </div>
+                ) : null
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Submit dialog */}
+      <Dialog open={!!submitDialog} onOpenChange={v => { if (!v) setSubmitDialog(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Submit CSAT Rating</DialogTitle>
+            <CardDescription>Milestone: {submitDialog?.taskName}</CardDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs mb-2 block">Rating (1–5 stars)</Label>
+              <StarRating value={submitRating} onChange={setSubmitRating} />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">Comment (optional)</Label>
+              <Textarea
+                rows={3}
+                placeholder="Any feedback from the client?"
+                value={submitComment}
+                onChange={e => setSubmitComment(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSubmitDialog(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              disabled={submitRating === 0 || submitMut.isPending}
+              onClick={() => submitDialog && submitMut.mutate({ id: submitDialog.surveyId, rating: submitRating, comment: submitComment })}
+            >
+              {submitMut.isPending ? "Submitting…" : "Submit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

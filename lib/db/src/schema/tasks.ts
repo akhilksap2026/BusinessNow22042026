@@ -22,6 +22,7 @@ export const tasksTable = pgTable("tasks", {
   approvalStatus: text("approval_status").default("none"),
   fromTemplate: boolean("from_template").notNull().default(false),
   appliedTemplateId: integer("applied_template_id"),
+  csatEnabled: boolean("csat_enabled").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

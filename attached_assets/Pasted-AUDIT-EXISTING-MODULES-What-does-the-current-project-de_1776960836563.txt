@@ -1,0 +1,44 @@
+AUDIT EXISTING MODULES:
+- What does the current project detail page show?
+- Are there any health indicators, progress bars, or status summaries?
+- Is there a notification or update system?
+
+GAP MAPPING:
+→ Can users see project health at a glance?
+→ Are there counts of overdue/at-risk/blocked items?
+→ Can users send structured status updates to stakeholders?
+
+INTEGRATION STEPS:
+1. EXTEND existing project detail page with "Overview" tab (or enhance current default view):
+   - Reuse existing progress calculation if available
+   - ADD computed fields (no schema changes):
+     - completion_% = completed_tasks / total_tasks
+     - overdue_count = tasks where due_date < NOW() AND status != 'Completed'
+     - at_risk_count = tasks where is_at_risk = true
+     - blocked_count = tasks where status = 'Blocked'
+
+2. ADD "Task Count Cards" to existing page:
+   - Reuse existing card/component pattern
+   - Clickable: navigate to filtered task list (reuse existing filter system)
+   
+3. ADD "Phase Progress" section:
+   - Reuse existing phase list, add progress bar per phase
+   - ADD CSAT average per phase (from Prompt 4 csat_surveys table)
+
+4. ADD "Project Updates" feature:
+   - CREATE `project_updates` table: id, project_id, subject, body, type (shared/private), sent_at, created_by
+   - CREATE `update_recipients` table: update_id, user_id, delivered_at
+   - Reuse existing rich text editor for body
+   - ADD dynamic section syntax: `{{milestones}}`, `{{overdue_tasks}}`, `{{pending_approvals}}`
+   - On send: parse syntax, inject live data, deliver via existing notification system
+
+5. ADD "Project Hours" summary:
+   - If time tracking exists: reuse, show tracked vs budgeted
+   - If not: add placeholder or skip based on existing modules
+
+VERIFICATION:
+- [ ] Project with 3 overdue tasks → Overview shows "3" on Overdue card
+- [ ] Click Overdue card → navigates to task list filtered by overdue
+- [ ] Compose update with `{{milestones}}` → sends with live milestone list inserted
+- [ ] Private update → only vendor team recipients see it
+- [ ] Shared update → both vendor and customer recipients see it
