@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useLayoutEffect, ReactNode } from "react";
 
 export type Density = "compact" | "comfortable";
 
@@ -12,28 +12,25 @@ const DensityContext = createContext<DensityCtx>({
   setDensity: () => {},
 });
 
-function applyDensity(d: Density) {
-  if (d === "comfortable") {
-    document.documentElement.classList.add("density-comfortable");
-  } else {
-    document.documentElement.classList.remove("density-comfortable");
-  }
-}
-
 export function DensityProvider({ children }: { children: ReactNode }) {
   const [density, setDensityState] = useState<Density>(() => {
     const stored = localStorage.getItem("uiDensity");
     return stored === "comfortable" ? "comfortable" : "compact";
   });
 
-  useEffect(() => {
-    applyDensity(density);
+  // useLayoutEffect runs synchronously after DOM mutations and before paint,
+  // preventing any flash-of-unstyled-content when the user has chosen comfortable.
+  useLayoutEffect(() => {
+    if (density === "comfortable") {
+      document.documentElement.classList.add("density-comfortable");
+    } else {
+      document.documentElement.classList.remove("density-comfortable");
+    }
   }, [density]);
 
   function setDensity(d: Density) {
     setDensityState(d);
     localStorage.setItem("uiDensity", d);
-    applyDensity(d);
   }
 
   return (
