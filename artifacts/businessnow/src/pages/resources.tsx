@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
+import ResourceTimeline from "@/components/resource-timeline";
 import {
   useGetCapacityOverview, useListUsers, useListProjects, useListResourceRequests, useUpdateResourceRequestStatus, getListResourceRequestsQueryKey,
   useGetUserSkills,
@@ -20,7 +21,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 function PriorityBadge({ priority }: { priority: string }) {
@@ -160,6 +161,12 @@ export default function Resources() {
             <TabsTrigger value="heatmap" className="flex items-center gap-2">
               <CalendarRange className="h-4 w-4" /> Heat Map
             </TabsTrigger>
+            <TabsTrigger value="projects-timeline" className="flex items-center gap-2">
+              <LayoutList className="h-4 w-4" /> Projects Timeline
+            </TabsTrigger>
+            <TabsTrigger value="people-timeline" className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4" /> People Timeline
+            </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <Briefcase className="h-4 w-4" /> Resource Requests
               {pendingRequests.length > 0 && (
@@ -264,6 +271,30 @@ export default function Resources() {
 
           <TabsContent value="heatmap" className="m-0">
             <UtilisationHeatmap />
+          </TabsContent>
+
+          <TabsContent value="projects-timeline" className="m-0">
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle>Projects Timeline</CardTitle>
+                <CardDescription>All active allocations grouped by project. Expand a row to see individual team members. Drag bars to shift or resize allocation dates.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0" style={{ minHeight: 480 }}>
+                <ResourceTimeline mode="projects" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="people-timeline" className="m-0">
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle>People Timeline</CardTitle>
+                <CardDescription>All team members and their allocations across projects. Expand a row to see per-project breakdowns. Use "Find Availability" to locate free capacity.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0" style={{ minHeight: 480 }}>
+                <ResourceTimeline mode="people" />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="requests" className="m-0 space-y-4">

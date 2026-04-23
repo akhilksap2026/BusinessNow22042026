@@ -152,6 +152,18 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **T009 Holiday Calendar capacity subtraction** — `/resources/capacity` now fetches this week's holidays from `holidayDatesTable` and subtracts 8h per holiday day from each user's weekly capacity
 - **DB** — `milestoneType` column (text) + `task_roles` column (jsonb) added to tasks table and pushed to production DB
 
+### Sprint 10 — Resource Management Timeline
+- **Projects Timeline tab** (`Resources → Projects Timeline`): Gantt-style grid listing all projects that have allocations. Expand a project row → sub-rows per team member/placeholder each showing their allocation bars. Quarter/Month/Week/Day zoom. Thin summary bar on parent rows shows total active span.
+- **People Timeline tab** (`Resources → People Timeline`): Same grid but person-centric. Expand a team member → project sub-rows. Shows current utilization % on parent row label. Over-allocated members marked with red dot.
+- **Drag-to-move**: grab a bar body → shift start/end dates; releases PATCH `/api/allocations/:id` to persist.
+- **Drag-to-resize**: grab left/right edge handle → extend or shrink duration; recalculate dates on release.
+- **Click bar → edit panel**: right-side sheet with role, start/end, hpw fields + Save.
+- **Split allocation**: scissors button on hover (or in edit panel) → deletes bar and POST two halves.
+- **Color coding**: green ≤80%, amber 81–100%, red >100% capacity; soft allocations use diagonal stripe pattern; red threshold line at bottom of over-allocated people rows.
+- **Find Availability** (People tab toolbar): enter date range + min hrs/day + role → highlights matching members, dims others; Clear Focus to reset.
+- **Today marker**: vertical indigo line on both timeline tabs.
+- Component: `src/components/resource-timeline.tsx` (~400 lines, pure React + TanStack Query).
+
 ### Sprint 9 (audit gap fills — Allocations & Placeholders)
 - **Allocations module extensions** — `allocations` table now has `placeholderId` (FK), `hoursPerDay`, `totalHours`, `methodValue` columns; default `allocationMethod` is `"hours_per_week"`. POST/PATCH `/allocations` auto-derive hpd/hpw/total from `(allocationMethod, methodValue, dateRange, user.capacity)`: supported methods `total_hours`, `hours_per_day`, `hours_per_week`, `percentage_capacity`. Validation rejects (a) both userId+placeholder set, (b) neither set, (c) endDate < startDate.
 - **Placeholders catalog** — new `placeholders` table (id, name, roleId, isDefault, accountId, createdBy); `GET/POST/PATCH /placeholders` (PM) and `DELETE /placeholders/:id` (Admin, blocks default rows). Admin > Placeholders tab provides catalog UI for create/list/delete.
