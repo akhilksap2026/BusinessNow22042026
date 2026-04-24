@@ -115,7 +115,7 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
 
   const { data: baselines = [] } = useQuery<Baseline[]>({
     queryKey: ["baselines", projectId],
-    queryFn: async () => (await fetch(`/api/projects/${projectId}/baselines`)).json(),
+    queryFn: async () => (await fetch(`/api/projects/${projectId}/baselines`, { headers: authHeaders() })).json(),
     enabled: showBaselines,
   });
 
@@ -268,19 +268,19 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
   // ── Mutations ──────────────────────────────────────────────────────────────
   const saveBaselineMut = useMutation({
     mutationFn: async (name: string) => {
-      const r = await fetch(`/api/projects/${projectId}/baselines`, { method: "POST", headers: { "Content-Type": "application/json", "x-user-role": "PM" }, body: JSON.stringify({ name }) });
+      const r = await fetch(`/api/projects/${projectId}/baselines`, { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ name }) });
       if (!r.ok) throw new Error(await r.text()); return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["baselines", projectId] }); toast({ title: "Baseline saved" }); setBaselineName(""); setShowSaveBaseline(false); },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
   const deleteBaselineMut = useMutation({
-    mutationFn: async (id: number) => { await fetch(`/api/baselines/${id}`, { method: "DELETE", headers: { "x-user-role": "PM" } }); },
+    mutationFn: async (id: number) => { await fetch(`/api/baselines/${id}`, { method: "DELETE", headers: authHeaders() }); },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["baselines", projectId] }); setActiveBaselineId(null); },
   });
   const shiftDatesMut = useMutation({
     mutationFn: async (days: number) => {
-      const r = await fetch(`/api/projects/${projectId}/shift-dates`, { method: "POST", headers: { "Content-Type": "application/json", "x-user-role": "PM" }, body: JSON.stringify({ days }) });
+      const r = await fetch(`/api/projects/${projectId}/shift-dates`, { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ days }) });
       if (!r.ok) throw new Error(await r.text()); return r.json();
     },
     onSuccess: (res) => {
@@ -292,7 +292,7 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
   });
   const createDepMut = useMutation({
     mutationFn: async ({ predecessorId, successorId }: { predecessorId: number; successorId: number }) => {
-      const r = await fetch(`/api/tasks/${successorId}/dependencies`, { method: "POST", headers: { "Content-Type": "application/json", "x-user-role": "PM" }, body: JSON.stringify({ predecessorId }) });
+      const r = await fetch(`/api/tasks/${successorId}/dependencies`, { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ predecessorId }) });
       if (!r.ok) throw new Error(await r.text()); return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["gantt", projectId] }); toast({ title: "Dependency created" }); },
@@ -300,13 +300,13 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
   });
   const updateDepMut = useMutation({
     mutationFn: async ({ id, lagDays }: { id: number; lagDays: number }) => {
-      const r = await fetch(`/api/task-dependencies/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json", "x-user-role": "PM" }, body: JSON.stringify({ lagDays }) });
+      const r = await fetch(`/api/task-dependencies/${id}`, { method: "PATCH", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ lagDays }) });
       if (!r.ok) throw new Error(await r.text()); return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["gantt", projectId] }); setEditingDep(null); toast({ title: "Dependency updated" }); },
   });
   const deleteDepMut = useMutation({
-    mutationFn: async (id: number) => { await fetch(`/api/task-dependencies/${id}`, { method: "DELETE", headers: { "x-user-role": "PM" } }); },
+    mutationFn: async (id: number) => { await fetch(`/api/task-dependencies/${id}`, { method: "DELETE", headers: authHeaders() }); },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["gantt", projectId] }); setEditingDep(null); toast({ title: "Dependency removed" }); },
   });
 
