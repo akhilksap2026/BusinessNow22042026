@@ -1,265 +1,160 @@
-# Go-To-Market Strategy
+# Go-to-Market — BusinessNow PSA (Internal Rollout Plan)
 
 | | |
 |---|---|
-| **Product** | [PRODUCT NAME] |
-| **Target Launch** | [QUARTER + YEAR] |
-| **Owner** | [CMO / GM NAME] |
-| **Version** | v0.1 — Draft |
-| **Date** | [YYYY-MM-DD] |
-| **Status** | Draft |
+| **Product** | BusinessNow PSA |
+| **Owner** | GM, KSAP Technology |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
+
+> **BusinessNow PSA is not sold externally.** It is an **internal platform** used only by KSAP Technology employees, contractors, and a controlled set of client-portal accounts. This document is therefore an **internal rollout, adoption, and change-management** plan — the equivalent of a GTM for an internal product. It is filed in the `business/` folder for consistency with the docs index.
 
 ---
 
-## 1. Executive Summary
+## 1. Audience
 
-- **Elevator pitch:** [PRODUCT NAME] is a [CATEGORY] for [TARGET BUYER] that [CORE BENEFIT] without [CURRENT FRICTION]. It replaces the patchwork of [TOOL A], [TOOL B], and spreadsheets that teams rely on today.
-- **Target market overview:** Mid-market [INDUSTRY] organizations of [50–500 employees] in [GEO], with a buying centre led by [PRIMARY BUYER ROLE] and daily users in [PRIMARY USER ROLE].
-- **Launch goal:** **[X] paying organizations / $[X]M ARR within the first 6 months post-GA**, with a **[Y]%** trial-to-paid conversion rate and **[Z]%** logo retention at month 6.
+| Audience | Surface they touch |
+|---|---|
+| KSAP delivery PMs | Projects, Tasks, Change Orders, Resource Requests, Reports, Dashboard. |
+| KSAP consultants | Time tracking, my-tasks, my-allocations, time-off. |
+| KSAP Finance | Rate Cards, Invoices, Line Items, Revenue Entries, Dashboard CR-Impact. |
+| KSAP Resource Manager | Allocations, Placeholders, Resource Requests, Capacity-Planning report. |
+| KSAP leadership | Dashboard, Reports (Performance, Project Health, Revenue, Utilization). |
+| KSAP Sales / CRM | Accounts, Prospects, Opportunities. |
+| Selected client accounts | Client Portal (read-only project status, documents, CSAT). |
+
+There is **no external marketing audience**.
 
 ---
 
-## 2. Target Market
+## 2. Positioning (Internal)
 
-### 2.1 Market sizing
+> **"One platform to run KSAP's services business — from first prospect call to final invoice — with capacity and margin visible at all times."**
 
-| Layer | Definition | Estimate |
+The pitch is delivered to internal teams via onboarding, not to external buyers. The "competitive set" the platform displaces is internal: the spreadsheets, the second-class CRM tool, the standalone time tracker, the finance workbook.
+
+---
+
+## 3. Adoption Funnel
+
+The "GTM" funnel for an internal platform is **awareness → onboarding → habituation → advocacy**.
+
+| Stage | What good looks like |
+|---|---|
+| **Awareness** | Every KSAP team member knows what the platform does and where to find it. |
+| **Onboarding** | New joiners are walked through their role-specific surface in their first week. |
+| **Habituation** | Day-to-day work is done in BusinessNow PSA, not the parallel spreadsheet. |
+| **Advocacy** | Team leads escalate gaps via the Risk Register, not by maintaining a private workaround. |
+
+---
+
+## 4. Rollout Phases
+
+The platform is **post-MVP** and in production use. The remaining rollout work is about retiring parallel tools and broadening adoption.
+
+### Phase 1 — MVP (complete)
+
+CRM + Projects + Time + Allocations + Finance + basic Reports + Admin + Client Portal. See `BusinessNow-PSA-Architecture.md` for the shipped surface.
+
+### Phase 2 — Operational maturity (in flight, Q2 2026)
+
+- Dashboard v1 (live).
+- Capacity-Planning report (live).
+- `authHeaders()` consolidation (live).
+- UI density / scale redesign (in flight).
+- UI/UX audit follow-ups: US-1 (project-detail TDZ), §6.2 quick wins.
+- Spreadsheet retirement audit (Delivery Lead).
+
+### Phase 3 — Adoption deepening (Q3 2026)
+
+- 100 % timesheet adoption across consultant population.
+- 100 % rate-card / invoice flow on KSAP-side billing (no parallel finance workbook).
+- All pending change orders captured in-platform.
+
+### Phase 4 — Forward roadmap (Q4 2026 → 2027)
+
+- Dashboard v2 (period selector beyond "This Month").
+- SSO / OIDC integration (replaces `x-user-role` header).
+- Row-level GET filtering for Viewer / Consultant.
+- Possibly: data-warehouse offload for Reports if OLTP query latency degrades.
+
+---
+
+## 5. Communication Plan
+
+| Audience | Channel | Cadence |
 |---|---|---|
-| **TAM** — Total Addressable Market | All organizations globally that could theoretically use [PRODUCT NAME]. | $[X]M |
-| **SAM** — Serviceable Available Market | Organizations in our supported geographies, industries, and size bands. | $[X]M |
-| **SOM** — Serviceable Obtainable Market | Realistic share we can win in the first [24 months]. | $[X]M |
+| All KSAP staff | Internal monthly newsletter | Monthly — what's new, what's in flight. |
+| Delivery PMs | Weekly 30-min "PSA office hours" | Weekly — open Q&A; backlog triage. |
+| Finance | Bi-weekly 15-min huddle | Bi-weekly — month-close health; rate-card / invoice issues. |
+| Resource Managers | Monthly capacity review | Monthly — pulled from the Capacity-Planning report. |
+| Leadership | Quarterly steering review | Quarterly — Dashboard, Reports, Risk Register. |
+| Client portal accounts | In-product notice on portal updates | Per-update. |
 
-> Sourcing: [ANALYST FIRM REPORT], [INDUSTRY ASSOCIATION DATA], [INTERNAL TAM MODEL — link]. Refresh quarterly.
+---
 
-### 2.2 Primary segment
+## 6. Onboarding & Training
 
-- **Industry:** [INDUSTRY / VERTICAL]
-- **Company size:** [50–500 employees] / **[$10M–$200M] ARR**
-- **Geography:** [NORTH AMERICA + UK/EU at launch; APAC in Phase 4]
-- **Tech maturity:** Already on a modern SaaS stack ([WORKSPACE / CRM / COMMS]); cloud-first; comfortable with self-serve onboarding.
+### New KSAP joiner (week 1)
 
-### 2.3 Ideal Customer Profile (ICP)
+| Day | Activity |
+|---|---|
+| Day 1 | Account provisioned by Admin (Users + secondary roles). Role-switcher walkthrough. |
+| Day 2 | Role-specific surface tour (Consultant: time + my-tasks; PM: projects + change orders; Finance: invoices + rate cards). |
+| Day 3 | First real action in the platform (consultant: log time; PM: open a project; Finance: open dashboard CR-impact card). |
+| Day 5 | Office-hours session — bring questions. |
 
-A [PRODUCT NAME] ICP organization:
+### Refresher training
 
-- Has **[10–100]** employees in roles that would use the product daily.
-- Operates in [INDUSTRY] with [SPECIFIC PAIN POINT] as a recurring problem.
-- Already pays for at least **[2]** SaaS tools in the adjacent space, signalling willingness to pay.
-- Has a designated [OPERATIONS / REVOPS / IT] owner for tooling decisions.
-- Buying motion is **[bottom-up adoption with executive sign-off]** — not RFP-driven enterprise procurement at MVP.
+Every quarter the PM publishes a 15-minute "what's new in PSA" video and walks through any major change at the next office hours.
 
-### 2.4 Buyer vs. User
+---
 
-| | Buyer | User |
+## 7. Adoption Metrics
+
+| Metric | Target | Source |
 |---|---|---|
-| **Role** | [VP / Head of Operations / RevOps Lead] | [Operations Manager / Individual Contributor] |
-| **Cares about** | ROI, security/compliance, vendor risk, total cost of ownership. | Time saved per week, ease of use, fewer interruptions. |
-| **Decision trigger** | Quarterly planning, tool consolidation, audit/compliance events. | Personal frustration with current workflow; word-of-mouth from peers. |
-| **Where we reach them** | LinkedIn, industry conferences, peer communities, analyst reports. | Product-led trials, search, communities, in-app referrals. |
+| Daily active users (KSAP staff) | ≥ 70 % of in-office staff | Analytics |
+| % consultants logging time in-platform (vs spreadsheet) | 100 % within 1 quarter of Phase 3 start | Time-entry audit |
+| % of change orders captured in-platform | 100 % | PM survey + audit |
+| % of invoices generated through Finance module | 100 % | Finance team self-report |
+| Capacity-Planning report monthly opens by RM / leadership | ≥ 4 / month | Analytics |
+| Open backlog items per quarter from Risk Register | Trending down | Risk Register |
 
 ---
 
-## 3. Value Proposition
+## 8. Risks to Adoption
 
-**Core value-prop statement:**
-> [PRODUCT NAME] gives [TARGET USER] a single place to [CORE OUTCOME] in minutes, not weeks — replacing [LEGACY TOOLS] with one workspace that the whole team actually adopts.
+| Risk | Mitigation |
+|---|---|
+| **Parallel spreadsheets persist** because they're "easier" than the platform. | Spreadsheet retirement audit (Delivery Lead) every quarter; named owner for retirement of each file. |
+| **PMs avoid raising change orders** because of the friction. | UI/UX audit follow-ups specifically target the change-order surface. |
+| **Finance distrusts the dashboard CR-Impact number.** | Cross-check against `audit_log`-backed change-order rows; weekly Finance huddle. |
+| **Consultants resent timesheet friction.** | Quick-fill from previous week; UI/UX audit US-9 (calendar nav) is on the queue. |
+| **Resource Manager keeps a private capacity spreadsheet.** | Capacity-Planning report covers their use case; revisit if not. |
 
-| Benefit | Customer Pain It Solves | Competitors Who Don't Solve This |
+---
+
+## 9. Internal Pricing & Cost Recovery
+
+There is **no internal recharge** for FY 2026. The platform is funded centrally from the IT budget per doc 17. If the platform expands to support a second business unit at KSAP, the GM and Finance Lead will revisit cost-recovery.
+
+---
+
+## 10. Decision Log (key GTM-equivalent decisions)
+
+| Date | Decision | Rationale |
 |---|---|---|
-| **Time-to-first-value under 10 minutes** | Long onboarding and IT setup delay value capture. | [LEGACY VENDOR A], [LEGACY VENDOR B] — require services-led implementation. |
-| **One source of truth for [WORKFLOW]** | Status lives in spreadsheets, chat, and email; nothing reconciles. | [POINT TOOL A] — focuses only on [SUB-WORKFLOW]; leaves the rest fragmented. |
-| **Built-in audit & permissions** | Admins can't prove who did what; risky for compliance. | [HORIZONTAL TOOL B] — flexible but lacks role-based controls and audit log. |
-| **Transparent, predictable pricing** | Surprise overage and "call us" pricing block adoption. | [ENTERPRISE VENDOR C] — opaque pricing, long sales cycles. |
-| **Modern, fast UI** | Legacy UIs slow daily users and erode adoption. | [LEGACY VENDOR A] — dated UX, poor mobile/web experience. |
-| **Open ecosystem** | Locked-in data and brittle integrations. | [PROPRIETARY VENDOR D] — closed APIs, no export. |
+| 2026-Q1 | Build, not buy. | Doc 09 — competitive analysis. |
+| 2026-Q1 | Internal-only; no commercial productisation. | Charter §4 — out of scope. |
+| 2026-Q2 | Lock dashboard v1; defer period-selector v2. | Reduce scope to ship a usable dashboard fast. |
+| 2026-Q2 | Land `authHeaders()` consolidation before density redesign. | Removes a class of regressions. |
 
 ---
 
-## 4. Pricing Strategy
+## 11. Revision Log
 
-- **Pricing model:** [Freemium with paid seats / Per-seat / Usage-based / Flat — TBD]
-- **Billing cadence:** Monthly and annual (annual prepay = **[~17%]** discount).
-- **Free trial details:** **[14-day]** free trial of the **[Pro]** plan — no credit card required. Free tier remains available indefinitely with usage caps.
-
-### Pricing tiers
-
-| Tier | Price / mo | Features Included | Target Segment |
+| Date | Version | Changed By | What Changed |
 |---|---|---|---|
-| **Free** | $0 | Up to **[3]** users, **[1]** `[RESOURCE_A]`, core `[RESOURCE_B]` management, in-app notifications, community support. | Individuals & small teams evaluating the product. |
-| **Pro** | $[19] / user | Unlimited `[RESOURCE_A]`, advanced filters & search, email digests, integrations, standard support. | Teams of [10–50] adopting bottom-up. |
-| **Business** | $[39] / user | Everything in Pro + RBAC, audit log, SSO ([Google / Microsoft]), priority support, **99.9%** SLA. | Departments and mid-market companies of [50–500]. |
-| **Enterprise** | Custom | Everything in Business + SAML SSO, custom roles, dedicated CSM, security review pack, custom MSA / DPA. | [500+] employee organizations and regulated industries. |
-
-> Pricing assumptions (seat caps, free-tier limits, discount rates) are tracked in the open-questions log and revisited each quarter.
-
----
-
-## 5. Competitive Landscape
-
-| Competitor | Strengths | Weaknesses | Our Advantage |
-|---|---|---|---|
-| [COMPETITOR A — incumbent] | Brand recognition, large install base, deep enterprise feature set. | Dated UI, slow innovation, services-led implementation, expensive. | Faster time-to-value, modern UX, transparent pricing. |
-| [COMPETITOR B — adjacent point tool] | Best-in-class at [SUB-WORKFLOW]; loyal user base. | Narrow scope; users still need 2–3 other tools to complete the job. | One workspace covers the full workflow end-to-end. |
-| [COMPETITOR C — horizontal platform] | Highly flexible; large ecosystem. | Requires heavy configuration; weak admin / governance; not opinionated. | Opinionated workflow + RBAC + audit out of the box. |
-| [COMPETITOR D — open-source / DIY] | Free; full control. | Self-hosting cost, security burden, no roadmap accountability. | Hosted, secure, supported; no infra to maintain. |
-
-**Positioning statement:**
-> For **[TARGET USER]** who **[NEED / JOB-TO-BE-DONE]**, **[PRODUCT NAME]** is the **[CATEGORY]** that **[KEY BENEFIT]**, unlike **[COMPETITOR]** which **[THEIR WEAKNESS]**.
-
----
-
-## 6. Distribution Channels
-
-- **Primary motion:** [Product-Led Growth with sales-assist for Business/Enterprise — TBD]
-
-| Channel | Effort | Expected Reach | Owner | Timeline |
-|---|---|---|---|---|
-| Self-serve signups (PLG funnel) | High | [10,000] visitors / mo by month 6 | Growth / Product | Pre-launch onwards |
-| Content marketing & SEO | High | [50,000] organic sessions / mo by month 12 | Marketing | Pre-launch onwards |
-| Paid search & paid social | Medium | [2,000] trials / mo by month 6 | Marketing | From GA |
-| Partnerships & integrations marketplaces | Medium | [5] launch partners; co-marketing | BD | Phase 2 onwards |
-| Outbound sales (mid-market) | High | [200] qualified meetings / quarter | Sales | From GA |
-| Community & developer relations | Medium | [1,000] engaged community members | DevRel / Community | Phase 2 onwards |
-| Industry events & sponsorships | Medium | [3] flagship events / year | Marketing | Year 1+ |
-| Customer referrals & advocacy | Low | [15%] of new logos via referral | Customer Success | Post-GA |
-
----
-
-## 7. Launch Phases
-
-### Phase 1 — Private Beta
-
-- **Goals:** Validate core workflows with design partners; close P0 bugs; produce 3+ case studies.
-- **Duration:** **[6–8 weeks]**
-- **Target participants:** **[10–15]** hand-picked design partners across the ICP; weekly feedback cadence; signed beta agreement and success criteria per partner.
-
-### Phase 2 — Public Beta
-
-- **Goals:** Open access with waitlist; stress-test onboarding and infra; refine pricing and packaging.
-- **Duration:** **[6–10 weeks]**
-- **Success criteria:**
-  - **[≥ 500]** signups; **[≥ 200]** activated organizations.
-  - Activation rate **[≥ 35%]**.
-  - P95 API latency **< 300 ms**; uptime **≥ 99.5%**.
-  - Net Promoter Score (NPS) **≥ 30**.
-
-### Phase 3 — General Availability (GA) Launch
-
-- **Goals:** Public launch; convert beta + waitlist; open paid tiers; activate full marketing & sales motion.
-- **Date:** **[QUARTER + YEAR]**
-- **KPIs (first 90 days):**
-  - **[X]** new paying organizations.
-  - **$[Y]** in new MRR.
-  - Trial-to-paid conversion **[≥ 15%]**.
-  - Logo retention **[≥ 95%]** at day 90.
-
----
-
-## 8. Marketing Plan
-
-### 8.1 Pre-launch checklist
-
-- [ ] Finalize positioning, messaging, and brand voice.
-- [ ] Publish product website with pricing, demo video, and waitlist form.
-- [ ] Set up product analytics, attribution, and CRM pipelines.
-- [ ] Produce launch assets: explainer video, screenshots, demo deck, one-pager.
-- [ ] Secure **[5–10]** design-partner case studies and quotes.
-- [ ] Brief analysts and pre-launch press under embargo.
-- [ ] Warm up paid channels with awareness campaigns.
-- [ ] Train sales and support on the launch narrative and FAQ.
-
-### 8.2 Launch-day checklist
-
-- [ ] Publish launch blog post and press release.
-- [ ] Post on Product Hunt, Hacker News, LinkedIn, X / Twitter, and relevant communities.
-- [ ] Send launch email to waitlist + existing leads.
-- [ ] Activate paid campaigns (search, social, retargeting).
-- [ ] Host a launch webinar / live demo with Q&A.
-- [ ] Coordinate co-marketing posts with launch partners.
-- [ ] Monitor signups, support tickets, and social mentions hour-by-hour.
-- [ ] War-room channel staffed for the first 24 hours.
-
-### 8.3 Post-launch checklist (first 30 days)
-
-- [ ] Daily funnel + activation review; weekly retro with marketing, product, and sales.
-- [ ] Publish 2–3 customer stories / case studies.
-- [ ] Run lifecycle email series for trials and free users.
-- [ ] Iterate on onboarding based on activation data.
-- [ ] Open referral program and integration marketplace listings.
-- [ ] Host follow-up webinars and AMA sessions.
-- [ ] Capture testimonials and G2 / Capterra reviews.
-
-### 8.4 Content calendar — first 3 months
-
-| Month | Theme | Owned (blog / docs) | Earned (PR / partners) | Paid (campaigns) |
-|---|---|---|---|---|
-| Month 1 — Launch | Why [PRODUCT NAME] exists | Launch announcement; founder essay; product tour. | Launch press; podcast tour; partner co-posts. | Awareness search & social. |
-| Month 2 — Proof | Customer outcomes | 2 case studies; ROI calculator; benchmark report. | Analyst briefings; guest posts. | Retargeting on case-study pages. |
-| Month 3 — Depth | Workflow mastery | 4 deep-dive how-tos; integrations spotlights; webinar. | Community AMAs; partner webinars. | Conversion-focused search & social. |
-
-### 8.5 Budget allocation (first 6 months)
-
-| Channel | Budget | Expected Output |
-|---|---|---|
-| Paid search | $[X] | [N] qualified trials |
-| Paid social | $[X] | [N] qualified trials; [N] waitlist signups |
-| Content & SEO (in-house + freelance) | $[X] | [N] published assets; organic traffic ramp |
-| Events & sponsorships | $[X] | [N] meetings; brand lift |
-| PR & analyst relations | $[X] | [N] tier-1 placements; analyst inclusion |
-| Community & DevRel | $[X] | [N] engaged members; integrations |
-| Tools (martech / analytics) | $[X] | Stack ready for scale |
-| **Total** | **$[X]** | |
-
----
-
-## 9. Sales Strategy
-
-- **Sales motion:** [PLG-led with sales-assist for Business/Enterprise — TBD]
-- **Sales cycle length:** Self-serve **same-day to [14 days]**; sales-assist **[30–60 days]**; enterprise **[60–120 days]**.
-- **Demo / trial conversion target:** **[≥ 25%]** of booked demos convert; **[≥ 15%]** of trials convert to paid.
-- **Pipeline coverage:** maintain **[3–4×]** coverage of the quarter's new-business target.
-- **Average Contract Value (ACV) targets:** Pro $[X], Business $[Y], Enterprise $[Z].
-
-### Sales tools and collateral
-
-- CRM ([HUBSPOT / SALESFORCE]) with launch-day pipeline stages and dashboards.
-- Outreach / sequencing tool ([OUTREACH / APOLLO / HUBSPOT SEQUENCES]).
-- Pricing & ROI calculator (gated on the website).
-- Demo environment with seed data and a guided 10-minute script.
-- Pitch deck, one-pager, security overview, DPA template, MSA template.
-- Battlecards for [COMPETITOR A], [COMPETITOR B], [COMPETITOR C].
-- Customer references list (signed-off quotes, logo usage rights).
-
----
-
-## 10. Success Metrics
-
-| Metric | Target | Timeframe | Owner |
-|---|---|---|---|
-| Waitlist signups | [10,000] | Pre-launch (T-90d → T-0) | Marketing |
-| Activation rate (signup → key action in 7 days) | [≥ 40%] | Ongoing from GA | Product |
-| Trial → paid conversion | [≥ 15%] | First 6 months | Sales + Growth |
-| New paying organizations | [X] | First 6 months | Sales |
-| New MRR | $[Y] | First 6 months | Sales |
-| Logo retention | [≥ 95%] | Month 6 | Customer Success |
-| Net Revenue Retention (NRR) | [≥ 110%] | Month 12 | Customer Success |
-| CAC payback | [≤ 12 months] | Ongoing | Finance |
-| Net Promoter Score (NPS) | [≥ 40] | Quarterly | Product |
-| Inbound-pipeline contribution | [≥ 60%] of pipeline | Ongoing | Marketing |
-
----
-
-## 11. Risks & Mitigations
-
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| Activation gap — users sign up but don't reach first value. | Medium | High | Onboarding wizard, lifecycle emails, in-app guides; weekly funnel review. |
-| Pricing misfit — chosen tiers misalign with willingness-to-pay. | Medium | High | Quarterly pricing tests; close-loss interviews; adjust at next quarterly release. |
-| Slow sales cycles for mid-market / enterprise. | Medium | Medium | Pipeline coverage [3–4×]; standard MSA/DPA; security review pack ready. |
-| Competitor undercuts price or fast-follows feature. | Medium | Medium | Differentiate on UX, time-to-value, and integrations; defensible roadmap. |
-| Launch-day infra incident damages reputation. | Low | High | Pre-launch load test; war-room staffed for [72 hours]; status page live. |
-| Negative analyst / press reception. | Low | High | Pre-brief analysts; embargoed reviews; reference customers ready. |
-| Channel concentration (over-reliance on one source). | Medium | Medium | Diversify across owned / earned / paid; track contribution by channel. |
-| Compliance blocker for regulated buyers (SOC 2 / GDPR). | Medium | High | Begin SOC 2 readiness pre-GA; publish trust centre and DPA at launch. |
-| Talent gap in [KEY ROLE]. | Medium | Medium | Backfill plan in place; interim contractor identified. |
-| Macro / budget freeze in target segment. | Low | Medium | Lead with ROI; offer monthly billing and easy downgrade path. |
+| 2026-04-24 | 1.0 | GM, KSAP Technology | Replaced template with the real internal-rollout plan. The platform is internal, not commercially sold; this document is the GTM-equivalent for internal adoption. |

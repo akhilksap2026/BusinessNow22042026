@@ -1,266 +1,184 @@
-# Team Structure and RACI Matrix
+# Team Structure & RACI — BusinessNow PSA
 
 | | |
 |---|---|
-| **Product** | [PRODUCT NAME] |
-| **Date** | [YYYY-MM-DD] |
-| **Owner** | [PM / Delivery Lead — NAME] |
-| **Version** | v0.1 — Draft |
-| **Status** | Draft |
+| **Product** | BusinessNow PSA |
+| **Owner** | Delivery Lead |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
 
-> This document defines who is on the [PRODUCT NAME] delivery team, how they are organised, and **who is Responsible / Accountable / Consulted / Informed (RACI)** for each major activity in the software development lifecycle.
-
----
-
-## 1. Team Overview
-
-| Role | Name | Allocation | Reporting To | Start Date |
-|---|---|---|---|---|
-| Product Manager (PM) | [NAME] | 100% | [Head of Product] | [DATE] |
-| Tech Lead | [NAME] | 100% | [Head of Engineering] | [DATE] |
-| Frontend Engineer (1) | [NAME] | 100% | Tech Lead | [DATE] |
-| Frontend Engineer (2) | [NAME] | 100% | Tech Lead | [DATE] |
-| Backend Engineer (1) | [NAME] | 100% | Tech Lead | [DATE] |
-| Backend Engineer (2) | [NAME] | 100% | Tech Lead | [DATE] |
-| UX Designer | [NAME] | 100% | [Head of Design] | [DATE] |
-| QA Engineer | [NAME] | 100% | Tech Lead | [DATE] |
-| DevOps / Infrastructure Engineer | [NAME] | 50% (shared) | [Head of Platform] | [DATE] |
-| Business Analyst | [NAME] | 50% (shared) | PM | [DATE] |
-| Scrum Master / Delivery Lead | [NAME] | 50% (shared) | [Head of Delivery] | [DATE] |
-
-> Allocation reflects the share of weekly capacity dedicated to [PRODUCT NAME]. Update on every change.
+> The team that actually delivers BusinessNow PSA is small. RACI is documented per **work area**, not per individual, so it survives reasonable team movement. Names are held in the GM's roster.
 
 ---
 
-## 2. Org Chart
+## 1. Team Composition (FY 2026)
 
-```mermaid
-flowchart TD
-    HeadProduct["Head of Product"]
-    HeadEng["Head of Engineering"]
-    HeadDesign["Head of Design"]
-    HeadPlatform["Head of Platform"]
-    HeadDelivery["Head of Delivery"]
+| Role | Headcount | Allocation | Reports to |
+|---|---|---|---|
+| Tech Lead | 1 | 100 % | GM, KSAP Technology |
+| Backend Engineer | 2 | 100 % | Tech Lead |
+| Frontend Engineer | 2 | 100 % | Tech Lead |
+| QA Engineer | 1 | 50 % | Tech Lead |
+| UX Designer | 1 | 50 % | Delivery Lead |
+| Product Manager | 1 | 50 % | Delivery Lead |
+| Delivery Lead (PM of the platform team) | 1 | 100 % | GM, KSAP Technology |
 
-    PM["Product Manager"]
-    TL["Tech Lead"]
-    UX["UX Designer"]
-    DevOps["DevOps / Infra (50%)"]
-    SM["Scrum Master / Delivery Lead (50%)"]
-    BA["Business Analyst (50%)"]
+The **Executive Sponsor** sits on the KSAP Technology leadership team and holds the budget and charter authority.
 
-    FE1["Frontend Engineer 1"]
-    FE2["Frontend Engineer 2"]
-    BE1["Backend Engineer 1"]
-    BE2["Backend Engineer 2"]
-    QA["QA Engineer"]
+The team is intentionally **without a dedicated DevOps engineer or BA** — Replit covers the deployment surface, the Tech Lead owns DevOps responsibilities, and the PM covers BA scope. This is the team that actually delivers and operates the platform; doc 17 §2 reflects the same shape.
 
-    HeadProduct --> PM
-    HeadEng --> TL
-    HeadDesign --> UX
-    HeadPlatform --> DevOps
-    HeadDelivery --> SM
-    PM --> BA
+---
 
-    TL --> FE1
-    TL --> FE2
-    TL --> BE1
-    TL --> BE2
-    TL --> QA
+## 2. Org Diagram
 
-    PM -.collaborates.-> TL
-    PM -.collaborates.-> UX
-    SM -.facilitates.-> PM
-    SM -.facilitates.-> TL
-    DevOps -.supports.-> TL
+```
+                                Executive Sponsor (KSAP Technology)
+                                          │
+                                  GM, KSAP Technology
+                                  /                \
+                          Delivery Lead         Tech Lead
+                            /     \              /    |    \
+                          PM     UX           BE × 2  FE × 2  QA (½)
 ```
 
-> Solid arrows indicate reporting lines; dashed arrows indicate primary collaboration lines.
+Day-to-day lines: PM ↔ UX ↔ Engineering work directly together at sprint cadence. The Delivery Lead covers cross-team coordination, sprint health, and stakeholder management.
 
 ---
 
-## 3. Role Responsibilities
+## 3. RACI
 
-### 3.1 Product Manager (PM)
+**R**esponsible — does the work · **A**ccountable — single owner · **C**onsulted — input before · **I**nformed — told after.
 
-- **Responsibilities:**
-  - Owns the product vision, roadmap, and prioritised backlog for [PRODUCT NAME].
-  - Writes and grooms epics and user stories with clear acceptance criteria.
-  - Aligns engineering, design, and stakeholders on scope and trade-offs.
-  - Defines success metrics and reviews them with the team weekly.
-  - Represents customer voice in every planning conversation.
-- **Skills required:** Product discovery, user research, prioritisation frameworks (RICE / WSJF), strong written communication, basic SQL/analytics.
-- **Success metrics:** On-time delivery of committed roadmap, activation/retention KPI movement, stakeholder NPS on product communication.
+### 3.1 Engineering work
 
-### 3.2 Tech Lead
+| Activity | Tech Lead | Backend | Frontend | QA | UX | PM | Delivery Lead | Sponsor |
+|---|---|---|---|---|---|---|---|---|
+| Architecture decisions / ADR | A | C | C | I | I | I | I | I |
+| New API route (incl. RBAC + audit) | C | **R** / A | C | C | I | I | I | — |
+| OpenAPI spec edit + codegen | A | R | R | I | I | I | I | — |
+| New SPA page or section | C | C | **R** / A | C | C | I | I | — |
+| Drizzle schema change | A | R | I | I | I | I | I | I |
+| Production deploy | A | C | C | C | I | I | I | I |
+| Hotfix / S1 incident response | A | R | R | C | I | I | I | I |
+| Dependency upgrades | A | R | R | I | I | I | I | — |
 
-- **Responsibilities:**
-  - Owns the technical architecture and end-to-end quality of the codebase.
-  - Breaks epics into technical work; sequences delivery; resolves blockers.
-  - Sets engineering standards (code style, testing, observability, security).
-  - Coaches engineers; runs design reviews and code reviews.
-  - Final approver on production-bound merges to `main`.
-- **Skills required:** System design, distributed systems basics, performance and security awareness, mentoring, hands-on coding in the team's stack.
-- **Success metrics:** Sprint predictability, defect-escape rate, change-failure rate, P95 latency and uptime SLAs.
+### 3.2 Product & design
 
-### 3.3 Frontend Engineer
+| Activity | PM | UX | Delivery Lead | Tech Lead | Sponsor |
+|---|---|---|---|---|---|
+| PRD updates (doc 06) | A / R | C | C | C | I |
+| Roadmap maintenance (doc 10) | A / R | C | C | C | I |
+| Stories & acceptance criteria (doc 11) | A / R | C | C | C | — |
+| UX research round (doc 12) | C | A / R | C | C | I |
+| Mocks / canvas explorations | C | A / R | I | C | — |
+| Design system / component spec | C | A / R | I | C | — |
 
-- **Responsibilities:**
-  - Implements UI features against the design system; writes unit and component tests.
-  - Translates design specs to accessible (WCAG 2.1 AA) and performant code.
-  - Instruments user-facing telemetry; debugs UX regressions.
-  - Participates in code reviews and refinement sessions.
-  - Pairs with backend engineers on contract design and integration.
-- **Skills required:** React/TypeScript (or team's stack), accessibility, performance budgets, browser/devtools fluency, automated testing.
-- **Success metrics:** Story throughput, bug-fix lead time, Lighthouse / perf budget adherence, accessibility audit pass rate.
+### 3.3 Delivery & operations
 
-### 3.4 Backend Engineer
-
-- **Responsibilities:**
-  - Implements API endpoints, jobs, and data models.
-  - Writes unit and integration tests; instruments logs, metrics, and traces.
-  - Owns data correctness, idempotency, and authorization on every endpoint.
-  - Collaborates with frontend on API contracts and error envelopes.
-  - Participates in on-call rotation.
-- **Skills required:** [Node.js / Python / Go] (team stack), relational data modelling, API design, testing, security fundamentals.
-- **Success metrics:** Endpoint reliability (P95/P99 latency, error rate), test coverage on changed code, mean-time-to-recovery (MTTR) on owned services.
-
-### 3.5 UX Designer
-
-- **Responsibilities:**
-  - Designs flows, wireframes, and high-fidelity mockups for upcoming work.
-  - Maintains and evolves the design system and component library.
-  - Plans and runs prototype validation sessions with users.
-  - Partners with PM on discovery and with engineering on implementation handoff.
-  - Reviews implementation against designs before release.
-- **Skills required:** Interaction design, information architecture, design systems, accessibility, qualitative research methods, [DESIGN TOOL].
-- **Success metrics:** Task success rate from usability testing, SUS score, design-review turnaround time, design-system adoption.
-
-### 3.6 QA Engineer
-
-- **Responsibilities:**
-  - Plans and writes test cases against acceptance criteria.
-  - Owns the integration and end-to-end (E2E) test suites.
-  - Runs exploratory testing on each release candidate.
-  - Triages bugs with PM and Tech Lead; tracks defects to closure.
-  - Owns release-readiness sign-off in the staging environment.
-- **Skills required:** Test design, Playwright/Cypress (or team's E2E tool), API testing, defect lifecycle management, basic SQL.
-- **Success metrics:** Defect-escape rate to production, E2E suite stability (flake rate), release-cycle time, regression-coverage growth.
-
-### 3.7 DevOps / Infrastructure Engineer
-
-- **Responsibilities:**
-  - Owns CI/CD pipelines, infrastructure-as-code, and environment management.
-  - Operates production observability (logs, metrics, traces, alerts).
-  - Manages secrets, network/firewall rules, and access controls.
-  - Leads on incident response runbooks and disaster-recovery drills.
-  - Optimises cloud cost and enforces tagging/governance.
-- **Skills required:** [AWS / GCP / Azure], Terraform/Pulumi, Kubernetes (or chosen runtime), observability stack, security hardening.
-- **Success metrics:** Deployment frequency, change-failure rate, MTTR, uptime SLA, monthly cloud-cost variance vs. budget.
-
-### 3.8 Business Analyst
-
-- **Responsibilities:**
-  - Captures business requirements and translates them into PM-ready inputs.
-  - Builds and maintains analytics dashboards and KPI definitions.
-  - Runs ad-hoc analyses to support roadmap and pricing decisions.
-  - Liaises with finance and GTM on data and reporting needs.
-  - Documents process and decision logs for the delivery team.
-- **Skills required:** SQL, dashboarding ([LOOKER / METABASE / TABLEAU]), requirements elicitation, written communication, basic statistics.
-- **Success metrics:** Decision-cycle time on data requests, dashboard adoption, requirements-to-rework ratio.
-
-### 3.9 Scrum Master / Delivery Lead
-
-- **Responsibilities:**
-  - Facilitates the team's Scrum/Kanban ceremonies and removes blockers.
-  - Tracks sprint health, velocity, and risks; reports weekly.
-  - Coaches the team on Agile practices and continuous improvement.
-  - Coordinates dependencies with neighbouring teams.
-  - Owns the team's working agreements and retro action items.
-- **Skills required:** Servant leadership, facilitation, conflict resolution, Agile metrics, [TICKET TOOL].
-- **Success metrics:** Sprint commitment vs. delivery, blocker cycle time, retro action-item closure rate, team health survey trend.
-
----
-
-## 4. RACI Matrix
-
-**Legend:** **R** = Responsible (does the work) · **A** = Accountable (single owner, one per row) · **C** = Consulted (two-way input) · **I** = Informed (kept in the loop)
-
-| # | Activity | PM | Tech Lead | FE Dev | BE Dev | UX | QA | DevOps | Business |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | Product requirements definition | **A/R** | C | I | I | C | I | I | C |
-| 2 | Roadmap planning | **A/R** | C | I | I | C | I | I | C |
-| 3 | UI / UX design | C | C | C | I | **A/R** | I | I | I |
-| 4 | Architecture design | C | **A/R** | C | C | I | I | C | I |
-| 5 | Story refinement & estimation | A | R | R | R | C | C | I | I |
-| 6 | Sprint planning | C | C | R | R | R | R | I | I |
-| 7 | Feature development — frontend | I | A | **R** | C | C | C | I | I |
-| 8 | Feature development — backend | I | A | C | **R** | I | C | C | I |
-| 9 | Code review | I | A | R | R | I | I | I | I |
-| 10 | Unit testing | I | A | **R** | **R** | I | C | I | I |
-| 11 | Integration testing | I | C | R | R | I | **A/R** | I | I |
-| 12 | End-to-end (E2E) testing | I | C | C | C | I | **A/R** | I | I |
-| 13 | User Acceptance Testing (UAT) | **A/R** | I | I | I | C | C | I | C |
-| 14 | Deployment to staging | I | A | C | C | I | C | **R** | I |
-| 15 | Deployment to production | I | **A** | C | C | I | C | **R** | I |
-| 16 | Bug triage | **A** | C | C | C | I | **R** | I | I |
-| 17 | Security review | C | C | I | C | I | C | C | A/R *([Security Lead])* |
-| 18 | Documentation (product + technical) | A | C | R | R | C | C | C | I |
-| 19 | Stakeholder reporting | **A/R** | C | I | I | I | I | I | C |
-| 20 | Vendor / tool selection | C | C | C | C | C | C | A | C *([Finance])* |
-| 21 | On-call rotation | I | A | I | R | I | I | **R** | I |
-| 22 | Incident response | I | **A** | R | R | I | C | **R** | I |
-| 23 | Retrospectives | C | C | R | R | R | R | C | I (facilitated by Scrum Master) |
-| 24 | Release-notes / changelog | A | C | R | R | C | C | I | I |
-| 25 | Budget tracking & cost optimisation | C | C | I | I | I | I | C | **A/R** *(with [Finance])* |
-
-> Where **A** appears outside the column set (e.g. Security Lead, Finance), the cell explicitly names the accountable role from a partner team. Each activity has **exactly one A**.
-
----
-
-## 5. Communication Protocols
-
-| Meeting | Frequency | Attendees | Owner | Format |
+| Activity | Delivery Lead | PM | Tech Lead | Sponsor |
 |---|---|---|---|---|
-| Daily standup | Daily, 15 min | Whole delivery team | Scrum Master | Live or async in [COMMS PROVIDER]; what I did / what I'll do / blockers. |
-| Backlog refinement | Weekly, 60 min | PM, Tech Lead, FE/BE leads, UX, QA | PM | Walk top of backlog; size and clarify acceptance criteria. |
-| Sprint planning | Bi-weekly, 90 min | Whole delivery team | Scrum Master | Confirm sprint goal; pull stories until capacity is met. |
-| Sprint review / demo | Bi-weekly, 45 min | Delivery team + stakeholders | PM | Live demo of completed work; capture feedback. |
-| Sprint retrospective | Bi-weekly, 60 min | Whole delivery team | Scrum Master | What went well / didn't / change next sprint; track actions. |
-| Architecture review | Weekly or on-demand, 60 min | Tech Lead, BE/FE leads, DevOps, Security | Tech Lead | Walk RFCs/design docs; record decisions in `docs/`. |
-| Stakeholder update | Weekly, 30 min | PM, Tech Lead, sponsors, [GTM Lead], [CS Lead] | PM | Status, risks, KPIs; written digest follows. |
-| Incident review | Within 5 business days of an incident | Tech Lead, on-call, DevOps, Security, PM | Tech Lead | Blameless post-mortem; published in `docs/operations/`. |
-| All-hands | Monthly, 60 min | All product + engineering staff | [Head of Product] | Roadmap, wins, hires, Q&A. |
-| Product / GTM sync | Bi-weekly, 30 min | PM, [GTM Lead], [CS Lead], [Marketing Lead] | PM | Launch pipeline, customer feedback, content needs. |
+| Sprint planning | A / R | C | C | I |
+| Daily standup | A / R | C | C | — |
+| Sprint review | A / R | C | C | I |
+| Retro | A / R | C | C | — |
+| Risk Register weekly review | A / R | C | C | I |
+| Stakeholder updates (monthly newsletter) | A / R | C | I | I |
+| Quarterly steering review | C | C | C | A / R |
+
+### 3.4 Security & compliance
+
+| Activity | Tech Lead (Security Lead) | Backend | PM | Delivery Lead | Sponsor |
+|---|---|---|---|---|---|
+| RBAC middleware coverage | A | R | I | I | I |
+| `logAudit()` coverage on writes | A | R | I | I | I |
+| Annual external pen-test | A / R | C | I | I | I |
+| Security-scan playbook (pre-release) | A | R | I | I | I |
+| Incident comms (S1/S2) | C | I | I | A / R | I |
+
+### 3.5 Finance / charter
+
+| Activity | Sponsor | Delivery Lead | Tech Lead | Finance Lead | PM |
+|---|---|---|---|---|---|
+| Charter approval / re-baseline (doc 16) | A / R | C | C | C | I |
+| Budget approval / variance (doc 17) | A | C | C | R | I |
+| Off-cycle scope change | A / R | C | C | I | C |
 
 ---
 
-## 6. Escalation Path
+## 4. Communication Cadence
 
-When a blocker, defect, or incident exceeds the team's standing authority, escalate along this path. Use the next level only if the prior contact cannot resolve within their SLA.
+| Forum | Cadence | Attendees |
+|---|---|---|
+| Daily standup (15 min) | Daily | Engineering + PM + UX + Delivery Lead |
+| Sprint planning (90 min) | Bi-weekly | Whole team |
+| Sprint review (60 min) | Bi-weekly | Whole team + invited stakeholders |
+| Retro (60 min) | Bi-weekly | Whole team |
+| PSA office hours (30 min) | Weekly | Delivery PMs (KSAP delivery) + PM/Delivery Lead |
+| Finance huddle (15 min) | Bi-weekly | Finance team + PM |
+| Capacity review (30 min) | Monthly | RM + Delivery Lead + leadership |
+| Internal newsletter | Monthly | All KSAP staff |
+| Quarterly steering review (60 min) | Quarterly | Sponsor + GM + Delivery Lead + Tech Lead + PM |
 
-```mermaid
-flowchart LR
-    Issue["Issue / blocker / incident"] --> L1["L1 — Scrum Master + PM<br/>(team-level resolution)"]
-    L1 --> L2["L2 — Tech Lead<br/>(technical / quality)"]
-    L2 --> L3["L3 — Head of Engineering / Head of Product<br/>(cross-team)"]
-    L3 --> L4["L4 — Executive Sponsor (CTO / CPO)"]
-    L4 --> L5["L5 — CEO + Legal<br/>(material customer or regulatory impact)"]
-```
+---
 
-### Escalation SLAs (acknowledgement → mitigation)
+## 5. Escalation Path
 
-| Severity | Definition | Acknowledge | Mitigate / Workaround | Resolve |
-|---|---|---|---|---|
-| **P1 — Critical** | Production outage, data exposure, security incident, or full team blocked. | **15 minutes** | **1 hour** | **8 hours** |
-| **P2 — High** | Major feature broken, significant degradation, or sprint goal at serious risk. | **1 hour** | **4 hours** | **2 business days** |
-| **P3 — Medium** | Single-team blocker; non-critical defect with workaround. | **1 business day** | **3 business days** | Next sprint |
-| **P4 — Low** | Cosmetic, minor inconvenience, or backlog-eligible improvement. | **3 business days** | Backlog | Per backlog priority |
+| Severity | First contact | Escalates to |
+|---|---|---|
+| Day-to-day question | Delivery Lead / PM | — |
+| Backlog / scope change | PM | Delivery Lead → Sponsor (if charter-impacting) |
+| S3 defect | QA / engineer | Tech Lead |
+| S2 incident | Tech Lead | Delivery Lead → Sponsor (if customer-impacting) |
+| S1 incident (data loss / outage / data exposure) | On-call engineer | Tech Lead → Delivery Lead → Sponsor → Legal (if PII) |
+| Cross-team conflict / resource shortfall | Delivery Lead | GM / Sponsor |
 
-### Escalation rules of engagement
+S1 incidents follow the timing in doc 05 §10.
 
-- Always **acknowledge first**, then escalate — silence is the worst signal.
-- Escalations to **L3 and above** must include: severity, customer impact, current mitigation, owner, and next checkpoint.
-- **P1 incidents** open a war-room channel in [COMMS PROVIDER] and page on-call automatically; status updates every **30 minutes** until mitigated.
-- A **post-incident review** is mandatory for every P1 and recommended for every P2; published in `docs/operations/` within **5 business days**.
-- Repeated escalations on the same root cause trigger a **dedicated remediation epic** in the next sprint.
+---
+
+## 6. On-Call
+
+The platform is **internally used during business hours**; out-of-hours support is best-effort. The Tech Lead and one Backend Engineer share an informal on-call rota for S1 incidents during business hours; out-of-hours pages go to the Tech Lead with the Delivery Lead as backup.
+
+There is **no 24/7** on-call rota committed in FY 2026.
+
+---
+
+## 7. Decision Rights
+
+| Decision | Owner |
+|---|---|
+| Sprint scope | PM (with engineering input) |
+| Release go / no-go | Tech Lead |
+| Architecture / ADR | Tech Lead |
+| Schema migration window | Tech Lead + Delivery Lead |
+| Charter / scope change | Sponsor |
+| Budget reallocation within categories | Delivery Lead |
+| Budget reallocation across categories | Finance Lead + Sponsor |
+| Hire / replace headcount | Sponsor (with GM input) |
+| Vendor / tooling spend | Delivery Lead up to **$2K/month**; above that → Finance Lead |
+
+---
+
+## 8. Definition of Roles (concise)
+
+| Role | One-line definition |
+|---|---|
+| **Sponsor** | Authorises charter; owns budget; final escalation. |
+| **GM, KSAP Technology** | Business owner of the platform's outcomes; chairs steering review. |
+| **Delivery Lead** | Day-to-day program owner; sprint health; stakeholder comms; escalation hub. |
+| **Tech Lead** | Architecture & code-quality owner; release authority; security lead; on-call lead. |
+| **PM** | PRD / roadmap / stories owner; office hours; analytics; documentation cadence. |
+| **UX Designer** | Design system; mocks; research rounds; UI/UX audit follow-ups. |
+| **Backend Engineer** | API routes; Drizzle schema; codegen; auto-triggers; audit. |
+| **Frontend Engineer** | SPA pages; React Query hooks usage; `authHeaders()` discipline; Recharts. |
+| **QA Engineer** | Acceptance testing; regression sweep on density redesign; smoke tests post-deploy. |
+
+---
+
+## 9. Revision Log
+
+| Date | Version | Changed By | What Changed |
+|---|---|---|---|
+| 2026-04-24 | 1.0 | Delivery Lead | Replaced template with the real BusinessNow PSA team & RACI: 8.5 FTE shape, no dedicated DevOps/BA, escalation path, decision rights. |

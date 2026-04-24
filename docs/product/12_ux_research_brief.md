@@ -1,218 +1,170 @@
-# UX Research Brief
+# UX Research Brief — BusinessNow PSA (Q2 2026)
 
 | | |
 |---|---|
-| **Research Phase** | Prototype Validation |
-| **Product** | [PRODUCT NAME] |
-| **UX Lead** | [NAME] |
-| **Dates** | [START DATE] — [END DATE] |
-| **Version** | v0.1 — Draft |
-| **Status** | Draft |
+| **Product** | BusinessNow PSA |
+| **Owner** | UX Lead |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
+
+> This brief frames the **current** UX research round, which has two objectives that lock together: validate the **density / scale redesign** without regressing the dashboards and tables, and prioritise the remaining **UI/UX audit follow-ups** (`docs/ui-ux-audit-2026-04.md`) by the friction they actually cause. Recruiting is **internal-only** — KSAP staff in the relevant roles.
 
 ---
 
-## 1. Research Objectives
+## 1. Background
 
-**Primary objective:** Validate that the [PRODUCT NAME] prototype enables our target users to complete the core workflow successfully and confidently before we commit engineering effort to full build-out.
+BusinessNow PSA is a dense, desktop-first internal platform. The 2026-04 UI/UX audit and the 2026-04-23 functional audit produced a prioritised fix list. Two recent changes — **dashboard v1** and the **`authHeaders()` consolidation** — cleared the way for a deeper density pass without risking regressions in role-based behaviour. We now need user-grounded evidence on:
 
-### Secondary objectives
-
-- Identify the highest-friction moments in **onboarding** and **first-use**.
-- Test whether the proposed information architecture and core navigation match users' mental models.
-- Surface unmet needs and competitive comparisons that should influence the MVP scope.
-- Establish a usability baseline (task success, time-on-task, SUS) to compare against future iterations.
-
-### Key questions this research must answer
-
-1. Can a new user complete onboarding and reach first value within **[10 minutes]** without assistance?
-2. Do users understand the purpose of **`[RESOURCE_A]`** and **`[RESOURCE_B]`** as named in the prototype?
-3. Where do users hesitate, ask "what does this do?", or attempt the wrong action?
-4. Do users naturally find settings, invitations, and account-management surfaces when they need them?
-5. How do users describe the value of the product in their own words — does it match our positioning?
-6. What workflows / tools would [PRODUCT NAME] need to replace or coexist with for them to adopt it?
-7. Are there perceived blockers (security, pricing, integrations, missing features) that would stop a purchase decision?
-8. What is the System Usability Scale (SUS) score, and how does it compare to the **[≥ 70]** target?
+1. **Where density helps** vs **where it hurts** (e.g. KPI tile shrink may help the projects table but hurt the dashboard).
+2. **Which audit items to do first** based on the friction users actually experience (audit severity is our prior; observed friction is the trump).
 
 ---
 
-## 2. Research Methods
+## 2. Research Questions
 
-| Method | Participants | Duration | Tools | Owner |
-|---|---|---|---|---|
-| Moderated usability testing (1:1, remote) | **[8]** per segment | **60 min** | [Figma prototype] + [VIDEO CALL TOOL] + [SESSION RECORDING TOOL] | [UX Researcher] |
-| Semi-structured user interviews | **[6]** per segment | **45 min** | [VIDEO CALL TOOL] + [TRANSCRIPTION TOOL] | [UX Researcher] |
-| Quantitative survey (post-test + cold) | **[≥ 80]** total | **8–10 min** | [SURVEY TOOL] | [UX Researcher] |
-| Analytics & funnel review of prototype clicks | All test sessions | Async | [PROTOTYPE ANALYTICS / HOTJAR] | [Product Analyst] |
-| Competitive heuristic walk-through | n/a | 1 day per competitor | [Competitor accounts] + Nielsen 10 heuristics | [UX Lead] |
-
----
-
-## 3. Participant Criteria
-
-### Target profile
-
-- **Role:** [OPERATIONS MANAGER / TEAM LEAD] (primary), [INDIVIDUAL CONTRIBUTOR] (secondary)
-- **Industry:** [INDUSTRY / VERTICAL]
-- **Company size:** **[50–500]** employees (with a smaller **[10–50]** secondary cohort)
-- **Geography:** [NORTH AMERICA + UK / EU]
-- **Tech familiarity:** Daily user of at least **[2]** modern SaaS tools ([CRM / WORKSPACE / COMMS])
-
-### Inclusion criteria
-
-- Currently responsible for, or actively involved in, [CORE WORKFLOW] at least weekly.
-- Has authority or influence over tool selection or daily use.
-- Comfortable using web-based tools without IT assistance.
-- English-speaking (for this round).
-
-### Exclusion criteria
-
-- Works at [PRODUCT NAME], a direct competitor, or a parent/subsidiary thereof.
-- Participated in a prior [PRODUCT NAME] research session in the last **[60 days]** (avoid bias).
-- Works in market research, design consulting, or competitive intelligence (professional respondent risk).
-- Cannot complete the session on a desktop/laptop (mobile-only is out of scope this round).
-
-### Number of participants
-
-- **n = [8] per primary segment** (moderated usability) → [16] sessions across primary + secondary.
-- **n = [6] per segment** for in-depth interviews → [12] sessions.
-- **n ≥ [80] total** for the quantitative survey.
-
-### Recruitment plan
-
-- **Channels:** [RESEARCH RECRUITER, e.g. UserInterviews / Respondent.io], waitlist signups, customer-of-record referrals from design partners, targeted [LINKEDIN] outreach.
-- **Incentive:** **[$100]** gift card per usability/interview session; **[$10]** gift card for survey completers (capped at **[100]**).
-- **Screener:** **[10–12]** questions in [SCREENER TOOL]; aim for **[3:1]** screen-to-book ratio.
-- **Scheduling:** Self-serve booking via [CALENDAR TOOL] inside the screener confirmation.
-
----
-
-## 4. Prototype Testing Plan
-
-### Tasks to observe
-
-Each participant attempts the tasks below in order, thinking aloud. Moderator does **not** assist unless the participant is stuck for more than **2 minutes** or becomes frustrated.
-
-1. **Task 1 — Complete onboarding.** Starting from the signup screen, create an account, set up an organization, and reach the dashboard.
-2. **Task 2 — Perform the core action.** Create a `[RESOURCE_A]`, add at least two `[RESOURCE_B]` to it, assign one to a teammate, and mark one complete.
-3. **Task 3 — Find settings.** Locate where you would change your notification preferences and your timezone.
-4. **Task 4 — Invite a team member.** Invite a teammate by email with the role you think most appropriate.
-5. **Task 5 (stretch) — Understand pricing.** Find the pricing page, identify which plan you would choose for a team of [25], and explain why.
-
-### Metrics captured per task
-
-- **Completion rate** — *Completed unaided / Completed with help / Did not complete.*
-- **Time-on-task** — measured from "Begin" to first observable success state.
-- **Error rate** — count of misclicks, wrong-path attempts, or undo actions per task.
-- **Confidence rating** — post-task self-rating (1–5): "How confident are you that you completed this correctly?"
-- **System Usability Scale (SUS)** — administered at the end of the session; target **≥ 70**.
-- **Verbatim quotes** — captured against tagged moments for the affinity map.
-
-### Scoring rubric
-
-| Outcome | Definition |
-|---|---|
-| **Pass — unaided** | Participant completes the task without prompts or hints. |
-| **Pass — with prompt** | Completed after one moderator hint or after rereading on-screen guidance. |
-| **Fail — assisted recovery** | Completed only after explicit moderator help. |
-| **Fail — abandoned** | Participant gave up or could not proceed within the time limit. |
-
----
-
-## 5. Interview Discussion Guide
-
-### 5.1 Intro script
-
-> "Thanks for joining us today. I'm [NAME] from [PRODUCT NAME]. We're testing an early prototype, so we're looking for your honest reactions — including the things that don't work. There are no right or wrong answers, and you can't break anything. With your permission, we'll record the session for our notes only; nothing will be shared externally. Ready to begin?"
-
-### 5.2 Warm-up questions (≈ 5 min)
-
-1. Tell me a little about your role and the team you work with day-to-day.
-2. Walk me through the last time you did [CORE WORKFLOW]. What tools did you use?
-3. What part of that process is most frustrating, and what's actually working well?
-
-### 5.3 Core questions (≈ 30 min, interleaved with the prototype tasks)
-
-1. When you see the dashboard for the first time, what do you think this product is for?
-2. In your own words, what is a `[RESOURCE_A]`? What about a `[RESOURCE_B]`?
-3. If you were going to roll this out to your team next week, what's the first thing you'd want to do? What's the first thing you'd be nervous about?
-4. Where in this product would you go to [SPECIFIC ACTION — e.g. change billing details]? Why there?
-5. Looking at this screen, what would you click first, and what do you expect to happen?
-6. Compared to what you use today, what would [PRODUCT NAME] need to do to be a clear improvement?
-7. Are there any words, labels, or icons here that confuse you or that you'd describe differently?
-8. If your manager asked, "should we adopt this?", what would your honest answer be — and what would change your mind?
-
-### 5.4 Closing questions (≈ 5 min)
-
-1. If you could change one thing about the product right now, what would it be?
-2. Is there anything we didn't ask about that you think we should know?
-3. Would you be open to participating again in a future round, including a paid pilot if relevant?
-
----
-
-## 6. Success Metrics for Research
-
-| Metric | Threshold | Current Estimate |
+| # | Question | Why we're asking |
 |---|---|---|
-| Task 1 (Onboarding) — unaided completion rate | **≥ 80%** | [TBD — baseline this round] |
-| Task 2 (Core action) — unaided completion rate | **≥ 75%** | [TBD] |
-| Task 3 (Find settings) — unaided completion rate | **≥ 85%** | [TBD] |
-| Task 4 (Invite teammate) — unaided completion rate | **≥ 90%** | [TBD] |
-| Median time-on-task — Onboarding | **≤ 10 minutes** | [TBD] |
-| Median time-on-task — Core action | **≤ 5 minutes** | [TBD] |
-| System Usability Scale (SUS) | **≥ 70** | [TBD] |
-| Post-test confidence (avg, 1–5) | **≥ 4.0** | [TBD] |
-| Post-test "would recommend" (yes / probably) | **≥ 70%** | [TBD] |
-| Critical (severity 1) usability issues identified and triaged | **100%** triaged within **[5] business days** | [TBD] |
-| Recruitment fill rate (booked / target) | **≥ 95%** within window | [TBD] |
+| RQ1 | Where do PMs / consultants / Resource Managers / Finance lose the most minutes per day in the current UI? | Re-baselines the UI/UX audit prioritisation with observed cost-of-delay. |
+| RQ2 | Does the proposed density redesign improve or hurt task completion on the dashboard, projects list, resources tabs, time entry, and reports? | Direct validation of the in-flight design work. |
+| RQ3 | Are the dashboard v1 KPI tiles (with status borders) read correctly by leadership at-a-glance, including the "danger" band (now reachable post-clamp removal)? | Validates the central design decision. |
+| RQ4 | Is the period selector ("This Month" only in v1) **felt** as a constraint, or does the existing period match how users actually think? | De-risks dashboard v2 scope. |
+| RQ5 | Does the Capacity-Planning report change how RM / leadership answer "do we have the people?" (was multi-day, now meant to be < 1 minute)? | Quantifies the most recent shipped feature. |
+| RQ6 | What does the project-detail page need to look like once US-1 (TDZ crash) is fixed, given the audit's broader observations on that page? | Sequences C4 → §6.2 → §6.3 work. |
+| RQ7 | Is the role switcher discoverable for users with secondary roles, or do they forget they can switch? | Validates the role model UX. |
+| RQ8 | Where in the UI do failed queries silently render an empty list (US-11 is the wiring story; we need the prioritised inventory)? | Closes a class of trust-eroding bugs. |
 
 ---
 
-## 7. Deliverables
+## 3. Hypotheses
 
-- [ ] Research report (executive summary, methodology, findings, recommendations).
-- [ ] Usability issues log — prioritised by severity (S1–S4) with screenshots and timestamps.
-- [ ] Affinity map of qualitative insights (digital board in [WHITEBOARD TOOL]).
-- [ ] Top-insights deck — **5–7 slides** designed for a leadership audience.
-- [ ] Recommended changes — backlog-ready items with proposed priority and effort estimate.
-- [ ] Highlight reel — short clip of representative user moments per major finding.
-- [ ] Updated personas and journey maps reflecting validated learnings.
-- [ ] Raw artefacts archive — recordings, transcripts, survey CSV, and screener results stored in [RESEARCH REPOSITORY].
+| Hypothesis | If true, we'll… |
+|---|---|
+| H1 — A 25 % density increase improves PM and RM tasks by ≥ 15 % time-on-task, with no regression on Finance/Leadership. | Ship the density default. |
+| H2 — Status-border "danger" tiles are missed by leadership in passing scans. | Add motion or count badge in v2. |
+| H3 — Most users don't miss the period selector beyond "This Month" — it's leadership only. | De-prioritise dashboard v2 period work behind per-role widgets. |
+| H4 — Capacity-Planning report cuts time-to-answer by >5×. | Promote it on the Resources page (Epic E4). |
+| H5 — US-1 fix alone takes the project-detail page from "broken" to "usable but slow". | Sequence §6.2 quick wins right after US-1. |
+| H6 — The role switcher is forgotten by ~30 % of users with secondary roles. | Add a contextual nudge on first under-privileged action. |
+| H7 — At least 4 page-level lists silently swallow errors. | Wire US-11 with a target list, not a generic global handler. |
+
+---
+
+## 4. Methods
+
+| Method | Sample | What it measures |
+|---|---|---|
+| **Moderated usability sessions** (60 min, screen share) | 2 PMs · 2 consultants · 2 Resource Managers · 2 Finance users · 1 leadership stakeholder = **9 sessions** | RQ1, RQ2, RQ4, RQ6, RQ7. Tasks scripted per role. |
+| **Five-second test on dashboard v1 KPI tiles** | 8 leadership / management staff | RQ3 — at-a-glance comprehension; danger-band recall. |
+| **Diary study (1 week)** | 4 consultants, 2 PMs | RQ1, RQ8. Self-reported friction; screenshots of empty/error states they hit. |
+| **Capacity-Planning before/after timing** | 3 RMs / leadership | RQ5 — wall-clock time to answer "do we have the people for [X]?". |
+| **Analytics passive read** | All users | Period selector usage (will be zero except for "This Month" by construction); page-level error rates; tab persistence on Resources. |
+
+---
+
+## 5. Tasks (moderated sessions)
+
+The same **role-specific** task list runs for the current build and the density-redesign prototype.
+
+### PM script
+
+1. Open the dashboard. Tell me, without scrolling, the three things you'd act on today.
+2. Find a project that's currently At Risk and explain why.
+3. From the project, raise a Change Order with a +$10k revenue delta.
+4. Approve a pending timesheet for one of your team.
+5. Raise a Replace request for a consultant rolling off in 4 weeks.
+
+### Consultant script
+
+1. Log time for yesterday across two projects.
+2. Submit this week's timesheet.
+3. Open "my allocations" and find the project with the most hours next week.
+4. File a 2-day time-off request next month.
+
+### Resource Manager script
+
+1. Open the Capacity-Planning report. Answer: in 6 weeks' time, do we have the people for a +3 FTE engagement?
+2. Find a placeholder that has been open ≥ 2 weeks and assign a real person.
+3. Approve / reject the oldest open resource request.
+
+### Finance script
+
+1. From the dashboard, open the CR-Impact card and explain what it tells you.
+2. Find the most recent draft invoice (auto-generated from a milestone) and review it.
+3. Update the rate card for one of the job roles.
+
+### Leadership script (5-second test + 5-min interview)
+
+1. (5-second) — show dashboard. Ask: what stands out?
+2. Ask: which of these tiles is currently in danger?
+3. Open the Portfolio Health bar and walk me through the three buckets.
+
+---
+
+## 6. Recruiting
+
+- **Internal-only.** No external recruiting; all participants are KSAP staff in the relevant roles.
+- The PM coordinates with team leads to release time for sessions.
+- No incentive (internal users); thank-you note from the GM.
+
+---
+
+## 7. Logistics
+
+| Item | Plan |
+|---|---|
+| Sessions | Remote, screen share, recorded with consent (KSAP-internal storage). |
+| Prototype | Density-redesign branch deployed to the staging Replit URL with role switcher. |
+| Diary study | Lightweight Slack DM thread per participant + shared screenshot folder. |
+| Analytics | Standard product analytics already in place; new events for period selector, Capacity-Planning load, and page-level error renders. |
+| Note-taking | UX Lead + 1 PM observer per session. |
+| Synthesis | Affinity diagram on a shared canvas; one summary doc per RQ. |
 
 ---
 
 ## 8. Timeline
 
-| Phase | Activity | Owner | Date |
-|---|---|---|---|
-| Plan | Brief approval & discussion-guide review | [UX Lead] + PM | [DATE] |
-| Plan | Prototype freeze for testing build | [Design Lead] | [DATE] |
-| Recruit | Screener live; bookings open | [UX Researcher] | [DATE] |
-| Recruit | Recruitment complete; sessions scheduled | [UX Researcher] | [DATE] |
-| Pilot | Pilot sessions ([2]) and guide adjustments | [UX Researcher] | [DATE] |
-| Field | Moderated usability sessions | [UX Researcher] | [START DATE] — [END DATE] |
-| Field | Interviews | [UX Researcher] | [START DATE] — [END DATE] |
-| Field | Survey live | [UX Researcher] | [START DATE] — [END DATE] |
-| Analyse | Tagging, affinity mapping, severity scoring | [UX Researcher] + [Designer] | [DATE] |
-| Synthesise | Draft findings & recommendations | [UX Lead] | [DATE] |
-| Share | Stakeholder readout & deck | [UX Lead] | [DATE] |
-| Close | Backlog handoff & archive | [UX Lead] + PM | [DATE] |
+| Week | Work |
+|---|---|
+| Week 1 | Recruit; finalise task scripts; deploy density prototype to staging. |
+| Week 2 | Run 5 of 9 moderated sessions; start diary study; run 5-second test. |
+| Week 3 | Run remaining 4 sessions; finish diary study; collect Capacity-Planning timings. |
+| Week 4 | Synthesis; prioritisation workshop with PM + UX Lead + Tech Lead; output → updates to docs 06, 10, 11 and Risk Register entries. |
 
 ---
 
-## 9. Stakeholder Review
+## 9. Success Criteria for the Round
 
-| Stakeholder | Role in this research | Reviews | When |
+- All 9 moderated sessions completed.
+- 5-second test ≥ 8 responses.
+- Diary study ≥ 4 of 6 participants completed the full week.
+- Each of RQ1–RQ8 has a written, evidenced answer in the synthesis doc.
+- The hypotheses in §3 are each marked **Confirmed**, **Refuted**, or **Inconclusive** with the evidence cited.
+- Concrete output: a re-prioritised list of UI/UX audit items by **observed friction × audit severity**, fed into doc 11.
+
+---
+
+## 10. What This Round is Not
+
+- Not a generative discovery round — we are validating known designs and prioritising known gaps.
+- Not external usability — there are no external customers in scope.
+- Not a perf benchmark — perf is tracked separately.
+- Not a survey — per-user qualitative depth matters more than n.
+
+---
+
+## 11. Risks to the Round
+
+| Risk | Mitigation |
+|---|---|
+| Internal participants under-report friction (politeness bias). | Diary study + analytics counter the in-session bias. |
+| Density prototype regresses something we don't notice. | Side-by-side with current build per script; analytics rate of error renders. |
+| RM availability for Capacity-Planning timing low. | Backstop with 1 leadership timing if RM count slips below 2. |
+
+---
+
+## 12. Revision Log
+
+| Date | Version | Changed By | What Changed |
 |---|---|---|---|
-| [Head of Product] | Decision-maker on scope changes from findings. | Draft report & top-insights deck. | T+[2] business days after fieldwork ends. |
-| [Head of Design] | Owns design responses to usability issues. | Issues log + recommended changes. | Same day as report draft. |
-| [Engineering Lead] | Sizes recommended changes; flags feasibility. | Recommended changes + affinity themes. | T+[3] business days. |
-| [PM — Onboarding squad] | Owns onboarding-related actions. | Task 1 & 2 findings. | At findings readout. |
-| [PM — Core squad] | Owns core-workflow actions. | Task 2 & 3 findings. | At findings readout. |
-| [GTM / Marketing Lead] | Validates positioning and messaging signal. | Verbatims + positioning insights. | At findings readout. |
-| [CEO / Executive Sponsor] | Confirms go/no-go to proceed to MVP build. | Top-insights deck (5–7 slides). | T+[5] business days. |
-
-**Readout cadence:**
-- **Daily:** Quick async note in `#ux-research` summarising the day's sessions and any critical (S1) issues.
-- **Mid-fieldwork checkpoint:** 30-minute sync at the halfway point to flag emerging themes early.
-- **Final readout:** 60-minute live session with all stakeholders; recording and deck distributed within 24 hours.
-- **Decision log:** Every accepted recommendation is logged in the product backlog with a link back to this brief and to the supporting evidence.
+| 2026-04-24 | 1.0 | UX Lead | Replaced template with the real Q2 2026 research brief targeting density redesign + audit prioritisation, with internal-only recruiting. |

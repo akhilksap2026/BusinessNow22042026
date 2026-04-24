@@ -1,280 +1,207 @@
-# Sprint Plan — Phase 1 (MVP Development)
+# Sprint Plan — Phase 2 (Operational Maturity, Q2 2026)
 
 | | |
 |---|---|
-| **Phase** | 1 — MVP Development |
-| **Duration** | [START DATE] — [END DATE] (12 weeks / 6 sprints of 2 weeks) |
-| **Team capacity** | **[4]** developers (2 FE + 2 BE), **[1]** designer, **[1]** QA, plus **[0.5]** DevOps |
-| **Velocity assumption** | **[25] story points / sprint** (steady state from Sprint 3 onwards) |
-| **Owner** | [PM / Delivery Lead — NAME] |
-| **Version** | v0.1 — Draft |
-| **Status** | Draft |
+| **Product** | BusinessNow PSA |
+| **Owner** | Delivery Lead |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
+
+> **Phase 1 (MVP) is complete and in production.** The "Phase 1 sprint plan" template was retained; this document repurposes it as the **active Phase-2** plan, which is what the team is currently delivering. The historic Phase-1 sprint log (S1–S12, Jan–Apr 2026) lives in §9.
 
 ---
 
-## 1. Phase 1 Goals
+## 1. Phase Goals
 
-**Primary goal:** Ship a deployable, secure, and instrumented MVP of [PRODUCT NAME] that lets a new organization sign up, complete onboarding, manage `[RESOURCE_A]` and `[RESOURCE_B]`, pay for a subscription, and stay informed via notifications — ready for Public Beta at the end of Sprint 6.
+Phase 2 ("Operational Maturity") covers Q2 2026 (April → June). Its goals:
 
-### Definition of "Phase 1 Complete"
-
-- [ ] All P0 user stories from EP-001 → EP-005 are merged, tested, and deployed to production behind feature flags as needed.
-- [ ] Activation funnel (signup → first key action) is instrumented end-to-end and visible on the team dashboard.
-- [ ] Payments flow is live in [PAYMENTS PROVIDER] with at least the **Free** and **Pro** plans purchasable.
-- [ ] Production observability (logs, metrics, alerts) and on-call rotation are operational.
-- [ ] Security baseline met: RBAC enforced server-side on every endpoint, audit log emitted on every state-changing action, secrets in [SECRET MANAGER].
-- [ ] At least **[10]** design partners onboarded into Public Beta with a documented feedback loop.
-
-### What we are **NOT** building in Phase 1
-
-- Native mobile apps (iOS / Android) — web-responsive only.
-- Workflow automations, templates marketplace, or public REST/GraphQL API for third parties.
-- SAML SSO, custom roles, or regional data residency (Phase 2 candidates).
-- Advanced reporting / BI dashboards — only the basic activity dashboard ships.
+| # | Goal | Measure of success |
+|---|---|---|
+| G1 | Ship Dashboard v1 and lock period selector. | Live in production by mid-April. ✅ |
+| G2 | Ship Capacity-Planning report. | `GET /api/reports/capacity-planning` live; Reports tab live. ✅ |
+| G3 | Consolidate role propagation in the SPA via `authHeaders()`. | 22 hardcoded headers removed across 6 page files. ✅ |
+| G4 | Density / scale redesign default flipped. | ≥ 25 % more rows visible at 1440×900 with no UI/UX audit §6.1 regression. |
+| G5 | Close UI/UX audit Critical (US-1) + §6.2 quick wins. | 0 Critical remaining; ≥ 80 % of §6.2 closed. |
+| G6 | Close 2026-04-23 functional audit High items that are in scope. | Per the audit's "Gaps remaining" table — Replacement-Request server-side gating delivered. |
+| G7 | Wire global error toast/banner (US-11). | Page-level lists no longer silently render empty on query failure. |
 
 ---
 
-## 2. Sprint Breakdown
+## 2. Cadence
 
-> **Note on velocity:** Sprints 1–2 carry foundational ramp-up work and are sized at **[20]** points. Sprints 3–5 run at the steady-state **[25]** points. Sprint 6 is intentionally smaller (**[18]** points) to leave slack for hardening and Public Beta launch.
-
----
-
-### Sprint 1 — *Project Setup & Auth Foundation*
-
-- **Sprint Goal:** A new visitor can register, verify their email, and reset a forgotten password against a hardened, deployable backend running in staging.
-- **Dates:** Week 1 — Week 2 ([SPRINT 1 START] — [SPRINT 1 END])
-- **Capacity:** **[20] story points**
-
-| Story ID | Story | Points | Owner | Status |
-|---|---|---|---|---|
-| INFRA-01 | Provision dev / staging environments and base IaC | 5 | DevOps | Planned |
-| INFRA-02 | CI/CD pipeline with lint, test, build, deploy-to-staging | 3 | DevOps | Planned |
-| INFRA-03 | Centralised logging + error tracking wired up | 2 | DevOps | Planned |
-| US-001 | User registration | 3 | BE Dev 1 | Planned |
-| US-002 | Email verification | 2 | BE Dev 1 | Planned |
-| US-004 | Forgotten password | 3 | BE Dev 2 | Planned |
-| FE-FOUND | App shell, routing, design-system bootstrap | 2 | FE Dev 1 | Planned |
-
-- **Key deliverable by end of sprint:** Working auth (register / verify / reset) deployed to staging behind a public URL; CI green on `main`.
-- **Risks this sprint:** Cloud account setup or DNS delays; design-system decisions taking longer than the spike budget.
+- 2-week sprints, Monday → Friday two weeks later.
+- Standup daily, sprint planning Monday week 1, review Friday week 2 morning, retro Friday week 2 afternoon.
+- Holidays observed per the company holiday calendar (which the platform itself uses for capacity).
 
 ---
 
-### Sprint 2 — *Core Data Model & API Skeleton*
+## 3. Capacity (per sprint)
 
-- **Sprint Goal:** Stand up the multi-tenant data model and the API skeleton for `[RESOURCE_A]` / `[RESOURCE_B]`, with SSO and team invites available on the auth surface.
-- **Dates:** Week 3 — Week 4 ([SPRINT 2 START] — [SPRINT 2 END])
-- **Capacity:** **[20] story points**
+Headcount × 80 % focus factor (meetings + 20 % buffer).
 
-| Story ID | Story | Points | Owner | Status |
-|---|---|---|---|---|
-| US-003 | SSO login ([GOOGLE / MICROSOFT]) | 5 | BE Dev 1 | Planned |
-| US-005 | Invite teammates by email | 3 | BE Dev 2 | Planned |
-| DATA-01 | `organizations`, `users`, `audit_logs` migrations + seed data | 3 | BE Dev 1 | Planned |
-| DATA-02 | `[RESOURCE_A]` / `[RESOURCE_B]` migrations + repositories | 3 | BE Dev 2 | Planned |
-| API-01 | API skeleton: error envelope, pagination, auth middleware | 3 | BE Dev 1 | Planned |
-| FE-AUTH | Login / register / SSO UI wired to the API | 3 | FE Dev 1 | Planned |
+| Role | Headcount × allocation | Hours per sprint (2 weeks @ 80 %) |
+|---|---|---|
+| Backend Engineer | 2 × 100 % | 128 h |
+| Frontend Engineer | 2 × 100 % | 128 h |
+| Tech Lead | 1 × 60 % delivery | 38 h |
+| QA Engineer | 1 × 50 % | 32 h |
+| UX Designer | 1 × 50 % | 32 h |
+| PM | 1 × 50 % | 32 h |
+| **Total team** | — | **390 h / sprint** |
 
-- **Key deliverable by end of sprint:** Authenticated users can create an organization and invite teammates; `[RESOURCE_A]` / `[RESOURCE_B]` endpoints exist (CRUD scaffolding) with auth + tenant isolation tests in CI.
-- **Risks this sprint:** SSO integration interop issues with the chosen provider; multi-tenant isolation edge cases surfacing late.
+The remaining capacity (Tech Lead's other 40 %, PM/UX's other 50 %) is for design, planning, reviews, and stakeholder work tracked outside the sprint board.
 
 ---
 
-### Sprint 3 — *Core Feature A — `[RESOURCE_A]` Management (MVP)*
+## 4. Sprint Goals (Phase 2)
 
-- **Sprint Goal:** End users can create, find, edit, and archive `[RESOURCE_A]` from a polished web UI, with audit logs and RBAC enforced.
-- **Dates:** Week 5 — Week 6 ([SPRINT 3 START] — [SPRINT 3 END])
-- **Capacity:** **[25] story points**
+### Sprint 13 — `2026-04-13 → 2026-04-24` (closing now)
 
-| Story ID | Story | Points | Owner | Status |
-|---|---|---|---|---|
-| US-006 | Create a `[RESOURCE_A]` | 3 | FE Dev 1 + BE Dev 1 | Planned |
-| US-007 | List and filter `[RESOURCE_A]` | 5 | FE Dev 1 + BE Dev 1 | Planned |
-| US-008 | Edit a `[RESOURCE_A]` | 3 | FE Dev 2 + BE Dev 2 | Planned |
-| US-009 | Archive and restore a `[RESOURCE_A]` | 3 | FE Dev 2 + BE Dev 2 | Planned |
-| RBAC-01 | RBAC enforcement on `[RESOURCE_A]` endpoints + tests | 3 | BE Dev 1 | Planned |
-| AUDIT-01 | Audit-log writes on `[RESOURCE_A]` state changes | 2 | BE Dev 2 | Planned |
-| QA-01 | Build first integration + E2E tests for `[RESOURCE_A]` flows | 3 | QA | Planned |
-| UX-01 | Visual QA + accessibility pass on `[RESOURCE_A]` screens | 3 | UX Designer | Planned |
+**Goal:** Land the Capacity-Planning report and the `authHeaders()` consolidation; ship dashboard v1.
 
-- **Key deliverable by end of sprint:** End-to-end `[RESOURCE_A]` flow live in staging; first measurable activation funnel data flowing.
-- **Risks this sprint:** Filter / sort performance at realistic data volumes; tenant-isolation regressions if test coverage is thin.
+| Story | Points | Status |
+|---|---|---|
+| E3 — `GET /api/reports/capacity-planning` (capped at 52 weeks) | 8 | **Done** (2026-04-23) |
+| E3 — Reports tab UI (ComposedChart + horizon selector + CSV + role-level table) | 8 | **Done** |
+| E3 — Capacity excludes soft-deleted projects | 3 | **Done** |
+| H1 — Dashboard v1 (KPI tiles + status borders + Portfolio Health + Recent Activity demote) | 8 | **Done** |
+| H1 — Period selector lock to "This Month" | 2 | **Done** |
+| H1 — Remove `Math.min(100, …)` clamp | 1 | **Done** |
+| A1 — `authHeaders()` helper + 22 hardcoded headers replaced across 6 pages | 5 | **Done** |
+| Resources tab persistence to `localStorage` | 2 | **Done** |
+| Remove empty `middlewares/` folder | 1 | **Done** |
+| Docs refresh (this round) | 5 | **Done** |
+| **Sprint total** | **43** | |
 
----
+### Sprint 14 — `2026-04-27 → 2026-05-08`
 
-### Sprint 4 — *Core Feature B — `[RESOURCE_B]` Management (MVP)*
+**Goal:** Fix US-1 (project-detail TDZ); start density / scale redesign; first UX research sessions.
 
-- **Sprint Goal:** Inside any `[RESOURCE_A]`, users can create, assign, reorder, and complete `[RESOURCE_B]`, with notifications firing on key events.
-- **Dates:** Week 7 — Week 8 ([SPRINT 4 START] — [SPRINT 4 END])
-- **Capacity:** **[25] story points**
+| Story | Points | Owner |
+|---|---|---|
+| C4 / L1 — US-1: project-detail TDZ fix + smoke test | 5 | Frontend |
+| L4 — Density / scale redesign — sidebar + dashboard | 8 | Frontend + UX |
+| L3 — US-11: global error toast/banner wired to React Query error handler | 5 | Frontend |
+| L2 — §6.2 quick wins: status pills standardisation across pages | 5 | Frontend + UX |
+| C5 — Replacement Request server-side gating for `autoAllocate` projects (start) | 3 | Backend |
+| UX research — first 5 of 9 sessions; 5-second test prep | 5 | UX + PM |
+| **Sprint total** | **31** | |
 
-| Story ID | Story | Points | Owner | Status |
-|---|---|---|---|---|
-| US-010 | Create a `[RESOURCE_B]` inside a `[RESOURCE_A]` | 3 | FE Dev 1 + BE Dev 1 | Planned |
-| US-011 | Assign and reassign a `[RESOURCE_B]` | 2 | FE Dev 1 + BE Dev 2 | Planned |
-| US-012 | Reorder `[RESOURCE_B]` within a `[RESOURCE_A]` | 5 | FE Dev 2 + BE Dev 2 | Planned |
-| US-013 | Bulk update `[RESOURCE_B]` | 5 | FE Dev 2 + BE Dev 1 | Planned |
-| NOTIF-01 | In-app notifications service + bell menu | 3 | BE Dev 1 + FE Dev 1 | Planned |
-| NOTIF-02 | Daily email digest (timezone-aware) | 3 | BE Dev 2 | Planned |
-| QA-02 | Integration + E2E tests for `[RESOURCE_B]` flows | 3 | QA | Planned |
-| UX-02 | Visual QA + accessibility pass on `[RESOURCE_B]` screens | 1 | UX Designer | Planned |
+### Sprint 15 — `2026-05-11 → 2026-05-22`
 
-- **Key deliverable by end of sprint:** Full `[RESOURCE_A]` + `[RESOURCE_B]` workflow demoable end-to-end with notifications.
-- **Risks this sprint:** Drag-and-drop reorder UX (mobile-web behaviour) and write-amplification at scale; email deliverability setup with [EMAIL PROVIDER] (SPF/DKIM/DMARC).
+**Goal:** Density rollout to projects + resources + reports; finish C5; finish UX research.
 
----
+| Story | Points | Owner |
+|---|---|---|
+| L4 — Density rollout to projects, resources, reports tabs | 8 | Frontend + UX |
+| L2 — §6.2 quick wins: smaller table row heights, consistent column widths | 5 | Frontend |
+| C5 — Replacement Request server-side gating (finish + tests) | 3 | Backend + QA |
+| E4 — Resource Requests inbox widget on the Resources page (start) | 5 | Frontend + Backend |
+| UX research — sessions 6–9; diary study collection; synthesis start | 5 | UX + PM |
+| **Sprint total** | **26** | |
 
-### Sprint 5 — *UI Polish, Integrations & QA Depth*
+### Sprint 16 — `2026-05-25 → 2026-06-05`
 
-- **Sprint Goal:** Ship the remaining MVP surfaces (settings, billing-lite, audit-log viewer), close usability issues from internal testing, and harden the test pyramid.
-- **Dates:** Week 9 — Week 10 ([SPRINT 5 START] — [SPRINT 5 END])
-- **Capacity:** **[25] story points**
+**Goal:** Finish E4 inbox widget; start E5 placeholder link; UX research synthesis output → backlog updates.
 
-| Story ID | Story | Points | Owner | Status |
-|---|---|---|---|---|
-| US-014 | Edit personal profile | 2 | FE Dev 1 + BE Dev 1 | Planned |
-| US-015 | Change password | 2 | FE Dev 1 + BE Dev 2 | Planned |
-| US-016 | Manage notification preferences | 3 | FE Dev 2 + BE Dev 1 | Planned |
-| US-017 | View and revoke active sessions | 3 | FE Dev 2 + BE Dev 2 | Planned |
-| US-018 | Choose a plan and start a subscription | 5 | BE Dev 1 + FE Dev 1 | Planned |
-| US-025 | View audit log with filters (admin) | 5 | FE Dev 2 + BE Dev 2 | Planned |
-| QA-03 | Cross-browser pass + E2E hardening | 3 | QA | Planned |
-| UX-03 | Empty states, error states, loading states pass | 2 | UX Designer | Planned |
+| Story | Points | Owner |
+|---|---|---|
+| E4 — Resource Requests inbox widget (finish) | 5 | Frontend |
+| E5 — Per-placeholder "Find Team Member" inline link | 3 | Frontend |
+| UI/UX audit §6.3 medium items — top 3 by observed friction | 8 | Frontend + UX |
+| UX research — synthesis doc + re-prioritisation workshop output → docs 06, 10, 11 | 3 | PM + UX |
+| **Sprint total** | **19** | |
 
-- **Key deliverable by end of sprint:** All P0 stories code-complete; staging considered "feature-complete" for Phase 1.
-- **Risks this sprint:** [PAYMENTS PROVIDER] webhook reconciliation edge cases; usability findings forcing late design changes.
+### Sprint 17 — `2026-06-08 → 2026-06-19`
 
----
+**Goal:** Phase-2 consolidation; Dashboard v2 design lock; security-scan playbook pre-release.
 
-### Sprint 6 — *Hardening, Beta Onboarding & Docs*
-
-- **Sprint Goal:** Productionise [PRODUCT NAME] for Public Beta — stabilise, document, onboard design partners, and close release-criteria items.
-- **Dates:** Week 11 — Week 12 ([SPRINT 6 START] — [SPRINT 6 END])
-- **Capacity:** **[18] story points** (intentionally lower; reserve for hardening)
-
-| Story ID | Story | Points | Owner | Status |
-|---|---|---|---|---|
-| HARD-01 | Performance pass: P95 budgets met for read & write paths | 3 | BE Dev 1 | Planned |
-| HARD-02 | Load test (Public Beta scenario) and remediation | 3 | DevOps + BE Dev 2 | Planned |
-| HARD-03 | Security review checklist closure (see `docs/technical/05_*`) | 3 | BE Dev 2 | Planned |
-| OBS-01 | Production dashboards, alerts, and on-call runbooks | 3 | DevOps | Planned |
-| BETA-01 | Beta onboarding kit (welcome, agreements, feedback channels) | 2 | PM | Planned |
-| DOCS-01 | Public help centre seed (10 articles) and changelog | 2 | PM + UX | Planned |
-| QA-04 | Final regression + go/no-go test report | 2 | QA | Planned |
-
-- **Key deliverable by end of sprint:** Public Beta launched with **[≥ 10]** design partners onboarded; release-criteria checklist (§7) signed off.
-- **Risks this sprint:** Late-discovered defects forcing scope cuts; beta partner communications slipping past launch day.
+| Story | Points | Owner |
+|---|---|---|
+| H2 — Dashboard v2 design lock (period selector + per-role widgets) | 5 | UX + PM |
+| H2 — Dashboard v2 backend (period server-side already accepts; widgets schema) | 5 | Backend |
+| Security-scan playbook + dependency-audit pre-release | 3 | Tech Lead + Backend |
+| Phase-2 release notes + documentation refresh | 3 | PM |
+| Buffer for residual UI/UX audit items | 5 | Whole team |
+| **Sprint total** | **21** | |
 
 ---
 
-## 3. Milestones & Gates
+## 5. Definition of Ready (story enters sprint)
 
-| Milestone | Target Date | Criteria | Owner |
+- Acceptance criteria written.
+- Mocks attached for any UI work (UX).
+- API surface specified in `lib/api-spec/openapi.yaml` for any backend work.
+- RBAC middleware identified for any new write route.
+- Audit-log emission identified for any new write path.
+- Design tokens / component spec referenced for any new UI.
+
+---
+
+## 6. Definition of Done (story exits sprint)
+
+See doc 11 §1. Summary:
+
+- Acceptance criteria pass.
+- RBAC + `logAudit()` + Zod validation on any new write surface.
+- Codegen committed.
+- `authHeaders()` used at every new SPA call-site.
+- Type-check (`pnpm typecheck`) green.
+- Audit-log row visible in Admin audit view.
+- Revision log updated.
+
+---
+
+## 7. Sprint Artefacts
+
+| Artefact | Owner | Where it lives |
+|---|---|---|
+| Sprint board | Delivery Lead | Project tracker |
+| Sprint goals | PM | Sprint planning notes |
+| Burn-down | Delivery Lead | Sprint review pack |
+| Release notes | PM | `docs/operations/` (one file per phase) |
+| Retro action items | Delivery Lead | Sprint retro doc; tracked to closure |
+
+---
+
+## 8. Risks & Mitigations (Phase 2)
+
+| Risk | Mitigation |
+|---|---|
+| Density redesign regresses one page while improving another | Side-by-side test per page; UX-led review; rollback gate per page. |
+| US-1 fix uncovers downstream issues on project-detail | QA smoke test extended; UI/UX audit §6.2 sequenced right after. |
+| UX research findings invalidate dashboard v2 design | Ship period selector at minimum; defer per-role widgets if needed. |
+| Capacity-Planning queries slow at 52 weeks | Already capped; monitor p95; add index if needed. |
+| Off-cycle Sponsor request derails sprint scope | PM negotiates; Delivery Lead escalates if charter-impacting. |
+
+---
+
+## 9. Phase 1 Summary (Historic — for reference)
+
+Phase 1 ran from January through mid-April 2026 across **12 two-week sprints** and delivered the MVP surface that is now in production:
+
+| Phase 1 deliverable | Sprint window |
+|---|---|
+| Monorepo bootstrap; OpenAPI + codegen pipeline | S1 |
+| Drizzle schema for users, accounts, projects | S2 |
+| Express 5 + RBAC middleware + audit log | S3 |
+| Tasks, phases, project members, baselines | S4 |
+| Time entries + timesheets | S5 |
+| Allocations + placeholders | S6 |
+| Opportunities + auto-trigger to soft alloc | S7 |
+| Change orders + milestone-complete → draft invoice | S8 |
+| Rate cards + invoices + line items + revenue entries | S9 |
+| Reports tab with first 5 reports | S10 |
+| Resource requests + skills matrix | S11 |
+| Client portal + CSAT + documents + Phase 1 stabilisation | S12 |
+
+Phase 1 retro outputs were captured in the team's retrospective archive and informed the Phase-2 sprint shaping above.
+
+---
+
+## 10. Revision Log
+
+| Date | Version | Changed By | What Changed |
 |---|---|---|---|
-| M1 — Auth foundation deployed to staging | End of Sprint 1 | Register / verify / reset live in staging; CI green on `main`. | Tech Lead |
-| M2 — Multi-tenant skeleton ready | End of Sprint 2 | Org + invite + tenant-isolated `[RESOURCE_A]`/`[RESOURCE_B]` endpoints. | Tech Lead |
-| M3 — `[RESOURCE_A]` MVP demoable | End of Sprint 3 | All P0 `[RESOURCE_A]` stories complete with audit + RBAC. | PM |
-| M4 — End-to-end workflow demoable | End of Sprint 4 | `[RESOURCE_A]` + `[RESOURCE_B]` + notifications working end-to-end. | PM |
-| M5 — Feature-complete in staging | End of Sprint 5 | All Phase 1 P0 stories merged; payments live in test mode. | PM + Tech Lead |
-| M6 — Public Beta launch | End of Sprint 6 | Release criteria (§7) all green; design partners onboarded. | PM |
-
----
-
-## 4. Dependencies Between Sprints
-
-- **Sprint 1 → Sprint 2:** CI/CD and base IaC must be live before feature work can deploy reliably.
-- **Sprint 1 → Sprint 2:** Auth (US-001/002/004) must merge before SSO and invites build on top.
-- **Sprint 2 → Sprint 3:** Multi-tenant data model and API skeleton must exist before `[RESOURCE_A]` endpoints can pass tenant-isolation tests.
-- **Sprint 3 → Sprint 4:** `[RESOURCE_A]` must exist before `[RESOURCE_B]` can be created scoped to it.
-- **Sprint 3 → Sprint 4:** Audit-log infrastructure (AUDIT-01) is reused by `[RESOURCE_B]` mutations and the notifications service.
-- **Sprint 4 → Sprint 5:** Notifications service (NOTIF-01) is required for the notification-preferences UI (US-016).
-- **Sprint 5 → Sprint 6:** Payments (US-018) must be live in test mode before beta partner onboarding.
-- **Cross-cutting:** The design system (FE-FOUND, Sprint 1) underpins every UI story; design-system gaps trigger blocking debt before they cascade.
-- **Cross-cutting:** Observability (INFRA-03, OBS-01) underpins on-call readiness for Public Beta.
-
----
-
-## 5. QA Strategy
-
-### Per-sprint testing approach
-
-| Sprint | Test focus | Output |
-|---|---|---|
-| Sprint 1 | Unit tests on auth flows; smoke tests in CI; manual exploratory on staging. | Auth regression suite seeded. |
-| Sprint 2 | Tenant-isolation tests (negative + positive); contract tests on the API. | Isolation tests gating CI. |
-| Sprint 3 | Integration + first E2E tests for `[RESOURCE_A]`; accessibility scan. | First green E2E pipeline. |
-| Sprint 4 | E2E tests for `[RESOURCE_B]`; notification delivery tests; perf spot-checks. | Coverage on the core workflow. |
-| Sprint 5 | Cross-browser pass; payments sandbox tests; usability validation. | Full regression suite + UX sign-off. |
-| Sprint 6 | Load test, security review, final regression, go/no-go report. | Release readiness sign-off. |
-
-**Standing practices:**
-
-- Every PR requires unit tests for changed code and a passing CI suite (lint + types + unit + integration).
-- E2E suite runs nightly on staging and on every PR touching the corresponding flow.
-- All defects are logged in [TICKET TOOL] with severity, repro steps, and owner.
-- Bug-bash session at the end of each sprint involving the whole team.
-
-### Bug severity classification
-
-| Severity | Definition | SLA to fix |
-|---|---|---|
-| **S1 — Critical** | Data loss, security exposure, full outage, or blocker for any P0 user story. | **Same day** (drop everything; hotfix to production). |
-| **S2 — High** | Major feature broken; significant degradation; no acceptable workaround. | **Within 2 business days**; included in current sprint. |
-| **S3 — Medium** | Functional bug with workaround, or regression on a non-critical flow. | **Within current or next sprint**, per PM prioritisation. |
-| **S4 — Low** | Cosmetic / nice-to-have; minor copy or layout. | Backlog; addressed opportunistically. |
-
----
-
-## 6. Release Criteria for Phase 1 Completion
-
-The following must all be ticked before declaring Phase 1 complete and opening Public Beta:
-
-- [ ] All P0 user stories from EP-001 → EP-005 are merged and deployed.
-- [ ] All S1 and S2 defects are resolved; S3 backlog has explicit owners and target sprints.
-- [ ] CI pipeline green on `main`; nightly E2E green for **[7]** consecutive nights.
-- [ ] P95 API latency below **300 ms** (read) and **800 ms** (write) at the load-test target.
-- [ ] Production uptime over the last **[7]** days **≥ 99.5%**.
-- [ ] RBAC enforced server-side on every endpoint; tenant-isolation tests in CI.
-- [ ] Audit-log entries emitted on every state-changing action; verified by sampling.
-- [ ] Payments live in [PAYMENTS PROVIDER] (test → production cutover) with at least **Free** + **Pro** plans.
-- [ ] Email sending domain verified ([SPF / DKIM / DMARC]) and bounce handling in place.
-- [ ] Observability complete: dashboards, alerts, and on-call rotation operational.
-- [ ] Security review checklist (`docs/technical/05_security_and_compliance.md`) closed for Phase 1 scope.
-- [ ] Privacy notice, Terms of Service, and DPA published on the marketing site.
-- [ ] Help-centre seed (≥ **10** articles) and changelog published.
-- [ ] Beta onboarding kit delivered to **[≥ 10]** design partners with feedback loops live.
-- [ ] Go/No-Go sign-off from **PM**, **Tech Lead**, **QA**, **Security Lead**, and **Executive Sponsor**.
-
----
-
-## 7. Retrospective Template (per sprint)
-
-Run a 60-minute retro at the end of every sprint. Output is captured in `docs/operations/retros/[SPRINT-N]-retro.md`.
-
-### What went well?
-
-- [Capture 3–5 positives — wins, smooth handoffs, helpful changes from the previous retro.]
-
-### What didn't go well?
-
-- [Capture 3–5 frictions — blockers, surprises, scope creep, hand-off gaps.]
-
-### What will we change?
-
-- [Capture concrete, owned experiments to try next sprint. Avoid generic resolutions.]
-
-### Action items
-
-| Action | Owner | Due |
-|---|---|---|
-| [ACTION 1 — concrete, observable change.] | [NAME] | [DATE] |
-| [ACTION 2 — concrete, observable change.] | [NAME] | [DATE] |
-| [ACTION 3 — concrete, observable change.] | [NAME] | [DATE] |
-
-**Standing rules for the retro:**
-
-- Blameless framing: focus on the system, not the person.
-- Maximum **[3]** action items per retro — fewer, well-owned changes beat long lists.
-- Carry-over actions from the previous retro are reviewed first; closed before new ones are added.
-- Themes that recur across **[2]** retros are escalated to the Tech Lead and PM for a dedicated remediation epic.
+| 2026-04-24 | 1.0 | Delivery Lead | Replaced template with the real Phase-2 sprint plan. Phase 1 (MVP) is complete; sprints 13–17 are scoped against Q2 2026 outcomes including the density redesign, UI/UX audit follow-ups, and the recently-shipped Capacity-Planning report. |

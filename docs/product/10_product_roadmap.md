@@ -1,195 +1,164 @@
-# Product Roadmap
+# Product Roadmap — BusinessNow PSA
 
 | | |
 |---|---|
-| **Product** | [PRODUCT NAME] |
-| **Version** | 1.0 |
-| **Last Updated** | [YYYY-MM-DD] |
-| **Roadmap Horizon** | 12 months |
-| **Owner** | [HEAD OF PRODUCT / NAME] |
-| **Status** | Living document |
+| **Product** | BusinessNow PSA |
+| **Owner** | PM |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
 
-> This is a **living strategic document**. Items in **NOW** are committed; items in **NEXT** are planned but may shift; items in **LATER** are strategic bets and **subject to change**. Update at least quarterly.
-
----
-
-## 1. Vision & Strategy
-
-**Product vision (1 sentence):**
-> *"To be the **[CATEGORY]** for **[TARGET USER]** so that **[CORE OUTCOME]** becomes the default, not the exception."*
-
-### Strategic themes for the year
-
-1. **Activation & Time-to-Value** — every new organization reaches first value within **10 minutes**, with no services-led implementation.
-2. **Trust & Governance** — ship the security, compliance, and admin controls that unblock mid-market and enterprise procurement (SOC 2, SAML, audit).
-3. **Workflow Depth** — extend `[RESOURCE_A]` and `[RESOURCE_B]` from "manageable" to "automatable", closing the gap with the incumbent.
-4. **Ecosystem & Extensibility** — public API, webhooks, and a small but high-leverage integration set so that [PRODUCT NAME] becomes the system-of-record, not a silo.
+> Format: **NOW (in-flight) → NEXT (this quarter) → LATER (next 1–2 quarters) → BACKLOG / WATCHING.** Items are referenced from the audits in `docs/comprehensive-audit-2026-04.md` and `docs/ui-ux-audit-2026-04.md`, and from the open items in `docs/operations/15_risk_register.md`.
 
 ---
 
-## 2. Now / Next / Later Framework
+## 1. Theme Map (Q2 → Q4 2026)
 
-### NOW — Current Quarter ([Q? YYYY])
-
-| Initiative | Theme | Priority | Status | Team | Notes |
-|---|---|---|---|---|---|
-| Onboarding wizard v1 | Activation & TTV | P0 | In progress | Product + Growth | 3-step guided setup; instrumented funnel. |
-| RBAC & audit log | Trust & Governance | P0 | In progress | Platform | Fixed roles + immutable log; admin UI. |
-| Billing & subscriptions GA | Workflow Depth | P0 | In progress | Billing | Two paid tiers + free; self-serve upgrade. |
-| Notifications v1 (in-app + email) | Workflow Depth | P1 | In progress | Product | Bell menu + daily digest. |
-| Production observability | Trust & Governance | P0 | In progress | Platform | Logs, metrics, alerts; on-call rotation. |
-| Public marketing site + waitlist | Activation & TTV | P1 | In progress | Marketing | Pricing page + demo + waitlist form. |
-
-### NEXT — Next Quarter ([Q? YYYY])
-
-| Initiative | Theme | Priority | Status | Team | Notes |
-|---|---|---|---|---|---|
-| SAML SSO | Trust & Governance | P0 | Planned | Platform | Unblocks enterprise deals. |
-| SOC 2 Type I readiness | Trust & Governance | P0 | Planned | Security | Evidence collection in [COMPLIANCE TOOL]. |
-| Workflow automations v1 | Workflow Depth | P1 | Planned | Product | Triggers + conditions + actions. |
-| Public REST API (read) | Ecosystem | P1 | Planned | Platform | Read-only; rate-limited; documented. |
-| Integration: [WORKSPACE PROVIDER] | Ecosystem | P1 | Planned | Integrations | Bi-directional sync with consent. |
-| Integration: [COMMS PROVIDER] | Ecosystem | P1 | Planned | Integrations | Notifications and slash commands. |
-
-### LATER — 6–12 Months ([Q? + Q? YYYY])
-
-| Initiative | Theme | Priority | Status | Team | Notes |
-|---|---|---|---|---|---|
-| SOC 2 Type II audit window | Trust & Governance | P0 | Bet | Security | Begins after Type I close. |
-| Mobile (iOS / Android native) | Activation & TTV | P1 | Bet | Mobile (TBD) | Subject to MVP retention signal. |
-| AI-assisted [WORKFLOW] suggestions | Workflow Depth | P1 | Bet | Product + ML | Built on usage data; opt-in. |
-| Public REST API (write) + webhooks v2 | Ecosystem | P1 | Bet | Platform | Granular scopes; signed delivery. |
-| Integrations marketplace v1 | Ecosystem | P2 | Bet | Platform | Partner-built apps; revenue share. |
-| Data residency (EU) | Trust & Governance | P1 | Bet | Platform | Region-isolated tenants. |
+| Theme | Why it matters | Status |
+|---|---|---|
+| **Density & scale** | Dense desktop UI is what KSAP staff actually use; current default zoom wastes pixels. | NOW |
+| **Audit follow-ups** | Recent audits surfaced fixable defects; close them to maintain trust. | NOW |
+| **Resource intelligence** | Capacity-Planning report unlocked a new question; deepen the answer. | NEXT |
+| **Dashboard v2** | Period selector beyond "This Month"; widgets per role. | NEXT |
+| **Auth modernisation** | Move from `x-user-role` header to SSO / OIDC. | LATER |
+| **Read-side RBAC** | Row-level filtering on GETs for Viewer / Consultant. | LATER |
+| **Reports scale** | If OLTP latency degrades, plan a warehouse offload. | WATCHING |
 
 ---
 
-## 3. Quarterly Milestones
+## 2. NOW — In flight (Q2 2026)
 
-### Q1 [YYYY] — *Foundations & Private Beta*
+### 2.1 Density & scale redesign
 
-- Close **Private Beta** with **[10–15]** design partners; collect win/loss signal and 3 case studies.
-- Ship **RBAC**, **audit log**, and **billing GA** as the trust + monetisation foundation.
-- Land **onboarding wizard v1**; first measurable activation funnel in production.
-- Stand up **production observability** (logs, metrics, alerts) and on-call rotation.
+- Reduce default UI scale from the current zoom; target ≥ 25 % more rows visible on a 1440-line desktop.
+- Touched globally — sidebar, page padding, table row heights, KPI tile sizes.
+- Done = no scroll on the dashboard at 1440×900 with no zoom; tables show ≥ 25 % more rows; no regression in the UI/UX audit's §6.1 baseline.
 
-### Q2 [YYYY] — *Public Beta & GA*
+### 2.2 UI/UX audit follow-ups
 
-- Open **Public Beta** with waitlist; reach **[≥ 500]** signups and **[≥ 200]** activated organizations.
-- Ship **GA launch** of [PRODUCT NAME]; activate paid plans and full marketing motion.
-- Ship **SAML SSO** and complete **SOC 2 Type I** readiness assessment.
-- Hit **[≥ 35%]** activation and **[≥ 99.5%]** uptime ahead of GA.
+- **US-1 (Critical)** — `project-detail.tsx` TDZ on `users` referenced before init. Fix in flight.
+- **§6.2 quick wins** — smaller table row heights, consistent column widths, status pills standardised across pages.
+- **US-11** — wire global error toast/banner so failed queries do not silently render empty lists.
 
-### Q3 [YYYY] — *Depth & Ecosystem*
+### 2.3 Dashboard v1 polish
 
-- Ship **workflow automations v1** and the first wave of templates.
-- Ship **public REST API (read)** and **[2]** flagship integrations ([WORKSPACE PROVIDER], [COMMS PROVIDER]).
-- Reach **$[Y]** new MRR and **[X]** paying organizations by quarter end.
-- Begin **SOC 2 Type II observation window**.
+- Hero KPI tiles with status borders — **shipped**.
+- Portfolio Health stacked bar — **shipped**.
+- Recent Activity demoted to a 1/3-column right rail card — **shipped**.
+- Period selector locked to "This Month"; Last 30 / Quarter / Year disabled pending v2 — **shipped**.
+- `Math.min(100, …)` clamp on `teamUtilization` removed so the danger band is reachable — **shipped**.
 
-### Q4 [YYYY] — *Scale & Expansion*
+### 2.4 `authHeaders()` consolidation
 
-- Ship **integrations marketplace v1** with **[5]** launch partner apps.
-- Ship **public REST API (write)** + **webhooks v2** with signed delivery.
-- Decide on **mobile native** investment based on retention and usage data.
-- Hit **[≥ 110%]** NRR and **[≥ 95%]** logo retention at month 12.
+- Single helper for role propagation across all 6 page files (22 hardcoded headers replaced) — **shipped**.
 
----
+### 2.5 Capacity-Planning report
 
-## 4. Epic Summary
-
-| Epic ID | Epic Name | Theme | Quarter | Status | Owner |
-|---|---|---|---|---|---|
-| EPIC-001 | Onboarding wizard & activation funnel | Activation & TTV | Q1 | In progress | [PM NAME] |
-| EPIC-002 | RBAC & audit log | Trust & Governance | Q1 | In progress | [PM NAME] |
-| EPIC-003 | Billing & subscriptions GA | Workflow Depth | Q1 | In progress | [PM NAME] |
-| EPIC-004 | Notifications v1 (in-app + email) | Workflow Depth | Q1 | In progress | [PM NAME] |
-| EPIC-005 | Production observability & on-call | Trust & Governance | Q1 | In progress | [TECH LEAD] |
-| EPIC-006 | SAML SSO | Trust & Governance | Q2 | Planned | [PM NAME] |
-| EPIC-007 | SOC 2 Type I readiness | Trust & Governance | Q2 | Planned | [SECURITY LEAD] |
-| EPIC-008 | Workflow automations v1 | Workflow Depth | Q2 | Planned | [PM NAME] |
-| EPIC-009 | Public REST API (read) | Ecosystem | Q2 | Planned | [TECH LEAD] |
-| EPIC-010 | Integration: [WORKSPACE PROVIDER] | Ecosystem | Q2 | Planned | [PM NAME] |
-| EPIC-011 | Integration: [COMMS PROVIDER] | Ecosystem | Q2 | Planned | [PM NAME] |
-| EPIC-012 | Integrations marketplace v1 | Ecosystem | Q4 | Bet | [PM NAME] |
+- `GET /api/reports/capacity-planning?weeks=N` (capped at 52) with role-level surplus/deficit, CSV export — **shipped 2026-04-23**.
 
 ---
 
-## 5. MVP Definition
+## 3. NEXT — This quarter (Q3 2026)
 
-### In MVP
+### 3.1 Dashboard v2
 
-- Email + password and **[GOOGLE / MICROSOFT]** SSO authentication.
-- Multi-tenant **organization** workspace with fixed roles (`owner`, `admin`, `member`, `viewer`).
-- `[RESOURCE_A]` management — create / view / edit / archive.
-- `[RESOURCE_B]` management — create / assign / reorder / complete inside `[RESOURCE_A]`.
-- In-app notifications and a daily email digest.
-- Self-serve billing via **[PAYMENTS PROVIDER]** with at least two paid tiers + free.
-- Audit log of state-changing actions, viewable by admins.
-- Web-responsive UI on modern evergreen browsers.
+- Enable Last 30 / Quarter / Year period selector (server-side already accepts `period`).
+- Per-role widget set (Finance dashboard variant emphasising rate cards / invoices / cash position).
+- Done = period selector functional and persisted; PM / Finance / RM each see a tuned default widget set; analytics show ≥ 70 % retention vs v1.
 
-### Explicitly deferred post-MVP
+### 3.2 Resource Requests inbox widget
 
-- Native mobile apps (iOS / Android).
-- Custom roles and granular permission editor.
-- Public REST/GraphQL API for third parties.
-- Workflow automations and templates marketplace.
-- Advanced reporting / BI dashboards / data warehouse exports.
-- SAML SSO and regional data residency.
-- White-label or custom-domain hosting for customer tenants.
+- Surface unassigned demand directly on the Resources page (today it's only on the Capacity-Planning report tab).
+- Done = inbox shows open requests by status, with quick-fulfil action; matches the approach the 2026-04-23 audit accepted as backlog.
 
-### MVP success criteria
+### 3.3 Replacement-Request server-side gating for auto-allocate projects
 
-- **[≥ 200]** activated organizations during Public Beta.
-- **[≥ 35%]** activation rate (signup → first key action within 7 days).
-- **[≥ 15%]** trial → paid conversion in the first 90 days post-GA.
-- **[≥ 99.5%]** production uptime during the beta window.
-- **NPS ≥ [30]** at the close of Public Beta.
+- Block the request type on the API for projects flagged `autoAllocate` (today only the UI hides it).
+- Done = `requirePM` write fails with 409 when conditions are met; tested.
+
+### 3.4 Per-placeholder "Find Team Member" link
+
+- Inline contextual entry into Find Availability from each placeholder row.
+- Done = placeholder rows in Resources tabs gain a one-click link that pre-fills the search.
+
+### 3.5 UI/UX audit §6.3 medium-priority items
+
+- Whatever §6.3 has open after the §6.2 sweep — re-prioritised at sprint planning.
 
 ---
 
-## 6. Dependencies & Blockers
+## 4. LATER — Next 1–2 quarters (Q4 2026 → Q1 2027)
 
-| Item | Depends On | Team | Risk | ETA |
-|---|---|---|---|---|
-| SAML SSO (EPIC-006) | Identity provider integrations + IdP test tenants | Platform | Medium — interop complexity | [Q2 YYYY] |
-| SOC 2 Type I (EPIC-007) | Policy pack, evidence collection in [COMPLIANCE TOOL], external auditor engagement | Security | Medium — auditor lead times | [Q2 YYYY] |
-| Workflow automations v1 (EPIC-008) | Internal job runner + audit-log instrumentation | Platform + Product | Medium — first complex async surface | [Q3 YYYY] |
-| Public REST API read (EPIC-009) | Stable internal API contracts + rate-limit middleware | Platform | Low | [Q3 YYYY] |
-| Integration: [WORKSPACE PROVIDER] (EPIC-010) | Vendor partner approval + OAuth scopes review | Integrations | Medium — partner timeline | [Q3 YYYY] |
-| Integration: [COMMS PROVIDER] (EPIC-011) | App marketplace listing approval | Integrations | Medium — partner review | [Q3 YYYY] |
-| Mobile native (LATER) | Retention + usage signal from web; mobile hire | Mobile (TBD) | High — staffing not in place | [Q4 YYYY] |
-| Data residency EU (LATER) | Region-isolated infra + DPA template updates | Platform + Legal | High — significant infra work | [Q4 YYYY] |
+### 4.1 SSO / OIDC
 
----
+- Replace the `x-user-role` header with a verified role claim from KSAP's identity provider.
+- `authHeaders()` becomes the SPA-side migration point; API gains a verified-role middleware.
+- Out: 2FA (handled by IdP); rotating session tokens.
 
-## 7. Metrics Per Phase
+### 4.2 Row-level RBAC on GETs
 
-| Phase | Key Metric | Target | Measurement |
-|---|---|---|---|
-| Private Beta (Q1) | Design-partner retention & feedback close-rate | [≥ 80%] of design partners stay engaged through end of phase | Weekly partner calls + CRM. |
-| Public Beta (Q2 pre-GA) | Activation rate | [≥ 35%] | Product analytics funnel ([TOOL]). |
-| Public Beta (Q2 pre-GA) | P95 API latency | < 300 ms (read) / < 800 ms (write) | APM ([TOOL]). |
-| GA Launch (Q2 post-GA → Q3) | New paying organizations | [X] in first 90 days | Billing system ([PAYMENTS PROVIDER]). |
-| GA Launch (Q2 post-GA → Q3) | Trial → paid conversion | [≥ 15%] | Billing joined to signup cohort. |
-| Scale (Q3) | Time-to-first-value (TTFV) | [≤ 10 min] median | Product analytics. |
-| Scale (Q3 → Q4) | Net Revenue Retention (NRR) | [≥ 110%] | Billing + CRM cohort. |
-| Scale (Q4) | Logo retention at month 12 | [≥ 95%] | Billing + CRM cohort. |
-| Ongoing | Uptime SLA | [≥ 99.9%] | Status page + APM. |
-| Ongoing | NPS | [≥ 40] | Quarterly in-app survey. |
+- Filter list endpoints by the calling user when role is `Viewer` or `Consultant`.
+- Open question: does Consultant see **all** projects they're allocated to, or only projects with active assignment?
+
+### 4.3 FTE configurability
+
+- Expose `time_settings` to make the 40 h/week assumption configurable per-tenant.
+- Done = capacity calculations honour the configured weekly hours; default remains 40.
+
+### 4.4 Mobile-friendly time entry
+
+- Phone-acceptable time entry (not full mobile app) — quick-log a time entry from a phone.
+- Out: full responsive rebuild; native app.
 
 ---
 
-## 8. Roadmap Assumptions
+## 5. BACKLOG / WATCHING
 
-- The chosen ICP (mid-market [INDUSTRY], **[50–500]** employees) holds across the year and remains willing to adopt bottom-up.
-- Pricing tiers (Free / Pro / Business / Enterprise) survive contact with the market with no more than one revision.
-- SOC 2 + SSO + audit log unlock a measurable share of paused / blocked deals as soon as they ship.
-- Self-serve PLG remains the primary motion through GA; sales-assist is layered on top, not replaced.
-- Engineering capacity scales according to plan ([N] hires by Q2, [N] by Q4); roadmap shifts right by one quarter for every 25% capacity miss.
-- Cloud and third-party costs scale roughly linearly with paid seats; gross margin remains **≥ [75%]**.
-- Major competitors do not materially change pricing or shipping cadence (we re-plan if they do).
-- The funding runway covers the full **[12-month]** horizon at the planned hiring pace.
+| Item | Note |
+|---|---|
+| Reports → data-warehouse offload | Trip-wire is OLTP latency on Capacity Planning at 52 weeks. |
+| Native mobile app | Out of charter. |
+| Real-time collaboration on tasks | Not committed. |
+| Externally hosted analytics warehouse | Not committed. |
+| Built-in expense management | Out of charter. |
+| Multi-tenant white-labelling | Out of charter. |
+| Per-row CSV export limits | Probably never needed; OLTP exports are fine today. |
+
+---
+
+## 6. Recently Shipped (last 60 days)
+
+| Item | When |
+|---|---|
+| `authHeaders()` helper across 6 page files (22 hardcoded headers replaced) | 2026-04 |
+| Dashboard v1 (KPI tiles + status borders, Portfolio Health, Recent Activity 1/3 col) | 2026-04 |
+| Removed `Math.min(100, …)` clamp on `teamUtilization` | 2026-04 |
+| Period selector locked to "This Month" pending v2 | 2026-04 |
+| Capacity-Planning endpoint + Reports tab + role-level surplus/deficit | 2026-04-23 |
+| Capacity calculations exclude soft-deleted projects | 2026-04-23 |
+| Resources page tab persistence (`localStorage["resources.activeTab"]`) | 2026-04-23 |
+| Removed empty `middlewares/` folder | 2026-04 |
+
+---
+
+## 7. Themes Not on the Roadmap (and Why)
+
+| Theme | Why it isn't here |
+|---|---|
+| Public marketing site | The platform is internal; no external buyers. |
+| Multi-tenant | Charter constraint (single-tenant). |
+| Native mobile | Charter constraint. |
+| Built-in chat / messaging | Notification surface + KSAP's chat tool already cover this. |
+| AI auto-staffing | Premature; capacity-planning report needs adoption time first. |
+
+---
+
+## 8. Roadmap Cadence & Governance
+
+- **Bi-weekly** at sprint review, the PM moves items between NOW / NEXT / LATER as warranted.
+- **Quarterly** the PM does a full refresh, syncs with doc 06 (PRD), doc 11 (Stories & Epics), and doc 14 (Sprint Plan).
+- **Off-cycle update triggers**: any new committed initiative, scope change, or P1 incident.
+- All changes are reflected in the revision log below and in the Risk Register if they shift exposure.
 
 ---
 
@@ -197,6 +166,4 @@
 
 | Date | Version | Changed By | What Changed |
 |---|---|---|---|
-| [YYYY-MM-DD] | 1.0 | [HEAD OF PRODUCT] | Initial roadmap published. |
-| [YYYY-MM-DD] | 1.1 | [PM NAME] | [Summary of changes — e.g. moved EPIC-009 from Q3 to Q2; added EPIC-012.] |
-| [YYYY-MM-DD] | 1.2 | [PM NAME] | [Summary of changes.] |
+| 2026-04-24 | 1.0 | PM | Replaced template with the real BusinessNow PSA roadmap. NOW/NEXT/LATER reflect the in-flight density redesign, audit follow-ups, dashboard v1, and the recently-shipped capacity-planning report. |

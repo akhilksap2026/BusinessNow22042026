@@ -1,309 +1,237 @@
-# Developer Environment Setup Guide
+# Dev Environment Setup — BusinessNow PSA
 
 | | |
 |---|---|
-| **Title** | Developer Environment Setup — [PRODUCT NAME] |
-| **Audience** | Engineering Team |
-| **Last Updated** | [DATE] |
-| **Status** | Draft |
+| **Product** | BusinessNow PSA |
+| **Owner** | DevOps / Tech Lead |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
 
-> Welcome aboard! Follow this guide top-to-bottom on a clean machine. By the end you should have the frontend, backend, and database all running locally and the test suite passing.
+> The platform is developed and deployed on **Replit**. This guide assumes a Replit workspace; deviations for off-Replit local clones are noted.
 
 ---
 
 ## 1. Prerequisites
 
-Install the following tools before you start. Versions listed are the minimum supported.
+| Tool | Version | Notes |
+|---|---|---|
+| Node.js | **20.x +** | Provided by Replit. |
+| pnpm | **latest** | Enforced by the root `preinstall` script. **Do not use npm or yarn.** |
+| PostgreSQL | provided | Replit-managed; access via `DATABASE_URL`. |
+| Git | latest | Replit checkpoints handle most of this; manual `git` reads allowed (writes go via project tasks per the rules of engagement). |
 
-| Tool | Version | Download Link | Notes |
-|---|---|---|---|
-| Node.js | [≥ 20.x LTS] | https://nodejs.org/ | Use [`nvm`](https://github.com/nvm-sh/nvm) or [`fnm`](https://github.com/Schniz/fnm) to match the project's `.nvmrc`. |
-| [BACKEND LANG] (e.g. Python / Go) | [≥ X.Y] | [BACKEND LANG DOWNLOAD URL] | Required only if you'll work on the backend service. |
-| Docker Desktop | [≥ 24.x] | https://www.docker.com/products/docker-desktop | Used to run Postgres/Redis locally via `docker compose`. |
-| Git | [≥ 2.40] | https://git-scm.com/downloads | Configure `user.name` and `user.email` before your first commit. |
-| [IDE] (e.g. VS Code / JetBrains) | latest | [IDE DOWNLOAD URL] | Install the recommended workspace extensions on first open. |
-| Postman (or Insomnia / Bruno) | latest | https://www.postman.com/downloads/ | Used to exercise the REST API; shared collection lives in `docs/postman/`. |
+Off-Replit clones additionally need: a local PostgreSQL 14+ instance with `DATABASE_URL` set, and write access to your shell profile to export env vars.
 
-Verify each install:
+---
+
+## 2. First-Time Setup
 
 ```bash
-node --version
-[BACKEND LANG] --version
-docker --version
-git --version
+# 1. Install dependencies (pnpm only)
+pnpm install
+
+# 2. Generate Zod + React Query bindings from the OpenAPI spec
+pnpm --filter @workspace/api-spec run codegen
+
+# 3. Sync DB schema (additive only — never destructive in dev without taking a snapshot first)
+pnpm --filter @workspace/db run db:push
+
+# 4. Type-check across all packages
+pnpm typecheck
+```
+
+After step 4 you should see no errors. If `typecheck` fails, fix before starting workflows — it is the most reliable signal that something is wrong.
+
+---
+
+## 3. Workflows
+
+The Replit workspace runs everything through workflows. The two **active** workflows you will use day-to-day are:
+
+| Workflow | Command | Purpose |
+|---|---|---|
+| **API Server** | `PORT=8080 pnpm --filter @workspace/api-server run dev` | Express 5 API on port 8080. |
+| **Start application** | `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/businessnow run dev` | React + Vite SPA on port 5000 (visible in the preview pane). |
+
+Two **legacy artifact-scoped** workflows show up in the workflow list (`artifacts/api-server: API Server` and `artifacts/businessnow: web`) — these are auto-generated from the artifacts and do not start cleanly in this configuration. Ignore them; the two workflows above are the ones to use.
+
+A **mockup sandbox** workflow also exists for component prototyping:
+
+| Workflow | Command |
+|---|---|
+| `artifacts/mockup-sandbox: Component Preview Server` | `pnpm --filter @workspace/mockup-sandbox run dev` |
+
+Use it only when working with the canvas / mockup-sandbox skill. It is not part of the production app.
+
+### Restarting workflows
+
+After any code or dependency change, restart the relevant workflow. From the chat interface use the workflow restart action; from a shell:
+
+```bash
+# (Replit handles this through workflow tools; no direct shell command is needed.)
 ```
 
 ---
 
-## 2. Repository Setup
+## 4. Repository Layout
 
-1. Clone the repository:
+```
+workspace/
+├── lib/
+│   ├── db/                  ← Drizzle schemas (~60 tables, 11 modules)
+│   ├── api-spec/            ← openapi.yaml — single source of truth
+│   ├── api-zod/             ← generated Zod schemas (do not edit)
+│   └── api-client-react/    ← generated React Query hooks (do not edit)
+├── artifacts/
+│   ├── api-server/          ← Express 5 (40 route files in src/routes/)
+│   ├── businessnow/         ← React + Vite SPA (16 page files in src/pages/, 13 logical modules)
+│   └── mockup-sandbox/      ← isolated component preview env
+├── scripts/                 ← operational scripts (db, codegen, deploy)
+├── docs/                    ← this documentation suite
+└── replit.md                ← always-loaded project memory
+```
 
-   ```bash
-   git clone [REPO_URL]
-   cd [REPO_NAME]
-   ```
-
-2. Install the Git hooks (lint + commit-message format):
-
-   ```bash
-   npm run prepare
-   ```
-
-3. Branch strategy:
-
-   - `main` — production-ready, always deployable. Direct pushes are blocked.
-   - `develop` — integration branch for the next release.
-   - `feature/<short-description>` — branched from `develop`, merged back via pull request.
-   - `fix/<short-description>` — bug fixes; same flow as `feature/*`.
-   - `hotfix/<short-description>` — branched from `main` for urgent production fixes; merged back into both `main` and `develop`.
-
-4. Pull requests require: green CI, at least one approving review, and a linked ticket.
+The pnpm workspace is configured at the root `pnpm-workspace.yaml` — packages live under `lib/*` and `artifacts/*`.
 
 ---
 
-## 3. Environment Variables
+## 5. Common Commands
 
-1. Copy the example file and fill in any missing values:
+```bash
+# Type-check libs only (fast)
+pnpm typecheck:libs
 
-   ```bash
-   cp .env.example .env
-   ```
+# Full type-check (libs + artifacts + scripts)
+pnpm typecheck
 
-2. Required variables:
+# Build everything
+pnpm build
 
-   | Variable | Description | Example Value | Required |
-   |---|---|---|---|
-   | `NODE_ENV` | Runtime mode for the Node services. | `development` | yes |
-   | `PORT` | Port the backend listens on. | `8080` | yes |
-   | `DATABASE_URL` | Connection string for the primary database. | `postgres://app:app@localhost:5432/[product]_dev` | yes |
-   | `JWT_SECRET` | Symmetric secret used to sign access tokens. | `change-me-in-prod-please` | yes |
-   | `JWT_REFRESH_SECRET` | Secret used to sign refresh tokens. | `another-strong-secret` | yes |
-   | `API_KEY` | Internal service-to-service API key. | `sk_local_xxxxxxxxxxxx` | yes |
-   | `[SERVICE]_API_KEY` | Credentials for [SERVICE] (e.g. email, payments). | `[SERVICE_KEY_VALUE]` | yes |
-   | `REDIS_URL` | Cache/queue connection string. | `redis://localhost:6379/0` | yes |
-   | `LOG_LEVEL` | Pino/Winston level. | `debug` | no |
-   | `FRONTEND_URL` | Public URL of the web client (CORS allow-list). | `http://localhost:[FRONTEND_PORT]` | yes |
+# Re-run codegen after editing the OpenAPI spec
+pnpm --filter @workspace/api-spec run codegen
 
-3. **Never commit `.env` to version control.** It is already listed in `.gitignore`. Secrets are managed in [SECRET MANAGER] for shared and deployed environments — request access from the platform team.
+# Sync DB schema (additive)
+pnpm --filter @workspace/db run db:push
 
----
+# Inspect DB
+psql "$DATABASE_URL"
 
-## 4. Frontend Setup
-
-1. Move into the frontend workspace:
-
-   ```bash
-   cd [frontend-folder]
-   ```
-
-2. Install dependencies (use the package manager committed to the repo):
-
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-
-   ```bash
-   npm run dev
-   ```
-
-4. Expected output:
-
-   ```
-   VITE vX.Y.Z  ready in XXX ms
-   ➜  Local:   http://localhost:[FRONTEND_PORT]/
-   ➜  Network: http://0.0.0.0:[FRONTEND_PORT]/
-   ```
-
-5. Open <http://localhost:[FRONTEND_PORT]> in your browser. Hot-reload is enabled — edits to source files refresh the page automatically.
+# Filter to a specific package
+pnpm --filter @workspace/api-server <command>
+pnpm --filter @workspace/businessnow <command>
+```
 
 ---
 
-## 5. Backend Setup
+## 6. Environment Variables
 
-1. Move into the backend workspace:
+| Variable | Required | Where it's used | Notes |
+|---|---|---|---|
+| `DATABASE_URL` | yes | API server (Drizzle) | Provided by Replit. |
+| `PORT` | yes (per workflow) | API: 8080; SPA: 5000 | Set in the workflow command. |
+| `BASE_PATH` | yes (SPA) | SPA Vite config | Set to `/` in the workflow command. |
+| `REPLIT_DEV_DOMAIN` | auto | Useful for `curl` from the shell instead of `localhost` | Provided by Replit. |
+| `NODE_ENV` | auto | Read by some dev-only branches in the SPA (e.g. the friendly 404 still allowed to show dev hints in `NODE_ENV !== "production"`). | |
 
-   ```bash
-   cd [backend-folder]
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   # or, for [BACKEND LANG]:
-   # [BACKEND LANG INSTALL COMMAND]
-   ```
-
-3. Run database migrations:
-
-   ```bash
-   npm run migrate
-   ```
-
-4. (Optional) Seed the database with sample data:
-
-   ```bash
-   npm run seed
-   ```
-
-5. Start the API server:
-
-   ```bash
-   npm run dev
-   ```
-
-6. Expected output:
-
-   ```
-   [HH:MM:SS] INFO  Server listening on http://localhost:[BACKEND_PORT]
-   [HH:MM:SS] INFO  Connected to database
-   ```
-
-7. Smoke-test the health endpoint:
-
-   ```bash
-   curl http://localhost:[BACKEND_PORT]/health
-   # → {"status":"ok"}
-   ```
+> **Never** read or write secrets manually. Use the environment-secrets skill (see `<replit_environment>`).
 
 ---
 
-## 6. Database Setup
+## 7. Hitting the API During Development
 
-1. Bring up the local database (Postgres) and supporting services with Docker Compose:
+```bash
+# Health check
+curl -H "x-user-role: Admin" http://localhost:8080/api/health
 
-   ```bash
-   docker compose up -d
-   ```
+# Read projects as an Admin
+curl -H "x-user-role: Admin" http://localhost:8080/api/projects | jq
 
-2. Confirm the containers are healthy:
+# Try a write as an under-privileged role (should 403)
+curl -X POST -H "x-user-role: Viewer" -H "content-type: application/json" \
+  -d '{"name":"X","accountId":1}' http://localhost:8080/api/projects
+```
 
-   ```bash
-   docker compose ps
-   ```
-
-3. Connection string format:
-
-   ```
-   postgres://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]
-   ```
-
-   Default local value (also the default for `DATABASE_URL`):
-
-   ```
-   postgres://app:app@localhost:5432/[product]_dev
-   ```
-
-4. Apply migrations:
-
-   ```bash
-   npm run migrate
-   ```
-
-5. Verify the connection:
-
-   ```bash
-   psql "$DATABASE_URL" -c "select now();"
-   ```
-
-   You should see a single row with the current timestamp.
-
-6. To stop and remove containers (data persists in a named volume):
-
-   ```bash
-   docker compose down
-   ```
+For requests routed through Replit's proxy, use `$REPLIT_DEV_DOMAIN` instead of `localhost`. Inside the SPA, **always** use the generated React Query hooks with `authHeaders()` from `artifacts/businessnow/src/lib/auth-headers.ts`.
 
 ---
 
-## 7. Running Tests
+## 8. Working with the SPA
 
-Run the test suites from the repository root.
-
-1. Unit tests:
-
-   ```bash
-   npm run test
-   ```
-
-2. Integration tests (requires Docker services to be up):
-
-   ```bash
-   npm run test:integration
-   ```
-
-3. End-to-end tests (Playwright/Cypress):
-
-   ```bash
-   npm run test:e2e
-   ```
-
-4. Expected output when all suites pass:
-
-   ```
-   Test Suites: X passed, X total
-   Tests:       Y passed, Y total
-   Snapshots:   0 total
-   Time:        Z s
-   Ran all test suites.
-   ```
-
-5. Generate a coverage report:
-
-   ```bash
-   npm run test:coverage
-   ```
-
-   The HTML report opens at `coverage/lcov-report/index.html`.
-
----
-
-## 8. Common Issues & Fixes
-
-| Issue | Likely Cause | Fix |
+| Page route | File | Notes |
 |---|---|---|
-| `EADDRINUSE: address already in use :::[PORT]` | Another process (often a previous dev server) is bound to the port. | `lsof -i :[PORT]` then `kill -9 <PID>`, or change `PORT` in `.env`. |
-| `ECONNREFUSED 127.0.0.1:5432` when starting the API | Postgres container is not running. | `docker compose up -d` and re-check with `docker compose ps`. |
-| Migration fails with `relation "X" does not exist` | Migrations were not applied against the active database. | Confirm `DATABASE_URL` points to the local DB, then `npm run migrate`. |
-| Frontend cannot reach the API (CORS error in browser) | `FRONTEND_URL` not added to the API's allow-list. | Set `FRONTEND_URL=http://localhost:[FRONTEND_PORT]` in `.env`, restart the API. |
-| `Module not found` after pulling latest `main` | New dependency added; local `node_modules` is stale. | `rm -rf node_modules package-lock.json && npm install`. |
-| `JWT malformed` / `invalid signature` on every request | `JWT_SECRET` differs between the API and the token issuer (or was rotated). | Re-copy `.env.example`, restart all services, sign in again. |
+| `/` | `pages/dashboard.tsx` | Dashboard v1 — KPI tiles, Portfolio Health, Recent Activity (1/3 col). Period selector locked to "This Month". |
+| `/projects` | `pages/projects.tsx` | Projects list with status / health filter chips. |
+| `/projects/:id` | `pages/project-detail.tsx` | **Note:** US-1 in the UI/UX audit — TDZ crash; fix in flight. |
+| `/accounts` | `pages/accounts.tsx` | |
+| `/prospects` | `pages/prospects.tsx` | |
+| `/opportunities` | `pages/opportunities.tsx` | Probability ≥ 70 % auto-creates a soft allocation. |
+| `/time` | `pages/time.tsx` | Sidebar label says "Time Tracking" — note `/time-tracking` is not an alias today (UI/UX audit NV-1). |
+| `/resources` | `pages/resources.tsx` | Tabs: Capacity, Heat Map, Projects Timeline, People Timeline, Resource Requests, Skills Matrix. |
+| `/finance` | `pages/finance.tsx` | |
+| `/reports` | `pages/reports.tsx` | Performance, Capacity Planning (new), Operations, CSAT Trend, Interval IQ, Budget vs Actuals, Burn-Down, Revenue, Utilization, Project Health. |
+| `/admin` | `pages/admin.tsx` | Users, Project Templates, Skills Matrix, Tax Codes, Time Categories, Time Settings, Holiday Calendars. |
+| `/notifications` | `pages/notifications.tsx` | |
+| `/portal/*` | `pages/portal*.tsx` | Read-only client portal. |
+
+Routing is via Wouter (`App.tsx`). Generated hooks live in `lib/api-client-react/src/generated/`.
 
 ---
 
-## 9. Useful Commands Reference
+## 9. Code Style & Standards
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the local dev server with hot-reload. |
-| `npm run build` | Produce a production build. |
-| `npm run start` | Run the production build locally. |
-| `npm run test` | Run unit tests. |
-| `npm run test:integration` | Run integration tests against the local stack. |
-| `npm run test:e2e` | Run end-to-end browser tests. |
-| `npm run lint` | Run the linter (`eslint` / `ruff` / equivalent). |
-| `npm run lint:fix` | Auto-fix lint issues where possible. |
-| `npm run format` | Apply code formatter (`prettier` / `black` / equivalent). |
-| `npm run migrate` | Apply pending database migrations. |
-| `npm run migrate:rollback` | Roll back the most recent migration. |
-| `npm run seed` | Load sample/seed data into the database. |
-| `docker compose up -d` | Start local Postgres, Redis, and supporting services. |
-| `docker compose down` | Stop and remove the local service containers. |
-| `docker compose logs -f` | Tail logs from all local service containers. |
+- **TypeScript strict.** No `any` without a comment justifying it.
+- **No comments in code unless asked.** This is a project-wide rule.
+- **Use the design system.** New shared components go under `components/ui/`.
+- **Headers via `authHeaders()` only.** Do not hand-build `x-user-role` headers in pages.
+- **No silent failures.** Failed queries should surface a toast or banner (US-11 in the UI/UX audit covers the global wiring).
+- **One file per page; one file per route.** Keep page files thin — extract feature components.
+
+Linting/formatting is via the standard pnpm scripts; CI runs `pnpm typecheck` on every push.
 
 ---
 
-## 10. Contacts
+## 10. Troubleshooting
 
-| Question About | Contact | Slack Channel |
-|---|---|---|
-| Onboarding / access | [PLATFORM LEAD] | `#eng-onboarding` |
-| Frontend codebase | [FRONTEND LEAD] | `#eng-frontend` |
-| Backend / API | [BACKEND LEAD] | `#eng-backend` |
-| Database & migrations | [DATA / PLATFORM LEAD] | `#eng-data` |
-| CI / CD pipelines | [DEVOPS LEAD] | `#eng-devops` |
-| Security & secrets | [SECURITY LEAD] | `#eng-security` |
-| Anything else | [ENGINEERING MANAGER] | `#eng-general` |
+### Preview pane is blank
+
+1. Check the `Start application` workflow is running.
+2. Restart it after any code or dependency change.
+3. Check the browser console for blocked-host errors — Vite must allow all hosts (it already does).
+4. Hard-refresh; cache-control headers are disabled in dev.
+
+### `403 Forbidden` on every write
+
+`localStorage.activeRole` is unset. Open the role-switcher in the SPA and pick a role with the right permissions, or set it via DevTools:
+
+```js
+localStorage.setItem("activeRole", "Admin");
+```
+
+### `pnpm install` complains about npm
+
+The `preinstall` script enforces pnpm. If you see "Use pnpm instead", make sure you really are running pnpm.
+
+### Codegen drift in CI
+
+Run `pnpm --filter @workspace/api-spec run codegen` and commit the regenerated files in `lib/api-zod/src/generated/` and `lib/api-client-react/src/generated/`.
+
+### DB push wants a destructive change
+
+`db:push` will warn before running an `ALTER` that drops or retypes a column. **Stop**. File the change as a planned migration with a snapshot first; never accept destructive prompts in dev for shared infra.
+
+---
+
+## 11. Deployment
+
+Deployment is via Replit's deployment surface (see the deployment skill). The build command is `pnpm build`; the runtime serves the API on `:8080` and the SPA's built static bundle on the configured front door.
+
+Production checklists and incident response live in doc 05.
+
+---
+
+## 12. Revision Log
+
+| Date | Version | Changed By | What Changed |
+|---|---|---|---|
+| 2026-04-24 | 1.0 | DevOps Lead / Tech Lead | Replaced template with the real BusinessNow PSA dev environment guide: pnpm-only, the two active workflows, repo layout, codegen, role-header walkthrough, troubleshooting. |

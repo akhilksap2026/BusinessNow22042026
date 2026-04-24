@@ -1,514 +1,348 @@
-# User Stories & Epics
+# User Stories & Epics — BusinessNow PSA
 
 | | |
 |---|---|
-| **Product** | [PRODUCT NAME] |
-| **Owner** | [HEAD OF PRODUCT / NAME] |
-| **Version** | v0.1 — Draft |
-| **Last Updated** | [YYYY-MM-DD] |
-| **Status** | Draft |
+| **Product** | BusinessNow PSA |
+| **Owner** | PM |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
+
+> Format: epics group related stories. Each story is **As a [role], I want [action] so that [outcome]**, with explicit acceptance criteria. Stories are tagged **SHIPPED** (in production), **NOW** (in flight), **NEXT** (this quarter), **LATER** (next 1–2 quarters). Status mirrors `10_product_roadmap.md`.
 
 ---
 
-## 1. How to Use This Document
+## 1. Definition of Done (applies to every story)
 
-This document is the source of truth for **epics** and **user stories** that feed into sprint planning. Stories are owned by the PM, refined with engineering and design during grooming, and only pulled into a sprint after acceptance criteria, story points, and dependencies are agreed.
+A story is Done when **all** of:
 
-### Story format
-
-Every user story follows the standard Agile template:
-
-> **As a** [persona],
-> **I want to** [action],
-> **so that** [benefit].
-
-### Definition of Done (DoD)
-
-The following checklist applies to **every** user story before it can be marked **Done**:
-
-- [ ] Code merged to `main` behind a feature flag (where applicable).
-- [ ] Unit tests written and passing (coverage ≥ project threshold).
-- [ ] Integration tests cover the new behaviour and edge cases.
-- [ ] All acceptance criteria demonstrably met in a staging environment.
-- [ ] Authorization, validation, and rate-limit rules enforced server-side.
-- [ ] Audit-log entries emitted for all state-changing actions.
-- [ ] Telemetry (events / metrics) added; dashboards updated where relevant.
-- [ ] Accessibility checked against **WCAG 2.1 AA** for new UI.
-- [ ] Internationalization keys externalised (no hard-coded user-facing strings).
-- [ ] Documentation updated (in-app help, public docs, changelog).
-- [ ] Product Manager sign-off recorded on the ticket.
-- [ ] Released to production and verified post-deploy.
+- Acceptance criteria pass.
+- Server-side RBAC middleware applied to any new write route — one of `requireAdmin` / `requirePM` / `requireFinance` / `requireCostRateAccess`, or a hand-rolled `requireCanonicalRole(...)` / `requireRole(...)` / `requireAnyRole(...)` against the canonical 4-role model.
+- `logAudit()` emits a row from any new write path.
+- Zod validation on the request boundary (generated from OpenAPI).
+- Generated React Query hooks regenerated and committed (`pnpm --filter @workspace/api-spec run codegen`).
+- SPA call-sites use `authHeaders()` (no hardcoded `x-user-role` strings).
+- Type-check (`pnpm typecheck`) green.
+- No regression in the UI/UX audit's §6.1 baseline.
+- Audit-log row visible in the Admin audit view.
+- Revision log updated in the relevant doc(s).
 
 ---
 
-## 2. Epics Overview
+## 2. Epic A — Identity & Access
 
-| Epic ID | Epic Name | Description | Priority | Owner | Status | Estimated Stories |
-|---|---|---|---|---|---|---|
-| **EP-001** | Onboarding & Authentication | Sign-up, login, SSO, email verification, invite flow. | P0 | [PM NAME] | In progress | 5 |
-| **EP-002** | Core [Feature A] — `[RESOURCE_A]` Management | Create / view / edit / archive primary domain entities. | P0 | [PM NAME] | In progress | 4 |
-| **EP-003** | Core [Feature B] — `[RESOURCE_B]` Management | Create / assign / reorder / complete child entities. | P0 | [PM NAME] | In progress | 4 |
-| **EP-004** | User Settings & Profile | Personal profile, password, notification preferences, sessions. | P1 | [PM NAME] | Planned | 4 |
-| **EP-005** | Billing & Subscriptions | Plan selection, payment method, invoices, seat management. | P0 | [PM NAME] | In progress | 4 |
-| **EP-006** | Reporting & Analytics | Dashboards, exports, and admin-facing usage analytics. | P1 | [PM NAME] | Planned | 4 |
+### A1 (SHIPPED, partial) — `authHeaders()` as the central helper for role
 
----
+**As an** engineer, **I want** a single helper that constructs request headers from `localStorage.activeRole`, **so that** I don't hardcode `x-user-role: Admin` across the codebase.
 
-## 3. Detailed User Stories by Epic
+**AC**
 
----
+- 6 SPA pages migrated to `artifacts/businessnow/src/lib/auth-headers.ts`: `finance.tsx`, `admin.tsx`, `resources.tsx`, `projects.tsx`, `project-detail.tsx`, `opportunities.tsx`.
+- Helper itself is **fail-closed**: no `activeRole` → no `x-user-role` header → API rejects writes.
+- Role header is spread **last** so caller-supplied `extra` headers cannot override it.
+- 22 hardcoded admin headers replaced.
 
-### EP-001: Onboarding & Authentication
+**Residual / follow-up (A1.1 — NOW):**
 
-#### US-001: User registration
+- `pages/project-detail.tsx` still has 6 hardcoded `"x-user-role": "PM"` literals (closes with US-1 work).
+- `components/project-gantt.tsx` still has 6 hardcoded `"x-user-role": "PM"` literals.
+- `pages/admin.tsx` has 1 hardcoded `"x-user-role": "PM"` literal (~line 3410); the rest of `admin.tsx` correctly threads `activeRole`.
+- `components/tracked-time-tab.tsx` has 3 sites that build the role header inline from the `viewerRole` prop instead of going through `authHeaders()`.
+- `contexts/current-user.tsx` defaults `activeRole` to `"Admin"` before `/api/me` resolves; bootstrap fetch uses a hardcoded `"Admin"` header.
+- Done = zero `"x-user-role"` literals outside `auth-headers.ts`, `current-user.tsx` (bootstrap only), and the portal-specific `"Customer"` headers (which are intentional — the portal does not use the role switcher).
 
-- **As a** [new USER]
-- **I want to** register with my email and a password
-- **So that** I can access [PRODUCT NAME]
-- **Acceptance Criteria:**
-  - [ ] AC1: A unique email + valid password creates an account and sends a verification email.
-  - [ ] AC2: Re-registering with an existing email returns a friendly "sign in instead" message (no enumeration leak).
-  - [ ] AC3: Password must meet the documented policy (length, character classes, breached-password check).
-  - [ ] AC4: A successful registration redirects the user to the email-verification screen.
-- **Priority:** P0
-- **Story Points:** 3
-- **Dependencies:** None
-- **Notes:** Throttle by IP and email; lock account after [N] consecutive failed attempts.
+### A2 (LATER) — Replace header-based auth with SSO
 
-#### US-002: Email verification
+**As a** KSAP IT admin, **I want** users to sign in via the corporate IdP, **so that** access is governed by the central identity system rather than `localStorage.activeRole`.
 
-- **As a** [new USER]
-- **I want to** verify my email address via a one-time link
-- **So that** [PRODUCT NAME] knows my email is real before I can take destructive actions
-- **Acceptance Criteria:**
-  - [ ] AC1: A verification link valid for **[24 hours]** is emailed on registration.
-  - [ ] AC2: Clicking the link marks the user as verified and signs them in.
-  - [ ] AC3: An expired link offers a one-click resend without re-entering credentials.
-  - [ ] AC4: Unverified users cannot perform any write action and see a persistent banner with a resend link.
-- **Priority:** P0
-- **Story Points:** 2
-- **Dependencies:** US-001
-- **Notes:** Emails delivered via [EMAIL PROVIDER]; bounces flagged in admin tools.
+**AC**
 
-#### US-003: SSO login
+- The API gains a verified-role middleware that does not trust the `x-user-role` header in production.
+- The SPA's `authHeaders()` is the only migration point on the client.
+- Audit log captures the verified role claim, not the cookie/header.
 
-- **As a** [new or returning USER]
-- **I want to** sign in with [GOOGLE / MICROSOFT] SSO
-- **So that** I don't have to remember another password
-- **Acceptance Criteria:**
-  - [ ] AC1: SSO buttons appear on login and registration; flow completes without leaving the browser tab.
-  - [ ] AC2: First-time SSO users have an account auto-provisioned into the matching organization (if invited) or land in org creation.
-  - [ ] AC3: Returning SSO users land on the dashboard.
-  - [ ] AC4: SSO failures show a clear, actionable error and offer email/password fallback.
-- **Priority:** P0
-- **Story Points:** 5
-- **Dependencies:** US-001
-- **Notes:** SAML SSO is **out of scope** for this story (tracked in EPIC-006 of the roadmap).
+### A3 (LATER) — Row-level filtering on GET endpoints for Viewer / Consultant
 
-#### US-004: Forgotten password
+**As a** Consultant, **I want** the projects / allocations / tasks lists to default to "mine", **so that** I am not exposed to the entire portfolio when I only need my work.
 
-- **As a** [USER]
-- **I want to** reset my password via a one-time link
-- **So that** I can regain access to my account if I forget it
-- **Acceptance Criteria:**
-  - [ ] AC1: Requesting a reset always returns the same response, regardless of whether the email exists.
-  - [ ] AC2: Reset links expire in **[60 minutes]** and are single-use.
-  - [ ] AC3: Successful reset invalidates all existing sessions and refresh tokens.
-  - [ ] AC4: New password must meet the documented policy.
-- **Priority:** P0
-- **Story Points:** 3
-- **Dependencies:** US-001
-- **Notes:** Notify the user by email on successful reset.
+**AC**
 
-#### US-005: Invite teammates by email
-
-- **As an** [ADMIN]
-- **I want to** invite teammates to my organization by email with a chosen role
-- **So that** they can collaborate inside our workspace
-- **Acceptance Criteria:**
-  - [ ] AC1: Admin selects a role (`admin`, `member`, `viewer`) at invite time.
-  - [ ] AC2: Invitees receive an email with a tokenised link valid for **[7 days]**.
-  - [ ] AC3: Accepting the invite lands the user in the correct organization with the assigned role.
-  - [ ] AC4: An invite is single-use; reuse or expiry shows a clear error and offers re-request.
-- **Priority:** P0
-- **Story Points:** 3
-- **Dependencies:** US-001, US-002
-- **Notes:** Audit-log entries on invite sent / accepted / revoked.
+- `GET` endpoints filter by calling user when role is `Viewer` or `Consultant`.
+- A query string `?scope=all` lets `Admin`/`PM`/`RM` opt out for their own use.
+- Audit log records the filter applied.
 
 ---
 
-### EP-002: Core [Feature A] — `[RESOURCE_A]` Management
+## 3. Epic B — CRM (Accounts, Prospects, Opportunities)
 
-#### US-006: Create a `[RESOURCE_A]`
+### B1 (SHIPPED) — Account, Prospect, Opportunity CRUD
 
-- **As a** [TEAM MEMBER]
-- **I want to** create a new `[RESOURCE_A]` with a name, description, and status
-- **So that** I have a place to organize related work
-- **Acceptance Criteria:**
-  - [ ] AC1: A modal accepts name (required), description (optional), and initial status.
-  - [ ] AC2: On save, the user lands on the new `[RESOURCE_A]` detail page.
-  - [ ] AC3: An audit-log entry is recorded with actor and payload.
-  - [ ] AC4: Validation errors are shown inline; submit is disabled until the form is valid.
-- **Priority:** P0
-- **Story Points:** 3
-- **Dependencies:** US-001
-- **Notes:** Default status = `draft`.
+**As a** PM/Sales user, **I want** to manage accounts, prospects, and opportunities in one place, **so that** the pipeline lives in the same DB as the projects it produces.
 
-#### US-007: List and filter `[RESOURCE_A]`
+**AC**
 
-- **As a** [TEAM MEMBER]
-- **I want to** view a list of all `[RESOURCE_A]` I can access, with search, filter, and sort
-- **So that** I can quickly find what I need
-- **Acceptance Criteria:**
-  - [ ] AC1: List paginates at **[25]** rows per page; defaults to most-recent activity.
-  - [ ] AC2: Filter by status; search by name; sort by name, created date, or last activity.
-  - [ ] AC3: Archived items are hidden by default and can be revealed with a toggle.
-  - [ ] AC4: Empty state offers a primary "Create [RESOURCE_A]" CTA.
-- **Priority:** P0
-- **Story Points:** 5
-- **Dependencies:** US-006
-- **Notes:** Respect tenant isolation; never return rows from another organization.
+- Lists with filter chips (tier, region, status); detail surfaces; standard CRUD.
+- Generated React Query hooks; Zod validation; RBAC.
 
-#### US-008: Edit a `[RESOURCE_A]`
+### B2 (SHIPPED) — Probability ≥ 70 % auto-creates a soft allocation
 
-- **As an** [ADMIN] **or owner of the** `[RESOURCE_A]`
-- **I want to** edit the name, description, status, and metadata
-- **So that** I can keep it accurate as work evolves
-- **Acceptance Criteria:**
-  - [ ] AC1: Inline edits save on blur with optimistic UI.
-  - [ ] AC2: Concurrent edits to the same field show a last-write-wins notice.
-  - [ ] AC3: Audit-log entries record before/after values.
-  - [ ] AC4: Members and viewers see a read-only UI.
-- **Priority:** P0
-- **Story Points:** 3
-- **Dependencies:** US-006
-- **Notes:** Status transitions are validated server-side.
+**As a** Resource Manager, **I want** likely-won opportunities to show up as soft demand on the resourcing surface, **so that** I can plan against them before the contract is signed.
 
-#### US-009: Archive and restore a `[RESOURCE_A]`
+**AC**
 
-- **As an** [ADMIN]
-- **I want to** archive a `[RESOURCE_A]` and later restore it
-- **So that** I can clean up the workspace without losing data
-- **Acceptance Criteria:**
-  - [ ] AC1: Archive sets `deleted_at` and removes the item from default views.
-  - [ ] AC2: Restore is admin-only and clears `deleted_at`.
-  - [ ] AC3: Archived items remain readable in audit-log entries and exports.
-  - [ ] AC4: Hard delete after **[N days]** is performed by a scheduled job, with notice surfaced in the UI.
-- **Priority:** P1
-- **Story Points:** 3
-- **Dependencies:** US-006
-- **Notes:** Cascade behaviour for child `[RESOURCE_B]` is documented in the data model.
+- `PATCH /api/opportunities/:id` setting probability ≥ 70 % triggers a soft allocation.
+- Soft allocations render with a distinct style on the Resources timelines.
+- Auto-trigger emits `audit_log` row.
 
 ---
 
-### EP-003: Core [Feature B] — `[RESOURCE_B]` Management
+## 4. Epic C — Project Management
 
-#### US-010: Create a `[RESOURCE_B]` inside a `[RESOURCE_A]`
+### C1 (SHIPPED) — Project lifecycle
 
-- **As a** [TEAM MEMBER]
-- **I want to** add a `[RESOURCE_B]` to a `[RESOURCE_A]`
-- **So that** I can capture and track a unit of work
-- **Acceptance Criteria:**
-  - [ ] AC1: Title is required; description, assignee, and due date are optional.
-  - [ ] AC2: Default status = `todo`.
-  - [ ] AC3: New items appear at the top of the parent's list with smooth animation.
-  - [ ] AC4: Audit-log entry recorded with actor and payload.
-- **Priority:** P0
-- **Story Points:** 3
-- **Dependencies:** US-006
-- **Notes:** Inline "quick add" supported from the parent list view.
+Standard CRUD on projects with phases, tasks, members, baselines, change orders, project updates, key events.
 
-#### US-011: Assign and reassign a `[RESOURCE_B]`
+### C2 (SHIPPED) — Soft delete + restore
 
-- **As a** [TEAM MEMBER]
-- **I want to** assign or reassign a `[RESOURCE_B]` to a teammate
-- **So that** ownership is explicit
-- **Acceptance Criteria:**
-  - [ ] AC1: Assignee picker shows only members of the current organization.
-  - [ ] AC2: New assignee receives an in-app notification within 5 seconds.
-  - [ ] AC3: Reassignment is allowed and recorded in the audit log.
-  - [ ] AC4: Removing an assignee is supported and recorded.
-- **Priority:** P0
-- **Story Points:** 2
-- **Dependencies:** US-010
-- **Notes:** Email notification is sent based on the assignee's preferences.
+**As a** PM, **I want** to archive a project safely, **so that** I can restore it without data loss.
 
-#### US-012: Reorder `[RESOURCE_B]` within a `[RESOURCE_A]`
+**AC**
 
-- **As a** [TEAM MEMBER]
-- **I want to** drag-and-drop `[RESOURCE_B]` to reorder them
-- **So that** I can express priority visually
-- **Acceptance Criteria:**
-  - [ ] AC1: Drag-and-drop updates the `position` field and persists on drop.
-  - [ ] AC2: Order is consistent across users and sessions.
-  - [ ] AC3: Keyboard reordering is available for accessibility.
-  - [ ] AC4: Reorder events are throttled to avoid excessive write traffic.
-- **Priority:** P1
-- **Story Points:** 5
-- **Dependencies:** US-010
-- **Notes:** Use a fractional-index strategy to avoid mass renumbering.
+- `DELETE` sets `deleted_at`; default list filters by `deleted_at IS NULL`.
+- `POST /api/projects/:id/restore` clears `deleted_at`.
+- Capacity calculations exclude soft-deleted projects (fixed 2026-04-23).
 
-#### US-013: Bulk update `[RESOURCE_B]`
+### C3 (SHIPPED) — Milestone task complete drafts an invoice
 
-- **As an** [ADMIN]
-- **I want to** select multiple `[RESOURCE_B]` and apply a status change, assignment, or delete
-- **So that** I can manage them efficiently at scale
-- **Acceptance Criteria:**
-  - [ ] AC1: Selection persists across pagination within a single session.
-  - [ ] AC2: Bulk action confirms before executing; destructive actions require typed confirmation.
-  - [ ] AC3: A summary toast reports per-item success/failure counts.
-  - [ ] AC4: Audit-log entry recorded per affected item.
-- **Priority:** P1
-- **Story Points:** 5
-- **Dependencies:** US-010, US-011
-- **Notes:** Bulk delete capped at **[N]** items per request; larger batches queued.
+**As a** Finance user, **I want** completing a milestone to draft the invoice automatically, **so that** I don't lose milestone billing to manual oversight.
+
+**AC**
+
+- `PATCH /api/projects/:id/tasks/:taskId` setting `status=Complete` on a milestone task drafts an invoice for the milestone amount.
+- Draft invoice is editable by Finance before sending.
+- Auto-trigger emits `audit_log` row.
+
+### C4 (NOW, Critical — UI/UX audit US-1) — Fix project-detail TDZ
+
+**As a** PM, **I want** the project-detail page to load without a JS crash, **so that** I can use it.
+
+**AC**
+
+- The `users` reference-before-init in `project-detail.tsx` is fixed.
+- Page loads under the standard typecheck and the smoke test.
+- No console errors on a fresh load.
+
+### C5 (NEXT) — Replacement Requests blocked server-side for auto-allocate projects
+
+**As a** Resource Manager, **I want** the API to reject Replacement Requests against projects flagged `autoAllocate`, **so that** the rule isn't only enforced in the UI.
+
+**AC**
+
+- `requirePM` write returns **409 Conflict** with a clear error when the project's `autoAllocate=true`.
+- UI continues to hide the option; the API now also enforces.
+- Tested with a payload that bypasses the UI.
 
 ---
 
-### EP-004: User Settings & Profile
+## 5. Epic D — Time Tracking
 
-#### US-014: Edit personal profile
+### D1 (SHIPPED) — Daily entries + weekly timesheet + approval flow
 
-- **As a** [USER]
-- **I want to** update my display name, avatar, and timezone
-- **So that** my account reflects who I am and surfaces times correctly
-- **Acceptance Criteria:**
-  - [ ] AC1: Avatar upload accepts JPG/PNG up to **[2 MB]**, cropped to a square.
-  - [ ] AC2: Display name is required; timezone defaults to the browser's value on first load.
-  - [ ] AC3: Changes persist immediately and propagate to mentions and activity feeds.
-  - [ ] AC4: Validation errors are shown inline.
-- **Priority:** P1
-- **Story Points:** 2
-- **Dependencies:** US-001
-- **Notes:** Strip EXIF metadata from uploaded images.
+Standard time-tracking surface with submit / approve / reject; messages on rejection.
 
-#### US-015: Change password
+### D2 (SHIPPED) — Notifications on submit/approve/reject
 
-- **As a** [USER]
-- **I want to** change my password from the settings page
-- **So that** I can rotate it on my own schedule
-- **Acceptance Criteria:**
-  - [ ] AC1: Current password is required.
-  - [ ] AC2: New password must meet the documented policy.
-  - [ ] AC3: All other active sessions are invalidated on success.
-  - [ ] AC4: User receives a confirmation email.
-- **Priority:** P1
-- **Story Points:** 2
-- **Dependencies:** US-001
-- **Notes:** Disabled for SSO-only accounts with a clear message.
+**As a** consultant, **I want** to be notified when my timesheet is approved or rejected, **so that** I act on it.
 
-#### US-016: Manage notification preferences
+**AC**
 
-- **As a** [USER]
-- **I want to** choose which events notify me in-app, by email, or not at all
-- **So that** I'm not overwhelmed by noise
-- **Acceptance Criteria:**
-  - [ ] AC1: Per-channel toggles for assignments, mentions, status changes, and digests.
-  - [ ] AC2: Daily-digest send time respects the user's timezone.
-  - [ ] AC3: Preferences are versioned; new event types default to "in-app on, email off".
-  - [ ] AC4: Changes apply within 60 seconds of save.
-- **Priority:** P1
-- **Story Points:** 3
-- **Dependencies:** US-014
-- **Notes:** Future channels (Slack, Teams) reuse this surface.
+- Each timesheet `submit` / `approve` / `reject` writes a notification for the relevant party.
+- Notification is visible in `/notifications` and respects the user's `notification_preferences`.
 
-#### US-017: View and revoke active sessions
+### D3 (SHIPPED) — Time-off + holiday-calendar awareness
 
-- **As a** [USER]
-- **I want to** see my active sessions and sign out of any of them
-- **So that** I can secure my account if I lose a device
-- **Acceptance Criteria:**
-  - [ ] AC1: List shows device, location (approx), and last-active time.
-  - [ ] AC2: User can sign out a single session or "all other sessions" in one click.
-  - [ ] AC3: Revocation invalidates the matching refresh token immediately.
-  - [ ] AC4: An audit-log entry is recorded for each revocation.
-- **Priority:** P1
-- **Story Points:** 3
-- **Dependencies:** US-001
-- **Notes:** Reuses the auth-token revocation primitives.
+**As a** consultant, **I want** time-off requests to integrate with the holiday calendar, **so that** capacity calculations are correct.
+
+**AC**
+
+- Time-off rows reduce the `availableFTE` in capacity calculations.
+- Holiday dates count towards the same reduction.
 
 ---
 
-### EP-005: Billing & Subscriptions
+## 6. Epic E — Resource Management
 
-#### US-018: Choose a plan and start a subscription
+### E1 (SHIPPED) — Hard / soft allocations with placeholders
 
-- **As an** [ADMIN]
-- **I want to** select a paid plan and add a payment method
-- **So that** my organization can use the paid features
-- **Acceptance Criteria:**
-  - [ ] AC1: Plan selector lists Free, Pro, Business with feature highlights.
-  - [ ] AC2: Card or wallet payment is collected via [PAYMENTS PROVIDER]'s secure surface (no PAN touches our servers).
-  - [ ] AC3: On success, the org is upgraded immediately and a receipt is emailed.
-  - [ ] AC4: Failures show a clear error and preserve form state.
-- **Priority:** P0
-- **Story Points:** 5
-- **Dependencies:** US-001
-- **Notes:** Sandbox plans available in non-prod environments.
+**As a** Resource Manager, **I want** to plan with placeholders before names are assigned, **so that** I can size demand.
 
-#### US-019: Add, remove, and reassign seats
+**AC**
 
-- **As an** [ADMIN]
-- **I want to** add or remove seats and reassign them to teammates
-- **So that** I'm only paying for the access we actually use
-- **Acceptance Criteria:**
-  - [ ] AC1: Seat changes are previewed with prorated cost before confirm.
-  - [ ] AC2: Removing a seat from a user converts them to "viewer" until reassigned.
-  - [ ] AC3: Adding seats is reflected within the user-management UI immediately.
-  - [ ] AC4: Audit-log entries recorded for each change.
-- **Priority:** P0
-- **Story Points:** 5
-- **Dependencies:** US-018
-- **Notes:** Webhook from [PAYMENTS PROVIDER] reconciles state nightly.
+- Allocations link to either a `user_id` or a `placeholder_id`.
+- Default placeholders cannot be renamed; user-created placeholders can.
+- Hard vs soft styling distinct on timelines.
 
-#### US-020: View invoices and download receipts
+### E2 (SHIPPED) — Six resource-request types with approval
 
-- **As an** [ADMIN]
-- **I want to** see all past invoices and download PDFs
-- **So that** I can submit them for reimbursement and record-keeping
-- **Acceptance Criteria:**
-  - [ ] AC1: Invoices list shows date, amount, status, and download link.
-  - [ ] AC2: PDFs include billing entity details and line items.
-  - [ ] AC3: Filter by year and status.
-  - [ ] AC4: Pagination at **[25]** rows per page.
-- **Priority:** P1
-- **Story Points:** 3
-- **Dependencies:** US-018
-- **Notes:** PDFs generated by [PAYMENTS PROVIDER]; cache locally for [N days].
+**As a** PM, **I want** to raise New / Replace / Extend / Reduce / Change Role / Remove requests, **so that** the resourcing workflow is explicit.
 
-#### US-021: Cancel or downgrade a subscription
+**AC**
 
-- **As an** [ADMIN]
-- **I want to** cancel my subscription or downgrade to a lower plan
-- **So that** I'm in control of spend
-- **Acceptance Criteria:**
-  - [ ] AC1: Cancellation takes effect at period end; user retains access until then.
-  - [ ] AC2: Downgrade preview clearly lists features/seats that will be lost.
-  - [ ] AC3: A short, optional cancellation-reason survey is captured.
-  - [ ] AC4: Reactivation within the grace period restores the previous state with no data loss.
-- **Priority:** P0
-- **Story Points:** 5
-- **Dependencies:** US-018
-- **Notes:** Failed-payment dunning flows are tracked separately.
+- All six types accepted by `POST /api/resource-requests`.
+- Approval intended to be gated by `requirePM`. (Note: `resourceRequests.ts` write routes are currently **un-gated** at the middleware level — closing that gap is a P-1 audit follow-up.)
+- Marking a request **Fulfilled** auto-creates the corresponding allocation.
+
+### E3 (SHIPPED) — Capacity-Planning report
+
+**As a** Resource Manager / leadership, **I want** a Demand-vs-Supply chart with role-level surplus/deficit, **so that** I can answer "do we have the people?" in under a minute.
+
+**AC**
+
+- `GET /api/reports/capacity-planning?weeks=N` capped at 52.
+- Returns weekly buckets: `totalCapacityFTE`, `timeOffFTE`, `holidayFTE`, `availableFTE`, `assignedDemandFTE`, `unassignedDemandFTE`, `totalDemandFTE`, `surplusFTE`, plus per-role `byRole[]`.
+- Excludes soft-deleted projects.
+- Reports tab renders ComposedChart (Available area + stacked Assigned/Unassigned demand) with horizon selector (4/8/12/26/52 weeks), CSV export, and role-level surplus/deficit table sorted worst-first.
+
+### E4 (NEXT) — Resource Requests inbox widget on the Resources page
+
+**As an** RM, **I want** unassigned demand surfaced directly on the Resources page, **so that** I don't have to leave the page to see what's open.
+
+**AC**
+
+- Inbox component on the Resources page shows open requests by status.
+- Quick-fulfil action available.
+
+### E5 (NEXT) — Per-placeholder "Find Team Member" link
+
+**As an** RM, **I want** to jump from a placeholder row into Find Availability with the search pre-filled, **so that** the workflow is one click instead of three.
+
+**AC**
+
+- Each placeholder row in Resources tabs gains an inline link.
+- Find Availability opens with role / skills pre-populated from the placeholder.
 
 ---
 
-### EP-006: Reporting & Analytics
+## 7. Epic F — Finance
 
-#### US-022: View an organization-level activity dashboard
+### F1 (SHIPPED) — Rate cards (cost vs billable, by job role)
 
-- **As an** [ADMIN]
-- **I want to** see a dashboard of activity across `[RESOURCE_A]` and `[RESOURCE_B]`
-- **So that** I can understand how the team is using [PRODUCT NAME]
-- **Acceptance Criteria:**
-  - [ ] AC1: Default view shows last **30 days** with comparison to the prior period.
-  - [ ] AC2: Charts include active users, items created, items completed, and overdue items.
-  - [ ] AC3: Filters by date range and `[RESOURCE_A]` are available.
-  - [ ] AC4: P95 page load < **2.5 s**.
-- **Priority:** P1
-- **Story Points:** 8
-- **Dependencies:** US-006, US-010
-- **Notes:** Powered by aggregated reads; no raw-row exposure.
+**As a** Finance user, **I want** maintainable rate cards with cost and billable rates, **so that** project margin is calculable.
 
-#### US-023: View per-user productivity report
+### F2 (SHIPPED) — Invoices, line items, billing schedules, revenue entries
 
-- **As an** [ADMIN]
-- **I want to** see per-user activity and completion rates
-- **So that** I can support people who appear stuck and recognise contributors
-- **Acceptance Criteria:**
-  - [ ] AC1: Table lists users with assigned, completed, and overdue counts.
-  - [ ] AC2: Drill-down opens a filtered list of the underlying items.
-  - [ ] AC3: Data respects deletion / soft-delete rules.
-  - [ ] AC4: Sortable by any column.
-- **Priority:** P2
-- **Story Points:** 5
-- **Dependencies:** US-022
-- **Notes:** Hidden from non-admin roles by default.
+Standard finance surface with `requireFinance` write gating.
 
-#### US-024: Export data as CSV
-
-- **As an** [ADMIN]
-- **I want to** export `[RESOURCE_A]` and `[RESOURCE_B]` data as CSV
-- **So that** I can analyse it in external tools
-- **Acceptance Criteria:**
-  - [ ] AC1: Export is asynchronous; user is notified when the file is ready.
-  - [ ] AC2: Files include all columns the user can see in the UI; PII is included only if the user has access.
-  - [ ] AC3: Download links expire after **[7 days]**.
-  - [ ] AC4: An audit-log entry records who exported what and when.
-- **Priority:** P1
-- **Story Points:** 5
-- **Dependencies:** US-006, US-010
-- **Notes:** Exports rate-limited per user.
-
-#### US-025: View audit log with filters
-
-- **As an** [ADMIN]
-- **I want to** view and filter the audit log
-- **So that** I can investigate changes and demonstrate compliance
-- **Acceptance Criteria:**
-  - [ ] AC1: Filters: actor, entity type, entity ID, action, date range.
-  - [ ] AC2: Pagination at **[50]** rows per page; cursor-based for stability.
-  - [ ] AC3: Export to CSV available for the last **[90 days]**.
-  - [ ] AC4: Logs are read-only; no edit/delete actions are exposed.
-- **Priority:** P1
-- **Story Points:** 5
-- **Dependencies:** US-006, US-010, US-018
-- **Notes:** Long-term retention is governed by the data-retention policy.
+### F3 (SHIPPED) — Tax codes, time categories, time settings, holiday calendars (Admin)
 
 ---
 
-## 4. Backlog Items (Future Consideration)
+## 8. Epic G — Reports
 
-Ideas captured but not yet groomed into stories. They will be sized and prioritised in upcoming refinement sessions.
+### G1 (SHIPPED) — Reports tabs
 
-- Workflow automations: triggers, conditions, and actions (no-code).
-- Templates library and shareable templates marketplace.
-- Public REST API (read first, write next) with documented rate limits.
-- Webhooks v2 with signed delivery and per-subscription retries.
-- Slack / Teams two-way integration with slash commands.
-- Native mobile apps (iOS / Android).
-- Custom roles and granular permission editor.
-- SAML SSO for enterprise customers.
-- Regional data residency (EU + US) with per-tenant placement.
-- AI-assisted summaries and next-step suggestions on `[RESOURCE_A]`.
-- In-app commenting + mentions on `[RESOURCE_B]`.
-- Public sharing of read-only `[RESOURCE_A]` views.
-- White-label / custom-domain hosting for customer tenants.
-- Two-factor authentication via TOTP and WebAuthn / passkeys.
-- Bring-your-own-key (BYOK) encryption for enterprise.
+Performance, Capacity Planning, Operations, CSAT Trend, Interval IQ, Budget vs Actuals, Burn-Down, Revenue, Utilization, Project Health.
+
+### G2 (SHIPPED) — CSV export on the Capacity-Planning tab
+
+### G3 (WATCHING) — Reports off a data warehouse
+
+Trip-wire is OLTP latency on Capacity Planning at 52 weeks. Not committed.
 
 ---
 
-## 5. Story Sizing Reference
+## 9. Epic H — Dashboard
 
-We size stories on a **modified Fibonacci scale**. Sizes reflect *complexity, risk, and unknowns* — not strictly hours.
+### H1 (SHIPPED) — Dashboard v1
 
-| Points | Complexity | Time Estimate (guideline) |
-|---|---|---|
-| 1 | Trivial — well-understood, isolated change. | < 0.5 day |
-| 2 | Simple — small surface, one file/component, low risk. | 0.5–1 day |
-| 3 | Moderate — touches a couple of layers; some review needed. | 1–2 days |
-| 5 | Notable — cross-cutting; some unknowns; needs design + review. | 2–4 days |
-| 8 | Large — multiple components; meaningful design decisions. | 4–7 days |
-| 13 | Very large — likely needs to be split before pulling into a sprint. | > 1 week (split it!) |
+**As** any role, **I want** a single landing page with the KPIs that matter, **so that** I can act in seconds.
 
-> Stories estimated above 8 should be split during refinement. Anything 13+ is considered too risky to commit to in a single sprint.
+**AC**
+
+- KPI tiles: Active Projects, Total Revenue, Billable Hours WTD, Team Utilization — each with a status border (good / warning / danger).
+- Portfolio Health stacked bar (On Track / At Risk / Off Track).
+- CR Impact card (count, revenue delta, effort delta).
+- Period selector locked to "This Month"; Last 30 / Quarter / Year visible but disabled.
+- Recent Activity demoted to a 1/3-column right rail card.
+- `Math.min(100, …)` clamp on `teamUtilization` removed.
+
+### H2 (NEXT) — Dashboard v2 (period selector + per-role widgets)
+
+**As** Finance/PM/RM, **I want** the dashboard to adapt to my role and time horizon, **so that** the most relevant numbers are first.
+
+**AC**
+
+- Period selector enables Last 30 / Quarter / Year (server already accepts `period`).
+- Per-role widget set selectable in user preferences.
+- ≥ 70 % retention vs v1 in the analytics baseline.
 
 ---
 
-## 6. Sprint Assignment Suggestion
+## 10. Epic I — Admin
 
-A representative slicing assuming a **2-week sprint** and a steady velocity of **~25 points / sprint**. Adjust based on actual team capacity.
+### I1 (SHIPPED) — Users + secondary roles + role switcher
 
-| Sprint | Stories | Goal |
-|---|---|---|
-| Sprint 1 | US-001, US-002, US-004 | Auth foundations: a user can register, verify, and recover. |
-| Sprint 2 | US-003, US-005 | SSO + invites: teams can form and onboard end-to-end. |
-| Sprint 3 | US-006, US-007, US-008 | `[RESOURCE_A]` create / list / edit. |
-| Sprint 4 | US-009, US-010, US-011 | Archival + first `[RESOURCE_B]` flows. |
-| Sprint 5 | US-012, US-013 | Drag-to-reorder + bulk actions for `[RESOURCE_B]`. |
-| Sprint 6 | US-018, US-019 | Plan selection and seat management — start of monetisation. |
-| Sprint 7 | US-020, US-021, US-014, US-015 | Invoices + cancellation + profile + password. |
-| Sprint 8 | US-016, US-017, US-025 | Notification prefs, sessions, and audit-log UI. |
-| Sprint 9 | US-022, US-024 | Activity dashboard + CSV exports. |
-| Sprint 10 | US-023 + buffer / hardening | Per-user reporting and pre-GA hardening sprint. |
+### I2 (SHIPPED) — Project Templates with template phases / tasks / allocations
+
+### I3 (SHIPPED) — Skills Matrix (configurable categories, proficiency)
+
+### I4 (SHIPPED) — Tax Codes, Time Categories, Time Settings, Holiday Calendars
+
+---
+
+## 11. Epic J — Notifications
+
+### J1 (SHIPPED) — In-app feed + per-user preferences
+
+---
+
+## 12. Epic K — Client Portal
+
+### K1 (SHIPPED) — Read-only project status, documents, CSAT
+
+**AC**
+
+- Portal endpoints scoped to the granted account.
+- Reads the same DB as internal users — no nightly export.
+- No write paths to internal data.
+
+---
+
+## 13. Epic L — UI / UX Audit Follow-Ups
+
+### L1 (NOW, Critical) — US-1: project-detail TDZ
+
+(See C4.)
+
+### L2 (NOW) — §6.2 quick wins
+
+Smaller table row heights; consistent column widths; status pills standardised across pages.
+
+### L3 (NOW) — US-11: Global error toast/banner
+
+**As a** user, **I want** failed queries to surface an error rather than silently render an empty list, **so that** I know to retry / report.
+
+**AC**
+
+- React Query error handler wired to global toast/banner component.
+- All page-level lists fall back to a non-empty error state on query failure.
+
+### L4 (NOW) — Density / scale redesign
+
+**AC**
+
+- Default UI scale reduced; ≥ 25 % more rows visible at 1440×900.
+- Side-by-side tested on dashboard, projects, resources tabs.
+- No regression in §6.1 baseline.
+
+### L5 (NEXT) — UI/UX audit §6.3 medium items
+
+Re-prioritised at sprint planning.
+
+---
+
+## 14. Revision Log
+
+| Date | Version | Changed By | What Changed |
+|---|---|---|---|
+| 2026-04-24 | 1.0 | PM | Replaced template with the real BusinessNow PSA epics and stories. Statuses reflect the production-deployed surface and the in-flight density / audit-follow-up work. |

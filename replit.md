@@ -431,6 +431,28 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - New `PATCH /api/users/:id/secondary-roles` endpoint in `users.ts` (Admin only) — accepts `{ secondaryRoles: string[] }` and persists array
 - Admin → Users → **User Configuration** sub-tab: table of all users with their primary role badge + toggle buttons for each secondary role; clicking a role calls the new PATCH endpoint; saves immediately with toast feedback
 
+### Documentation refresh — 2026-04-24
+
+- Rewrote all 22 docs in `docs/` from template placeholders to real BusinessNow PSA content. All set to v1.0 / Approved (Risk Register marked Living) / 2026-04-24.
+- `docs/index.md` — full registry rebuilt with real owners, paths, and current-phase summary; added pointers to `BusinessNow-PSA-Architecture.md` and the two 2026-04 audits.
+- `docs/technical/01_system_architecture.md` — high-level summary of contract-first stack, RBAC roles, `authHeaders()` helper, dashboard v1, soft-delete capacity rule.
+- `docs/technical/02_api_documentation.md` — full route inventory (30 files), auto-triggers, capacity-planning endpoint, codegen workflow.
+- `docs/technical/03_database_schema.md` — 11-module map, ~60-table count, soft-delete + audit-log rules, schema-change workflow.
+- `docs/technical/04_dev_environment_setup.md` — pnpm-only, the two active workflows (`API Server` :8080 and `Start application` :5000), troubleshooting.
+- `docs/technical/05_security_and_compliance.md` — honest header-based auth posture, RBAC middleware, known gaps (no SSO, GET row-level filtering), incident-response.
+- `docs/business/06_product_requirements_document.md` — current product surface (13 pages), functional + non-functional requirements, dashboard v1, success metrics.
+- `docs/business/07_go_to_market_strategy.md` — internal rollout plan (not external GTM); adoption funnel, comms cadence, onboarding plan.
+- `docs/business/08_business_model_canvas.md` — internal operating-model canvas; no external monetisation.
+- `docs/business/09_competitive_analysis.md` — build-vs-buy rationale; categories not vendor names; re-evaluation triggers.
+- `docs/product/10_product_roadmap.md` — NOW/NEXT/LATER/BACKLOG with recently shipped (60-day) summary.
+- `docs/product/11_user_stories_and_epics.md` — 12 epics, stories tagged SHIPPED / NOW / NEXT / LATER; DoD aligned to RBAC + audit + codegen + `authHeaders()`.
+- `docs/product/12_ux_research_brief.md` — Q2 2026 round: density redesign + audit prioritisation, internal-only recruiting.
+- `docs/operations/13_team_structure_and_raci.md` — real 8.5 FTE shape (no dedicated DevOps/BA), RACI per work area.
+- `docs/operations/14_sprint_plan_phase1.md` — repurposed to active Phase-2 plan (Sprints 13–17); Phase-1 (MVP) summarised in §9.
+- `docs/operations/15_risk_register.md` — open + closed risks; recently-resolved items captured (clamp removal, capacity-planning, soft-delete capacity fix, `authHeaders` consolidation, period-selector lock, Resources tab persistence).
+- `docs/legal-finance/16_project_charter.md` — first approved charter with sponsor sign-off; scope, deliverables, risks aligned with current state.
+- `docs/legal-finance/17_budget_estimate.md` — first approved FY 2026 budget; $1.55M total incl. 15% contingency; aligned with the actual team in doc 13.
+
 ### Sprint 6 Complete
 - T001: Project Phases — "Edit Phase" and "Delete Phase" menu items now fully wired; `useUpdatePhase`/`useDeletePhase` mutations; Edit dialog (name/status/startDate/dueDate); Delete confirm dialog
 - T002: Time Tracking — "Log Time" button opens dialog (project/date/hours/description/billable); `useCreateTimeEntry` mutation; "Start Timer" stopwatch button counts up in header and auto-fills hours when stopped

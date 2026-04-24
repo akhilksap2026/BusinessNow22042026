@@ -1,240 +1,216 @@
-# Security and Compliance Documentation
+# Security & Compliance — BusinessNow PSA
 
 | | |
 |---|---|
-| **Title** | Security & Compliance — [PRODUCT NAME] |
-| **Version** | v0.1 — Draft |
-| **Owner** | [Security Lead / CTO] |
-| **Classification** | **Internal Only** |
-| **Date** | [YYYY-MM-DD] |
-| **Status** | Draft |
+| **Product** | BusinessNow PSA |
+| **Owner** | Security Lead |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
 
-> This document captures the security and compliance posture of [PRODUCT NAME]. Tick checkboxes (`- [x]`) as controls are implemented or evidence is collected.
-
----
-
-## 1. Security Principles
-
-[PRODUCT NAME] is designed and operated against the following first-order principles:
-
-- **Defense in depth.** Multiple, independent layers of control (network, application, data, identity) so that no single failure exposes the platform.
-- **Least privilege.** Every human, service, and credential receives the minimum permissions required to perform its role; access is reviewed periodically and revoked when no longer needed.
-- **Zero trust.** No implicit trust based on network location. Every request — internal or external — is authenticated, authorized, and logged.
-- **Data minimization.** Collect, retain, and replicate only the data necessary to deliver the service; expire and delete the rest on schedule.
-- **Secure by default.** New features ship with restrictive defaults; opening up access is an explicit, audited choice.
+> This document is **honest** about the current security posture of an internal-only platform. Where the model is intentionally simpler than a public SaaS would be, that is called out. Where there are real gaps, they are listed in §11.
 
 ---
 
-## 2. Authentication & Authorization
+## 1. Threat Model (Lite)
 
-- **Auth method:** [JWT / OAuth2 / SAML — TBD]
-- **Session management:**
-  - Access tokens expire in **[X minutes]**.
-  - Refresh tokens expire in **[Y days]** and are single-use (rotated on every refresh).
-  - Sessions are revoked on logout, password change, MFA reset, or admin action.
-  - Idle timeout: **[Z minutes]**; absolute session lifetime: **[N hours]**.
-- **Password policy:**
-  - Minimum length **[12]** characters; must include at least one letter and one digit.
-  - Checked against a breached-password list ([HIBP / equivalent]).
-  - Stored as Argon2id (or bcrypt cost ≥ 12) hashes; never reversible.
-  - Forced rotation only on compromise; routine rotation is **not** required.
-- **MFA requirements:**
-  - Required for all admin / owner roles.
-  - Optional but encouraged for all other users.
-  - Supported factors: TOTP (RFC 6238); WebAuthn / passkeys recommended.
-  - Backup codes generated on enrolment and stored hashed.
+BusinessNow PSA is **single-tenant** and used only by KSAP Technology employees, contractors, and a small number of named **client portal** users. The relevant attackers are:
 
-### Auth security checklist
-
-- [ ] All credentials stored as salted, modern hashes (Argon2id or bcrypt cost ≥ 12).
-- [ ] All tokens are short-lived; long-lived secrets are explicitly avoided.
-- [ ] Refresh tokens are rotated and revoked on reuse.
-- [ ] MFA enforced for privileged roles; cannot be self-disabled without re-auth.
-- [ ] Brute-force / credential-stuffing protections (rate-limit + lockout) on `/auth/login`.
-- [ ] Account-enumeration mitigated (uniform responses for unknown vs. wrong password).
-- [ ] Session cookies marked `Secure`, `HttpOnly`, `SameSite=Lax` (or `Strict`).
-- [ ] Authorization checks enforced server-side on **every** endpoint (no client-side gating).
-- [ ] Admin actions logged to `audit_logs` with actor, target, and outcome.
-- [ ] Periodic access review (at least quarterly) of admin and service accounts.
-
----
-
-## 3. Data Security
-
-### 3.1 Data classification
-
-| Class | Examples | Handling Rules |
+| Actor | Likely goal | Mitigations |
 |---|---|---|
-| **Public** | Marketing pages, public API docs, open-source code. | Freely shareable; no special controls beyond integrity. |
-| **Internal** | Internal runbooks, non-sensitive metrics, employee directory. | Accessible to all employees; do not share externally without approval. |
-| **Confidential** | Customer content, support tickets, business plans. | Need-to-know access; encrypted in transit and at rest; auditable access. |
-| **Restricted** | Credentials, secrets, payment data, government IDs, security incidents. | Access by named individuals only; stored only in approved systems; logged; subject to legal/compliance review. |
+| External unauthenticated attacker on the public deployment URL | Access internal data; deface; ransomware | Replit deployment front door; no anonymous write paths; audit log; daily snapshots. |
+| Malicious or careless internal user with low privileges (Viewer / Consultant) | Privilege escalation; PII access | Server-side RBAC on every write; UI affordance differences; audit log per write. |
+| Compromised internal user with PM / Finance privileges | Mass exfiltration; financial fraud | Role separation (PM vs Finance); audit log; small blast radius in single-tenant model. |
+| Client portal user | Cross-customer access; PII | Portal endpoints scoped to the granted account; no write paths to internal data. |
+| Supply-chain attack (npm dependency) | RCE; credential theft | Dependency scanning; pinned versions; pnpm lockfile; only trusted org packages. |
 
-### 3.2 Encryption
+---
 
-- **At rest:** [AES-256 — TBD] for primary database, object storage, and backups; keys managed in [KMS].
-- **In transit:** TLS 1.2+ (TLS 1.3 preferred) for all external traffic; mTLS or VPC-internal encryption for service-to-service traffic.
-- **Key management:**
-  - Customer data keys rotated at least every **[12 months]**.
-  - Application secrets rotated at least every **[90 days]** or on suspected compromise.
-  - No secrets in source code, container images, or client-side bundles.
+## 2. Identity & Authentication (Current)
 
-### 3.3 PII fields to protect
+The current model is **header-based**. It is intentionally simple for an internal platform but is documented honestly so future work knows what it is replacing.
 
-| Field | Table | Protection Method |
+| Item | Reality today |
+|---|---|
+| Login surface | The SPA's role switcher writes `localStorage.activeRole`. The first time a user opens the app, KSAP's IT team has provisioned them with the right role through the Admin → Users surface. |
+| Session | There is **no JWT, no OAuth, no SSO** today. The role is read from `localStorage.activeRole` and sent on every request as `x-user-role`. |
+| User identification | A `x-user-id` header may be sent for audit attribution; `/api/me` returns the current user. |
+| Header construction | Centralised in `artifacts/businessnow/src/lib/auth-headers.ts`. Fail-closed (no role → no header → server-side reject on writes). Role spread last to prevent override. |
+| Front door | Replit's deployment front door handles TLS and DNS. |
+
+### What this means in practice
+
+- The model relies on the **Replit deployment front door** and on KSAP's access controls (who has the deployment URL) for the equivalent of perimeter authentication.
+- Role escalation requires either DevTools access on a privileged user's machine or compromise of the deployment surface itself.
+- This is acceptable for an **internal, single-tenant platform** with the user population we have today. It would not be acceptable for a commercial SaaS — see §11.
+
+### Roadmap
+
+- **SSO / OIDC** is on the LATER track in doc 10. When it lands, the `authHeaders()` helper becomes the single migration point on the SPA side; the API switches from `x-user-role` to a verified role claim.
+
+---
+
+## 3. Authorisation — RBAC
+
+### Roles
+
+| Role | Typical user |
+|---|---|
+| `account_admin` | Full access including org/account settings, cost rates, user management. Legacy alias: `Admin`. |
+| `super_user` | Broad access to all project work surfaces; cannot manage core account settings or view raw cost rates. Legacy aliases: `PM`, `Super User`, `Finance`, `Developer`, `Designer`, `QA`. |
+| `collaborator` | Limited internal user. Can view/contribute on assigned projects; no project creation; no admin surfaces. Legacy aliases: `Collaborator`, `Viewer`. Demo job-title strings (`Consultant`, `Business Analyst`, `Data Engineer`, `Integration Engineer`, `QA Engineer`) also resolve here. |
+| `customer` | External / portal-only user. Project-scoped read access via `/api/portal-auth/*`; blocked from internal `/api/*` routes by `blockPortalRoles`. Legacy aliases: `Customer`, `Partner`. |
+
+The legacy 11-role string union (`Admin`, `PM`, `Super User`, `Finance`, `Developer`, `Designer`, `QA`, `Collaborator`, `Viewer`, `Customer`, `Partner`) is still accepted on the `x-user-role` header — `LEGACY_ROLE_MAP` in `artifacts/api-server/src/constants/roles.ts` resolves any value to its canonical role. New code should prefer the four canonical values. **"Resource Manager" is a job function, not a role** — capacity / staffing work is performed by an `account_admin` or `super_user`.
+
+A user can also have **secondary roles** they switch into via the role switcher — see `users.secondary_roles[]`.
+
+### Middleware
+
+Every write route is wrapped by one of:
+
+| Middleware | Roles allowed |
+|---|---|
+| `requireAdmin` | `account_admin` (= legacy `Admin`). |
+| `requirePM` | `account_admin` or `super_user` (= legacy `Admin` / `PM` / `Super User` / `Finance` / `Developer` / `Designer` / `QA`). Implemented as `requireRole("super_user")`. |
+| `requireFinance` | `account_admin` or `super_user` (canonical check via `requireCanonicalRole("account_admin","super_user")`). |
+| `requireCostRateAccess` | Legacy `Admin`, `Finance`, `PM` only — Super Users explicitly excluded so they cannot read raw cost rates. |
+| `blockPortalRoles` | Globally applied to all `/api/*` routes (except `/api/portal-auth/*`) — rejects `customer` / `Customer` / `Partner`. |
+| Building blocks | `requireRole(min)`, `requireCanonicalRole(...roles)`, `requireAnyRole(...roles)` — used directly when a one-off rule is needed. |
+
+There is **no `requireRM`** — capacity / staffing approval routes use `requirePM`. The `resourceRequests.ts` write routes are currently **not gated** at the middleware level (a known gap; tracked in the Risk Register as part of the read-side / write-side RBAC sweep).
+
+A code-review reject is mandatory for any new write route lacking the right `require*` middleware.
+
+### Known gap — read-side filtering
+
+Read endpoints (`GET`) are currently permissive: a `Viewer` or `Consultant` sees **all** rows of a list resource, not only those scoped to them. The 2026-04-23 audit logged this as **High, accepted** — it is a backlog item, not a regression. Mitigation: the Replit deployment front door restricts who can see the app at all; audit-log entries on writes still bind to the actor.
+
+---
+
+## 4. Data Classification
+
+| Class | Examples in BusinessNow PSA | Handling |
 |---|---|---|
-| `email` | `users` | Encrypted at rest; access logged; redacted in non-prod data dumps. |
-| `password_hash` | `users` | Argon2id hash; never logged; never returned by any API. |
-| `name` | `users` | Encrypted at rest; redacted in non-prod data dumps. |
-| `avatar_url` | `users` | Public URL — treated as Internal; not embedded in audit exports. |
-| `billing_email` | `organizations` | Encrypted at rest; access logged. |
-| `ip_address` | `audit_logs` | Truncated for analytics; full value retained for security investigations only. |
-| `[PAYMENT_FIELD]` | `[BILLING_TABLE]` | Stored and processed exclusively in [PAYMENTS PROVIDER]; tokenised reference held locally. |
+| **PII (low)** | Internal user name, email, role, department, avatar URL. | Standard table columns; included in audit-log payloads where relevant. |
+| **PII (client portal)** | Client portal account user record, contact metadata. | Scoped to the client portal endpoints (`/api/portal/*`). Not visible across portal accounts. |
+| **Financial** | Rate cards, cost rates, billable rates, invoices, line items, revenue entries, change-order amounts, project budgets. | Read access gated behind Finance / PM / Admin roles in the UI; write access via `requireFinance` / `requirePM` server-side. |
+| **Operational metadata** | Tasks, allocations, time entries, project status, change orders. | Internal-use; no PII concerns beyond actor-id columns. |
+| **Audit** | `audit_log` rows including before/after JSON payloads. | Append-only; read-only through `GET /api/audit-log`. |
 
-### 3.4 Data security checklist
-
-- [ ] All databases and object stores have encryption-at-rest enabled and verified.
-- [ ] All ingress and inter-service traffic uses TLS 1.2+ (TLS 1.3 preferred).
-- [ ] Production data is **never** copied to development or local environments without anonymisation.
-- [ ] Backups are encrypted, off-site, and restore-tested at least quarterly.
-- [ ] PII is redacted from application logs and from error-tracking payloads.
-- [ ] Customer data deletion (DSR) supported within the regulatory window.
-- [ ] Data-retention schedule documented per data class and enforced by automated jobs.
-- [ ] Access to production data is gated by ticketed, time-bound elevation.
+Documents stored in the `documents` / `document_versions` tables can carry attachments. KSAP IT is responsible for the storage backend's encryption-at-rest configuration (see §6).
 
 ---
 
-## 4. API Security
+## 5. Data Lifecycle
 
-- **Rate limiting:** [X requests/minute] per API key and per IP; abusive sources are progressively delayed and then blocked.
-- **Input validation:** every endpoint validates payloads against a strict schema (Zod / JSON Schema / equivalent); unknown fields are rejected.
-- **CORS policy:** allow-list driven; only `[FRONTEND_URL]` and approved partner origins are permitted; credentials are sent only to allow-listed origins.
-- **API key rotation:** keys are auto-rotated every **[90 days]**; manual rotation supported at any time with a documented dual-key overlap window.
-- **Authentication:** every endpoint (other than the public marketing surface) requires a Bearer JWT or signed API key.
-- **Output encoding:** API responses are JSON with explicit `Content-Type`; HTML rendering paths use context-aware escaping.
+| Stage | Behaviour |
+|---|---|
+| Create | Standard `created_at`, optional `actor_user_id`. Audit-log row. |
+| Read | RBAC-permissive on GETs (see §3 known gap). |
+| Update | Audit-log row with `payload_before` / `payload_after`. |
+| Delete (soft) | `projects.deleted_at` only. Restore via `POST /api/projects/:id/restore`. |
+| Delete (hard) | Allowed for non-`projects` rows; audit-log record retained. |
+| Export | List endpoints support CSV download from the UI (Reports, audit log) for the calling user's role. |
+| Backup | Replit-managed daily snapshots; PITR; quarterly off-Replit copy held by KSAP IT (per doc 17 §3). |
+| Retention | Operational data is retained indefinitely for the active platform. The audit log is retained indefinitely. |
 
-### OWASP Top 10 (2021) checklist
-
-- [ ] **A01 Broken Access Control** — Authorization enforced server-side on every resource; tenant isolation tests in CI.
-- [ ] **A02 Cryptographic Failures** — TLS everywhere, modern ciphers; secrets and PII encrypted at rest.
-- [ ] **A03 Injection** — Parameterised queries / ORM; input validated and output encoded; no string-built SQL.
-- [ ] **A04 Insecure Design** — Threat modelling performed for new features; abuse cases documented.
-- [ ] **A05 Security Misconfiguration** — Hardened base images; least-privilege IAM; default-deny network rules.
-- [ ] **A06 Vulnerable & Outdated Components** — Automated dependency scanning; SLA for patching High/Critical CVEs.
-- [ ] **A07 Identification & Authentication Failures** — MFA for privileged users; brute-force protection; session hygiene.
-- [ ] **A08 Software & Data Integrity Failures** — Signed build artifacts; verified dependencies; no auto-update from untrusted sources.
-- [ ] **A09 Security Logging & Monitoring Failures** — Central logs, alerting on auth/admin events, immutable retention.
-- [ ] **A10 Server-Side Request Forgery (SSRF)** — URL allow-list for outbound fetches; metadata endpoints blocked from app egress.
+There is no "right to be forgotten" workflow today (out of scope — internal platform).
 
 ---
 
-## 5. Infrastructure Security
+## 6. Secrets, Keys, and Storage
 
-- **Network:**
-  - All services run inside a private VPC; only the load balancer is internet-facing.
-  - Security groups follow default-deny; inbound rules scoped to specific source CIDRs and ports.
-  - Database and cache tiers are unreachable from the public internet.
-- **Secrets management:** [Vault / AWS Secrets Manager / GCP Secret Manager — TBD]
-  - Application secrets injected at runtime; never written to disk or container images.
-  - Access audited; rotation jobs run on a schedule.
-- **Logging & monitoring:**
-  - Structured application logs shipped to [LOGGING PROVIDER] with **[N]-day** hot retention and **[N]-month** cold retention.
-  - Metrics and traces in [APM PROVIDER]; alerts paged via [ON-CALL TOOL].
-  - Security-relevant events (auth, admin, role changes, secret access) emitted to a dedicated security stream.
-- **Backup policy:**
-  - Database: nightly full + continuous WAL/binlog with **[N]-day** point-in-time recovery.
-  - Object storage: cross-region replication for production buckets.
-  - Quarterly restore drills with documented evidence.
-
-### Infrastructure checklist
-
-- [ ] All production resources tagged with owner, environment, and data class.
-- [ ] Public IPs limited to load balancers and bastion hosts.
-- [ ] All admin access via SSO + MFA; standing root credentials avoided.
-- [ ] Security groups / firewall rules reviewed at least quarterly.
-- [ ] All workloads run in least-privilege IAM roles; no shared service accounts.
-- [ ] Secrets rotation jobs tested and alarms wired to failures.
-- [ ] Backups encrypted, replicated off-region, and restore-tested.
-- [ ] Configuration drift detected via IaC (Terraform/Pulumi/CloudFormation) plan diffs.
+- **Environment variables** — managed via the Replit secrets surface and the environment-secrets skill. Engineers must never read or write secrets manually.
+- **Connection strings** — `DATABASE_URL` is provided by Replit and rotated by Replit's managed Postgres service.
+- **Encryption at rest** — provided by Replit's managed Postgres and storage layer.
+- **Encryption in transit** — TLS via Replit's deployment front door.
+- **No client-side secrets.** The SPA contains no API keys; everything sensitive lives behind the API.
 
 ---
 
-## 6. Compliance Requirements
+## 7. Audit Log
 
-| Regulation | Applicability | Status | Owner |
+`audit_log` is append-only. Every write route calls `logAudit({ entityType, entityId, action, actorUserId, actorRole, payloadBefore, payloadAfter })`. The Definition of Done for any new write route includes: an `audit_log` row exists with non-null actor.
+
+The UI exposes the audit log to **Admin** under `/api/audit-log` (cursor-paginated). Filters: actor, entity type, entity id, action, date range. CSV export is supported.
+
+---
+
+## 8. Logging & Observability
+
+| Stream | Where |
+|---|---|
+| API server logs | Workflow console (dev); Replit deployment logs (prod). |
+| Frontend errors | Browser console (dev); error-tracking service (prod, per doc 17 §4). |
+| Database snapshots | Replit-managed daily; visible in Replit's DB UI. |
+
+Log entries must **never** include credentials, tokens, or full request bodies for write paths (the audit log captures what we need).
+
+---
+
+## 9. Dependency & Code Hygiene
+
+- **Lockfile** — pnpm lockfile checked in; reproducible installs.
+- **Dependency scanning** — runs in CI per the security skill (`runDependencyAudit`).
+- **SAST** — `runSastScan` is part of the periodic security review.
+- **Secret scanning** — `runHoundDogScan` looks for committed secrets.
+- **Generated code** — files in `lib/api-zod/src/generated/` and `lib/api-client-react/src/generated/` are reviewed but not hand-edited.
+
+The full security-review playbook is the security_scan skill; run it ahead of any release that touches authentication, a new write surface, or third-party packages.
+
+---
+
+## 10. Incident Response (Lite)
+
+| Severity | Definition | Response time |
+|---|---|---|
+| **S1** | Data loss; data exposure; full outage. | Acknowledge **15 minutes**; mitigate **1 hour**; resolve same business day. |
+| **S2** | Major degradation; partial outage; auth bypass. | Acknowledge **1 hour**; mitigate **4 hours**; resolve **2 business days**. |
+| **S3** | Single-team blocker; non-critical defect with workaround. | Acknowledge **1 business day**; resolve next sprint. |
+
+For S1/S2, open a war-room channel in the team's chat; page the on-call engineer; status updates every 30 minutes until mitigated. A blameless post-mortem is mandatory for S1 and recommended for S2; published in `docs/operations/` within 5 business days.
+
+For data-exposure events that touch client-portal users, the Security Lead and Legal must be looped in immediately to scope external notification obligations.
+
+---
+
+## 11. Known Gaps & Open Items
+
+| Item | Disposition |
+|---|---|
+| **No SSO / OIDC.** Auth is a `x-user-role` header today. | Roadmap LATER (doc 10). Mitigation: deployment front door + role switcher + audit log. |
+| **GET routes do not row-filter by role.** Viewer / Consultant see all rows. | Backlog. Audit'd 2026-04-23 as High, accepted (codebase-wide pattern). |
+| **No 2FA.** | Out of scope for header-based model; will land with SSO. |
+| **No data-residency choice.** | Single Replit-hosted region; documented and accepted. |
+| **No SOC 2 audit.** | Not pursued for an internal platform; reviewed at every charter version (doc 16). |
+| **Replacement Requests not blocked server-side for auto-allocate projects.** | Backlog (Medium) per the 2026-04-23 audit. |
+
+---
+
+## 12. Compliance Posture (Internal)
+
+BusinessNow PSA is an internal system at KSAP Technology. It is **not** marketed as SOC 2-compliant, GDPR-compliant for external data subjects, or HIPAA-compliant. Where KSAP's parent obligations require specific controls (e.g. PII handling for client-portal contacts), those controls are documented in this doc (§3, §4, §6) and reviewed at the cadence in doc index §3.
+
+KSAP's internal audit team reviews this document annually and signs off on the §10 incident-response readiness.
+
+---
+
+## 13. Security Review Checklist (per release)
+
+- [ ] No new write route without the right `require*` middleware.
+- [ ] Every new write route emits a `logAudit()` entry.
+- [ ] `authHeaders()` used at every new SPA call-site (no hardcoded `x-user-role` strings).
+- [ ] No secrets in code; all env vars provisioned via the secrets skill.
+- [ ] Dependency scan green or new findings triaged.
+- [ ] SAST scan run if the change touches auth, RBAC, or a new write surface.
+- [ ] Audit log readable by Admin for the new entity types.
+- [ ] No new GET endpoint that exposes financial or PII data without a role gate.
+
+---
+
+## 14. Revision Log
+
+| Date | Version | Changed By | What Changed |
 |---|---|---|---|
-| GDPR (EU) | Customer data of EU residents. | [TBD / In Review] | [Security Lead] |
-| CCPA / CPRA (California) | Personal information of California residents. | [TBD / In Review] | [Security Lead] |
-| SOC 2 (Type I → Type II) | Required by mid-market and enterprise customers. | [TBD / In Review] | [CTO] |
-| ISO 27001 | Required by selected enterprise customers. | [TBD / In Review] | [CTO] |
-| HIPAA | Only if [PRODUCT NAME] processes PHI on behalf of covered entities. | [TBD / In Review] | [Compliance / Legal] |
-| PCI DSS | Only if [PRODUCT NAME] handles primary account numbers (PAN). | [TBD / In Review] | [Billing Lead] |
-
-> Evidence (policies, screenshots, ticket exports) for each control is collected in [COMPLIANCE TOOL / SHARED DRIVE PATH].
-
----
-
-## 7. Incident Response Plan
-
-The lifecycle of a security incident:
-
-1. **Detect** — Alerts from [SIEM / APM / customer reports] reach the on-call security responder.
-2. **Contain** — Isolate the affected system (revoke tokens, block IPs, disable accounts, take node out of rotation).
-3. **Investigate** — Preserve logs and forensic evidence; determine scope, blast radius, and root cause.
-4. **Remediate** — Apply fixes, rotate credentials, patch dependencies, restore from backup if required.
-5. **Post-Mortem** — Blameless write-up within **[5 business days]** including timeline, root cause, customer impact, actions, and follow-ups.
-
-**Escalation contacts:** [Security On-Call] → [Security Lead] → [CTO] → [CEO + Legal]
-
-**Severity & response SLA**
-
-| Severity | Definition | Response SLA |
-|---|---|---|
-| **P1** | Confirmed breach, data exposure, or full outage. | [15 minutes] to acknowledge; war-room within [1 hour]. |
-| **P2** | Suspected breach, partial outage, or critical vulnerability under active exploit. | [1 hour] to acknowledge; mitigation within [4 hours]. |
-| **P3** | Non-critical vulnerability, isolated misconfiguration. | [1 business day] to acknowledge; remediation per CVE SLA. |
-| **P4** | Informational; no immediate risk. | [3 business days] to triage. |
-
-**Customer notification:** material incidents are communicated within the regulatory window (e.g. **72 hours** for GDPR breaches) and per contractual commitments.
-
----
-
-## 8. Vulnerability Management
-
-- **Dependency scanning tool:** [Snyk / Dependabot / GitHub Advanced Security — TBD] runs on every pull request and on a nightly schedule.
-- **Container image scanning:** [Trivy / Grype / equivalent] runs as a build-pipeline gate; Critical findings block release.
-- **Static analysis (SAST):** [SAST TOOL] runs on every PR; High/Critical findings block merge.
-- **Dynamic analysis (DAST):** [DAST TOOL] runs against staging on a [weekly] schedule.
-- **Penetration testing:** independent third-party test [Quarterly / Annually — TBD]; remediation tracked to closure with evidence.
-- **CVE review cadence:**
-  - Critical: triage within **24 hours**, patch within **7 days**.
-  - High: triage within **3 business days**, patch within **30 days**.
-  - Medium / Low: addressed in the next regular maintenance window.
-- **Bug bounty / responsible disclosure:** [POLICY URL] — submissions acknowledged within **[2 business days]**.
-
----
-
-## 9. Security Review Checklist Before Go-Live
-
-Tick each item before promoting [PRODUCT NAME] (or a major release) to production.
-
-- [ ] Threat model reviewed and signed off for all new features in this release.
-- [ ] All endpoints require authentication and enforce server-side authorization.
-- [ ] Tenant isolation tests pass for every multi-tenant resource.
-- [ ] Input validation in place on every user-facing endpoint; unknown fields rejected.
-- [ ] Output encoding / escaping verified; no raw HTML rendered from user input.
-- [ ] All secrets sourced from the secret manager — no secrets in code, env files, or images.
-- [ ] TLS 1.2+ enforced on all external endpoints; HSTS enabled.
-- [ ] Rate limiting and brute-force protection enabled on `/auth/*` endpoints.
-- [ ] Logging captures auth, admin, and data-access events; PII redacted.
-- [ ] Alerts wired for failed logins, privilege escalation, and secret access.
-- [ ] Dependency scan: zero unresolved Critical or High findings.
-- [ ] Container image scan: zero unresolved Critical findings.
-- [ ] SAST / DAST scans clean (or accepted with documented justification).
-- [ ] Penetration-test findings remediated or formally accepted by [Security Lead].
-- [ ] Backups verified by restore test in the last [90 days].
-- [ ] Disaster-recovery RPO/RTO documented and tested.
-- [ ] Incident-response runbook reviewed; on-call rotation staffed.
-- [ ] Privacy notice, DPA, and sub-processor list updated and published.
-- [ ] Compliance evidence updated in [COMPLIANCE TOOL].
-- [ ] Go/No-Go sign-off from [Security Lead] and [CTO].
+| 2026-04-24 | 1.0 | Security Lead | Replaced template with the real, honest BusinessNow PSA security & compliance posture: header-based auth, RBAC roles, audit-log instrumentation, known gaps, internal-platform compliance scope. |

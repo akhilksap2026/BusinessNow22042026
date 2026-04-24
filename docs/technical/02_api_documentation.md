@@ -1,666 +1,230 @@
-# REST API Documentation
+# API Documentation — BusinessNow PSA
 
 | | |
 |---|---|
-| **Title** | [PRODUCT NAME] REST API |
-| **Version** | v1 (v0.1 — Draft) |
-| **Base URL** | `https://api.[YOURDOMAIN].com/v1` |
-| **Auth** | Bearer Token (JWT) |
-| **Date** | [YYYY-MM-DD] |
-| **Status** | Draft |
+| **Product** | BusinessNow PSA |
+| **Owner** | Backend Lead |
+| **Version** | 1.0 — Approved |
+| **Date** | 2026-04-24 |
+| **Status** | Approved |
+
+> The **machine-readable** source of truth is `lib/api-spec/openapi.yaml`. This document is the human-readable index and onboarding reference. Do not hand-edit generated files in `lib/api-zod/` or `lib/api-client-react/`.
 
 ---
 
-## 1. Overview
+## 1. Base URLs & Conventions
 
-The [PRODUCT NAME] REST API exposes the platform's core capabilities to first-party clients, partner integrations, and customer-built automations. All endpoints accept and return `application/json` over HTTPS.
+| Environment | Base URL |
+|---|---|
+| Local (dev) | `http://localhost:8080` (workflow `API Server`, `PORT=8080`) |
+| Production | Replit deployment URL (see deployment skill) |
 
-- **Versioning strategy:** URI versioning (e.g. `/v1`, `/v2`). Breaking changes are released only as a new major version; the previous version is supported for at least [N months] after a successor ships.
-- **Rate limiting policy:** [X requests per minute per API key]. Exceeding the limit returns **HTTP 429** with the headers `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `Retry-After`.
-- **Idempotency:** Mutating endpoints accept an `Idempotency-Key` header so retries do not create duplicate side effects.
-
----
-
-## 2. Authentication
-
-The API uses short-lived **JWT bearer tokens**. Clients exchange user credentials (or a refresh token) for an access token, then attach it to every subsequent request.
-
-### Obtain a token
-
-**POST** `/auth/login`
-
-```json
-{
-  "email": "user@example.com",
-  "password": "••••••••"
-}
-```
-
-### Pass the token
-
-```http
-Authorization: Bearer {token}
-```
-
-- **Token expiry:** [X hours] (access token); refresh tokens expire after [Y days].
-- **Token rotation:** Refresh tokens are single-use; each call to `/auth/refresh-token` returns a new pair.
-- **Revocation:** Tokens are invalidated on logout, password change, or admin revocation.
+- All routes are prefixed with **`/api`**.
+- Request and response bodies are **JSON** (`Content-Type: application/json`).
+- All timestamps are **ISO 8601** with timezone (`2026-04-24T10:30:00.000Z`).
+- Pagination, where applicable, is `?limit=N&offset=N` with results in a top-level array; cursor pagination is used by `audit_log` reads only.
 
 ---
 
-## 3. Error Handling
+## 2. Authentication & Authorisation
 
-All errors share a single envelope:
+The current model is **header-based** and single-tenant:
 
-```json
-{
-  "error": {
-    "code": "VALIDATION_FAILED",
-    "message": "One or more fields are invalid.",
-    "details": [
-      { "field": "email", "issue": "must be a valid email address" }
-    ],
-    "request_id": "req_01HZX9V8K3M2N7Q5R6T4Y2P9B1"
-  }
-}
-```
+| Header | Purpose |
+|---|---|
+| `x-user-role` | The active role of the caller. Canonical values: `account_admin` / `super_user` / `collaborator` / `customer`. The legacy 11-role string union (`Admin`, `PM`, `Super User`, `Finance`, `Developer`, `Designer`, `QA`, `Collaborator`, `Viewer`, `Customer`, `Partner`) is still accepted; `LEGACY_ROLE_MAP` resolves to the canonical role. |
+| `x-user-id` | (Optional) The numeric user id for the caller. Used by `/api/me` and write paths to attribute audit log entries. |
 
-| Code | HTTP Status | Meaning |
+The SPA constructs these headers via the **`authHeaders()`** helper in `artifacts/businessnow/src/lib/auth-headers.ts`. The helper:
+
+- Reads the active role from `localStorage.activeRole`.
+- **Fails closed** — if no role is present, the role header is omitted, and writes are rejected by RBAC middleware.
+- Spreads the role header **last**, so caller-supplied headers cannot override it.
+
+> **Honesty note.** There is no JWT, OAuth, or SSO today. SSO is on the LATER track of the roadmap (doc 10). Doc 05 documents this without dressing it up.
+
+### RBAC middleware (server-side)
+
+| Middleware | Roles allowed |
+|---|---|
+| `requireAdmin` | `account_admin` only. |
+| `requirePM` | `account_admin` or `super_user` (`requireRole("super_user")`). |
+| `requireFinance` | `account_admin` or `super_user` (`requireCanonicalRole("account_admin","super_user")`). |
+| `requireCostRateAccess` | Legacy `Admin`, `Finance`, or `PM` only — Super Users excluded. |
+| `blockPortalRoles` | Globally applied to `/api/*` (except `/api/portal-auth/*`); rejects `customer` / `Customer` / `Partner`. |
+
+Building blocks `requireRole(min)`, `requireCanonicalRole(...)`, `requireAnyRole(...)` are also available. There is **no `requireRM`** — capacity / staffing approval routes use `requirePM`. The `resourceRequests.ts` write routes are currently **not gated** by middleware (a known gap).
+
+Read endpoints (`GET`) are generally permissive (do not gate on role beyond the standard role header presence). Row-level filtering for `Viewer` / `Consultant` is a known backlog item.
+
+---
+
+## 3. Error Envelope
+
+| HTTP | Meaning | Body |
 |---|---|---|
-| `BAD_REQUEST` | **400** | Malformed JSON or missing required parameters. |
-| `UNAUTHORIZED` | **401** | Missing, invalid, or expired access token. |
-| `FORBIDDEN` | **403** | Authenticated but not allowed to perform the action. |
-| `NOT_FOUND` | **404** | The requested resource does not exist or is hidden from the caller. |
-| `CONFLICT` | **409** | The request conflicts with current resource state (e.g. duplicate email). |
-| `VALIDATION_FAILED` | **422** | Payload was syntactically valid but failed business validation. |
-| `RATE_LIMITED` | **429** | Rate-limit exceeded; retry after the `Retry-After` header value. |
-| `INTERNAL_ERROR` | **500** | Unexpected server failure. Safe to retry idempotent calls with back-off. |
+| `200 OK` | Read OK | Resource or array. |
+| `201 Created` | Create OK | New resource (with `id`). |
+| `204 No Content` | Delete OK | Empty body. |
+| `400 Bad Request` | Validation failed (Zod). | `{ "error": "...", "details": [...] }` |
+| `401 Unauthorized` | Missing role header. | `{ "error": "Missing role" }` |
+| `403 Forbidden` | RBAC reject. | `{ "error": "Forbidden" }` |
+| `404 Not Found` | Unknown resource id. | `{ "error": "Not found" }` |
+| `409 Conflict` | Constraint violation (e.g. unique). | `{ "error": "...", "details": [...] }` |
+| `500 Internal Server Error` | Unhandled exception. | `{ "error": "Internal server error" }` (logged server-side) |
+
+Write paths emit an `audit_log` row before returning 2xx (the `resourceRequests.ts` un-gating issue tracked as R-S-06 also calls out auditing as part of the same sweep).
 
 ---
 
-## 4. API Endpoints
+## 4. Route Files (40)
 
-### Auth
+The API server is organised one file per domain in `artifacts/api-server/src/routes/` (39 domain files + `index.ts` aggregator = 40 files total):
 
-#### **POST** `/auth/register`
-
-Create a new end-user account on the platform.
-
-**Request Headers**
-```http
-Content-Type: application/json
-```
-
-**Request Body**
-```json
-{
-  "email": "user@example.com",
-  "password": "S3cure!Pass",
-  "name": "Ada Lovelace"
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `email` | string | yes | Unique email address; used as the login identifier. |
-| `password` | string | yes | Minimum 8 chars; must satisfy the password policy. |
-| `name` | string | yes | Display name shown in the UI. |
-
-**Response — 201 Created**
-```json
-{
-  "id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "email": "user@example.com",
-  "name": "Ada Lovelace",
-  "created_at": "2026-04-24T10:15:00Z"
-}
-```
-
-**Possible Errors:** 400, 409 (email already registered), 422.
-
----
-
-#### **POST** `/auth/login`
-
-Exchange credentials for a fresh access/refresh token pair.
-
-**Request Headers**
-```http
-Content-Type: application/json
-```
-
-**Request Body**
-```json
-{
-  "email": "user@example.com",
-  "password": "S3cure!Pass"
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `email` | string | yes | Registered account email. |
-| `password` | string | yes | Account password. |
-
-**Response — 200 OK**
-```json
-{
-  "access_token": "eyJhbGciOi...",
-  "refresh_token": "rt_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "token_type": "Bearer",
-  "expires_in": 3600
-}
-```
-
-**Possible Errors:** 400, 401, 422, 429.
-
----
-
-#### **POST** `/auth/logout`
-
-Revoke the caller's current access and refresh tokens.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Request Body** — empty.
-
-**Response — 204 No Content**
-
-**Possible Errors:** 401.
-
----
-
-#### **POST** `/auth/refresh-token`
-
-Exchange a valid refresh token for a new access/refresh pair.
-
-**Request Headers**
-```http
-Content-Type: application/json
-```
-
-**Request Body**
-```json
-{
-  "refresh_token": "rt_01HZX9V8K3M2N7Q5R6T4Y2P9B1"
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `refresh_token` | string | yes | Single-use refresh token issued by `/auth/login`. |
-
-**Response — 200 OK**
-```json
-{
-  "access_token": "eyJhbGciOi...",
-  "refresh_token": "rt_02JZX9V8K3M2N7Q5R6T4Y2P9B2",
-  "token_type": "Bearer",
-  "expires_in": 3600
-}
-```
-
-**Possible Errors:** 400, 401 (refresh token expired or already used), 422.
-
----
-
-### Users
-
-#### **GET** `/users/me`
-
-Return the authenticated user's profile.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Response — 200 OK**
-```json
-{
-  "id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "email": "user@example.com",
-  "name": "Ada Lovelace",
-  "role": "member",
-  "created_at": "2026-04-24T10:15:00Z"
-}
-```
-
-**Possible Errors:** 401.
-
----
-
-#### **PUT** `/users/me`
-
-Update the authenticated user's profile.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-Content-Type: application/json
-```
-
-**Request Body**
-```json
-{
-  "name": "Ada L.",
-  "avatar_url": "https://cdn.[YOURDOMAIN].com/avatars/ada.png"
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | string | no | Updated display name. |
-| `avatar_url` | string (URL) | no | HTTPS URL to a public avatar image. |
-
-**Response — 200 OK**
-```json
-{
-  "id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "email": "user@example.com",
-  "name": "Ada L.",
-  "avatar_url": "https://cdn.[YOURDOMAIN].com/avatars/ada.png",
-  "updated_at": "2026-04-24T10:30:00Z"
-}
-```
-
-**Possible Errors:** 400, 401, 422.
-
----
-
-#### **DELETE** `/users/me`
-
-Permanently delete the authenticated user's account and associated data, subject to retention policy.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Response — 204 No Content**
-
-**Possible Errors:** 401, 409 (account has open obligations, e.g. active subscription).
-
----
-
-### Projects
-
-> Replace `[RESOURCE A]` for your domain. Example shown: **Projects**.
-
-#### **GET** `/projects`
-
-List projects visible to the caller. Supports pagination (see §6).
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Query Parameters:** `page`, `limit`, `sort`, `order`, optional `status` filter.
-
-**Response — 200 OK**
-```json
-{
-  "data": [
-    {
-      "id": "prj_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-      "name": "Website Relaunch",
-      "status": "in_progress",
-      "owner_id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-      "created_at": "2026-04-01T09:00:00Z"
-    }
-  ],
-  "meta": { "total": 42, "page": 1, "limit": 20 }
-}
-```
-
-**Possible Errors:** 401, 422.
-
----
-
-#### **POST** `/projects`
-
-Create a new project.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-Content-Type: application/json
-Idempotency-Key: 9b1f2e7a-...
-```
-
-**Request Body**
-```json
-{
-  "name": "Website Relaunch",
-  "description": "Q3 marketing-site rebuild.",
-  "due_date": "2026-09-30"
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | string | yes | Human-readable project name (max 120 chars). |
-| `description` | string | no | Free-text description (max 2 000 chars). |
-| `due_date` | string (ISO date) | no | Target completion date. |
-
-**Response — 201 Created**
-```json
-{
-  "id": "prj_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "name": "Website Relaunch",
-  "description": "Q3 marketing-site rebuild.",
-  "status": "draft",
-  "due_date": "2026-09-30",
-  "created_at": "2026-04-24T10:15:00Z"
-}
-```
-
-**Possible Errors:** 400, 401, 403, 422.
-
----
-
-#### **GET** `/projects/{id}`
-
-Fetch a single project by ID.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Response — 200 OK**
-```json
-{
-  "id": "prj_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "name": "Website Relaunch",
-  "description": "Q3 marketing-site rebuild.",
-  "status": "in_progress",
-  "owner_id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "due_date": "2026-09-30",
-  "created_at": "2026-04-01T09:00:00Z",
-  "updated_at": "2026-04-20T15:42:00Z"
-}
-```
-
-**Possible Errors:** 401, 403, 404.
-
----
-
-#### **PUT** `/projects/{id}`
-
-Replace a project's mutable fields.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-Content-Type: application/json
-```
-
-**Request Body**
-```json
-{
-  "name": "Website Relaunch v2",
-  "description": "Updated scope after kickoff.",
-  "status": "in_progress",
-  "due_date": "2026-10-15"
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | string | no | Updated project name. |
-| `description` | string | no | Updated description. |
-| `status` | string | no | One of `draft`, `in_progress`, `on_hold`, `completed`. |
-| `due_date` | string (ISO date) | no | Updated target completion date. |
-
-**Response — 200 OK** — returns the full updated project (same shape as `GET /projects/{id}`).
-
-**Possible Errors:** 400, 401, 403, 404, 409, 422.
-
----
-
-#### **DELETE** `/projects/{id}`
-
-Soft-delete a project. The record is retained for [N days] before permanent removal.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Response — 204 No Content**
-
-**Possible Errors:** 401, 403, 404, 409.
-
----
-
-### Tasks
-
-> Example **[RESOURCE B]**: tasks belonging to a project.
-
-#### **GET** `/tasks`
-
-List tasks visible to the caller. Supports pagination and a `project_id` filter.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Response — 200 OK**
-```json
-{
-  "data": [
-    {
-      "id": "tsk_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-      "project_id": "prj_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-      "title": "Draft homepage copy",
-      "status": "todo",
-      "assignee_id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-      "due_date": "2026-05-05"
-    }
-  ],
-  "meta": { "total": 17, "page": 1, "limit": 20 }
-}
-```
-
-**Possible Errors:** 401, 422.
-
----
-
-#### **POST** `/tasks`
-
-Create a task inside a project.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-Content-Type: application/json
-Idempotency-Key: 4ad1c7b2-...
-```
-
-**Request Body**
-```json
-{
-  "project_id": "prj_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "title": "Draft homepage copy",
-  "description": "First pass for review.",
-  "assignee_id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "due_date": "2026-05-05"
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `project_id` | string | yes | Parent project ID. |
-| `title` | string | yes | Task title (max 200 chars). |
-| `description` | string | no | Free-text description (max 5 000 chars). |
-| `assignee_id` | string | no | User ID to assign the task to. |
-| `due_date` | string (ISO date) | no | Optional due date. |
-
-**Response — 201 Created**
-```json
-{
-  "id": "tsk_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "project_id": "prj_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "title": "Draft homepage copy",
-  "status": "todo",
-  "assignee_id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "due_date": "2026-05-05",
-  "created_at": "2026-04-24T10:15:00Z"
-}
-```
-
-**Possible Errors:** 400, 401, 403, 404 (unknown project), 422.
-
----
-
-#### **GET** `/tasks/{id}`
-
-Fetch a single task.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Response — 200 OK**
-```json
-{
-  "id": "tsk_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "project_id": "prj_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "title": "Draft homepage copy",
-  "description": "First pass for review.",
-  "status": "in_progress",
-  "assignee_id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "due_date": "2026-05-05",
-  "created_at": "2026-04-24T10:15:00Z",
-  "updated_at": "2026-04-25T08:00:00Z"
-}
-```
-
-**Possible Errors:** 401, 403, 404.
-
----
-
-#### **PUT** `/tasks/{id}`
-
-Update a task.
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-Content-Type: application/json
-```
-
-**Request Body**
-```json
-{
-  "title": "Draft + finalize homepage copy",
-  "status": "in_progress",
-  "assignee_id": "usr_02JZX9V8K3M2N7Q5R6T4Y2P9B2",
-  "due_date": "2026-05-10"
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `title` | string | no | Updated title. |
-| `description` | string | no | Updated description. |
-| `status` | string | no | One of `todo`, `in_progress`, `blocked`, `done`. |
-| `assignee_id` | string | no | Re-assign the task to another user. |
-| `due_date` | string (ISO date) | no | Updated due date. |
-
-**Response — 200 OK** — returns the full updated task (same shape as `GET /tasks/{id}`).
-
-**Possible Errors:** 400, 401, 403, 404, 409, 422.
-
----
-
-#### **DELETE** `/tasks/{id}`
-
-Delete a task. Cannot be undone after [N days].
-
-**Request Headers**
-```http
-Authorization: Bearer {token}
-```
-
-**Response — 204 No Content**
-
-**Possible Errors:** 401, 403, 404.
-
----
-
-## 5. Webhooks
-
-[PRODUCT NAME] can deliver webhook callbacks to a customer-supplied HTTPS endpoint when key events occur.
-
-**Supported events**
-
-- `project.created`
-- `project.updated`
-- `project.deleted`
-- `task.created`
-- `task.updated`
-- `task.deleted`
-
-**Delivery**
-
-- Method: **POST** to the registered endpoint
-- Header: `X-[PRODUCT]-Signature: t=<timestamp>,v1=<hmac_sha256>`
-- Retries: exponential back-off for up to [24 hours] on non-2xx responses
-
-**Payload example**
-
-```json
-{
-  "id": "evt_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-  "type": "project.created",
-  "created_at": "2026-04-24T10:15:00Z",
-  "data": {
-    "id": "prj_01HZX9V8K3M2N7Q5R6T4Y2P9B1",
-    "name": "Website Relaunch",
-    "status": "draft",
-    "owner_id": "usr_01HZX9V8K3M2N7Q5R6T4Y2P9B1"
-  }
-}
-```
-
----
-
-## 6. Pagination
-
-All list endpoints accept the same query parameters and return the same envelope.
-
-| Param | Type | Default | Description |
-|---|---|---|---|
-| `page` | integer | `1` | 1-based page number. |
-| `limit` | integer | `20` | Items per page (max `100`). |
-| `sort` | string | `created_at` | Field to sort by. |
-| `order` | string | `desc` | `asc` or `desc`. |
-
-**Response envelope**
-
-```json
-{
-  "data": [ /* array of resource objects */ ],
-  "meta": {
-    "total": 137,
-    "page": 1,
-    "limit": 20
-  }
-}
-```
-
----
-
-## 7. Changelog
-
-| Version | Date | Changes |
+| File | Domain | Notable endpoints |
 |---|---|---|
-| v0.1 | [YYYY-MM-DD] | Initial draft of the public REST API documentation. |
+| `users.ts` | Users, secondary roles, skills membership | `GET/POST /api/users`, `GET /api/me`, `PATCH /api/users/:id/secondary-roles` (Admin) |
+| `accounts.ts` | Client accounts | `GET/POST/PATCH/DELETE /api/accounts[/:id]` |
+| `prospects.ts` | Prospect pipeline | `GET/POST/PATCH /api/prospects` |
+| `opportunities.ts` | Opportunities | `GET/POST/PATCH /api/opportunities` (auto-trigger soft alloc at probability ≥ 70 %) |
+| `projects.ts` | Projects + soft-delete restore | `GET/POST/PATCH /api/projects`, `POST /api/projects/:id/restore` |
+| `phases.ts` | Project phases | `GET/POST/PATCH/DELETE /api/projects/:id/phases` |
+| `tasks.ts` | Project tasks | `GET/POST/PATCH/DELETE /api/projects/:id/tasks` (milestone done → draft invoice) |
+| `taskDependencies.ts` | Task dependency graph | `GET/POST/DELETE /api/tasks/:id/dependencies` |
+| `taskDetails.ts` | Comments, attachments, checklists | `GET/POST /api/tasks/:id/{comments,attachments,checklists}` |
+| `projectTemplates.ts` | Templates with phases / tasks / allocations | `GET/POST/PATCH /api/project-templates`; copy on project create when `autoAllocate` |
+| `projectUpdates.ts` | Status updates published to recipients | `GET/POST /api/projects/:id/updates` |
+| `baselines.ts` | Project baselines | `GET/POST /api/projects/:id/baselines` |
+| `changeOrders.ts` | Scope changes | `GET/POST/PATCH /api/projects/:id/change-orders` |
+| `allocations.ts` | Hard / soft allocations + capacity | `GET/POST/PATCH/DELETE /api/allocations`, `GET /api/resources/capacity` |
+| `placeholders.ts` | Allocation placeholders | `GET/POST/PATCH/DELETE /api/placeholders` (defaults non-renamable) |
+| `resourceRequests.ts` | Six request types + comments | `GET/POST/PATCH /api/resource-requests`, `POST /api/resource-requests/:id/comments` |
+| `skills.ts` | Skill catalog + categories | `GET/POST/PATCH /api/skills`, `GET /api/skill-categories` |
+| `rateCards.ts` | Rate cards (cost vs billable) | `GET/POST/PATCH /api/rate-cards` |
+| `timeEntries.ts` | Daily entries | `GET/POST/PATCH/DELETE /api/time-entries` |
+| `timesheets.ts` | Weekly approvals + messages | `GET/POST /api/timesheets`, `POST /api/timesheets/:id/{submit,approve,reject}` (notification trigger) |
+| `timeOff.ts` | Time-off requests + holidays integration | `GET/POST/PATCH /api/time-off-requests` |
+| `invoices.ts` | Invoices | `GET/POST/PATCH /api/invoices` |
+| `invoiceLineItems.ts` | Invoice line items | `GET/POST/PATCH/DELETE /api/invoices/:id/line-items` |
+| `billingSchedules.ts` | Billing schedules | `GET/POST/PATCH /api/billing-schedules` |
+| `revenueEntries.ts` | Revenue recognition entries | `GET/POST/PATCH /api/revenue-entries` |
+| `csat.ts`, `csatSurveys.ts` | CSAT surveys + responses | `GET/POST /api/csat-surveys`, `GET /api/csat/responses` |
+| `customFields.ts` | Custom field defs / sections / values | `GET/POST/PATCH /api/custom-fields/*` |
+| `documents.ts` | Documents + versioning | `GET/POST /api/documents`, `GET/POST /api/documents/:id/versions` |
+| `forms.ts` | Forms + responses | `GET/POST /api/forms`, `GET/POST /api/forms/:id/responses` |
+| `savedViews.ts` | Persisted list filters | `GET/POST/PATCH/DELETE /api/saved-views` |
+| `notifications.ts` | Notifications + preferences | `GET/POST/PATCH /api/notifications`, `GET/PATCH /api/notification-preferences` |
+| `auditLog.ts` | Read-only audit feed | `GET /api/audit-log?cursor=...` |
+| `adminSettings.ts` | Tax codes, time categories, time settings, holiday calendars | `GET/POST/PATCH /api/admin/{tax-codes,time-categories,time-settings,holiday-calendars}` |
+| `dashboard.ts` | Aggregated KPIs | `GET /api/dashboard/{summary,cr-impact,activity}` |
+| `reports.ts` | Reports for the Reports page | `GET /api/reports/{performance,capacity-planning,operations,csat-trend,interval-iq,budget-vs-actuals,burn-down,revenue,utilization,project-health}` |
+| `portal.ts`, `portalAuth.ts` | Client portal (read-only project status) | `GET /api/portal/*`, `POST /api/portal/auth/*` |
+| `health.ts` | Liveness / readiness | `GET /api/health` |
+| `index.ts` | Router aggregator (mounts all of the above under `/api/*`); not a domain route file. | n/a |
+
+---
+
+## 5. Dashboard & Reports — Notable Endpoints
+
+These endpoints power the Dashboard and the Reports page, so they are often the first surfaces a new engineer touches.
+
+### Dashboard
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/dashboard/summary` | Active projects, total revenue, billable hours WTD, team utilisation, etc. **Note:** the previous `Math.min(100, …)` clamp on `teamUtilization` was removed in 2026-04 so the danger band is reachable. |
+| `GET /api/dashboard/cr-impact` | Pending change-order count, revenue delta, effort delta. |
+| `GET /api/dashboard/activity` | Recent audit-log slice for the Recent Activity card. |
+| `GET /api/reports/project-health` | Drives the Portfolio Health stacked bar on dashboard v1. |
+
+The SPA's period selector is **locked to "This Month"** in v1; the API still accepts the period query param but the SPA disables Last 30 / Quarter / Year pending dashboard v2.
+
+### Reports
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/reports/performance` | Performance tab. |
+| `GET /api/reports/capacity-planning?weeks=N` | Demand vs Supply chart. **Capped at 52 weeks.** Returns weekly buckets with `totalCapacityFTE`, `timeOffFTE`, `holidayFTE`, `availableFTE`, `assignedDemandFTE`, `unassignedDemandFTE`, `totalDemandFTE`, `surplusFTE`, plus per-role `byRole[]` for surplus/deficit. **Excludes soft-deleted projects.** |
+| `GET /api/reports/operations` | Operations tab. |
+| `GET /api/reports/csat-trend` | CSAT trend over time. |
+| `GET /api/reports/interval-iq` | Time-utilisation analysis bucketed by interval. |
+| `GET /api/reports/budget-vs-actuals` | Budget vs actuals per project. |
+| `GET /api/reports/burn-down` | Burn-down. |
+| `GET /api/reports/revenue` | Revenue rollup. |
+| `GET /api/reports/utilization` | Per-person utilisation. |
+| `GET /api/reports/project-health` | Project health buckets (On Track / At Risk / Off Track). |
+
+---
+
+## 6. Auto-Triggers (server-side side effects)
+
+| Trigger | Where | Effect |
+|---|---|---|
+| Opportunity probability ≥ 70 % | `opportunities.ts` (PATCH) | Creates a **soft allocation** tied to the opportunity. |
+| Milestone task marked complete | `tasks.ts` (PATCH) | Creates a **draft invoice** for the milestone amount. |
+| Timesheet `submit` / `approve` / `reject` | `timesheets.ts` | Inserts notification rows for the submitter / approver. |
+| Resource request status → `Fulfilled` | `resourceRequests.ts` | Auto-creates the corresponding allocation. |
+
+All triggers also emit `audit_log` entries (the `resourceRequests.ts` auto-allocation trigger is the exception until R-S-06 is closed — that route file is not currently calling `logAudit()`).
+
+---
+
+## 7. Pagination, Filtering, Sorting
+
+- List endpoints accept `?limit=N&offset=N` (default `limit=50`, hard cap `200`).
+- Where lists power dense UI tables (e.g. `accounts`, `projects`), free-text `?q=…` is supported and matches across name + a small set of indexed columns.
+- The audit log uses **cursor pagination** (`?cursor=...`) for stable pagination on an append-only stream.
+- Sort is `?sort=field&order=asc|desc` where supported. The OpenAPI spec lists sortable fields per endpoint.
+
+---
+
+## 8. Codegen Workflow
+
+1. Edit `lib/api-spec/openapi.yaml`.
+2. Run `pnpm --filter @workspace/api-spec run codegen`.
+3. Commit the regenerated files in `lib/api-zod/src/generated/` and `lib/api-client-react/src/generated/`.
+4. Restart `API Server` and `Start application` workflows.
+
+CI rejects PRs whose generated files are out of sync with `openapi.yaml`.
+
+---
+
+## 9. SPA Consumption Pattern
+
+Pages call generated React Query hooks rather than raw `fetch`:
+
+```ts
+import { useListProjects, useUpdateProject } from "@workspace/api-client-react";
+import { authHeaders } from "@/lib/auth-headers";
+
+const { data } = useListProjects({ request: { headers: authHeaders() } });
+const update = useUpdateProject({ request: { headers: authHeaders() } });
+```
+
+`authHeaders()` is the **only** way pages should construct request headers.
+
+---
+
+## 10. Testing the API Locally
+
+```bash
+# Start the API
+PORT=8080 pnpm --filter @workspace/api-server run dev
+
+# Start the SPA
+PORT=5000 BASE_PATH=/ pnpm --filter @workspace/businessnow run dev
+
+# Hit the API directly (set a role)
+curl -H "x-user-role: Admin" http://localhost:8080/api/health
+curl -H "x-user-role: PM" http://localhost:8080/api/projects
+```
+
+Use `$REPLIT_DEV_DOMAIN` instead of `localhost` when working through the Replit preview.
+
+---
+
+## 11. Revision Log
+
+| Date | Version | Changed By | What Changed |
+|---|---|---|---|
+| 2026-04-24 | 1.0 | Backend Lead | Replaced template with the real BusinessNow PSA API surface: 40 route files, canonical 4-role + legacy 11-role RBAC model, named middleware shortcuts (`requireAdmin` / `requirePM` / `requireFinance` / `requireCostRateAccess` / `blockPortalRoles`), auto-triggers, capacity-planning endpoint, dashboard v1 endpoints, `authHeaders()` helper, codegen pipeline. |
