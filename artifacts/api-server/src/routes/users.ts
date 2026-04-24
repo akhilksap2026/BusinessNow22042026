@@ -28,18 +28,24 @@ function mapUser(u: typeof usersTable.$inferSelect) {
 }
 
 router.get("/me", async (req, res): Promise<void> => {
-  // Identity bootstrap. Bypassed by `verifyRoleClaim` so the route must do its
-  // own validation: read the verified `x-user-id` header, ensure the user
-  // exists and is active, and only then return the profile. Falls back to user
-  // 1 only when no header is present (legacy unauthenticated dev calls).
+  // Identity bootstrap. Bypassed by `verifyRoleClaim` (BOOTSTRAP_PATHS) so this
+  // route must do its own validation. Defense-in-depth: if `x-user-id` is
+  // missing OR the user does not exist OR is deactivated, return 401 — never
+  // fall back to user 1, which would silently grant Admin access if the global
+  // middleware were ever rearranged or if a future code path mounted /me
+  // outside the verified router.
   const headerId = req.headers["x-user-id"];
-  const userId = headerId !== undefined ? Number(headerId) : 1;
+  if (headerId === undefined || headerId === "") {
+    res.status(401).json({ error: "Authentication required (missing x-user-id)" });
+    return;
+  }
+  const userId = Number(headerId);
   if (!Number.isFinite(userId) || userId <= 0) {
     res.status(401).json({ error: "Invalid x-user-id" });
     return;
   }
   const [u] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!u) { res.status(404).json({ error: "User not found" }); return; }
+  if (!u) { res.status(401).json({ error: "User not found" }); return; }
   if (u.activeStatus !== "active") {
     res.status(401).json({ error: "Account deactivated" });
     return;
