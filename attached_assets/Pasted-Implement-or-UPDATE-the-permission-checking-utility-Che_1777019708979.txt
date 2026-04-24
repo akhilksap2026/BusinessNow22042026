@@ -1,0 +1,97 @@
+Implement or UPDATE the permission-checking utility.
+
+### Check first:
+- Is there an existing `hasPermission`, `can`, `checkRole`, or `usePermission` function?
+- If YES: extend it to support the matrix from Phase 2 without removing existing checks.
+- If NO: create the following.
+
+### Backend middleware (Node/Express pattern — adapt to your stack):
+
+Create `src/middleware/authorize.js`:
+
+```js
+import { ACCOUNT_PERMISSIONS, PROJECT_PERMISSIONS } from '../constants/permissions.js';
+
+/**
+ * Checks account-level permissions
+ * @param {string} permission - e.g. 'projects.create'
+ */
+export function requirePermission(permission) {
+  return (req, res, next) => {
+    const userRole = req.user?.role;
+    if (!userRole) return res.status(401).json({ error: 'Unauthorized' });
+
+    const matrix = ACCOUNT_PERMISSIONS[permission];
+    if (!matrix) return res.status(403).json({ error: `Unknown permission: ${permission}` });
+
+    if (!matrix[userRole]) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        reason: `Role '${userRole}' does not have '${permission}' permission`,
+      });
+    }
+    next();
+  };
+}
+
+/**
+ * Checks project-level permissions
+ * @param {string} permission - e.g. 'task.create'
+ * @param {Function} getProjectRole - async fn(req) => 'admin' | 'collaborator' | 'customer'
+ */
+export function requireProjectPermission(permission, getProjectRole) {
+  return async (req, res, next) => {
+    try {
+      const projectRole = await getProjectRole(req);
+      if (!projectRole) return res.status(403).json({ error: 'Not a project member' });
+
+      const matrix = PROJECT_PERMISSIONS[permission];
+      if (!matrix) return res.status(403).json({ error: `Unknown permission: ${permission}` });
+
+      if (!matrix[projectRole]) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          reason: `Project role '${projectRole}' cannot perform '${permission}'`,
+        });
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+```
+
+### Frontend utility (React pattern — adapt to your stack):
+
+Create `src/hooks/usePermission.js`:
+
+```js
+import { useAuth } from './useAuth'; // adjust to your auth hook
+import { ACCOUNT_PERMISSIONS, PROJECT_PERMISSIONS } from '../constants/permissions';
+
+export function usePermission() {
+  const { user } = useAuth();
+
+  const can = (permission, context = 'account') => {
+    if (!user?.role) return false;
+    const matrix = context === 'project'
+      ? PROJECT_PERMISSIONS[permission]
+      : ACCOUNT_PERMISSIONS[permission];
+    if (!matrix) return false;
+    const role = context === 'project' ? user.projectRole : user.role;
+    return matrix[role] === true;
+  };
+
+  return { can };
+}
+```
+
+Usage example:
+```jsx
+const { can } = usePermission();
+{can('projects.create') && <CreateProjectButton />}
+{can('task.create', 'project') && <AddTaskButton />}
+```
+
+**⚠️ Incremental rule:** If a `usePermission` or `can` hook exists, ADD the new permission lookups as a fallback chain — existing logic runs first, new matrix runs if the key isn't found.
