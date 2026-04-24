@@ -15,7 +15,7 @@
  *                    projects but cannot create projects, access admin surfaces,
  *                    or see archived content. Maps to legacy "Collaborator" / "Viewer".
  *
- *   CUSTOMER       – External / portal-only user. Project-scoped; cannot access
+ *   CUSTOMER       – External read-only user. Project-scoped; cannot access
  *                    any internal API routes. Maps to legacy "Customer" / "Partner".
  *
  * Legacy roles (Admin, PM, Super User, Finance, Developer, Designer, QA,

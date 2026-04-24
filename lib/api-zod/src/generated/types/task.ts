@@ -30,6 +30,5 @@ export interface Task {
   appliedTemplateId?: number | null;
   /** @nullable */
   parentTaskId?: number | null;
-  visibleToClient?: boolean;
   createdAt: string;
 }

@@ -17,7 +17,6 @@ import { resolveProjectRole } from "./roles";
  *   requireAdmin           → 'settings.manageAdvanced', 'settings.manageIntegrations', …
  *   requirePM / requireFinance → 'projects.create', 'invoicing.view', …
  *   requireCostRateAccess  → 'financials.viewCostRates'
- *   blockPortalRoles       → any permission where customer: false
  *
  * Do not duplicate checks — prefer can() in new route handlers and keep the
  * named shortcuts in rbac.ts for backward-compatible existing routes.

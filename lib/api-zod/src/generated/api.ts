@@ -320,7 +320,6 @@ export const ListTasksResponseItem = zod.object({
     .nullish()
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
-  visibleToClient: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 export const ListTasksResponse = zod.array(ListTasksResponseItem);
@@ -372,7 +371,6 @@ export const GetTaskResponse = zod.object({
     .nullish()
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
-  visibleToClient: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 
@@ -419,7 +417,6 @@ export const UpdateTaskResponse = zod.object({
     .nullish()
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
-  visibleToClient: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 
@@ -1470,7 +1467,6 @@ export const ListProjectTemplatesResponseItem = zod.object({
         relativeEndOffset: zod
           .number()
           .describe("Days from project start_date when this phase ends"),
-        privacyDefault: zod.enum(["shared", "internal"]),
         order: zod.number(),
         tasks: zod
           .array(
@@ -1582,7 +1578,6 @@ export const GetProjectTemplateResponse = zod.object({
         relativeEndOffset: zod
           .number()
           .describe("Days from project start_date when this phase ends"),
-        privacyDefault: zod.enum(["shared", "internal"]),
         order: zod.number(),
         tasks: zod
           .array(
@@ -1688,7 +1683,6 @@ export const UpdateProjectTemplateResponse = zod.object({
         relativeEndOffset: zod
           .number()
           .describe("Days from project start_date when this phase ends"),
-        privacyDefault: zod.enum(["shared", "internal"]),
         order: zod.number(),
         tasks: zod
           .array(
@@ -1772,7 +1766,6 @@ export const ListTemplatePhasesResponseItem = zod.object({
   relativeEndOffset: zod
     .number()
     .describe("Days from project start_date when this phase ends"),
-  privacyDefault: zod.enum(["shared", "internal"]),
   order: zod.number(),
   tasks: zod
     .array(
@@ -1815,7 +1808,6 @@ export const CreateTemplatePhaseBody = zod.object({
   name: zod.string(),
   relativeStartOffset: zod.number().optional(),
   relativeEndOffset: zod.number().optional(),
-  privacyDefault: zod.string().optional(),
   order: zod.number().optional(),
 });
 
@@ -1830,7 +1822,6 @@ export const UpdateTemplatePhaseBody = zod.object({
   name: zod.string(),
   relativeStartOffset: zod.number().optional(),
   relativeEndOffset: zod.number().optional(),
-  privacyDefault: zod.string().optional(),
   order: zod.number().optional(),
 });
 
@@ -1844,7 +1835,6 @@ export const UpdateTemplatePhaseResponse = zod.object({
   relativeEndOffset: zod
     .number()
     .describe("Days from project start_date when this phase ends"),
-  privacyDefault: zod.enum(["shared", "internal"]),
   order: zod.number(),
   tasks: zod
     .array(
@@ -2804,47 +2794,6 @@ export const DeleteHolidayDateParams = zod.object({
 });
 
 /**
- * @summary Create or regenerate a client portal token
- */
-export const CreatePortalTokenParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const CreatePortalTokenBody = zod.object({
-  label: zod.string().optional(),
-  expiresAt: zod.string().nullish(),
-});
-
-/**
- * @summary List portal tokens for a project
- */
-export const ListPortalTokensParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const ListPortalTokensResponseItem = zod.object({
-  id: zod.number(),
-  projectId: zod.number(),
-  token: zod.string(),
-  label: zod.string().nullish(),
-  isActive: zod.boolean(),
-  expiresAt: zod.string().nullish(),
-  viewCount: zod.number(),
-  lastViewedAt: zod.string().nullish(),
-  createdAt: zod.string(),
-  updatedAt: zod.string(),
-});
-export const ListPortalTokensResponse = zod.array(ListPortalTokensResponseItem);
-
-/**
- * @summary Revoke a portal token
- */
-export const RevokePortalTokenParams = zod.object({
-  id: zod.coerce.number(),
-  tokenId: zod.coerce.number(),
-});
-
-/**
  * @summary Get Gantt data for a project
  */
 export const GetProjectGanttParams = zod.object({
@@ -2868,48 +2817,6 @@ export const GetProjectGanttResponse = zod.object({
       isMilestone: zod.boolean(),
     }),
   ),
-});
-
-/**
- * @summary Get public client portal data by token
- */
-export const GetPortalParams = zod.object({
-  token: zod.coerce.string(),
-});
-
-export const GetPortalResponse = zod.object({
-  project: zod.object({
-    id: zod.number(),
-    name: zod.string(),
-    status: zod.string(),
-    health: zod.string(),
-    completion: zod.number(),
-    startDate: zod.string(),
-    dueDate: zod.string(),
-    description: zod.string().nullish(),
-    accountName: zod.string().nullish(),
-  }),
-  milestones: zod.array(
-    zod.object({
-      id: zod.number(),
-      name: zod.string(),
-      status: zod.string(),
-      dueDate: zod.string().nullish(),
-      completedAt: zod.string().nullish(),
-    }),
-  ),
-  documents: zod.array(
-    zod.object({
-      id: zod.number(),
-      title: zod.string(),
-      type: zod.string(),
-      updatedAt: zod.string(),
-    }),
-  ),
-  overallProgress: zod.number(),
-  totalTasks: zod.number(),
-  completedTasks: zod.number(),
-  label: zod.string().nullish(),
 });
 
 /**

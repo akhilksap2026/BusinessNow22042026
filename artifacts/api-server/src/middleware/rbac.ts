@@ -108,6 +108,24 @@ export function requireAnyRole(...roles: AppRole[]) {
 // Named shortcuts (backward-compatible)
 // ---------------------------------------------------------------------------
 
+/**
+ * denyCustomerRole
+ *
+ * Customer (canonical "customer" / legacy "Customer" / "Partner") has no
+ * internal UI surface and no API surface. Returns 403 for any request
+ * arriving with that role on the x-user-role header. Mounted globally on
+ * the main API router after the public health endpoint.
+ */
+export function denyCustomerRole(req: Request, res: Response, next: NextFunction): void {
+  const userRole = (req.headers["x-user-role"] as string) ?? "collaborator";
+  const canonical = resolveRole(userRole);
+  if (canonical === "customer") {
+    res.status(403).json({ error: "Customer role has no access" });
+    return;
+  }
+  next();
+}
+
 /** Account Admin only */
 export const requireAdmin = requireRole("account_admin");
 
@@ -128,25 +146,3 @@ export const requireFinance = requireCanonicalRole("account_admin", "super_user"
  */
 export const requireCostRateAccess = requireAnyRole("Admin", "Finance", "PM");
 
-// ---------------------------------------------------------------------------
-// Portal role blocker
-// ---------------------------------------------------------------------------
-
-/**
- * blockPortalRoles
- *
- * Applied globally to all /api/* routes (except /portal-auth/*).
- * Blocks both legacy ("Customer", "Partner") and canonical ("customer") values.
- */
-export function blockPortalRoles(req: Request, res: Response, next: NextFunction): void {
-  const role = (req.headers["x-user-role"] as string) ?? "";
-  const canonical = resolveRole(role);
-  if (canonical === "customer" || role === "Customer" || role === "Partner") {
-    res.status(403).json({
-      error:
-        "Access denied. Client portal users must use /api/portal-auth/* endpoints.",
-    });
-    return;
-  }
-  next();
-}

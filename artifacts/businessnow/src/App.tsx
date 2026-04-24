@@ -1,8 +1,8 @@
-import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CurrentUserProvider, useCurrentUser } from "@/contexts/current-user";
+import { CurrentUserProvider } from "@/contexts/current-user";
 import { DensityProvider } from "@/contexts/density";
 import { ThemeProvider } from "@/contexts/theme";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -20,28 +20,10 @@ import Admin from "@/pages/admin";
 import Notifications from "@/pages/notifications";
 import Prospects from "@/pages/prospects";
 import Opportunities from "@/pages/opportunities";
-import PortalPage from "@/pages/portal";
-import PortalDashboard from "@/pages/portal-dashboard";
-import PortalProject from "@/pages/portal-project";
 
 function Router() {
-  const { activeRole } = useCurrentUser();
-  const [location] = useLocation();
-  const isCustomer = activeRole === "Customer";
-  const isPortalRoute = location.startsWith("/portal/dashboard") || location.startsWith("/portal/projects");
-
-  if (isCustomer && !isPortalRoute && !location.startsWith("/portal/")) {
-    return <Redirect to="/portal/dashboard" />;
-  }
-  if (!isCustomer && isPortalRoute) {
-    return <Redirect to="/" />;
-  }
-
   return (
     <Switch>
-      <Route path="/portal/:token" component={PortalPage} />
-      <Route path="/portal/dashboard" component={PortalDashboard} />
-      <Route path="/portal/projects/:id" component={PortalProject} />
       <Route path="/" component={Dashboard} />
       <Route path="/projects" component={Projects} />
       <Route path="/projects/:id" component={ProjectDetail} />

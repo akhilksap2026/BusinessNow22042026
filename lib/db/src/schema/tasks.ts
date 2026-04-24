@@ -18,7 +18,6 @@ export const tasksTable = pgTable("tasks", {
   isMilestone: boolean("is_milestone").notNull().default(false),
   milestoneType: text("milestone_type"),
   taskRoles: jsonb("task_roles").$type<Record<string, string>>().default({}),
-  visibleToClient: boolean("visible_to_client").notNull().default(true),
   approvalStatus: text("approval_status").default("none"),
   fromTemplate: boolean("from_template").notNull().default(false),
   appliedTemplateId: integer("applied_template_id"),

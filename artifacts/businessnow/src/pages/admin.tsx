@@ -656,64 +656,6 @@ export default function Admin() {
     onError: () => toast({ title: "Failed to save settings", variant: "destructive" }),
   });
 
-  const { data: portalBrandingAccounts } = useQuery<{ id: number; name: string }[]>({
-    queryKey: ["portal-branding-accounts"],
-    queryFn: async () => {
-      const r = await fetch(`${BASE}/api/accounts`);
-      if (!r.ok) throw new Error("Failed");
-      return r.json();
-    },
-  });
-  const [portalBrandingAccountId, setPortalBrandingAccountId] = useState<number | null>(null);
-  const [portalBrandingForm, setPortalBrandingForm] = useState({ primaryColor: "#4f46e5", accentColor: "#7c3aed", logoUrl: "", tabPlan: true, tabUpdates: true, tabSpaces: false });
-  const [portalBrandingDirty, setPortalBrandingDirty] = useState(false);
-
-  const { data: portalBrandingData } = useQuery({
-    queryKey: ["portal-branding", portalBrandingAccountId],
-    queryFn: async () => {
-      const r = await fetch(`${BASE}/api/portal-auth/accounts/${portalBrandingAccountId}/branding`);
-      if (!r.ok) throw new Error("Failed");
-      return r.json() as Promise<{ primaryColor: string; accentColor: string; logoUrl: string | null; tabVisibility: { plan: boolean; updates: boolean; spaces: boolean } }>;
-    },
-    enabled: !!portalBrandingAccountId,
-  });
-
-  useEffect(() => {
-    if (portalBrandingData && !portalBrandingDirty) {
-      setPortalBrandingForm({
-        primaryColor: portalBrandingData.primaryColor ?? "#4f46e5",
-        accentColor: portalBrandingData.accentColor ?? "#7c3aed",
-        logoUrl: portalBrandingData.logoUrl ?? "",
-        tabPlan: portalBrandingData.tabVisibility?.plan ?? true,
-        tabUpdates: portalBrandingData.tabVisibility?.updates ?? true,
-        tabSpaces: portalBrandingData.tabVisibility?.spaces ?? false,
-      });
-    }
-  }, [portalBrandingData, portalBrandingDirty]);
-
-  const savePortalBrandingMut = useMutation({
-    mutationFn: async () => {
-      const r = await fetch(`${BASE}/api/portal-auth/accounts/${portalBrandingAccountId}/branding`, {
-        method: "PATCH",
-        headers: authHeaders({ "content-type": "application/json" }),
-        body: JSON.stringify({
-          primaryColor: portalBrandingForm.primaryColor,
-          accentColor: portalBrandingForm.accentColor,
-          logoUrl: portalBrandingForm.logoUrl || null,
-          tabVisibility: { plan: portalBrandingForm.tabPlan, updates: portalBrandingForm.tabUpdates, spaces: portalBrandingForm.tabSpaces },
-        }),
-      });
-      if (!r.ok) throw new Error("Failed");
-      return r.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Portal branding saved" });
-      setPortalBrandingDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["portal-branding", portalBrandingAccountId] });
-    },
-    onError: () => toast({ title: "Failed to save branding", variant: "destructive" }),
-  });
-
   const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const [timeSettingsForm, setTimeSettingsForm] = useState({
     weeklyCapacityHours: 40,
@@ -2390,7 +2332,7 @@ export default function Admin() {
             <Card>
               <CardHeader>
                 <CardTitle>Company Information</CardTitle>
-                <CardDescription>Used on invoices, reports, and the client portal</CardDescription>
+                <CardDescription>Used on invoices and reports</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -2462,106 +2404,6 @@ export default function Admin() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Client Portal Branding</CardTitle>
-                <CardDescription>Customise the colours and tab visibility shown to clients in the portal for each account</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-1.5">
-                  <Label>Account</Label>
-                  <Select
-                    value={portalBrandingAccountId ? String(portalBrandingAccountId) : ""}
-                    onValueChange={v => { setPortalBrandingAccountId(Number(v)); setPortalBrandingDirty(false); }}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select an account…" /></SelectTrigger>
-                    <SelectContent>
-                      {(portalBrandingAccounts ?? []).map(a => (
-                        <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {portalBrandingAccountId && (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label>Primary Colour</Label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={portalBrandingForm.primaryColor}
-                            onChange={e => { setPortalBrandingForm(f => ({ ...f, primaryColor: e.target.value })); setPortalBrandingDirty(true); }}
-                            className="h-9 w-14 rounded border border-input cursor-pointer p-0.5"
-                          />
-                          <Input
-                            value={portalBrandingForm.primaryColor}
-                            onChange={e => { setPortalBrandingForm(f => ({ ...f, primaryColor: e.target.value })); setPortalBrandingDirty(true); }}
-                            className="font-mono text-sm"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Accent Colour</Label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={portalBrandingForm.accentColor}
-                            onChange={e => { setPortalBrandingForm(f => ({ ...f, accentColor: e.target.value })); setPortalBrandingDirty(true); }}
-                            className="h-9 w-14 rounded border border-input cursor-pointer p-0.5"
-                          />
-                          <Input
-                            value={portalBrandingForm.accentColor}
-                            onChange={e => { setPortalBrandingForm(f => ({ ...f, accentColor: e.target.value })); setPortalBrandingDirty(true); }}
-                            className="font-mono text-sm"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Logo URL <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <Input
-                        placeholder="https://example.com/logo.png"
-                        value={portalBrandingForm.logoUrl}
-                        onChange={e => { setPortalBrandingForm(f => ({ ...f, logoUrl: e.target.value })); setPortalBrandingDirty(true); }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tab Visibility in Portal</Label>
-                      <div className="flex flex-wrap gap-4">
-                        {[
-                          { key: "tabPlan", label: "Plan (Tasks)" },
-                          { key: "tabUpdates", label: "Updates" },
-                          { key: "tabSpaces", label: "Spaces" },
-                        ].map(({ key, label }) => (
-                          <label key={key} className="flex items-center gap-2 cursor-pointer text-sm">
-                            <input
-                              type="checkbox"
-                              checked={portalBrandingForm[key as keyof typeof portalBrandingForm] as boolean}
-                              onChange={e => { setPortalBrandingForm(f => ({ ...f, [key]: e.target.checked })); setPortalBrandingDirty(true); }}
-                              className="h-4 w-4 rounded accent-primary"
-                            />
-                            {label}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 p-4 bg-muted/40 rounded-lg">
-                      <div className="h-8 w-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: portalBrandingForm.primaryColor }}>BN</div>
-                      <div>
-                        <p className="text-sm font-medium">Portal Preview</p>
-                        <p className="text-xs text-muted-foreground">Header uses <span style={{ color: portalBrandingForm.primaryColor }} className="font-mono">{portalBrandingForm.primaryColor}</span> · Accent <span style={{ color: portalBrandingForm.accentColor }} className="font-mono">{portalBrandingForm.accentColor}</span></p>
-                      </div>
-                    </div>
-                    <div className="pt-1 flex justify-end">
-                      <Button onClick={() => savePortalBrandingMut.mutate()} disabled={savePortalBrandingMut.isPending || !portalBrandingDirty}>
-                        {savePortalBrandingMut.isPending ? "Saving…" : "Save Portal Branding"}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="archived" className="m-0">

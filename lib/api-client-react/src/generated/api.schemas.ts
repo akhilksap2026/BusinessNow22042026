@@ -155,7 +155,6 @@ export interface Task {
   appliedTemplateId?: number | null;
   /** @nullable */
   parentTaskId?: number | null;
-  visibleToClient?: boolean;
   createdAt: string;
 }
 
@@ -671,14 +670,6 @@ export interface CreateTemplateTaskBody {
   order?: number;
 }
 
-export type TemplatePhasePrivacyDefault =
-  (typeof TemplatePhasePrivacyDefault)[keyof typeof TemplatePhasePrivacyDefault];
-
-export const TemplatePhasePrivacyDefault = {
-  shared: "shared",
-  internal: "internal",
-} as const;
-
 export interface TemplatePhase {
   id: number;
   templateId: number;
@@ -687,7 +678,6 @@ export interface TemplatePhase {
   relativeStartOffset: number;
   /** Days from project start_date when this phase ends */
   relativeEndOffset: number;
-  privacyDefault: TemplatePhasePrivacyDefault;
   order: number;
   tasks?: TemplateTask[];
   createdAt?: string;
@@ -698,7 +688,6 @@ export interface CreateTemplatePhaseBody {
   name: string;
   relativeStartOffset?: number;
   relativeEndOffset?: number;
-  privacyDefault?: string;
   order?: number;
 }
 
@@ -1100,24 +1089,6 @@ export interface CreateHolidayDateBody {
   date: string;
 }
 
-export interface PortalToken {
-  id: number;
-  projectId: number;
-  token: string;
-  label?: string | null;
-  isActive: boolean;
-  expiresAt?: string | null;
-  viewCount: number;
-  lastViewedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreatePortalTokenBody {
-  label?: string;
-  expiresAt?: string | null;
-}
-
 export interface GanttRow {
   id: number;
   type: string;
@@ -1135,43 +1106,6 @@ export interface GanttData {
   projectStart: string;
   projectEnd: string;
   rows: GanttRow[];
-}
-
-export interface PortalMilestone {
-  id: number;
-  name: string;
-  status: string;
-  dueDate?: string | null;
-  completedAt?: string | null;
-}
-
-export interface PortalDocument {
-  id: number;
-  title: string;
-  type: string;
-  updatedAt: string;
-}
-
-export type PortalDataProject = {
-  id: number;
-  name: string;
-  status: string;
-  health: string;
-  completion: number;
-  startDate: string;
-  dueDate: string;
-  description?: string | null;
-  accountName?: string | null;
-};
-
-export interface PortalData {
-  project: PortalDataProject;
-  milestones: PortalMilestone[];
-  documents: PortalDocument[];
-  overallProgress: number;
-  totalTasks: number;
-  completedTasks: number;
-  label?: string | null;
 }
 
 export interface Prospect {

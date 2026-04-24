@@ -188,7 +188,7 @@ router.get("/project-templates/:id/phases", async (req, res): Promise<void> => {
 
 router.post("/project-templates/:id/phases", requirePM, async (req, res): Promise<void> => {
   const templateId = parseInt(req.params.id, 10);
-  const { name, relativeStartOffset, relativeEndOffset, privacyDefault, order } = req.body;
+  const { name, relativeStartOffset, relativeEndOffset, order } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
   const [row] = await db
     .insert(templatePhasesTable)
@@ -197,7 +197,6 @@ router.post("/project-templates/:id/phases", requirePM, async (req, res): Promis
       name,
       relativeStartOffset: relativeStartOffset ?? 0,
       relativeEndOffset: relativeEndOffset ?? 7,
-      privacyDefault: privacyDefault ?? "shared",
       order: order ?? 0,
     })
     .returning();
@@ -206,14 +205,13 @@ router.post("/project-templates/:id/phases", requirePM, async (req, res): Promis
 
 router.put("/template-phases/:phaseId", requirePM, async (req, res): Promise<void> => {
   const phaseId = parseInt(req.params.phaseId, 10);
-  const { name, relativeStartOffset, relativeEndOffset, privacyDefault, order } = req.body;
+  const { name, relativeStartOffset, relativeEndOffset, order } = req.body;
   const [row] = await db
     .update(templatePhasesTable)
     .set({
       ...(name !== undefined && { name }),
       ...(relativeStartOffset !== undefined && { relativeStartOffset }),
       ...(relativeEndOffset !== undefined && { relativeEndOffset }),
-      ...(privacyDefault !== undefined && { privacyDefault }),
       ...(order !== undefined && { order }),
       updatedAt: new Date(),
     })
@@ -509,7 +507,6 @@ router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise
         startDate: phaseStart,
         dueDate: phaseEnd,
         isMilestone: false,
-        visibleToClient: tPhase.privacyDefault === "shared",
         fromTemplate: true,
         appliedTemplateId: templateId,
       })
@@ -534,7 +531,6 @@ router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise
           startDate: phaseStart,
           dueDate: taskDue,
           isMilestone: false,
-          visibleToClient: tPhase.privacyDefault === "shared",
           fromTemplate: true,
           appliedTemplateId: templateId,
         })
@@ -622,7 +618,6 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
         startDate: phaseStart,
         dueDate: phaseEnd,
         isMilestone: false,
-        visibleToClient: tPhase.privacyDefault === "shared",
         fromTemplate: true,
         appliedTemplateId: templateId,
       })
@@ -644,7 +639,6 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
         startDate: phaseStart,
         dueDate: taskDue,
         isMilestone: false,
-        visibleToClient: tPhase.privacyDefault === "shared",
         fromTemplate: true,
         appliedTemplateId: templateId,
       });

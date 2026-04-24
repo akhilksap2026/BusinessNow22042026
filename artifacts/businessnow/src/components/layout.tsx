@@ -244,11 +244,6 @@ function UserChip({ variant = "sidebar" }: UserChipProps) {
 
   function handleSwitchRole(role: string) {
     switchRole(role);
-    if (role === "Customer") {
-      navigate("/portal/dashboard");
-    } else if (location.startsWith("/portal/")) {
-      navigate("/");
-    }
   }
 
   async function handleLogout() {

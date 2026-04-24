@@ -10,6 +10,5 @@ export interface CreateTemplatePhaseBody {
   name: string;
   relativeStartOffset?: number;
   relativeEndOffset?: number;
-  privacyDefault?: string;
   order?: number;
 }

@@ -11,7 +11,7 @@ import { z } from "zod/v4";
  *   account_admin  – Full access (maps from "Admin")
  *   super_user     – Broad project access (maps from "PM", "Finance", "Developer", …)
  *   collaborator   – Limited internal user (maps from "Collaborator", "Viewer")
- *   customer       – External / portal-only (maps from "Customer", "Partner")
+ *   customer       – External read-only role (maps from "Customer", "Partner")
  */
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),

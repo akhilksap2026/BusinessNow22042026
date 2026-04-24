@@ -30,30 +30,21 @@ import documentsRouter from "./documents";
 import formsRouter from "./forms";
 import prospectsRouter from "./prospects";
 import opportunitiesRouter from "./opportunities";
-import portalRouter from "./portal";
 import changeOrdersRouter from "./changeOrders";
 import taskDependenciesRouter from "./taskDependencies";
 import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
-import { portalAuthRouter } from "./portalAuth";
 import { projectUpdatesRouter } from "./projectUpdates";
-import { blockPortalRoles } from "../middleware/rbac";
-import type { Request, Response, NextFunction } from "express";
+import { denyCustomerRole } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
 // Health check is public — no auth required.
 router.use(healthRouter);
 
-// Portal-auth routes are for Customer / Partner roles — mount before the internal block.
-router.use(portalAuthRouter);
+// Customer role has no UI surface and no internal-API access.
+router.use(denyCustomerRole);
 
-// Block Customer and Partner roles from all other internal API routes.
-router.use((req: Request, res: Response, next: NextFunction) => {
-  // Portal-auth paths already handled above; block everything else for portal roles.
-  if (req.path.startsWith("/portal-auth/")) { next(); return; }
-  blockPortalRoles(req, res, next);
-});
 router.use(dashboardRouter);
 router.use(accountsRouter);
 router.use(projectsRouter);
@@ -84,7 +75,6 @@ router.use(savedViewsRouter);
 router.use(formsRouter);
 router.use(prospectsRouter);
 router.use(opportunitiesRouter);
-router.use(portalRouter);
 router.use(changeOrdersRouter);
 router.use(taskDependenciesRouter);
 router.use(baselinesRouter);

@@ -46,10 +46,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 const BILLING_TYPES = ["Fixed Fee", "Time & Materials", "Retainer", "Milestone-Based"];
 const PRIORITIES = ["Low", "Medium", "High", "Critical"];
 const ROLES = ["PM", "Developer", "Designer", "QA", "Finance", "Analyst", "Consultant", "Tech Lead"];
-const PRIVACY_OPTIONS = [
-  { value: "shared", label: "Shared with Client" },
-  { value: "internal", label: "Internal Only" },
-];
 
 // ─── Inline editable field ───────────────────────────────────────────────────
 
@@ -275,9 +271,6 @@ function PhaseCard({
               <span className="text-xs text-muted-foreground">
                 Day +{phase.relativeStartOffset} → +{phase.relativeEndOffset}
               </span>
-              <Badge variant={phase.privacyDefault === "shared" ? "secondary" : "outline"} className="text-xs">
-                {phase.privacyDefault === "shared" ? "Shared" : "Internal"}
-              </Badge>
               <Badge variant="outline" className="text-xs">{phase.tasks.length} tasks</Badge>
               <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-500" onClick={() => setDeleteOpen(true)}>
                 <Trash2 className="h-3.5 w-3.5" />
@@ -305,15 +298,6 @@ function PhaseCard({
                 className="h-6 text-xs w-16 py-0 px-2"
                 onBlur={e => onUpdate({ relativeEndOffset: parseInt(e.target.value, 10) || 0 })}
               />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Label className="text-xs text-muted-foreground shrink-0">Privacy</Label>
-              <Select value={phase.privacyDefault} onValueChange={v => onUpdate({ privacyDefault: v })}>
-                <SelectTrigger className="h-6 text-xs w-36 py-0"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PRIVACY_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardHeader>
@@ -857,7 +841,7 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
   const deleteTask = useDeleteTemplateTask();
 
   const [addingPhase, setAddingPhase] = useState(false);
-  const [phaseForm, setPhaseForm] = useState({ name: "", relativeStartOffset: 0, relativeEndOffset: 7, privacyDefault: "shared" });
+  const [phaseForm, setPhaseForm] = useState({ name: "", relativeStartOffset: 0, relativeEndOffset: 7 });
   const [savingPhase, setSavingPhase] = useState(false);
 
   function invalidate() {
@@ -886,7 +870,7 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
       const order = (template?.phases?.length ?? 0);
       await createPhase.mutateAsync({ id: templateId, data: { ...phaseForm, order } });
       invalidate();
-      setPhaseForm({ name: "", relativeStartOffset: 0, relativeEndOffset: 7, privacyDefault: "shared" });
+      setPhaseForm({ name: "", relativeStartOffset: 0, relativeEndOffset: 7 });
       setAddingPhase(false);
     } catch {
       toast({ title: "Failed to add phase", variant: "destructive" });
@@ -1104,15 +1088,6 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
                     value={phaseForm.relativeEndOffset}
                     onChange={e => setPhaseForm(f => ({ ...f, relativeEndOffset: parseInt(e.target.value, 10) || 0 }))}
                   />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Privacy</Label>
-                  <Select value={phaseForm.privacyDefault} onValueChange={v => setPhaseForm(f => ({ ...f, privacyDefault: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {PRIVACY_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
               <div className="flex gap-2 justify-end">

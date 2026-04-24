@@ -26,7 +26,6 @@ export const templatePhasesTable = pgTable("template_phases", {
   name: text("name").notNull(),
   relativeStartOffset: integer("relative_start_offset").notNull().default(0),
   relativeEndOffset: integer("relative_end_offset").notNull().default(7),
-  privacyDefault: text("privacy_default").notNull().default("shared"),
   order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

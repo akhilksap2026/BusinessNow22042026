@@ -2577,67 +2577,6 @@ paths:
         '204':
           description: Deleted
 
-  /projects/{id}/portal-tokens:
-    post:
-      summary: Create or regenerate a client portal token
-      operationId: createPortalToken
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePortalTokenBody'
-      responses:
-        '201':
-          description: Token created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PortalToken'
-    get:
-      summary: List portal tokens for a project
-      operationId: listPortalTokens
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PortalToken'
-
-  /projects/{id}/portal-tokens/{tokenId}:
-    delete:
-      summary: Revoke a portal token
-      operationId: revokePortalToken
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-        - in: path
-          name: tokenId
-          required: true
-          schema:
-            type: integer
-      responses:
-        '204':
-          description: Revoked
-
   /projects/{id}/gantt:
     get:
       summary: Get Gantt data for a project
@@ -2655,26 +2594,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GanttData'
-
-  /portal/{token}:
-    get:
-      summary: Get public client portal data by token
-      operationId: getPortal
-      parameters:
-        - in: path
-          name: token
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PortalData'
-        '404':
-          description: Token not found or expired
 
   /prospects:
     get:
@@ -3764,8 +3683,6 @@ components:
           description: ID of the template that created this task
         parentTaskId:
           type: ["integer", "null"]
-        visibleToClient:
-          type: boolean
         createdAt:
           type: string
       required:
@@ -4954,9 +4871,6 @@ components:
         relativeEndOffset:
           type: integer
           description: Days from project start_date when this phase ends
-        privacyDefault:
-          type: string
-          enum: [shared, internal]
         order:
           type: integer
         tasks:
@@ -4973,7 +4887,6 @@ components:
         - name
         - relativeStartOffset
         - relativeEndOffset
-        - privacyDefault
         - order
 
     CreateTemplatePhaseBody:
@@ -4985,8 +4898,6 @@ components:
           type: integer
         relativeEndOffset:
           type: integer
-        privacyDefault:
-          type: string
         order:
           type: integer
       required:
@@ -5909,50 +5820,6 @@ components:
         - name
         - date
 
-    PortalToken:
-      type: object
-      properties:
-        id:
-          type: integer
-        projectId:
-          type: integer
-        token:
-          type: string
-        label:
-          type: string
-          nullable: true
-        isActive:
-          type: boolean
-        expiresAt:
-          type: string
-          nullable: true
-        viewCount:
-          type: integer
-        lastViewedAt:
-          type: string
-          nullable: true
-        createdAt:
-          type: string
-        updatedAt:
-          type: string
-      required:
-        - id
-        - projectId
-        - token
-        - isActive
-        - viewCount
-        - createdAt
-        - updatedAt
-
-    CreatePortalTokenBody:
-      type: object
-      properties:
-        label:
-          type: string
-        expiresAt:
-          type: string
-          nullable: true
-
     GanttRow:
       type: object
       properties:
@@ -6003,102 +5870,6 @@ components:
         - projectStart
         - projectEnd
         - rows
-
-    PortalMilestone:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        status:
-          type: string
-        dueDate:
-          type: string
-          nullable: true
-        completedAt:
-          type: string
-          nullable: true
-      required:
-        - id
-        - name
-        - status
-
-    PortalDocument:
-      type: object
-      properties:
-        id:
-          type: integer
-        title:
-          type: string
-        type:
-          type: string
-        updatedAt:
-          type: string
-      required:
-        - id
-        - title
-        - type
-        - updatedAt
-
-    PortalData:
-      type: object
-      properties:
-        project:
-          type: object
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-            status:
-              type: string
-            health:
-              type: string
-            completion:
-              type: integer
-            startDate:
-              type: string
-            dueDate:
-              type: string
-            description:
-              type: string
-              nullable: true
-            accountName:
-              type: string
-              nullable: true
-          required:
-            - id
-            - name
-            - status
-            - health
-            - completion
-            - startDate
-            - dueDate
-        milestones:
-          type: array
-          items:
-            $ref: '#/components/schemas/PortalMilestone'
-        documents:
-          type: array
-          items:
-            $ref: '#/components/schemas/PortalDocument'
-        overallProgress:
-          type: number
-        totalTasks:
-          type: integer
-        completedTasks:
-          type: integer
-        label:
-          type: string
-          nullable: true
-      required:
-        - project
-        - milestones
-        - documents
-        - overallProgress
-        - totalTasks
-        - completedTasks
 
     Prospect:
       type: object

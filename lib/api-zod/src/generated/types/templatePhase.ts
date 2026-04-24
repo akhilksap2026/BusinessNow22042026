@@ -5,7 +5,6 @@
  * BusinessNow PSA Platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { TemplatePhasePrivacyDefault } from "./templatePhasePrivacyDefault";
 import type { TemplateTask } from "./templateTask";
 
 export interface TemplatePhase {
@@ -16,7 +15,6 @@ export interface TemplatePhase {
   relativeStartOffset: number;
   /** Days from project start_date when this phase ends */
   relativeEndOffset: number;
-  privacyDefault: TemplatePhasePrivacyDefault;
   order: number;
   tasks?: TemplateTask[];
   createdAt?: string;

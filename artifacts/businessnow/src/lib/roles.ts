@@ -5,7 +5,7 @@
  *   ACCOUNT_ADMIN  – Full access including account settings and user management.
  *   SUPER_USER     – Broad project access; no core admin capabilities.
  *   COLLABORATOR   – Limited internal user; no admin or project-creation access.
- *   CUSTOMER       – External / portal-only; project-scoped read access.
+ *   CUSTOMER       – External read-only; project-scoped read access.
  */
 
 export const ROLES = {
@@ -157,9 +157,6 @@ export function usePermissions(activeRole: string) {
 
     /** Can view project details they are allocated to */
     viewProjects: isCollaboratorOrAbove || isCustomer,
-
-    /** Is a portal / external user — no internal routes */
-    isPortalUser: isCustomer,
 
     /** Raw resolved canonical role */
     role: resolveRole(activeRole) as RoleValue,

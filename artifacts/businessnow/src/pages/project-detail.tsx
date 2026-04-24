@@ -1,7 +1,7 @@
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken, useListSkills } from "@workspace/api-client-react";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, useListSkills } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, Share2, Copy, Check, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell } from "lucide-react";
 import { ApplyTemplateModal } from "@/components/apply-template-modal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectPhases } from "@/components/project-phases";
@@ -66,7 +66,6 @@ export default function ProjectDetail() {
   const updateProject = useUpdateProject();
   const createResourceRequest = useCreateResourceRequest();
 
-  const [shareOpen, setShareOpen] = useState(false);
   const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
   const [taskView, setTaskView] = useState<"list" | "board">("list");
   const [activeTab, setActiveTab] = useState("tasks");
@@ -406,37 +405,6 @@ export default function ProjectDetail() {
       toast({ title: "Failed to submit resource request", variant: "destructive" });
     }
   }
-  const [copied, setCopied] = useState(false);
-  const [creatingToken, setCreatingToken] = useState(false);
-
-  const { data: portalTokens, refetch: refetchTokens } = useQuery({
-    queryKey: ["portal-tokens", projectId],
-    queryFn: () => listPortalTokens(projectId),
-    enabled: shareOpen && !!projectId,
-  });
-
-  const activeToken = portalTokens?.find(t => t.isActive);
-  const portalUrl = activeToken
-    ? `${window.location.origin}/portal/${activeToken.token}`
-    : null;
-
-  async function handleCreateToken() {
-    setCreatingToken(true);
-    try {
-      await createPortalToken(projectId, { label: "Client Portal" });
-      refetchTokens();
-    } finally {
-      setCreatingToken(false);
-    }
-  }
-
-  function handleCopyLink() {
-    if (!portalUrl) return;
-    navigator.clipboard.writeText(portalUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   const [allocDialogOpen, setAllocDialogOpen] = useState(false);
   const [editAllocId, setEditAllocId] = useState<number | null>(null);
   const [deleteAllocId, setDeleteAllocId] = useState<number | null>(null);
@@ -733,10 +701,6 @@ export default function ProjectDetail() {
             <Button variant="outline" size="sm" onClick={openEditProject} className="flex items-center gap-2 shrink-0">
               <Settings2 className="h-4 w-4" />
               Edit Project
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-2 shrink-0">
-              <Share2 className="h-4 w-4" />
-              Share with Client
             </Button>
           </div>
         </div>
@@ -1681,54 +1645,6 @@ export default function ProjectDetail() {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Share with Client Dialog */}
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-indigo-600" />
-              Share with Client
-            </DialogTitle>
-            <DialogDescription>
-              Generate a read-only portal link for your client. They can view project status, milestones, and documents without logging in.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {portalUrl ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <Input readOnly value={portalUrl} className="font-mono text-xs flex-1 bg-muted" />
-                  <Button size="sm" variant="outline" onClick={handleCopyLink} className="shrink-0">
-                    {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  This link is publicly accessible — anyone with the link can view project details. You can revoke it at any time.
-                </p>
-                <a
-                  href={portalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-indigo-600 hover:underline"
-                >
-                  Preview portal →
-                </a>
-              </>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground mb-4">No active portal link exists for this project yet.</p>
-                <Button onClick={handleCreateToken} disabled={creatingToken}>
-                  {creatingToken ? "Creating…" : "Generate Portal Link"}
-                </Button>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShareOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={allocDialogOpen} onOpenChange={(open) => { setAllocDialogOpen(open); if (!open) setEditAllocId(null); }}>
         <DialogContent>

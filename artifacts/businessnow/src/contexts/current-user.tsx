@@ -53,7 +53,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
           setCurrentUser(data);
           const stored = localStorage.getItem("activeRole") ?? "Admin";
           applyRoleHeaders(stored, data.id);
-          const available = [data.role, ...(data.secondaryRoles ?? []), "Customer"];
+          const available = [data.role, ...(data.secondaryRoles ?? [])];
           if (!available.includes(stored)) {
             setActiveRole(data.role);
             localStorage.setItem("activeRole", data.role);
@@ -91,7 +91,6 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     ? [
         currentUser.role,
         ...(currentUser.secondaryRoles ?? []).filter(r => r !== currentUser.role),
-        ...(!currentUser.role.includes("Customer") ? ["Customer"] : []),
       ]
     : [activeRole];
 

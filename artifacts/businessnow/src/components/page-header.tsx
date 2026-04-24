@@ -30,7 +30,6 @@ const ROUTE_LABELS: Record<string, string> = {
   reports: "Reports",
   admin: "Admin",
   notifications: "Notifications",
-  portal: "Customer Portal",
   dashboard: "Dashboard",
 };
 

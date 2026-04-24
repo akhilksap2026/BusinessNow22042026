@@ -311,13 +311,6 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                   />
                   <span className="text-sm text-muted-foreground">Billable</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={task?.visibleToClient ?? true}
-                    onCheckedChange={(v) => handleUpdateField("visibleToClient", !!v)}
-                  />
-                  <span className="text-sm text-muted-foreground">Visible to Client</span>
-                </label>
               </div>
 
               {/* Approval status */}
