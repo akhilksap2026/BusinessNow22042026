@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAccounts, createAccount, updateAccount, deleteAccount, listOpportunities, listProjects } from "@workspace/api-client-react";
 import { Account } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -148,12 +149,15 @@ export default function Accounts() {
   return (
     <Layout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Client Accounts</h1>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="mr-2 h-4 w-4" /> New Account
-          </Button>
-        </div>
+        <PageHeader
+          title="Client Accounts"
+          breadcrumbs={[{ label: "Accounts" }]}
+          actions={
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New Account
+            </Button>
+          }
+        />
 
         <Card>
           <CardHeader className="pb-3">
@@ -169,6 +173,71 @@ export default function Accounts() {
             {isLoading ? (
               <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
             ) : (
+              <>
+              {/* Mobile cards */}
+              <ul className="md:hidden space-y-2" aria-label="Accounts">
+                {filtered.length === 0 ? (
+                  <li className="text-center text-muted-foreground py-8 text-sm">
+                    {search ? "No accounts match your search." : "No accounts found."}
+                  </li>
+                ) : filtered.map(account => (
+                  <li
+                    key={account.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open ${account.name}`}
+                    className="border border-border rounded-lg p-3 bg-card hover:bg-muted/30 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => setSelected(account)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelected(account);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 font-medium text-sm">
+                          <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate">{account.name}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate">{account.domain}</div>
+                      </div>
+                      <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More options">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(account)}>
+                              <Pencil className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => openDelete(account)}>
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                      <StatusBadge status={account.status} />
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[account.tier] ?? "bg-slate-100 text-slate-600"}`}>
+                        {account.tier}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{account.region}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Contract Value</span>
+                      <span className="font-medium tabular-nums">{fmt(account.contractValue)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -255,6 +324,8 @@ export default function Accounts() {
                   )}
                 </TableBody>
               </Table>
+              </div>
+              </>
             )}
           </CardContent>
         </Card>

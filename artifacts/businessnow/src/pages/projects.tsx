@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import { useListProjects, useDeleteProject, useListUsers } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
@@ -127,23 +128,25 @@ export default function Projects() {
   return (
     <Layout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-          <div className="flex gap-2">
-            <Button
-              variant={showArchived ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setShowArchived(v => !v)}
-              className="gap-1.5"
-            >
-              <Archive className="h-4 w-4" />
-              {showArchived ? "Hide Archived" : "Show Archived"}
-            </Button>
-            <Button onClick={() => setIsCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> New Project
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Projects"
+          actions={
+            <>
+              <Button
+                variant={showArchived ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setShowArchived(v => !v)}
+                className="gap-1.5"
+              >
+                <Archive className="h-4 w-4" />
+                {showArchived ? "Hide Archived" : "Show Archived"}
+              </Button>
+              <Button onClick={() => setIsCreateOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> New Project
+              </Button>
+            </>
+          }
+        />
 
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
           <div className="relative flex-1 max-w-sm">
@@ -237,88 +240,156 @@ export default function Projects() {
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
+            ) : visibleProjects.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8 text-sm">
+                No projects found.
+              </div>
             ) : (
-              <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs">
-                    <TableHead className="w-[220px]">Project Name</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Health</TableHead>
-                    <TableHead className="text-right">Tracked Hrs</TableHead>
-                    <TableHead className="text-right">Allocated Hrs</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile cards */}
+                <ul className="md:hidden space-y-2" aria-label="Projects">
                   {visibleProjects.map((project) => {
                     const trackedHrs = Math.round((project.trackedHours ?? 0) * 10) / 10;
                     const allocatedHrs = Math.round((project.allocatedHours ?? 0) * 10) / 10;
+                    const owner = users?.find(u => u.id === project.ownerId)?.name ?? "—";
+                    const account = (project as any).companyName ?? `Account #${project.accountId}`;
                     return (
-                    <TableRow
-                      key={project.id}
-                      className="text-xs cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/projects/${project.id}`)}
-                    >
-                      <TableCell className="font-medium whitespace-nowrap">
-                        <Link
-                          href={`/projects/${project.id}`}
-                          className="text-primary hover:underline"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          {project.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">
-                        {(project as any).companyName ?? `Account #${project.accountId}`}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{users?.find(u => u.id === project.ownerId)?.name ?? "—"}</TableCell>
-                      <TableCell><InternalExternalBadge value={(project as any).internalExternal} /></TableCell>
-                      <TableCell><StatusBadge status={project.status} /></TableCell>
-                      <TableCell><StatusBadge status={project.health} /></TableCell>
-                      <TableCell className="text-right tabular-nums">{trackedHrs.toLocaleString()}h</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">{allocatedHrs > 0 ? `${allocatedHrs.toLocaleString()}h` : "—"}</TableCell>
-                      <TableCell onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <li
+                        key={project.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open ${project.name}`}
+                        className="border border-border rounded-lg p-3 bg-card hover:bg-muted/30 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => navigate(`/projects/${project.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            navigate(`/projects/${project.id}`);
+                          }
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <Link
+                            href={`/projects/${project.id}`}
+                            className="font-medium text-primary hover:underline text-sm leading-snug min-w-0 break-words"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {project.name}
+                          </Link>
+                          <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More options">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>More options</TooltipContent>
-                            </Tooltip>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/projects/${project.id}`}>View Details</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => handleDelete(project.id, project.name)}
-                            >
-                              Archive Project
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/projects/${project.id}`}>View Details</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => handleDelete(project.id, project.name)}
+                                >
+                                  Archive Project
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground mb-2 truncate">
+                          {account} · {owner}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                          <InternalExternalBadge value={(project as any).internalExternal} />
+                          <StatusBadge status={project.status} />
+                          <StatusBadge status={project.health} />
+                        </div>
+                        <div className="flex justify-between text-xs tabular-nums">
+                          <span className="text-muted-foreground">Tracked</span>
+                          <span className="font-medium">{trackedHrs.toLocaleString()}h{allocatedHrs > 0 ? ` / ${allocatedHrs.toLocaleString()}h` : ""}</span>
+                        </div>
+                      </li>
                     );
                   })}
-                  {visibleProjects.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                        No projects found.
-                      </TableCell>
+                </ul>
+
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-xs">
+                      <TableHead className="w-[220px]">Project Name</TableHead>
+                      <TableHead>Account</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Health</TableHead>
+                      <TableHead className="text-right">Tracked Hrs</TableHead>
+                      <TableHead className="text-right">Allocated Hrs</TableHead>
+                      <TableHead />
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              </div>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleProjects.map((project) => {
+                      const trackedHrs = Math.round((project.trackedHours ?? 0) * 10) / 10;
+                      const allocatedHrs = Math.round((project.allocatedHours ?? 0) * 10) / 10;
+                      return (
+                      <TableRow
+                        key={project.id}
+                        className="text-xs cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/projects/${project.id}`)}
+                      >
+                        <TableCell className="font-medium whitespace-nowrap">
+                          <Link
+                            href={`/projects/${project.id}`}
+                            className="text-primary hover:underline"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {project.name}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                          {(project as any).companyName ?? `Account #${project.accountId}`}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{users?.find(u => u.id === project.ownerId)?.name ?? "—"}</TableCell>
+                        <TableCell><InternalExternalBadge value={(project as any).internalExternal} /></TableCell>
+                        <TableCell><StatusBadge status={project.status} /></TableCell>
+                        <TableCell><StatusBadge status={project.health} /></TableCell>
+                        <TableCell className="text-right tabular-nums">{trackedHrs.toLocaleString()}h</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">{allocatedHrs > 0 ? `${allocatedHrs.toLocaleString()}h` : "—"}</TableCell>
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>More options</TooltipContent>
+                              </Tooltip>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/projects/${project.id}`}>View Details</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleDelete(project.id, project.name)}
+                              >
+                                Archive Project
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

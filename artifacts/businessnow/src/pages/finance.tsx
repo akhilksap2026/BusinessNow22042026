@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import {
   useGetFinanceSummary, useListInvoices, useListAccounts, useListProjects, useCreateInvoice, getListInvoicesQueryKey,
   useListBillingSchedules, useCreateBillingSchedule, useDeleteBillingSchedule, useTriggerBillingSchedule, getListBillingSchedulesQueryKey,
@@ -229,12 +230,15 @@ export default function Finance() {
   return (
     <Layout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Finance & Invoicing</h1>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Create Invoice
-          </Button>
-        </div>
+        <PageHeader
+          title="Finance & Invoicing"
+          breadcrumbs={[{ label: "Finance" }]}
+          actions={
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Create Invoice
+            </Button>
+          }
+        />
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {(["Total Invoiced", "Total Paid", "Outstanding", "Overdue"] as const).map((label, i) => {

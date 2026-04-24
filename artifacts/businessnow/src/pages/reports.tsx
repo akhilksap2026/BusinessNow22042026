@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import {
   useGetUtilizationReport,
   useGetRevenueReport,
@@ -1177,9 +1178,7 @@ export default function Reports() {
   return (
     <Layout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-        </div>
+        <PageHeader title="Reports" />
 
         <Tabs defaultValue="performance" className="w-full">
           <div className="overflow-x-auto scrollbar-none mb-4">

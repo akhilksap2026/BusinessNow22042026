@@ -50,6 +50,7 @@ import {
 import { MoreHorizontal, Plus, Search, UserCheck, ExternalLink } from "lucide-react";
 import { Prospect } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import { Link } from "wouter";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -153,96 +154,160 @@ export default function ProspectsPage() {
 
   return (
     <Layout>
-    <div className="flex flex-col h-full">
-      <div className="border-b bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">Prospects</h1>
-            <p className="text-sm text-slate-500 mt-0.5">{filtered.length} prospects · {fmt(totalValue)} pipeline value</p>
-          </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Prospects"
+        description={`${filtered.length} prospects · ${fmt(totalValue)} pipeline value`}
+        breadcrumbs={[{ label: "Prospects" }]}
+        actions={
           <Button onClick={() => setShowCreate(true)} className="gap-1.5">
             <Plus className="h-4 w-4" /> Add Prospect
           </Button>
-        </div>
+        }
+      />
 
-        <div className="flex gap-3 mt-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input className="pl-9" placeholder="Search prospects…" value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search prospects…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Company</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead className="text-right">Est. Value</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground text-sm">No prospects found</div>
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <ul className="md:hidden space-y-2" aria-label="Prospects">
             {filtered.map(p => (
-              <TableRow key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelected(p)}>
-                <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell>
-                  <div className="text-sm">{p.contactName ?? "—"}</div>
-                  <div className="text-xs text-slate-400">{p.contactEmail ?? ""}</div>
-                </TableCell>
-                <TableCell>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[p.status] ?? ""}`}>{p.status}</span>
-                </TableCell>
-                <TableCell className="text-slate-500 text-sm">{p.source ?? "—"}</TableCell>
-                <TableCell className="text-right font-medium">{fmt(p.estimatedValue)}</TableCell>
-                <TableCell onClick={e => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setSelected(p)}>View Details</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openEditProspect(p)}>Edit</DropdownMenuItem>
-                      {p.status !== "Converted" && (
-                        <DropdownMenuItem onClick={() => { setSelected(p); setShowConvert(true); }}>
-                          Convert to Customer
-                        </DropdownMenuItem>
-                      )}
-                      {p.status === "Converted" && p.convertedAccountId && (
-                        <DropdownMenuItem asChild>
-                          <Link href="/accounts" className="flex items-center gap-1.5">
-                            <ExternalLink className="h-3.5 w-3.5" /> View Account
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem className="text-red-600" onClick={() => deleteMut.mutate(p.id)}>Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
+              <li
+                key={p.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${p.name}`}
+                className="border border-border rounded-lg p-3 bg-card hover:bg-muted/30 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => setSelected(p)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelected(p);
+                  }
+                }}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {p.contactName ?? "—"}
+                      {p.contactEmail ? <span className="ml-1 text-muted-foreground/70">· {p.contactEmail}</span> : null}
+                    </div>
+                  </div>
+                  <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More options">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setSelected(p)}>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEditProspect(p)}>Edit</DropdownMenuItem>
+                        {p.status !== "Converted" && (
+                          <DropdownMenuItem onClick={() => { setSelected(p); setShowConvert(true); }}>
+                            Convert to Customer
+                          </DropdownMenuItem>
+                        )}
+                        {p.status === "Converted" && p.convertedAccountId && (
+                          <DropdownMenuItem asChild>
+                            <Link href="/accounts" className="flex items-center gap-1.5">
+                              <ExternalLink className="h-3.5 w-3.5" /> View Account
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem className="text-red-600" onClick={() => deleteMut.mutate(p.id)}>Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[p.status] ?? ""}`}>{p.status}</span>
+                    <span className="text-xs text-muted-foreground">{p.source ?? "—"}</span>
+                  </div>
+                  <span className="text-sm font-medium tabular-nums">{fmt(p.estimatedValue)}</span>
+                </div>
+              </li>
             ))}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-slate-400">No prospects found</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          </ul>
+
+          {/* Desktop table */}
+          <div className="hidden md:block flex-1 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead className="text-right">Est. Value</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(p => (
+                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelected(p)}>
+                    <TableCell className="font-medium">{p.name}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">{p.contactName ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">{p.contactEmail ?? ""}</div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[p.status] ?? ""}`}>{p.status}</span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{p.source ?? "—"}</TableCell>
+                    <TableCell className="text-right font-medium">{fmt(p.estimatedValue)}</TableCell>
+                    <TableCell onClick={e => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSelected(p)}>View Details</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditProspect(p)}>Edit</DropdownMenuItem>
+                          {p.status !== "Converted" && (
+                            <DropdownMenuItem onClick={() => { setSelected(p); setShowConvert(true); }}>
+                              Convert to Customer
+                            </DropdownMenuItem>
+                          )}
+                          {p.status === "Converted" && p.convertedAccountId && (
+                            <DropdownMenuItem asChild>
+                              <Link href="/accounts" className="flex items-center gap-1.5">
+                                <ExternalLink className="h-3.5 w-3.5" /> View Account
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem className="text-red-600" onClick={() => deleteMut.mutate(p.id)}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {/* Detail Sheet */}
       <Sheet open={!!selected && !showConvert} onOpenChange={v => { if (!v) setSelected(null); }}>

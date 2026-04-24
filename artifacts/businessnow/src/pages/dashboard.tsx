@@ -1,4 +1,5 @@
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import { useGetDashboardSummary, useGetDashboardActivity, useGetProjectHealthReport, useListInvoices } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,14 +49,14 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          title="Dashboard"
+          actions={
             <Link href="/projects">
               <Button>New Project</Button>
             </Link>
-          </div>
-        </div>
+          }
+        />
 
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

@@ -1,4 +1,5 @@
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import { useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,23 +75,25 @@ export default function Notifications() {
   return (
     <Layout>
       <div className="space-y-6 max-w-3xl mx-auto">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
-          <div className="flex items-center gap-2">
-            {unreadNotifications.length > 0 && (
-              <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markRead.isPending}>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Mark all read ({unreadNotifications.length})
-              </Button>
-            )}
-            {readCount > 0 && (
-              <Button variant="outline" size="sm" onClick={handleClearRead} disabled={dismissNotification.isPending}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Clear read ({readCount})
-              </Button>
-            )}
-          </div>
-        </div>
+        <PageHeader
+          title="Notifications"
+          actions={
+            <>
+              {unreadNotifications.length > 0 && (
+                <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markRead.isPending}>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Mark all read ({unreadNotifications.length})
+                </Button>
+              )}
+              {readCount > 0 && (
+                <Button variant="outline" size="sm" onClick={handleClearRead} disabled={dismissNotification.isPending}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear read ({readCount})
+                </Button>
+              )}
+            </>
+          }
+        />
 
         <Card>
           <CardHeader>

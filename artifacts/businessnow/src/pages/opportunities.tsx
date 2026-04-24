@@ -51,6 +51,7 @@ import {
 import { MoreHorizontal, Plus, Kanban, ListIcon, FolderPlus, FolderOpen, ArrowUpRight } from "lucide-react";
 import { Link } from "wouter";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -181,25 +182,26 @@ export default function OpportunitiesPage() {
 
   return (
     <Layout>
-    <div className="flex flex-col h-full">
-      <div className="border-b bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">Opportunities</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {opportunities.length} deals · {fmt(totalPipeline)} in pipeline · {fmt(totalWon)} won
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <div className="flex border rounded-md overflow-hidden">
+    <div className="space-y-4">
+      <PageHeader
+        title="Opportunities"
+        description={`${opportunities.length} deals · ${fmt(totalPipeline)} in pipeline · ${fmt(totalWon)} won`}
+        breadcrumbs={[{ label: "Opportunities" }]}
+        actions={
+          <>
+            <div className="flex border rounded-md overflow-hidden" role="radiogroup" aria-label="View mode">
               <button
-                className={`px-3 py-1.5 text-sm flex items-center gap-1.5 ${view === "list" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+                role="radio"
+                aria-checked={view === "list"}
+                className={`px-3 py-1.5 text-sm flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${view === "list" ? "bg-slate-900 text-white" : "bg-background text-muted-foreground hover:bg-muted"}`}
                 onClick={() => setView("list")}
               >
                 <ListIcon className="h-3.5 w-3.5" /> List
               </button>
               <button
-                className={`px-3 py-1.5 text-sm flex items-center gap-1.5 ${view === "kanban" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+                role="radio"
+                aria-checked={view === "kanban"}
+                className={`px-3 py-1.5 text-sm flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${view === "kanban" ? "bg-slate-900 text-white" : "bg-background text-muted-foreground hover:bg-muted"}`}
                 onClick={() => setView("kanban")}
               >
                 <Kanban className="h-3.5 w-3.5" /> Kanban
@@ -208,11 +210,11 @@ export default function OpportunitiesPage() {
             <Button onClick={() => setShowCreate(true)} className="gap-1.5">
               <Plus className="h-4 w-4" /> Add Opportunity
             </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto">
         {view === "kanban" ? (
           <KanbanBoard opportunities={opportunities} onSelect={setSelected} onStageChange={(id, stage) => updateMut.mutate({ id, stage })} />
         ) : (
@@ -511,54 +513,110 @@ function OpportunityTable({
   onDelete: (id: number) => void;
   onConvert: (o: Opportunity) => void;
 }) {
+  if (opportunities.length === 0) {
+    return <div className="text-center py-12 text-muted-foreground text-sm">No opportunities found</div>;
+  }
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Opportunity</TableHead>
-          <TableHead>Account</TableHead>
-          <TableHead>Stage</TableHead>
-          <TableHead className="text-right">Value</TableHead>
-          <TableHead>Close Date</TableHead>
-          <TableHead />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <>
+      {/* Mobile cards */}
+      <ul className="md:hidden space-y-2" aria-label="Opportunities">
         {opportunities.map(o => (
-          <TableRow key={o.id} className="cursor-pointer hover:bg-slate-50" onClick={() => onSelect(o)}>
-            <TableCell className="font-medium">{o.name}</TableCell>
-            <TableCell className="text-slate-500 text-sm">{o.accountName ?? "—"}</TableCell>
-            <TableCell>
+          <li
+            key={o.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`Open ${o.name}`}
+            className="border border-border rounded-lg p-3 bg-card hover:bg-muted/30 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => onSelect(o)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(o);
+              }
+            }}
+          >
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm truncate">{o.name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 truncate">{o.accountName ?? "—"}</div>
+              </div>
+              <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More options">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onSelect(o)}>View Details</DropdownMenuItem>
+                    {o.stage === "Won" && !o.projectId && (
+                      <DropdownMenuItem onClick={() => onConvert(o)}>Create Project</DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem className="text-red-600" onClick={() => onDelete(o.id)}>Delete</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
               <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[o.stage] ?? ""}`}>{o.stage}</span>
-            </TableCell>
-            <TableCell className="text-right font-medium">{fmt(o.value)}</TableCell>
-            <TableCell className="text-slate-500 text-sm">
-              {o.closeDate ? new Date(o.closeDate).toLocaleDateString() : "—"}
-            </TableCell>
-            <TableCell onClick={e => e.stopPropagation()}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onSelect(o)}>View Details</DropdownMenuItem>
-                  {o.stage === "Won" && !o.projectId && (
-                    <DropdownMenuItem onClick={() => onConvert(o)}>Create Project</DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem className="text-red-600" onClick={() => onDelete(o.id)}>Delete</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-          </TableRow>
+              <div className="text-right">
+                <div className="text-sm font-medium tabular-nums">{fmt(o.value)}</div>
+                <div className="text-xs text-muted-foreground">
+                  {o.closeDate ? new Date(o.closeDate).toLocaleDateString() : "—"}
+                </div>
+              </div>
+            </div>
+          </li>
         ))}
-        {opportunities.length === 0 && (
-          <TableRow>
-            <TableCell colSpan={6} className="text-center py-12 text-slate-400">No opportunities found</TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+      </ul>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Opportunity</TableHead>
+              <TableHead>Account</TableHead>
+              <TableHead>Stage</TableHead>
+              <TableHead className="text-right">Value</TableHead>
+              <TableHead>Close Date</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {opportunities.map(o => (
+              <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelect(o)}>
+                <TableCell className="font-medium">{o.name}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{o.accountName ?? "—"}</TableCell>
+                <TableCell>
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[o.stage] ?? ""}`}>{o.stage}</span>
+                </TableCell>
+                <TableCell className="text-right font-medium">{fmt(o.value)}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">
+                  {o.closeDate ? new Date(o.closeDate).toLocaleDateString() : "—"}
+                </TableCell>
+                <TableCell onClick={e => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onSelect(o)}>View Details</DropdownMenuItem>
+                      {o.stage === "Won" && !o.projectId && (
+                        <DropdownMenuItem onClick={() => onConvert(o)}>Create Project</DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem className="text-red-600" onClick={() => onDelete(o.id)}>Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import {
   useListTimeEntries, useGetTimeEntrySummary, useListProjects, useListUsers,
   useListTimeOffRequests, useCreateTimeOffRequest, useUpdateTimeOffRequestStatus, useDeleteTimeOffRequest,
@@ -332,25 +333,27 @@ export default function TimeTracking() {
   return (
     <Layout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Time Tracking</h1>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setRequestOpen(true)}>
-              <CalendarOff className="mr-2 h-4 w-4" /> Request Time Off
-            </Button>
-            <Button
-              variant={timerRunning ? "destructive" : "outline"}
-              onClick={handleToggleTimer}
-              className="gap-2 font-mono"
-            >
-              {timerRunning ? <StopCircle className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
-              {timerRunning ? formatTimer(timerSeconds) : "Start Timer"}
-            </Button>
-            <Button onClick={() => setShowLogTime(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Log Time
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Time Tracking"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setRequestOpen(true)}>
+                <CalendarOff className="mr-2 h-4 w-4" /> Request Time Off
+              </Button>
+              <Button
+                variant={timerRunning ? "destructive" : "outline"}
+                onClick={handleToggleTimer}
+                className="gap-2 font-mono"
+              >
+                {timerRunning ? <StopCircle className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
+                {timerRunning ? formatTimer(timerSeconds) : "Start Timer"}
+              </Button>
+              <Button onClick={() => setShowLogTime(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Log Time
+              </Button>
+            </>
+          }
+        />
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>

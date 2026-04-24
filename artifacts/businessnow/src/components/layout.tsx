@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/contexts/current-user";
 import { useDensity } from "@/contexts/density";
+import { useTheme, type Theme } from "@/contexts/theme";
 import {
   LayoutDashboard,
   Briefcase,
@@ -34,6 +35,9 @@ import {
   ChevronDown,
   ShieldCheck,
   SlidersHorizontal,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -205,6 +209,13 @@ function UserChip({ variant = "sidebar" }: UserChipProps) {
   const queryClient = useQueryClient();
   const { currentUser, activeRole, availableRoles, switchRole, logout } = useCurrentUser();
   const { density, setDensity } = useDensity();
+  const { theme, setTheme } = useTheme();
+
+  const THEME_OPTIONS: Array<{ value: Theme; label: string; Icon: typeof Sun }> = [
+    { value: "light", label: "Light", Icon: Sun },
+    { value: "dark", label: "Dark", Icon: Moon },
+    { value: "system", label: "System", Icon: Monitor },
+  ];
 
   function handleSwitchRole(role: string) {
     switchRole(role);
@@ -305,6 +316,31 @@ function UserChip({ variant = "sidebar" }: UserChipProps) {
               {density === "compact" && <span className="text-primary">✓</span>}
               Compact
             </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="gap-2 cursor-pointer">
+            {theme === "dark" ? (
+              <Moon className="h-4 w-4 text-muted-foreground" />
+            ) : theme === "light" ? (
+              <Sun className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Monitor className="h-4 w-4 text-muted-foreground" />
+            )}
+            Theme
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {THEME_OPTIONS.map(({ value, label, Icon }) => (
+              <DropdownMenuItem
+                key={value}
+                className={cn("cursor-pointer gap-2", theme === value && "font-semibold text-primary")}
+                onClick={() => setTheme(value)}
+              >
+                <Icon className="h-4 w-4" />
+                {theme === value && <span className="text-primary">✓</span>}
+                {label}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSeparator />

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
 import ResourceTimeline from "@/components/resource-timeline";
 import { ResourceKpiBar } from "@/components/resource-kpi-bar";
@@ -307,16 +308,19 @@ export default function Resources() {
   return (
     <Layout>
       <div className="space-y-4">
+        <PageHeader
+          title="Team Resources"
+          breadcrumbs={[{ label: "Resources" }]}
+          actions={
+            pendingRequests.length > 0 ? (
+              <Badge variant="destructive" className="flex items-center gap-1.5 px-3 py-1.5">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {pendingRequests.length} pending request{pendingRequests.length !== 1 ? "s" : ""}
+              </Badge>
+            ) : null
+          }
+        />
         <ResourceKpiBar />
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Team Resources</h1>
-          {pendingRequests.length > 0 && (
-            <Badge variant="destructive" className="flex items-center gap-1.5 px-3 py-1.5">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {pendingRequests.length} pending request{pendingRequests.length !== 1 ? "s" : ""}
-            </Badge>
-          )}
-        </div>
 
         <Tabs
           defaultValue={

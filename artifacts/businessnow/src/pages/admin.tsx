@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
 import {
   useListUsers,
   useCreateUser,
@@ -1059,9 +1060,10 @@ export default function Admin() {
   return (
     <Layout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Admin Settings</h1>
-        </div>
+        <PageHeader
+          title="Admin Settings"
+          breadcrumbs={[{ label: "Admin" }]}
+        />
 
         <Tabs defaultValue="users">
           <div className="overflow-x-auto scrollbar-none mb-4">
