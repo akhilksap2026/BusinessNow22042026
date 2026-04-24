@@ -325,31 +325,123 @@ export default function ProjectDetail() {
   const [allocDialogOpen, setAllocDialogOpen] = useState(false);
   const [editAllocId, setEditAllocId] = useState<number | null>(null);
   const [deleteAllocId, setDeleteAllocId] = useState<number | null>(null);
+
+  // Allocation input methods. Persist last-used choice so the form opens
+  // with the user's preferred method next time.
+  type AllocMethod = "hours_per_day" | "percentage_capacity" | "total_hours";
+  const ALLOC_METHOD_LS_KEY = "businessnow.alloc.lastMethod";
+  function readPreferredMethod(): AllocMethod {
+    try {
+      const v = localStorage.getItem(ALLOC_METHOD_LS_KEY);
+      if (v === "hours_per_day" || v === "total_hours") return v;
+      // Accept legacy "pct_capacity" value alongside the canonical token.
+      if (v === "percentage_capacity" || v === "pct_capacity") return "percentage_capacity";
+    } catch { /* ignore */ }
+    return "hours_per_day";
+  }
+
   const [allocForm, setAllocForm] = useState({
     userId: "",
     role: "",
     startDate: "",
     endDate: "",
-    hoursPerWeek: "40",
+    method: "hours_per_day" as AllocMethod,
+    methodValue: "8",
     isSoftAllocation: false,
     isTimesheetApprover: false,
     isLeaveApprover: false,
   });
 
+  // Mon–Fri working-day count between two ISO dates (inclusive).
+  function workingDaysBetween(startISO: string, endISO: string): number {
+    if (!startISO || !endISO) return 0;
+    const s = new Date(startISO + "T00:00:00Z");
+    const e = new Date(endISO + "T00:00:00Z");
+    if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) return 0;
+    let n = 0;
+    const cur = new Date(s);
+    while (cur <= e) {
+      const d = cur.getUTCDay();
+      if (d !== 0 && d !== 6) n++;
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return n;
+  }
+
+  // Capacity (weekly hours) of the currently-selected user; defaults to 40.
+  function selectedUserWeeklyCapacity(): number {
+    const uid = allocForm.userId ? parseInt(allocForm.userId) : null;
+    if (!uid) return 40;
+    const u = (users ?? []).find(x => x.id === uid);
+    return Number((u as any)?.capacity ?? 40);
+  }
+
+  // Live derivation of all storage fields from the chosen method.
+  function deriveAllocFields(method: AllocMethod, rawValue: string, startDate: string, endDate: string) {
+    const v = parseFloat(rawValue);
+    const value = isFinite(v) && v >= 0 ? v : 0;
+    const weeklyCap = selectedUserWeeklyCapacity();
+    const dailyCap = weeklyCap / 5;
+    const wd = workingDaysBetween(startDate, endDate);
+    let hoursPerDay = 0;
+    let hoursPerWeek = 0;
+    let totalHours = 0;
+    let percentOfCapacity: number | null = null;
+    if (method === "hours_per_day") {
+      hoursPerDay = value;
+      hoursPerWeek = value * 5;
+      totalHours = value * wd;
+    } else if (method === "percentage_capacity") {
+      percentOfCapacity = value;
+      hoursPerWeek = (weeklyCap * value) / 100;
+      hoursPerDay = hoursPerWeek / 5;
+      totalHours = hoursPerDay * wd;
+    } else {
+      // total_hours
+      totalHours = value;
+      hoursPerDay = wd > 0 ? value / wd : 0;
+      hoursPerWeek = hoursPerDay * 5;
+    }
+    return { hoursPerDay, hoursPerWeek, totalHours, percentOfCapacity, workingDays: wd, dailyCap, weeklyCap };
+  }
+
   function openNewAlloc() {
     setEditAllocId(null);
-    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", hoursPerWeek: "40", isSoftAllocation: false, isTimesheetApprover: false, isLeaveApprover: false });
+    const method = readPreferredMethod();
+    const defaultValue = method === "hours_per_day" ? "8" : method === "percentage_capacity" ? "100" : "40";
+    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", method, methodValue: defaultValue, isSoftAllocation: false, isTimesheetApprover: false, isLeaveApprover: false });
     setAllocDialogOpen(true);
   }
 
-  function openEditAlloc(alloc: { id: number; userId: number | null; role: string; startDate: string; endDate: string; hoursPerWeek: number; isSoftAllocation?: boolean; isTimesheetApprover?: boolean; isLeaveApprover?: boolean }) {
+  function openEditAlloc(alloc: { id: number; userId: number | null; role: string; startDate: string; endDate: string; hoursPerWeek: number; hoursPerDay?: number | string | null; totalHours?: number | string | null; percentOfCapacity?: number | string | null; allocationMethod?: string | null; isSoftAllocation?: boolean; isTimesheetApprover?: boolean; isLeaveApprover?: boolean }) {
     setEditAllocId(alloc.id);
+    // Map stored allocationMethod → form method. Legacy 'hours_per_week'
+    // values fall back to hours_per_day (derived) so the form always
+    // surfaces one of the three exposed methods.
+    const stored = alloc.allocationMethod;
+    let method: AllocMethod = "hours_per_day";
+    let methodValue = "";
+    if (stored === "total_hours") {
+      method = "total_hours";
+      methodValue = String(alloc.totalHours ?? "");
+    } else if (stored === "percentage_capacity") {
+      method = "percentage_capacity";
+      methodValue = String(alloc.percentOfCapacity ?? "");
+    } else if (stored === "hours_per_day") {
+      method = "hours_per_day";
+      methodValue = String(alloc.hoursPerDay ?? (Number(alloc.hoursPerWeek) / 5));
+    } else {
+      // hours_per_week or unknown → present as hours/day
+      method = "hours_per_day";
+      methodValue = String(Number(alloc.hoursPerWeek) / 5);
+    }
     setAllocForm({
       userId: alloc.userId?.toString() ?? "",
       role: alloc.role,
       startDate: alloc.startDate,
       endDate: alloc.endDate,
-      hoursPerWeek: alloc.hoursPerWeek.toString(),
+      method,
+      methodValue,
       isSoftAllocation: alloc.isSoftAllocation ?? false,
       isTimesheetApprover: alloc.isTimesheetApprover ?? false,
       isLeaveApprover: alloc.isLeaveApprover ?? false,
@@ -359,13 +451,19 @@ export default function ProjectDetail() {
 
   async function handleSaveAlloc() {
     if (!allocForm.role || !allocForm.startDate || !allocForm.endDate) return;
-    const payload = {
+    const d = deriveAllocFields(allocForm.method, allocForm.methodValue, allocForm.startDate, allocForm.endDate);
+    const payload: any = {
       projectId,
       userId: allocForm.userId ? parseInt(allocForm.userId) : undefined,
       role: allocForm.role,
       startDate: allocForm.startDate,
       endDate: allocForm.endDate,
-      hoursPerWeek: parseFloat(allocForm.hoursPerWeek) || 40,
+      allocationMethod: allocForm.method,
+      methodValue: parseFloat(allocForm.methodValue) || 0,
+      hoursPerWeek: d.hoursPerWeek,
+      hoursPerDay: d.hoursPerDay,
+      totalHours: d.totalHours,
+      percentOfCapacity: d.percentOfCapacity,
       isSoftAllocation: allocForm.isSoftAllocation,
       isTimesheetApprover: allocForm.isTimesheetApprover,
       isLeaveApprover: allocForm.isLeaveApprover,
@@ -374,8 +472,9 @@ export default function ProjectDetail() {
       if (editAllocId) {
         await updateAllocation.mutateAsync({ id: editAllocId, data: payload });
       } else {
-        await createAllocation.mutateAsync({ data: payload as any });
+        await createAllocation.mutateAsync({ data: payload });
       }
+      try { localStorage.setItem(ALLOC_METHOD_LS_KEY, allocForm.method); } catch { /* ignore */ }
       queryClient.invalidateQueries({ queryKey: getListAllocationsQueryKey({ projectId }) });
       toast({ title: editAllocId ? "Allocation updated" : "Allocation added" });
       setAllocDialogOpen(false);
@@ -880,7 +979,7 @@ export default function ProjectDetail() {
                             <TableCell className="text-right font-medium">{allocation.hoursPerWeek}h</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1 justify-end">
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek, isSoftAllocation: (allocation as any).isSoftAllocation ?? false, isTimesheetApprover: (allocation as any).isTimesheetApprover ?? false, isLeaveApprover: (allocation as any).isLeaveApprover ?? false })}>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek, hoursPerDay: (allocation as any).hoursPerDay, totalHours: (allocation as any).totalHours, percentOfCapacity: (allocation as any).percentOfCapacity, allocationMethod: (allocation as any).allocationMethod, isSoftAllocation: (allocation as any).isSoftAllocation ?? false, isTimesheetApprover: (allocation as any).isTimesheetApprover ?? false, isLeaveApprover: (allocation as any).isLeaveApprover ?? false })}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteAllocId(allocation.id)}>
@@ -1556,10 +1655,79 @@ export default function ProjectDetail() {
                 <Input type="date" value={allocForm.endDate} onChange={e => setAllocForm(f => ({ ...f, endDate: e.target.value }))} />
               </div>
             </div>
+            {/* Allocation input method picker (segmented). Switching the
+                method reseeds the value with a sensible default for that mode
+                so the derived preview updates immediately. */}
             <div className="space-y-1.5">
-              <Label>Hours / Week</Label>
-              <Input type="number" min={1} max={80} value={allocForm.hoursPerWeek} onChange={e => setAllocForm(f => ({ ...f, hoursPerWeek: e.target.value }))} />
+              <Label>Input Method</Label>
+              <div className="inline-flex w-full rounded-md border bg-muted/40 p-0.5 text-xs font-medium">
+                {([
+                  { v: "hours_per_day", label: "Hours / Day" },
+                  { v: "percentage_capacity", label: "% of Capacity" },
+                  { v: "total_hours", label: "Total Hours" },
+                ] as { v: AllocMethod; label: string }[]).map(opt => {
+                  const selected = allocForm.method === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setAllocForm(f => {
+                        const seed = opt.v === "hours_per_day" ? "8" : opt.v === "percentage_capacity" ? "100" : "40";
+                        return { ...f, method: opt.v, methodValue: seed };
+                      })}
+                      className={`flex-1 px-2 py-1.5 rounded transition-colors ${selected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Method-specific value input + live derived preview */}
+            {(() => {
+              const d = deriveAllocFields(allocForm.method, allocForm.methodValue, allocForm.startDate, allocForm.endDate);
+              const fmt = (n: number) => (Math.round(n * 100) / 100).toLocaleString();
+              return (
+                <div className="space-y-1.5">
+                  {allocForm.method === "hours_per_day" && (
+                    <>
+                      <Label>Hours / Day</Label>
+                      <Input type="number" min={0} max={24} step={0.25}
+                        value={allocForm.methodValue}
+                        onChange={e => setAllocForm(f => ({ ...f, methodValue: e.target.value }))} />
+                      <p className="text-xs text-muted-foreground">
+                        = {fmt(d.hoursPerWeek)} hrs/week · {fmt(d.totalHours)} total hrs over {d.workingDays} working day{d.workingDays === 1 ? "" : "s"}
+                      </p>
+                    </>
+                  )}
+                  {allocForm.method === "percentage_capacity" && (
+                    <>
+                      <Label>% of Capacity</Label>
+                      <Input type="number" min={0} max={200} step={1}
+                        value={allocForm.methodValue}
+                        onChange={e => setAllocForm(f => ({ ...f, methodValue: e.target.value }))} />
+                      <p className="text-xs text-muted-foreground">
+                        = {fmt(d.hoursPerDay)} hrs/day · {fmt(d.hoursPerWeek)} hrs/week (cap {fmt(d.weeklyCap)}h/wk) · {fmt(d.totalHours)} total over {d.workingDays} day{d.workingDays === 1 ? "" : "s"}
+                      </p>
+                    </>
+                  )}
+                  {allocForm.method === "total_hours" && (
+                    <>
+                      <Label>Total Hours</Label>
+                      <Input type="number" min={0} step={0.5}
+                        value={allocForm.methodValue}
+                        onChange={e => setAllocForm(f => ({ ...f, methodValue: e.target.value }))} />
+                      <p className={`text-xs ${d.workingDays === 0 ? "text-amber-600" : "text-muted-foreground"}`}>
+                        {d.workingDays === 0
+                          ? "Pick start & end dates to compute hrs/day"
+                          : `= ${fmt(d.hoursPerDay)} hrs/day over ${d.workingDays} working day${d.workingDays === 1 ? "" : "s"} (${fmt(d.hoursPerWeek)} hrs/week)`}
+                      </p>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
             <div className="flex items-center gap-3 pt-1">
               <input
                 type="checkbox"
