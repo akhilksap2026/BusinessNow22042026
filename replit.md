@@ -45,6 +45,32 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **Global error toasts**: `artifacts/businessnow/src/lib/queryClient.ts` — QueryClient with `QueryCache.onError` handler shows a destructive toast for page-load failures; imported in App.tsx.
 - **Tooltips on icon-only buttons**: added to MoreHorizontal/MoreVertical dropdown triggers in projects, accounts, finance; Previous/Next week nav and Edit/Delete entry buttons in time tracking.
 
+### Roles & Permissions System
+
+**Canonical four-role model** (Rocketlane-style, added April 2026):
+
+| Canonical value | Level | Description | Legacy equivalents |
+|-----------------|-------|-------------|--------------------|
+| `account_admin` | 4 | Full access — account settings, user mgmt, cost rates | `Admin` |
+| `super_user` | 3 | Broad project access; no core admin | `PM`, `Super User`, `Finance`, `Developer`, `Designer`, `QA` |
+| `collaborator` | 2 | Limited internal user; no project creation / admin | `Collaborator`, `Viewer` |
+| `customer` | 1 | External / portal-only; project-scoped read access | `Customer`, `Partner` |
+
+**Key files:**
+- `artifacts/api-server/src/constants/roles.ts` — `ROLES`, `ROLE_HIERARCHY`, `LEGACY_ROLE_MAP`, `resolveRole()`, `hasRole()` — source of truth for backend
+- `artifacts/businessnow/src/lib/roles.ts` — identical constants for the frontend; also exports `usePermissions(activeRole)` hook for component-level gating
+- `artifacts/api-server/src/middleware/rbac.ts` — `requireRole(minRole)`, `requireCanonicalRole(...roles)`, `requireAnyRole(...roles)` (legacy compat), named shortcuts: `requireAdmin`, `requirePM`, `requireFinance`, `requireCostRateAccess`, `blockPortalRoles`
+
+**Transport:** role is sent as the `x-user-role` HTTP header on every request; injected via `setDefaultHeaders()` in the API client. Both legacy Title-Case values (`Admin`) and canonical snake_case values (`account_admin`) are accepted — `resolveRole()` normalises them at the middleware layer.
+
+**User schema additions (April 2026):**
+- `accountId` (integer, nullable) — tenant/org reference for future multi-account deployments; NULL = default single-tenant workspace
+- DB column: `account_id` — added via `pnpm --filter @workspace/db run push`
+
+**Project membership:** tracked via the `allocations` table (userId + projectId relation), not a stored array on users. Use the `listAllocations` API filtered by userId to get a user's projects.
+
+**Important:** The RBAC middleware validates the `x-user-role` header value but does NOT verify it against a session — authentication is trust-based in the current dev setup. A real session layer (login form, JWT / cookie session) is not yet implemented.
+
 ### Key Pitfalls
 - `lib/api-zod/src/index.ts` must only export `./generated/api` (Zod schemas) — re-exporting `./generated/types` causes duplicate name errors
 - Drizzle returns JS `Date` objects for timestamp columns; all `map*` functions in API routes must convert these to ISO strings via `instanceof Date ? .toISOString() : value`

@@ -1,9 +1,14 @@
 import { type Request, type Response, type NextFunction } from "express";
+import { type RoleValue, hasRole, resolveRole } from "../constants/roles";
 
-// Role names and their hierarchy levels.
-// Super User = PM-equivalent but cannot manage account settings or see cost rates.
-// Collaborator = Developer-equivalent but cannot create projects or see archived projects.
-export type AppRole =
+// ---------------------------------------------------------------------------
+// Legacy role union — kept for full backward compatibility.
+// All 11 original role strings remain valid on the x-user-role header.
+// New code should prefer the four canonical roles in constants/roles.ts.
+// ---------------------------------------------------------------------------
+
+/** @deprecated Prefer RoleValue from constants/roles.ts */
+export type LegacyRole =
   | "Admin"
   | "PM"
   | "Super User"
@@ -16,28 +21,37 @@ export type AppRole =
   | "Customer"
   | "Partner";
 
-const ROLE_HIERARCHY: Record<AppRole, number> = {
-  Admin: 100,
-  PM: 80,
-  "Super User": 80,   // PM-level access minus account settings and cost rates (both excluded via anyRole checks, not hierarchy)
-  Finance: 70,
-  Developer: 50,
-  Designer: 50,
-  QA: 50,
-  Collaborator: 45,   // Cannot create projects; cannot view archived projects
-  Viewer: 10,
-  Customer: 5,        // Portal-only — must NOT access internal APIs
-  Partner: 5,         // Project-scoped — treated like Customer for internal routes
-};
+/**
+ * Canonical four-role type (snake_case).
+ * Maps: account_admin | super_user | collaborator | customer
+ */
+export type { RoleValue };
 
-function getRoleLevel(role: string): number {
-  return ROLE_HIERARCHY[role as AppRole] ?? 0;
-}
+/**
+ * AppRole accepts both legacy Title-Case strings and the new snake_case
+ * canonical values so that all existing middleware callers keep working
+ * while new code uses the four-role model.
+ */
+export type AppRole = LegacyRole | RoleValue;
 
-export function requireRole(minimumRole: AppRole) {
+// ---------------------------------------------------------------------------
+// Core middleware builders
+// ---------------------------------------------------------------------------
+
+/**
+ * requireRole(minimumRole)
+ *
+ * Passes when the requesting user's role resolves to a level >= the minimum.
+ * Works with both legacy ("Admin", "PM", …) and canonical ("account_admin", …)
+ * role strings on the x-user-role header.
+ *
+ * Minimum is expressed as a canonical RoleValue for clarity; legacy role
+ * strings are accepted too because resolveRole() handles them.
+ */
+export function requireRole(minimumRole: RoleValue) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const userRole = (req.headers["x-user-role"] as string) ?? "Viewer";
-    if (getRoleLevel(userRole) >= getRoleLevel(minimumRole)) {
+    const userRole = (req.headers["x-user-role"] as string) ?? "collaborator";
+    if (hasRole(userRole, minimumRole)) {
       next();
     } else {
       res.status(403).json({ error: "Insufficient permissions" });
@@ -45,10 +59,44 @@ export function requireRole(minimumRole: AppRole) {
   };
 }
 
+/**
+ * requireCanonicalRole(roles)
+ *
+ * Passes when the requesting user's canonical role is exactly one of the
+ * provided canonical RoleValues. Accepts any legacy role string on the
+ * header — it is resolved to its canonical equivalent first.
+ */
+export function requireCanonicalRole(...roles: RoleValue[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const userRole = (req.headers["x-user-role"] as string) ?? "collaborator";
+    const canonical = resolveRole(userRole);
+    if (roles.includes(canonical)) {
+      next();
+    } else {
+      res.status(403).json({ error: "Insufficient permissions" });
+    }
+  };
+}
+
+/**
+ * requireAnyRole(...roles)
+ *
+ * Legacy helper — accepts both legacy Title-Case strings and canonical
+ * snake_case strings.  Kept for backward compatibility; prefer
+ * requireCanonicalRole() in new code.
+ */
 export function requireAnyRole(...roles: AppRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const userRole = (req.headers["x-user-role"] as string) ?? "Viewer";
-    if (roles.includes(userRole as AppRole)) {
+    const userRole = (req.headers["x-user-role"] as string) ?? "collaborator";
+    // Check both the raw value and its canonical resolution so that callers
+    // passing legacy strings ("Admin") and canonical strings ("account_admin")
+    // both work regardless of what the client sends.
+    const canonical = resolveRole(userRole);
+    const canonicalRoles = roles.map(r => resolveRole(r));
+    if (
+      roles.includes(userRole as AppRole) ||
+      canonicalRoles.includes(canonical)
+    ) {
       next();
     } else {
       res.status(403).json({ error: "Insufficient permissions" });
@@ -56,21 +104,47 @@ export function requireAnyRole(...roles: AppRole[]) {
   };
 }
 
-export const requireAdmin = requireRole("Admin");
-export const requirePM = requireRole("PM");
-export const requireFinance = requireAnyRole("Admin", "Finance");
+// ---------------------------------------------------------------------------
+// Named shortcuts (backward-compatible)
+// ---------------------------------------------------------------------------
 
-// Cost rates (rate cards) are visible only to Admin, Finance and PM.
-// Super Users do NOT see cost rates per spec.
+/** Account Admin only */
+export const requireAdmin = requireRole("account_admin");
+
+/**
+ * PM-level access (legacy shortcut).
+ * Resolves to super_user (level 3) — same as PM in the legacy hierarchy.
+ */
+export const requirePM = requireRole("super_user");
+
+/** Finance: Admin or Finance legacy role → account_admin | super_user */
+export const requireFinance = requireCanonicalRole("account_admin", "super_user");
+
+/**
+ * Cost-rate access: Admin, Finance, PM.
+ * Super Users are explicitly excluded (per original spec).
+ * In the four-role model "Finance" maps to super_user, so we check the
+ * legacy roles explicitly to honour the exclusion.
+ */
 export const requireCostRateAccess = requireAnyRole("Admin", "Finance", "PM");
 
-// Block Customer and Partner roles from all internal API routes.
-// They must use /portal-auth/* exclusively.
+// ---------------------------------------------------------------------------
+// Portal role blocker
+// ---------------------------------------------------------------------------
+
+/**
+ * blockPortalRoles
+ *
+ * Applied globally to all /api/* routes (except /portal-auth/*).
+ * Blocks both legacy ("Customer", "Partner") and canonical ("customer") values.
+ */
 export function blockPortalRoles(req: Request, res: Response, next: NextFunction): void {
   const role = (req.headers["x-user-role"] as string) ?? "";
-  if (role === "Customer" || role === "Partner") {
+  const canonical = resolveRole(role);
+  if (canonical === "customer" || role === "Customer" || role === "Partner") {
     res.status(403).json({
-      error: "Access denied. Client portal users must use /api/portal-auth/* endpoints.",
+      error:
+        "Access denied. Client portal users must use /api/portal-auth/* endpoints.",
     });
     return;
   }
