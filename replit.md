@@ -58,7 +58,9 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 
 **Key files:**
 - `artifacts/api-server/src/constants/roles.ts` — `ROLES`, `ROLE_HIERARCHY`, `LEGACY_ROLE_MAP`, `resolveRole()`, `hasRole()` — source of truth for backend
-- `artifacts/businessnow/src/lib/roles.ts` — identical constants for the frontend; also exports `usePermissions(activeRole)` hook for component-level gating
+- `artifacts/api-server/src/constants/permissions.ts` — `ACCOUNT_PERMISSIONS` (58 keys), `PROJECT_PERMISSIONS` (34 keys), `can(role, perm)`, `canOnProject(projectRole, perm)`, `requirePermission(perm)` Express middleware factory
+- `artifacts/businessnow/src/lib/roles.ts` — identical role constants for the frontend; also exports `usePermissions(activeRole)` (coarse named booleans, kept for existing callers)
+- `artifacts/businessnow/src/lib/permissions.ts` — full permission matrix mirror; exports `can()`, `canOnProject()`, `useAccountPermissions(activeRole)` (returns a bound checker function for clean JSX)
 - `artifacts/api-server/src/middleware/rbac.ts` — `requireRole(minRole)`, `requireCanonicalRole(...roles)`, `requireAnyRole(...roles)` (legacy compat), named shortcuts: `requireAdmin`, `requirePM`, `requireFinance`, `requireCostRateAccess`, `blockPortalRoles`
 
 **Transport:** role is sent as the `x-user-role` HTTP header on every request; injected via `setDefaultHeaders()` in the API client. Both legacy Title-Case values (`Admin`) and canonical snake_case values (`account_admin`) are accepted — `resolveRole()` normalises them at the middleware layer.
