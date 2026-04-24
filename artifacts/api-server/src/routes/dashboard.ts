@@ -31,7 +31,7 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
     const active = allocations.filter(a => a.userId === u.id && a.endDate >= nowStr);
     return sum + active.reduce((s, a) => s + Number(a.hoursPerWeek), 0);
   }, 0);
-  const teamUtilization = totalCapacity > 0 ? Math.min(100, Math.round((totalAllocated / totalCapacity) * 100)) : 0;
+  const teamUtilization = totalCapacity > 0 ? Math.round((totalAllocated / totalCapacity) * 100) : 0;
 
   const in30days = new Date(now); in30days.setDate(now.getDate() + 30);
   const in30Str = in30days.toISOString().slice(0, 10);
