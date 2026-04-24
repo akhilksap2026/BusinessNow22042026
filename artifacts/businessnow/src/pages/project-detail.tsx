@@ -214,12 +214,19 @@ export default function ProjectDetail() {
   }
 
   const [resReqOpen, setResReqOpen] = useState(false);
-  const [resReqForm, setResReqForm] = useState({
+  const RES_REQ_FORM_INIT = {
     type: "add_member",
-    role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "",
+    role: "", startDate: "", endDate: "",
+    hoursPerWeek: "40", hoursPerDay: "8",
+    allocationMethod: "hours_per_day" as "hours_per_day" | "percentage_capacity" | "total_hours",
+    priority: "Medium", notes: "",
     region: "", targetUserId: "", skillIds: [] as number[],
     skillCompetencies: {} as Record<number, string>,
-  });
+    additionalHours: "",
+    placeholderId: "",
+    replacementReason: "",
+  };
+  const [resReqForm, setResReqForm] = useState(RES_REQ_FORM_INIT);
   const { data: allSkillsList } = useListSkills();
   const { data: users } = useListUsers();
 
@@ -235,8 +242,6 @@ export default function ProjectDetail() {
     { value: "add_hours", label: "Add Hours", desc: "Increase allocation hours for an existing member" },
     { value: "assign_placeholder", label: "Assign Placeholder", desc: "Fill an open placeholder slot" },
     { value: "replacement", label: "Replacement", desc: "Replace an existing team member" },
-    { value: "shift_allocations", label: "Shift Allocations", desc: "Move allocation dates for a team member" },
-    { value: "delete_allocation", label: "Remove Allocation", desc: "End or remove an existing allocation" },
   ];
 
   // Relevant matches: filter users by role keyword
@@ -245,8 +250,68 @@ export default function ProjectDetail() {
     return u.role?.toLowerCase().includes(resReqForm.role.toLowerCase().split(" ").pop() ?? "");
   }).slice(0, 3);
 
+  // ─── Helpers used by the request-type-specific form blocks ────────────
+  const projectAllocations = (allocations as any[] ?? []);
+
+  // Members already allocated to THIS project (deduped by userId).
+  const projectMembers = projectAllocations
+    .filter((a: any) => a.userId)
+    .filter((a: any, i: number, arr: any[]) => arr.findIndex(b => b.userId === a.userId) === i);
+
+  // Unfilled placeholder slots on this project.
+  const unfilledPlaceholders = projectAllocations.filter((a: any) =>
+    !a.userId && (a.placeholderRole || a.placeholderId || a.role)
+  );
+
+  // For 'add_hours': show context for the currently selected member.
+  function currentAllocatedHoursForTarget(): { hpw: number; allocs: any[] } {
+    const uid = resReqForm.targetUserId ? parseInt(resReqForm.targetUserId) : null;
+    if (!uid) return { hpw: 0, allocs: [] };
+    const mine = projectAllocations.filter((a: any) => a.userId === uid);
+    const hpw = mine.reduce((s: number, a: any) => s + Number(a.hoursPerWeek ?? 0), 0);
+    return { hpw, allocs: mine };
+  }
+
+  // Pre-fill dates when a placeholder is selected for assign_placeholder.
+  function onPickPlaceholder(placeholderRowId: string) {
+    const ph = unfilledPlaceholders.find((a: any) => String(a.id) === placeholderRowId);
+    setResReqForm(f => ({
+      ...f,
+      placeholderId: placeholderRowId,
+      role: ph?.role ?? ph?.placeholderRole ?? f.role,
+      startDate: ph?.startDate ?? f.startDate,
+      endDate: ph?.endDate ?? f.endDate,
+      hoursPerWeek: ph?.hoursPerWeek != null ? String(ph.hoursPerWeek) : f.hoursPerWeek,
+    }));
+  }
+
+  const projectAutoAllocate = !!(project as any)?.autoAllocate;
+
+  // Per-type validity (drives the Submit button + first-line guard).
+  function isReqFormValid(): boolean {
+    const f = resReqForm;
+    if (f.type === "add_member") {
+      return !!(f.role && f.startDate && f.endDate && parseFloat(f.hoursPerDay) > 0);
+    }
+    if (f.type === "add_hours") {
+      return !!(f.targetUserId && f.startDate && f.endDate && parseFloat(f.additionalHours) > 0);
+    }
+    if (f.type === "assign_placeholder") {
+      return !!(f.placeholderId);
+    }
+    if (f.type === "replacement") {
+      // targetUserId is either a numeric user id or "ph-<allocId>"; both are valid replacement targets.
+      return !!(f.targetUserId && f.startDate && f.endDate && !projectAutoAllocate);
+    }
+    return false;
+  }
+
   async function handleSaveResReq() {
-    if (!resReqForm.role || !resReqForm.startDate || !resReqForm.endDate) return;
+    if (!isReqFormValid()) return;
+    if (resReqForm.type === "replacement" && projectAutoAllocate) {
+      toast({ title: "Replacement requests are not available for auto-allocate projects", variant: "destructive" });
+      return;
+    }
     try {
       const selectedSkills = (allSkillsList as any[] ?? []).filter((s: any) => resReqForm.skillIds.includes(s.id));
       const skillNames = selectedSkills.map((s: any) => s.name);
@@ -255,38 +320,87 @@ export default function ProjectDetail() {
         skillName: s.name,
         competencyLevel: resReqForm.skillCompetencies[s.id] ?? "Independent",
       }));
-      await createResourceRequest.mutateAsync({
+
+      // Per-type derivation of role / hoursPerWeek / notes so the existing
+      // backend schema (role + hoursPerWeek required) is satisfied for every
+      // request shape without changing the state machine.
+      let role = resReqForm.role;
+      let hoursPerWeek = parseFloat(resReqForm.hoursPerWeek) || 0;
+      let startDate = resReqForm.startDate;
+      let endDate = resReqForm.endDate;
+      let notesAddon = "";
+
+      if (resReqForm.type === "add_member") {
+        const hpd = parseFloat(resReqForm.hoursPerDay) || 0;
+        hoursPerWeek = hpd * 5;
+      } else if (resReqForm.type === "add_hours") {
+        const target = projectMembers.find((a: any) => String(a.userId) === resReqForm.targetUserId);
+        role = target?.role ?? "Existing Member";
+        hoursPerWeek = parseFloat(resReqForm.additionalHours) || 0;
+        notesAddon = `Additional hours requested: ${resReqForm.additionalHours} hrs/wk`;
+      } else if (resReqForm.type === "assign_placeholder") {
+        const ph = unfilledPlaceholders.find((a: any) => String(a.id) === resReqForm.placeholderId);
+        role = ph?.role ?? ph?.placeholderRole ?? role ?? "Placeholder";
+        startDate = ph?.startDate ?? startDate;
+        endDate = ph?.endDate ?? endDate;
+        hoursPerWeek = Number(ph?.hoursPerWeek ?? hoursPerWeek);
+        notesAddon = `Fill placeholder #${resReqForm.placeholderId} (${role})`;
+      } else if (resReqForm.type === "replacement") {
+        if (resReqForm.targetUserId.startsWith("ph-")) {
+          const phId = resReqForm.targetUserId.slice(3);
+          const ph = unfilledPlaceholders.find((a: any) => String(a.id) === phId);
+          role = ph?.role ?? ph?.placeholderRole ?? role ?? "Replacement";
+          hoursPerWeek = Number(ph?.hoursPerWeek ?? hoursPerWeek);
+          notesAddon = `Replace placeholder #${phId} (${role}). Reason: ${resReqForm.replacementReason || "(none provided)"}`;
+        } else {
+          const target = projectMembers.find((a: any) => String(a.userId) === resReqForm.targetUserId);
+          role = target?.role ?? role ?? "Replacement";
+          hoursPerWeek = Number(target?.hoursPerWeek ?? hoursPerWeek);
+          notesAddon = `Reason: ${resReqForm.replacementReason || "(none provided)"}`;
+        }
+      }
+
+      const composedNotes = [resReqForm.notes, notesAddon].filter(Boolean).join("\n").trim();
+
+      const created: any = await createResourceRequest.mutateAsync({
         data: {
           projectId,
           requestedByUserId: 1,
-          role: resReqForm.role,
-          startDate: resReqForm.startDate,
-          endDate: resReqForm.endDate,
-          hoursPerWeek: parseFloat(resReqForm.hoursPerWeek) || 40,
+          role,
+          startDate,
+          endDate,
+          hoursPerWeek,
           priority: resReqForm.priority,
-          notes: resReqForm.notes || undefined,
+          notes: composedNotes || undefined,
           requiredSkills: skillNames,
           requiredSkillsWithLevel,
         } as any,
       });
-      // Patch the extra fields (type, region, targetResourceId) separately since Zod schema may not include them
-      const listRes = await fetch("/api/resource-requests", { headers: { "x-user-role": "PM" } });
-      const allRR = await listRes.json();
-      const newest = allRR.sort((a: any, b: any) => b.id - a.id)[0];
-      if (newest) {
-        await fetch(`/api/resource-requests/${newest.id}`, {
+      // Patch type/region/target/method on the EXACT row we just created
+      // (current Zod create schema doesn't expose these optional fields).
+      const newId = created?.id ?? created?.data?.id;
+      if (newId) {
+        // Resolve targetResourceId only when we have a real numeric user id
+        // (not a placeholder pseudo-id like "ph-12").
+        const numericTarget =
+          resReqForm.targetUserId && !resReqForm.targetUserId.startsWith("ph-")
+            ? parseInt(resReqForm.targetUserId)
+            : undefined;
+
+        await fetch(`/api/resource-requests/${newId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json", "x-user-role": "PM" },
           body: JSON.stringify({
             type: resReqForm.type,
             region: resReqForm.region || undefined,
-            targetResourceId: resReqForm.targetUserId ? parseInt(resReqForm.targetUserId) : undefined,
+            targetResourceId: Number.isFinite(numericTarget) ? numericTarget : undefined,
+            allocationMethod: resReqForm.type === "add_member" ? resReqForm.allocationMethod : undefined,
           }),
         });
       }
       toast({ title: "Resource request submitted" });
       setResReqOpen(false);
-      setResReqForm({ type: "add_member", role: "", startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "", region: "", targetUserId: "", skillIds: [] });
+      setResReqForm(RES_REQ_FORM_INIT);
     } catch {
       toast({ title: "Failed to submit resource request", variant: "destructive" });
     }
@@ -1875,153 +1989,271 @@ export default function ProjectDetail() {
               </div>
             </div>
 
-            {/* Role / skills — shown for most types */}
-            {["add_member","assign_placeholder","replacement"].includes(resReqForm.type) && (
-              <div className="space-y-1.5">
-                <Label>Role Needed *</Label>
-                {jobRoles.length > 0 ? (
-                  <Select value={resReqForm.role} onValueChange={v => setResReqForm(f => ({ ...f, role: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
-                    <SelectContent>
-                      {jobRoles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Senior Developer, UX Designer" />
-                )}
-                {/* Relevant matches */}
-                {resReqMatches.length > 0 && (
-                  <div className="mt-1.5 rounded-lg border bg-green-50 dark:bg-green-950/20 p-2 space-y-1">
-                    <p className="text-xs font-medium text-green-700 dark:text-green-400">Relevant matches already on team</p>
-                    {resReqMatches.map((u: any) => (
-                      <div key={u.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-medium text-slate-700 dark:text-slate-300">{u.name}</span>
-                        <span>{u.role}</span>
-                        <span className="text-slate-400">· {u.capacity ?? 40}h/wk capacity</span>
-                      </div>
-                    ))}
+            {/* ─────────────── add_member ─────────────── */}
+            {resReqForm.type === "add_member" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Role Needed *</Label>
+                  {jobRoles.length > 0 ? (
+                    <Select value={resReqForm.role} onValueChange={v => setResReqForm(f => ({ ...f, role: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
+                      <SelectContent>
+                        {jobRoles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Senior Developer, UX Designer" />
+                  )}
+                  {resReqMatches.length > 0 && (
+                    <div className="mt-1.5 rounded-lg border bg-green-50 dark:bg-green-950/20 p-2 space-y-1">
+                      <p className="text-xs font-medium text-green-700 dark:text-green-400">Relevant matches already on team</p>
+                      {resReqMatches.map((u: any) => (
+                        <div key={u.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{u.name}</span>
+                          <span>{u.role}</span>
+                          <span className="text-slate-400">· {u.capacity ?? 40}h/wk capacity</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Region</Label>
+                  <Input value={resReqForm.region} onChange={e => setResReqForm(f => ({ ...f, region: e.target.value }))} placeholder="e.g. EMEA, North America, Remote…" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Required Skills &amp; Competency Level</Label>
+                  {(allSkillsList as any[] ?? []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No skills defined yet. Add skills in Admin → Skills Matrix.</p>
+                  ) : (
+                    <div className="space-y-1.5 p-2 rounded-lg border bg-slate-50 min-h-10">
+                      {(allSkillsList as any[] ?? []).map((s: any) => {
+                        const selected = resReqForm.skillIds.includes(s.id);
+                        const competency = resReqForm.skillCompetencies[s.id] ?? "Independent";
+                        return (
+                          <div key={s.id} className="flex items-center gap-2">
+                            <button type="button"
+                              onClick={() => setResReqForm(f => ({
+                                ...f,
+                                skillIds: selected ? f.skillIds.filter(id => id !== s.id) : [...f.skillIds, s.id]
+                              }))}
+                              className={`flex-1 text-left px-2.5 py-1 rounded border text-xs font-medium transition-colors ${selected ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600"}`}>
+                              {s.name}
+                            </button>
+                            {selected && (
+                              <select
+                                value={competency}
+                                onChange={e => setResReqForm(f => ({ ...f, skillCompetencies: { ...f.skillCompetencies, [s.id]: e.target.value } }))}
+                                className="text-xs border rounded px-1.5 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                              >
+                                <option value="Needs Help">Needs Help</option>
+                                <option value="Independent">Independent</option>
+                                <option value="Can Lead">Can Lead</option>
+                              </select>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {resReqForm.skillIds.length > 0 && (
+                    <p className="text-xs text-indigo-600">{resReqForm.skillIds.length} skill{resReqForm.skillIds.length !== 1 ? "s" : ""} selected</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Start Date *</Label>
+                    <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
                   </div>
-                )}
-              </div>
+                  <div className="space-y-1.5">
+                    <Label>End Date *</Label>
+                    <Input type="date" value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Hours / Day</Label>
+                    <Input type="number" min={1} max={16} step="0.5" value={resReqForm.hoursPerDay} onChange={e => setResReqForm(f => ({ ...f, hoursPerDay: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Allocation Method</Label>
+                    <Select value={resReqForm.allocationMethod} onValueChange={(v: any) => setResReqForm(f => ({ ...f, allocationMethod: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hours_per_day">Hours / Day</SelectItem>
+                        <SelectItem value="percentage_capacity">% of Capacity</SelectItem>
+                        <SelectItem value="total_hours">Total Hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Priority</Label>
+                    <Select value={resReqForm.priority} onValueChange={v => setResReqForm(f => ({ ...f, priority: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["Low","Medium","High","Critical"].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
             )}
 
-            {resReqForm.type === "add_member" && (
-              <div className="space-y-1.5">
-                <Label>Required Skills &amp; Competency Level</Label>
-                {(allSkillsList as any[] ?? []).length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No skills defined yet. Add skills in Admin → Skills Matrix.</p>
-                ) : (
-                  <div className="space-y-1.5 p-2 rounded-lg border bg-slate-50 min-h-10">
-                    {(allSkillsList as any[] ?? []).map((s: any) => {
-                      const selected = resReqForm.skillIds.includes(s.id);
-                      const competency = resReqForm.skillCompetencies[s.id] ?? "Independent";
-                      return (
-                        <div key={s.id} className="flex items-center gap-2">
-                          <button type="button"
+            {/* ─────────────── add_hours ─────────────── */}
+            {resReqForm.type === "add_hours" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Team Member *</Label>
+                  {projectMembers.length === 0 ? (
+                    <p className="text-xs text-amber-600">No team members are allocated to this project yet.</p>
+                  ) : (
+                    <Select value={resReqForm.targetUserId} onValueChange={v => setResReqForm(f => ({ ...f, targetUserId: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select team member already on the project…" /></SelectTrigger>
+                      <SelectContent>
+                        {projectMembers.map((a: any) => {
+                          const u = (users as any[])?.find((u: any) => u.id === a.userId);
+                          return <SelectItem key={a.userId} value={String(a.userId)}>{u?.name ?? `User ${a.userId}`} — {u?.role ?? a.role ?? ""}</SelectItem>;
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {resReqForm.targetUserId && (() => {
+                    const ctx = currentAllocatedHoursForTarget();
+                    return (
+                      <div className="mt-1.5 rounded-md border bg-slate-50 dark:bg-slate-900/30 p-2 text-xs text-slate-600 dark:text-slate-400">
+                        Currently allocated to this project: <span className="font-semibold text-slate-800 dark:text-slate-200">{ctx.hpw} hrs/wk</span>
+                        {ctx.allocs.length > 1 && <span className="text-slate-400"> across {ctx.allocs.length} allocations</span>}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Additional Hours Needed (per week) *</Label>
+                  <Input type="number" min={1} max={80} value={resReqForm.additionalHours} onChange={e => setResReqForm(f => ({ ...f, additionalHours: e.target.value }))} placeholder="e.g. 8" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Start Date *</Label>
+                    <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>End Date *</Label>
+                    <Input type="date" value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ─────────────── assign_placeholder ─────────────── */}
+            {resReqForm.type === "assign_placeholder" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Placeholder *</Label>
+                  {unfilledPlaceholders.length === 0 ? (
+                    <p className="text-xs text-amber-600">No unfilled placeholder slots on this project.</p>
+                  ) : (
+                    <Select value={resReqForm.placeholderId} onValueChange={onPickPlaceholder}>
+                      <SelectTrigger><SelectValue placeholder="Select an unfilled placeholder…" /></SelectTrigger>
+                      <SelectContent>
+                        {unfilledPlaceholders.map((a: any) => (
+                          <SelectItem key={a.id} value={String(a.id)}>
+                            {(a.placeholderRole || a.role || "Placeholder")} · {a.startDate} → {a.endDate} · {Number(a.hoursPerWeek ?? 0)}h/wk
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {resReqForm.placeholderId && (
+                    <p className="text-xs text-muted-foreground">Dates and hours pre-filled from the placeholder allocation.</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Required Skills</Label>
+                  {(allSkillsList as any[] ?? []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No skills defined yet.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border bg-slate-50 min-h-10">
+                      {(allSkillsList as any[] ?? []).map((s: any) => {
+                        const selected = resReqForm.skillIds.includes(s.id);
+                        return (
+                          <button key={s.id} type="button"
                             onClick={() => setResReqForm(f => ({
                               ...f,
-                              skillIds: selected ? f.skillIds.filter(id => id !== s.id) : [...f.skillIds, s.id]
+                              skillIds: selected ? f.skillIds.filter(id => id !== s.id) : [...f.skillIds, s.id],
                             }))}
-                            className={`flex-1 text-left px-2.5 py-1 rounded border text-xs font-medium transition-colors ${selected ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600"}`}>
+                            className={`px-2.5 py-1 rounded border text-xs font-medium transition-colors ${selected ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600"}`}>
                             {s.name}
                           </button>
-                          {selected && (
-                            <select
-                              value={competency}
-                              onChange={e => setResReqForm(f => ({ ...f, skillCompetencies: { ...f.skillCompetencies, [s.id]: e.target.value } }))}
-                              className="text-xs border rounded px-1.5 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                            >
-                              <option value="Needs Help">Needs Help</option>
-                              <option value="Independent">Independent</option>
-                              <option value="Can Lead">Can Lead</option>
-                            </select>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {resReqForm.skillIds.length > 0 && (
-                  <p className="text-xs text-indigo-600">{resReqForm.skillIds.length} skill{resReqForm.skillIds.length !== 1 ? "s" : ""} selected</p>
-                )}
-              </div>
-            )}
-
-            {/* For add_hours, replacement, shift_allocations, delete_allocation — need a target user */}
-            {["add_hours","replacement","shift_allocations","delete_allocation"].includes(resReqForm.type) && (
-              <div className="space-y-1.5">
-                <Label>{resReqForm.type === "replacement" ? "Member to Replace" : "Target Team Member"} *</Label>
-                <Select value={resReqForm.targetUserId} onValueChange={v => setResReqForm(f => ({ ...f, targetUserId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select team member…" /></SelectTrigger>
-                  <SelectContent>
-                    {(allocations as any[] ?? [])
-                      .filter((a: any) => a.userId)
-                      .filter((a: any, i: number, arr: any[]) => arr.findIndex(b => b.userId === a.userId) === i)
-                      .map((a: any) => {
-                        const u = (users as any[])?.find((u: any) => u.id === a.userId);
-                        return <SelectItem key={a.userId} value={String(a.userId)}>{u?.name ?? `User ${a.userId}`} — {u?.role ?? ""}</SelectItem>;
+                        );
                       })}
-                  </SelectContent>
-                </Select>
-                {resReqForm.type !== "delete_allocation" && (
-                  <div className="space-y-1.5 mt-2">
-                    <Label>Role Needed *</Label>
-                    {jobRoles.length > 0 ? (
-                      <Select value={resReqForm.role} onValueChange={v => setResReqForm(f => ({ ...f, role: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
-                        <SelectContent>
-                          {jobRoles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input value={resReqForm.role} onChange={e => setResReqForm(f => ({ ...f, role: e.target.value }))} placeholder="Role for this request" />
-                    )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ─────────────── replacement ─────────────── */}
+            {resReqForm.type === "replacement" && (
+              <>
+                {projectAutoAllocate && (
+                  <div className="rounded-md border border-red-300 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-300">
+                    Replacement requests are not available for auto-allocate projects.
                   </div>
                 )}
-              </div>
+
+                <div className="space-y-1.5">
+                  <Label>Current Member / Placeholder *</Label>
+                  <Select
+                    value={resReqForm.targetUserId}
+                    onValueChange={v => setResReqForm(f => ({ ...f, targetUserId: v }))}
+                    disabled={projectAutoAllocate}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select who to replace…" /></SelectTrigger>
+                    <SelectContent>
+                      {projectMembers.map((a: any) => {
+                        const u = (users as any[])?.find((u: any) => u.id === a.userId);
+                        return <SelectItem key={`u-${a.userId}`} value={String(a.userId)}>{u?.name ?? `User ${a.userId}`} — {u?.role ?? a.role ?? ""}</SelectItem>;
+                      })}
+                      {unfilledPlaceholders.map((a: any) => (
+                        <SelectItem key={`ph-${a.id}`} value={`ph-${a.id}`}>
+                          Placeholder · {(a.placeholderRole || a.role || "Role")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Replacement Start *</Label>
+                    <Input type="date" disabled={projectAutoAllocate} value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Replacement End *</Label>
+                    <Input type="date" disabled={projectAutoAllocate} value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Reason</Label>
+                  <Input
+                    disabled={projectAutoAllocate}
+                    value={resReqForm.replacementReason}
+                    onChange={e => setResReqForm(f => ({ ...f, replacementReason: e.target.value }))}
+                    placeholder="e.g. parental leave, leaving team, skill mismatch…"
+                  />
+                </div>
+              </>
             )}
 
-            {/* Dates — not needed for delete_allocation */}
-            {resReqForm.type !== "delete_allocation" && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Start Date *</Label>
-                  <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>End Date *</Label>
-                  <Input type="date" value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              {resReqForm.type !== "delete_allocation" && (
-                <div className="space-y-1.5">
-                  <Label>Hours / Week</Label>
-                  <Input type="number" min={1} max={80} value={resReqForm.hoursPerWeek} onChange={e => setResReqForm(f => ({ ...f, hoursPerWeek: e.target.value }))} />
-                </div>
-              )}
-              <div className="space-y-1.5">
-                <Label>Priority</Label>
-                <Select value={resReqForm.priority} onValueChange={v => setResReqForm(f => ({ ...f, priority: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["Low", "Medium", "High", "Critical"].map(p => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {resReqForm.type === "add_member" && (
-              <div className="space-y-1.5">
-                <Label>Region / Location Preference</Label>
-                <Input value={resReqForm.region} onChange={e => setResReqForm(f => ({ ...f, region: e.target.value }))} placeholder="e.g. EMEA, North America, Remote…" />
-              </div>
-            )}
-
+            {/* Notes — common to all types */}
             <div className="space-y-1.5">
               <Label>Notes</Label>
               <Input value={resReqForm.notes} onChange={e => setResReqForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any specific requirements or context…" />
@@ -2029,7 +2261,7 @@ export default function ProjectDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResReqOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveResReq} disabled={!resReqForm.role || (!resReqForm.startDate && resReqForm.type !== "delete_allocation") || createResourceRequest.isPending}>
+            <Button onClick={handleSaveResReq} disabled={!isReqFormValid() || createResourceRequest.isPending}>
               Submit Request
             </Button>
           </DialogFooter>

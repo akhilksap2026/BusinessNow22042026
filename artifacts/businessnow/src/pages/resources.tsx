@@ -643,30 +643,52 @@ export default function Resources() {
 
                         return (
                           <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900/30 space-y-2">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-2">
-                                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Candidate Matches</p>
+                                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Relevant Matches</p>
                                 {hasAnySkills && (
                                   <span className="text-xs text-indigo-600">{qualifiedCandidates.length} of {allCandidates.length} meet ≥50%</span>
                                 )}
                               </div>
-                              {hasAnySkills && lowCandidates.length > 0 && (
-                                <button
-                                  className="text-xs text-muted-foreground flex items-center gap-0.5 hover:text-foreground"
-                                  onClick={() => setShowLowMatchMap(m => ({ ...m, [req.id]: !showLow }))}
-                                >
-                                  {showLow ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                  {showLow ? "Hide low matches" : `Show ${lowCandidates.length} low match${lowCandidates.length !== 1 ? "es" : ""}`}
-                                </button>
-                              )}
+                              <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={ignoreSoft}
+                                    onChange={e => setIgnoreSoft(e.target.checked)}
+                                    className="h-3.5 w-3.5"
+                                  />
+                                  Ignore Soft Allocation
+                                </label>
+                                {hasAnySkills && lowCandidates.length > 0 && (
+                                  <button
+                                    className="text-xs text-muted-foreground flex items-center gap-0.5 hover:text-foreground"
+                                    onClick={() => setShowLowMatchMap(m => ({ ...m, [req.id]: !showLow }))}
+                                  >
+                                    {showLow ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                    {showLow ? "Hide low matches" : `Show ${lowCandidates.length} low match${lowCandidates.length !== 1 ? "es" : ""}`}
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             <div className="space-y-2">
                               {displayCandidates.map((u: any) => {
                                 const { fc, sm } = u;
-                                const pctClass = fc.pct > 100 ? "text-red-600" : fc.pct > 80 ? "text-amber-600" : "text-green-600";
+                                const overAllocated = fc.pct > 100;
+                                const pctClass = overAllocated ? "text-red-600" : fc.pct > 80 ? "text-amber-600" : "text-green-600";
+                                const isPrefilled = fulfillRequestId === req.id && assignUserId === String(u.id);
                                 return (
-                                  <div key={u.id} className="rounded-md border bg-white dark:bg-slate-950 p-2 space-y-1.5">
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setFulfillRequestId(req.id);
+                                      setAssignUserId(String(u.id));
+                                      toast({ title: `${u.name} pre-filled as Assign To`, description: "Approve & fulfill to commit." });
+                                    }}
+                                    className={`w-full text-left rounded-md border bg-white dark:bg-slate-950 p-2 space-y-1.5 transition-colors hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 ${isPrefilled ? "border-indigo-500 ring-1 ring-indigo-300" : ""}`}
+                                  >
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <Avatar className="h-6 w-6 shrink-0">
                                         <AvatarFallback className="text-[10px]">{u.initials}</AvatarFallback>
@@ -674,10 +696,17 @@ export default function Resources() {
                                       <span className="font-medium text-xs">{u.name}</span>
                                       <span className="text-muted-foreground text-xs">{u.role}</span>
                                       {hasAnySkills && <MatchScoreBadge score={sm.score} total={sm.total} />}
+                                      {isPrefilled && <span className="text-[10px] font-semibold text-indigo-600 uppercase">Selected</span>}
                                       <span className={`text-xs font-medium ml-auto ${pctClass}`}>
                                         {fc.current}h → {fc.proposed}h ({fc.pct}% cap)
                                       </span>
                                     </div>
+
+                                    {overAllocated && (
+                                      <div className="rounded bg-red-50 dark:bg-red-950/30 border border-red-200 px-2 py-1 text-[11px] font-medium text-red-700 dark:text-red-400">
+                                        ⚠ Over-allocated — forecasted {fc.pct}% of capacity
+                                      </div>
+                                    )}
 
                                     {hasAnySkills && sm.details.length > 0 && (
                                       <div className="flex flex-wrap gap-1">
@@ -692,7 +721,7 @@ export default function Resources() {
                                     )}
 
                                     <UtilisationHeatmap userId={u.id} weekCount={8} compact fromDate={new Date(req.startDate)} />
-                                  </div>
+                                  </button>
                                 );
                               })}
                             </div>
