@@ -176,8 +176,10 @@ router.get("/reports/project-health", async (_req, res): Promise<void> => {
   const projectList = projects.map(p => {
     const due = new Date(p.dueDate);
     const daysRemaining = Math.max(0, Math.ceil((due.getTime() - now.getTime()) / 86400000));
-    const budget = Number(p.budget);
-    const budgetUsed = budget > 0 ? Math.round((Number(p.trackedHours) / Number(p.budgetedHours || 1)) * 100) : 0;
+    const budget = Number(p.budget) || 0;
+    const tracked = Number(p.trackedHours) || 0;
+    const budgeted = Number(p.budgetedHours) || 0;
+    const budgetUsed = budget > 0 && budgeted > 0 ? Math.round((tracked / budgeted) * 100) : 0;
     return {
       projectId: p.id,
       projectName: p.name,
