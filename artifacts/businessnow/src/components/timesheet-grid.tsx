@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   useListTimeEntries,
@@ -131,7 +132,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const { data: persistentRows } = useQuery({
     queryKey: ROWS_QK,
     queryFn: async () => {
-      const r = await fetch(`/api/timesheet-rows?userId=${userId}`);
+      const r = await fetch(`/api/timesheet-rows?userId=${userId}`, { headers: authHeaders() });
       return r.json() as Promise<any[]>;
     },
   });
@@ -139,7 +140,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   // Time settings (for min-hours warning)
   const { data: timeSettings } = useQuery({
     queryKey: ["time-settings"],
-    queryFn: async () => { const r = await fetch("/api/time-settings"); return r.json(); },
+    queryFn: async () => { const r = await fetch("/api/time-settings", { headers: authHeaders() }); return r.json(); },
   });
 
   // Time-off and holiday indicators
@@ -176,13 +177,13 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const approvedTimesheets = useListTimesheets({ status: "Approved" }).data;
 
   const deleteRowMutation = useMutation({
-    mutationFn: async (rowId: number) => { await fetch(`/api/timesheet-rows/${rowId}`, { method: "DELETE" }); },
+    mutationFn: async (rowId: number) => { await fetch(`/api/timesheet-rows/${rowId}`, { method: "DELETE", headers: authHeaders() }); },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ROWS_QK }),
   });
 
   const addRowMutation = useMutation({
     mutationFn: async (data: any) => {
-      const r = await fetch("/api/timesheet-rows", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const r = await fetch("/api/timesheet-rows", { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(data) });
       if (!r.ok) throw new Error("Failed");
       return r.json();
     },

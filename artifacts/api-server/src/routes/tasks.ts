@@ -97,7 +97,7 @@ async function runAutoAllocateHook(opts: {
     await logAudit({
       entityType: "allocation",
       entityId: created.id,
-      action: "auto_created",
+      action: "created",
       description: `Auto-allocated user ${uid} to project "${project.name}" via task "${task.name}" (${hoursPerDay.toFixed(2)}h/day)`,
     });
   }

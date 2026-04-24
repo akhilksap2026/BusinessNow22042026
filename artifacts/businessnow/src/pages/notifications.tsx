@@ -1,4 +1,5 @@
 import { Layout } from "@/components/layout";
+import { authHeaders } from "@/lib/auth-headers";
 import { PageHeader } from "@/components/page-header";
 import { useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,7 +26,7 @@ export default function Notifications() {
 
   const dismissNotification = useMutation({
     mutationFn: async (id: number) => {
-      await fetch(`${BASE}/api/notifications/${id}`, { method: "DELETE" });
+      await fetch(`${BASE}/api/notifications/${id}`, { method: "DELETE", headers: authHeaders() });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() }),
   });

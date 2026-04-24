@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   useGetProjectTemplate,
@@ -418,7 +419,7 @@ function usePlaceholders() {
   return useQuery({
     queryKey: ["placeholders"],
     queryFn: async (): Promise<Placeholder[]> => {
-      const r = await fetch(`${base}/api/placeholders`);
+      const r = await fetch(`${base}/api/placeholders`, { headers: authHeaders() });
       if (!r.ok) throw new Error("Failed to load placeholders");
       return r.json();
     },

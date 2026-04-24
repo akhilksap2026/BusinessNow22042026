@@ -517,3 +517,33 @@ Architect review of the 8-step plan flagged one critical and three high-severity
 - **High — Approval status PATCH endpoints lacked role authz.** `PATCH /time-off-requests/:id` and `PATCH /resource-requests/:id/status` were globally authenticated but anyone could approve/reject. Both now wrapped in `requirePM`. Added `import { requirePM } from "../middleware/rbac"` to `timeOff.ts` (already imported in `resourceRequests.ts`).
 - **Medium — Role-switch audit integrity.** `POST /api/audit/role-switch` now resolves the actor via `x-user-id`, loads `role + secondaryRoles`, canonicalises both the request's `from` and `to` via `resolveRole`, and returns 403 if either is not in the actor's assigned set — preventing semantically false audit rows.
 - Verified with curl: `/me` echoes the requested user; spoof on `/api/users` → 403; legitimate → 200; role-switch with foreign roles → 403, with assigned roles → 204; `/time-off-requests/1` PATCH without PM → 403 "Insufficient permissions".
+
+### 2026-04-24 — E2E Quality Pass: Auth-Header Sweep + Audit Fix + Auth Gate
+
+**Auth-header sweep** — every raw `fetch()` call across the frontend that was missing auth credentials has been patched to pass `authHeaders()` (or `authHeaders({...extraHeaders})`). Files updated:
+- `pages/dashboard.tsx` — cr-impact fetch
+- `pages/reports.tsx` — 9 report endpoints + export-async + saved-views POST (removed hardcoded `"x-user-id": "1"`)
+- `pages/time.tsx` — time-settings, timesheet messages GET/POST, unapprove, bulk-approve, notification reminder
+- `pages/notifications.tsx` — dismiss DELETE
+- `components/timesheet-grid.tsx` — timesheet-rows GET, time-settings, row DELETE, row POST
+- `components/task-detail-sheet.tsx` — dependencies GET, dependency POST, dependency DELETE
+- `components/tracked-time-tab.tsx` — time-categories, callApi helper (replaced hardcoded `x-user-role: viewerRole`), time-entries PATCH + POST
+- `components/layout.tsx` — notification dismiss DELETE
+- `components/utilisation-heatmap.tsx` — allocations GET
+- `components/resource-timeline.tsx` — user-skills GET
+- `components/template-editor.tsx` — placeholders GET
+
+**Audit action-type fixes** — `routes/projects.ts` line 233: `"shift_dates"` → `"updated"`; `routes/tasks.ts` line 100: `"auto_created"` → `"created"`. Both now conform to the `logAudit` action enum.
+
+**Auth gate** (`App.tsx`) — Added `<AuthGate>` wrapper (reads `isLoading` from `CurrentUserProvider`) that renders `null` until the `/me` bootstrap completes. Eliminates the startup race condition where React Query fired queries before `applyRoleHeaders()` had set the default auth headers, causing 401 noise on first paint.
+
+**Smoke test results** (all green):
+- Valid request with assigned role → 200
+- Header spoof (unassigned role) → 403
+- Missing `x-user-role` header → 401
+- `/me` without role header → 200 (bootstrap-exempt)
+- Non-existent user → 401
+- Self-approve timesheet → 403 "You cannot approve your own timesheet."
+- Cross-approve (different user) → 200
+- Role-switch audit endpoint → 204
+- Dashboard on fresh load → zero 401 errors in browser console; all metric cards populated

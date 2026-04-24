@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { authHeaders } from "@/lib/auth-headers";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -61,7 +62,7 @@ export default function TimeTracking() {
 
   const { data: timeSettings } = useQuery({
     queryKey: ["time-settings"],
-    queryFn: async () => { const r = await fetch("/api/time-settings"); return r.json(); },
+    queryFn: async () => { const r = await fetch("/api/time-settings", { headers: authHeaders() }); return r.json(); },
   });
 
   const [requestOpen, setRequestOpen] = useState(false);
@@ -189,7 +190,7 @@ export default function TimeTracking() {
     queryKey: ["timesheet-messages", detailTs?.id],
     queryFn: async () => {
       if (!detailTs?.id) return [];
-      const r = await fetch(`/api/timesheets/${detailTs.id}/messages`);
+      const r = await fetch(`/api/timesheets/${detailTs.id}/messages`, { headers: authHeaders() });
       return r.ok ? r.json() : [];
     },
     enabled: !!detailTs?.id,
@@ -200,7 +201,7 @@ export default function TimeTracking() {
     try {
       await fetch(`/api/timesheets/${detailTs.id}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ userId: currentUserId, body: messageDraft.trim() }),
       });
       setMessageDraft("");
@@ -210,7 +211,7 @@ export default function TimeTracking() {
 
   async function handleUnapprove(tsId: number) {
     try {
-      const r = await fetch(`/api/timesheets/${tsId}/unapprove`, { method: "POST" });
+      const r = await fetch(`/api/timesheets/${tsId}/unapprove`, { method: "POST", headers: authHeaders() });
       if (!r.ok) throw new Error();
       queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
       toast({ title: "Approval reverted", description: "Timesheet returned to Submitted status." });
@@ -223,7 +224,7 @@ export default function TimeTracking() {
     try {
       const r = await fetch("/api/timesheets/bulk-approve", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ ids, approvedByUserId: currentUserId }),
       });
       const data = await r.json();
@@ -565,7 +566,7 @@ export default function TimeTracking() {
                                       try {
                                         await fetch(`${BASE}/api/notifications`, {
                                           method: "POST",
-                                          headers: { "Content-Type": "application/json" },
+                                          headers: authHeaders({ "Content-Type": "application/json" }),
                                           body: JSON.stringify({
                                             type: "timesheet_reminder",
                                             message: `Please submit your timesheet for the week of ${approvalWeekStr}. It's due for review.`,

@@ -1,4 +1,5 @@
 import { useListUsers } from "@workspace/api-client-react";
+import { authHeaders } from "@/lib/auth-headers";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +38,7 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
   const { data: allAllocations, isLoading: loadingAllocs } = useQuery<any[]>({
     queryKey: ["all-allocations"],
     queryFn: async () => {
-      const res = await fetch("/api/allocations");
+      const res = await fetch("/api/allocations", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch allocations");
       return res.json();
     },

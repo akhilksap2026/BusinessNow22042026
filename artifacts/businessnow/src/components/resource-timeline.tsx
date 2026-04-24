@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListAllocations, useListProjects, useListUsers, useGetCapacityOverview,
@@ -144,7 +145,7 @@ export default function ResourceTimeline({ mode }: Props) {
 
   // Fetch all user-skills once for filtering
   useEffect(() => {
-    fetch("/api/user-skills").then(r => r.json()).then(setAllUserSkillsForFilter).catch(() => {});
+    fetch("/api/user-skills", { headers: authHeaders() }).then(r => r.json()).then(setAllUserSkillsForFilter).catch(() => {});
   }, []);
   const [focusedUserIds, setFocusedUserIds] = useState<Set<number> | null>(null);
 

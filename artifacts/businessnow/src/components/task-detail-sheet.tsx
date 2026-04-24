@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/contexts/current-user";
 import {
@@ -84,7 +85,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
     queryKey: ["task-deps", taskId],
     queryFn: async () => {
       if (!taskId) return [];
-      const res = await fetch(`/api/tasks/${taskId}/dependencies`);
+      const res = await fetch(`/api/tasks/${taskId}/dependencies`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json();
     },
@@ -100,7 +101,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
     try {
       await fetch(`/api/tasks/${taskId}/dependencies`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ predecessorId: parseInt(depForm.predecessorId), dependencyType: depForm.dependencyType, lagDays: parseInt(depForm.lagDays) || 0 }),
       });
       refetchDeps();
@@ -111,7 +112,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
 
   async function handleDeleteDep(depId: number) {
     try {
-      await fetch(`/api/task-dependencies/${depId}`, { method: "DELETE" });
+      await fetch(`/api/task-dependencies/${depId}`, { method: "DELETE", headers: authHeaders() });
       refetchDeps();
     } catch { /* ignore */ }
   }

@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import { authHeaders } from "@/lib/auth-headers";
 import { Link, useLocation } from "wouter";
 import { useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
@@ -115,7 +116,7 @@ function NotificationsBell() {
 
   const dismissNotification = useMutation({
     mutationFn: async (id: number) => {
-      await fetch(`${BASE}/api/notifications/${id}`, { method: "DELETE" });
+      await fetch(`${BASE}/api/notifications/${id}`, { method: "DELETE", headers: authHeaders() });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() }),
   });

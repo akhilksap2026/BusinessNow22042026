@@ -31,6 +31,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
+import { authHeaders } from "@/lib/auth-headers";
 
 type Period = "week" | "month" | "quarter" | "ytd";
 
@@ -114,7 +115,7 @@ export default function Dashboard() {
   const { data: crImpact } = useQuery<{ originalBudget: number; crAdditions: number; revised: number }>({
     queryKey: ["dashboard-cr-impact"],
     queryFn: async () => {
-      const res = await fetch("/api/dashboard/cr-impact");
+      const res = await fetch("/api/dashboard/cr-impact", { headers: authHeaders() });
       if (!res.ok) return { originalBudget: 0, crAdditions: 0, revised: 0 };
       return res.json();
     },

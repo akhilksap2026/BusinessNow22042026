@@ -230,7 +230,7 @@ router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<vo
     }
   }
 
-  await logAudit({ action: "shift_dates", entityType: "project", entityId: projectId, description: `Shifted dates by ${shiftDays} days` });
+  await logAudit({ action: "updated", entityType: "project", entityId: projectId, description: `Shifted dates by ${shiftDays} days` });
   res.json({ shifted: taskIdsToShift.size, days: shiftDays });
 });
 

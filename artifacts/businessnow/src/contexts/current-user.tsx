@@ -37,7 +37,10 @@ const CurrentUserContext = createContext<CurrentUserCtx>({
 
 function applyRoleHeaders(role: string, userId?: number) {
   const headers: Record<string, string> = { "x-user-role": role };
-  if (userId) headers["x-user-id"] = String(userId);
+  if (userId) {
+    headers["x-user-id"] = String(userId);
+    localStorage.setItem("activeUserId", String(userId));
+  }
   setDefaultHeaders(headers);
 }
 
@@ -159,6 +162,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
       /* ignore — frontend state is the source of truth in dev */
     }
     localStorage.removeItem("activeRole");
+    localStorage.removeItem("activeUserId");
     setCurrentUser(null);
     setActiveRole("Admin");
     applyRoleHeaders("Admin");

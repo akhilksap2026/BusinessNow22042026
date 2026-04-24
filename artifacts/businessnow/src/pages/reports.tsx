@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { Download, AlertTriangle, CheckCircle2, Star, TrendingUp, Clock, Filter, Activity, Mail, FileSpreadsheet, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authHeaders } from "@/lib/auth-headers";
 import { ComposedChart, Area } from "recharts";
 
 function downloadCSV(filename: string, rows: Record<string, any>[]) {
@@ -219,7 +220,7 @@ function BurnDownChart() {
 function ProjectPerformanceReport() {
   const { data: rows = [], isLoading } = useQuery<any[]>({
     queryKey: ["report-project-performance"],
-    queryFn: () => fetch("/api/reports/project-performance").then(r => r.json()),
+    queryFn: () => fetch("/api/reports/project-performance", { headers: authHeaders() }).then(r => r.json()),
   });
 
   const [search, setSearch] = useState("");
@@ -358,7 +359,7 @@ function ProjectPerformanceReport() {
 function OperationsInsightsReport() {
   const { data: rows = [], isLoading } = useQuery<any[]>({
     queryKey: ["report-operations-insights"],
-    queryFn: () => fetch("/api/reports/operations-insights").then(r => r.json()),
+    queryFn: () => fetch("/api/reports/operations-insights", { headers: authHeaders() }).then(r => r.json()),
   });
 
   const chartData = rows.map(r => ({
@@ -444,7 +445,7 @@ function OperationsInsightsReport() {
 function CsatTrendReport() {
   const { data, isLoading } = useQuery<any>({
     queryKey: ["report-csat-trend"],
-    queryFn: () => fetch("/api/reports/csat-trend").then(r => r.json()),
+    queryFn: () => fetch("/api/reports/csat-trend", { headers: authHeaders() }).then(r => r.json()),
   });
 
   const byMonth = data?.byMonth ?? [];
@@ -539,7 +540,7 @@ function CsatTrendReport() {
 function IntervalIqReport() {
   const { data: rows = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ["report-interval-iq"],
-    queryFn: () => fetch("/api/reports/interval-iq").then(r => r.json()),
+    queryFn: () => fetch("/api/reports/interval-iq", { headers: authHeaders() }).then(r => r.json()),
   });
 
   const overruns = rows.filter(r => r.isOverrun);
@@ -672,7 +673,7 @@ function CapacityPlanningReport() {
   const { data, isLoading } = useQuery({
     queryKey: ["/api/reports/capacity-planning", weeks],
     queryFn: async () => {
-      const r = await fetch(`/api/reports/capacity-planning?weeks=${weeks}`);
+      const r = await fetch(`/api/reports/capacity-planning?weeks=${weeks}`, { headers: authHeaders() });
       if (!r.ok) throw new Error("Failed to load capacity planning");
       return r.json() as Promise<{
         weeks: number;
@@ -844,7 +845,7 @@ async function requestAsyncExport(reportType: string, filters: any, email: strin
   try {
     const r = await fetch("/api/reports/export-async", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ reportType, filters, deliveryEmail: email }),
     });
     const data = await r.json();
@@ -865,7 +866,7 @@ function SaveViewButton({ entity, filters, disabled }: { entity: string; filters
     try {
       const r = await fetch("/api/saved-views", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": "1" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           name, entity,
           filters: { matchMode: "all", conditions: Object.entries(filters).map(([k, v]) => ({ field: k, operator: "eq", value: v })) },
@@ -897,7 +898,7 @@ function UtilizationGridReport() {
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["report-utilization-grid", from, to, grouping],
-    queryFn: () => fetch(`/api/reports/utilization-grid?from=${from}&to=${to}&grouping=${grouping}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/reports/utilization-grid?from=${from}&to=${to}&grouping=${grouping}`, { headers: authHeaders() }).then(r => r.json()),
   });
 
   const periods: any[] = data?.periods ?? [];
@@ -1023,7 +1024,7 @@ function TimesheetSubmissionsReport() {
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["report-timesheet-submissions", from, to, view],
-    queryFn: () => fetch(`/api/reports/timesheet-submissions?from=${from}&to=${to}&view=${view}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/reports/timesheet-submissions?from=${from}&to=${to}&view=${view}`, { headers: authHeaders() }).then(r => r.json()),
   });
 
   const weeks: any[] = data?.weeks ?? [];

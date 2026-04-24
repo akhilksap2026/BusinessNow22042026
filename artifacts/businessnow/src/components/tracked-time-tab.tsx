@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListTimeEntries,
@@ -116,7 +117,7 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "PM" }: P
   const [categories, setCategories] = useState<Category[]>([]);
 
   useMemo(() => {
-    fetch(`/api/time-categories`)
+    fetch(`/api/time-categories`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setCategories(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -261,11 +262,10 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "PM" }: P
   const callApi = async (path: string, init: RequestInit) => {
     const res = await fetch(path, {
       ...init,
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
-        "x-user-role": viewerRole,
-        ...(init.headers ?? {}),
-      },
+        ...(init.headers as Record<string, string> ?? {}),
+      }),
     });
     if (!res.ok) {
       let msg = `Request failed (${res.status})`;
@@ -738,7 +738,7 @@ function EditEntryDialog({
       }
       const res = await fetch(`/api/time-entries/${entry.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-user-role": viewerRole },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -907,7 +907,7 @@ function AddOnBehalfDialog({
       };
       const res = await fetch(`/api/time-entries`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-role": viewerRole },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(body),
       });
       if (!res.ok) {
