@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 
 const { Pool } = pg;
 
@@ -13,14 +13,66 @@ async function main() {
 
   // ─── Truncate in safe order ─────────────────────────────────────────────
   await db.execute(sql`
-    TRUNCATE csat_responses, notifications, time_entries, timesheets,
+    TRUNCATE csat_responses, csat_surveys, notifications, time_entries, timesheets,
+             intervals, key_events,
              allocations, task_dependencies, tasks, phases,
              change_orders, invoices, opportunities, projects,
              resource_requests, prospects, accounts,
+             time_off_requests, holiday_dates, holiday_calendars,
+             time_categories, activity_defaults,
              user_skills, skills, skill_categories,
              rate_cards, audit_log, users
     RESTART IDENTITY CASCADE
   `);
+
+  // ─── Holiday Calendars ─────────────────────────────────────────────────
+  const [usHolCal, eurHolCal, apacHolCal] = await db
+    .insert(schema.holidayCalendarsTable)
+    .values([
+      { name: "US Federal Holidays",       description: "Standard US federal observed holidays for 2024–2026" },
+      { name: "EU Common Holidays",        description: "Common Western European holidays for 2024–2026" },
+      { name: "APAC (Singapore) Holidays", description: "Singapore public holidays for 2024–2026" },
+    ])
+    .returning();
+
+  await db.insert(schema.holidayDatesTable).values([
+    // US 2025
+    { calendarId: usHolCal.id, name: "New Year's Day",  date: "2025-01-01" },
+    { calendarId: usHolCal.id, name: "MLK Day",         date: "2025-01-20" },
+    { calendarId: usHolCal.id, name: "Presidents' Day", date: "2025-02-17" },
+    { calendarId: usHolCal.id, name: "Memorial Day",    date: "2025-05-26" },
+    { calendarId: usHolCal.id, name: "Independence Day",date: "2025-07-04" },
+    { calendarId: usHolCal.id, name: "Labor Day",       date: "2025-09-01" },
+    { calendarId: usHolCal.id, name: "Thanksgiving",    date: "2025-11-27" },
+    { calendarId: usHolCal.id, name: "Christmas Day",   date: "2025-12-25" },
+    // US 2026 (relevant to current test date Apr 2026)
+    { calendarId: usHolCal.id, name: "New Year's Day",   date: "2026-01-01" },
+    { calendarId: usHolCal.id, name: "MLK Day",          date: "2026-01-19" },
+    { calendarId: usHolCal.id, name: "Presidents' Day",  date: "2026-02-16" },
+    { calendarId: usHolCal.id, name: "Good Friday",      date: "2026-04-03" },
+    { calendarId: usHolCal.id, name: "Memorial Day",     date: "2026-05-25" },
+    { calendarId: usHolCal.id, name: "Independence Day", date: "2026-07-03" },
+    // EU 2025–2026
+    { calendarId: eurHolCal.id, name: "New Year's Day",  date: "2025-01-01" },
+    { calendarId: eurHolCal.id, name: "Good Friday",     date: "2025-04-18" },
+    { calendarId: eurHolCal.id, name: "Easter Monday",   date: "2025-04-21" },
+    { calendarId: eurHolCal.id, name: "Labour Day",      date: "2025-05-01" },
+    { calendarId: eurHolCal.id, name: "Christmas Day",   date: "2025-12-25" },
+    { calendarId: eurHolCal.id, name: "Boxing Day",      date: "2025-12-26" },
+    { calendarId: eurHolCal.id, name: "Good Friday",     date: "2026-04-03" },
+    { calendarId: eurHolCal.id, name: "Easter Monday",   date: "2026-04-06" },
+    { calendarId: eurHolCal.id, name: "Labour Day",      date: "2026-05-01" },
+    // APAC (Singapore) 2025–2026
+    { calendarId: apacHolCal.id, name: "New Year's Day",   date: "2025-01-01" },
+    { calendarId: apacHolCal.id, name: "Chinese New Year", date: "2025-01-29" },
+    { calendarId: apacHolCal.id, name: "Hari Raya Puasa",  date: "2025-03-31" },
+    { calendarId: apacHolCal.id, name: "Labour Day",       date: "2025-05-01" },
+    { calendarId: apacHolCal.id, name: "National Day",     date: "2025-08-09" },
+    { calendarId: apacHolCal.id, name: "Christmas Day",    date: "2025-12-25" },
+    { calendarId: apacHolCal.id, name: "Chinese New Year", date: "2026-02-17" },
+    { calendarId: apacHolCal.id, name: "Good Friday",      date: "2026-04-03" },
+    { calendarId: apacHolCal.id, name: "Labour Day",       date: "2026-05-01" },
+  ]);
 
   // ─── Rate Cards ─────────────────────────────────────────────────────────
   const [rcLogistics, rcEnterprise] = await db
@@ -888,6 +940,191 @@ async function main() {
       { projectId: proj("Route Optimisation Engine Deployment").id, taskId: swiftTasks[1].id, submittedByUserId: u("Sophie Laurent").id, rating: 4, comment: "Strong technical output. Minor delays in carrier integration but resolved quickly." },
       { projectId: proj("Route Optimisation Engine Deployment").id, taskId: swiftTasks[2].id, submittedByUserId: u("Daniel Osei").id, rating: 5, comment: "API connectors worked flawlessly in production from day 1." },
     ]);
+  }
+
+  // ─── Assign holiday calendars + designate timesheet approvers ──────────
+  // North America users → US calendar; APAC user → APAC; Europe-focused PM → EU.
+  const approverId = u("Marcus Webb").id;
+  const calendarAssignments: Array<[string[], number, string]> = [
+    [["Marcus Webb"],                                        eurHolCal.id,  "Europe"],
+    [["Sophie Laurent", "Tom Bridges", "Raj Krishnamurthy"], usHolCal.id,   "North America"],
+    [["Daniel Osei", "Leila Hassan"],                        apacHolCal.id, "Asia Pacific"],
+    [["Priya Nair", "Amara Diallo"],                         usHolCal.id,   "North America"],
+  ];
+  for (const [names, calId, region] of calendarAssignments) {
+    await db
+      .update(schema.usersTable)
+      .set({ holidayCalendarId: calId, region, timesheetApproverUserId: approverId })
+      .where(inArray(schema.usersTable.name, names));
+  }
+
+  // ─── Time Categories + Activity Defaults ──────────────────────────────
+  await db.insert(schema.timeCategoriesTable).values([
+    { name: "Billable Project Work",  description: "Time delivered against contracted scope", sortOrder: 1, defaultBillable: true },
+    { name: "Internal Meetings",      description: "Standups, retros, internal syncs",        sortOrder: 2, defaultBillable: false },
+    { name: "Training & Enablement",  description: "Certifications, learning, ramp-up",       sortOrder: 3, defaultBillable: false },
+    { name: "Pre-sales & Estimation", description: "Discovery calls, proposals, SOWs",        sortOrder: 4, defaultBillable: false },
+    { name: "Admin & PMO",            description: "Timesheets, status reports, governance",  sortOrder: 5, defaultBillable: false },
+  ]);
+
+  await db.insert(schema.activityDefaultsTable).values([
+    { activityName: "Internal Meetings",      billable: false },
+    { activityName: "Training",               billable: false },
+    { activityName: "Vacation",               billable: false },
+    { activityName: "Sick Leave",             billable: false },
+    { activityName: "Pre-sales",              billable: false },
+    { activityName: "Public Holiday",         billable: false },
+  ]);
+
+  // ─── Time-Off Requests ────────────────────────────────────────────────
+  await db.insert(schema.timeOffRequestsTable).values([
+    // Approved past PTO that should reduce capacity in past weeks
+    { userId: u("Priya Nair").id,         type: "PTO",        startDate: "2025-03-17", endDate: "2025-03-21", status: "Approved", durationType: "Full Day", approvedByUserId: u("Marcus Webb").id, notes: "Family holiday" },
+    { userId: u("Sophie Laurent").id,     type: "PTO",        startDate: "2025-02-24", endDate: "2025-02-26", status: "Approved", durationType: "Full Day", approvedByUserId: u("Marcus Webb").id, notes: "Personal" },
+    { userId: u("Daniel Osei").id,        type: "Sick Leave", startDate: "2025-04-07", endDate: "2025-04-08", status: "Approved", durationType: "Full Day", approvedByUserId: u("Marcus Webb").id },
+    { userId: u("Leila Hassan").id,       type: "PTO",        startDate: "2025-04-14", endDate: "2025-04-18", status: "Approved", durationType: "Full Day", approvedByUserId: u("Marcus Webb").id, notes: "Annual leave" },
+    { userId: u("Raj Krishnamurthy").id,  type: "PTO",        startDate: "2025-05-12", endDate: "2025-05-16", status: "Approved", durationType: "Full Day", approvedByUserId: u("Marcus Webb").id, notes: "Wedding" },
+    // Recent / current (relative to Apr 2026 system date)
+    { userId: u("Tom Bridges").id,        type: "PTO",        startDate: "2026-04-13", endDate: "2026-04-17", status: "Approved", durationType: "Full Day", approvedByUserId: u("Marcus Webb").id, notes: "Spring break" },
+    { userId: u("Amara Diallo").id,       type: "PTO",        startDate: "2026-04-06", endDate: "2026-04-06", status: "Approved", durationType: "Half Day" },
+    // Pending
+    { userId: u("Sophie Laurent").id,     type: "PTO",        startDate: "2026-05-04", endDate: "2026-05-08", status: "Pending",  durationType: "Full Day", notes: "Awaiting manager approval" },
+    { userId: u("Daniel Osei").id,        type: "Bereavement",startDate: "2026-04-27", endDate: "2026-04-29", status: "Pending",  durationType: "Full Day" },
+    // Rejected
+    { userId: u("Tom Bridges").id,        type: "PTO",        startDate: "2026-06-01", endDate: "2026-06-12", status: "Rejected", durationType: "Full Day", approvedByUserId: u("Marcus Webb").id, notes: "Conflicts with Fleet Telemetry MVP go-live" },
+  ]);
+
+  // ─── Timesheets (one per user × week with mixed statuses) ──────────────
+  // Reuse the `weeks` array (Mondays from Jan – Apr 2025). For each
+  // week+user, compute totals from the seeded time entries and assign a
+  // realistic status: older weeks Approved, recent ones Submitted, the
+  // freshest Draft to keep the submissions report colourful.
+  type TS = typeof schema.timesheetsTable.$inferInsert;
+  const tsRows: TS[] = [];
+  const internalUsers = users; // all are internal in seed
+  // Anchor "now" to the most recent seeded week so the freshest weeks always
+  // produce Draft/Submitted timesheets regardless of the current calendar
+  // date — gives the submissions report a realistic mix every run.
+  const refDate = new Date(weeks[weeks.length - 1] + "T00:00:00Z");
+  refDate.setUTCDate(refDate.getUTCDate() + 6);
+  for (let wi = 0; wi < weeks.length; wi++) {
+    const wk = weeks[wi];
+    const wkEnd = new Date(wk + "T00:00:00Z"); wkEnd.setUTCDate(wkEnd.getUTCDate() + 6);
+    const wkEndStr = wkEnd.toISOString().slice(0, 10);
+    // Most recent week → age 0; previous → 1; etc.
+    const weekAge = weeks.length - 1 - wi;
+    for (const user of internalUsers) {
+      const userEntries = timeEntries.filter(
+        e => e.userId === user.id && e.date! >= wk && e.date! <= wkEndStr,
+      );
+      const total = userEntries.reduce((s, e) => s + Number(e.hours), 0);
+      const billable = userEntries.filter(e => e.billable).reduce((s, e) => s + Number(e.hours), 0);
+      // Skip if user logged nothing this week — leaves a "missing" cell in the report.
+      if (total === 0) continue;
+      // Status mapping: very old → Approved; older → Submitted; latest 2 → Draft for some users
+      let status: "Draft" | "Submitted" | "Approved" | "Rejected" = "Approved";
+      let submittedAt: Date | null = new Date(wkEnd); submittedAt.setUTCDate(submittedAt.getUTCDate() + 1);
+      let approvedAt: Date | null = new Date(wkEnd);  approvedAt.setUTCDate(approvedAt.getUTCDate() + 3);
+      let approvedBy: number | null = u("Marcus Webb").id;
+      let rejectedAt: Date | null = null;
+      let rejectionNote: string | null = null;
+      if (weekAge <= 1) {
+        status = "Draft"; submittedAt = null; approvedAt = null; approvedBy = null;
+      } else if (weekAge <= 3) {
+        status = "Submitted"; approvedAt = null; approvedBy = null;
+      } else if (user.name === "Daniel Osei" && wk === "2025-03-31") {
+        // One rejected example for the report's red cells
+        status = "Rejected"; approvedAt = null; approvedBy = null;
+        rejectedAt = new Date(wkEnd); rejectedAt.setUTCDate(rejectedAt.getUTCDate() + 4);
+        rejectionNote = "Please split Project A vs B hours and resubmit.";
+      }
+      tsRows.push({
+        userId: user.id,
+        weekStart: wk,
+        status,
+        totalHours: total.toFixed(2),
+        billableHours: billable.toFixed(2),
+        submittedAt: submittedAt as any,
+        submittedByUserId: submittedAt ? user.id : null,
+        approvedAt: approvedAt as any,
+        approvedByUserId: approvedBy,
+        rejectedAt: rejectedAt as any,
+        rejectedByUserId: rejectedAt ? u("Marcus Webb").id : null,
+        rejectionNote,
+      });
+    }
+  }
+  if (tsRows.length) await db.insert(schema.timesheetsTable).values(tsRows);
+
+  // ─── Key Events + Intervals (Interval IQ) ──────────────────────────────
+  // Per project: capture canonical lifecycle moments and benchmark intervals.
+  const keyEventRows = await db
+    .insert(schema.keyEventsTable)
+    .values([
+      // FrostLine
+      { projectId: proj("FrostLine WMS Implementation").id, name: "Contract Signed",     eventDate: "2024-10-15", eventType: "manual" },
+      { projectId: proj("FrostLine WMS Implementation").id, name: "Kick-off",            eventDate: "2024-11-01", eventType: "manual" },
+      { projectId: proj("FrostLine WMS Implementation").id, name: "Blueprint Approved",  eventDate: "2024-12-20", eventType: "manual" },
+      { projectId: proj("FrostLine WMS Implementation").id, name: "Config Complete",     eventDate: "2025-04-30", eventType: "manual" },
+      // VeloFreight
+      { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, name: "Contract Signed", eventDate: "2024-12-01", eventType: "manual" },
+      { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, name: "Kick-off",        eventDate: "2025-01-15", eventType: "manual" },
+      { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, name: "Requirements Approved", eventDate: "2025-02-28", eventType: "manual" },
+      // PrimePack
+      { projectId: proj("Oracle WMS Cloud Migration").id, name: "Contract Signed", eventDate: "2025-01-15", eventType: "manual" },
+      { projectId: proj("Oracle WMS Cloud Migration").id, name: "Kick-off",        eventDate: "2025-02-03", eventType: "manual" },
+      { projectId: proj("Oracle WMS Cloud Migration").id, name: "Migration Plan Approved", eventDate: "2025-03-14", eventType: "manual" },
+      // SwiftRoute (Completed)
+      { projectId: proj("Route Optimisation Engine Deployment").id, name: "Contract Signed", eventDate: "2024-08-20", eventType: "manual" },
+      { projectId: proj("Route Optimisation Engine Deployment").id, name: "Kick-off",        eventDate: "2024-09-16", eventType: "manual" },
+      { projectId: proj("Route Optimisation Engine Deployment").id, name: "Production Launch", eventDate: "2025-03-31", eventType: "manual" },
+      // HarbourLink
+      { projectId: proj("HarbourLink EDI Integration").id, name: "Contract Signed", eventDate: "2025-02-10", eventType: "manual" },
+      { projectId: proj("HarbourLink EDI Integration").id, name: "Kick-off",        eventDate: "2025-03-01", eventType: "manual" },
+    ])
+    .returning();
+
+  const ev = (projectName: string, name: string) =>
+    keyEventRows.find(e => e.projectId === proj(projectName).id && e.name === name)!;
+
+  await db.insert(schema.intervalsTable).values([
+    // FrostLine
+    { projectId: proj("FrostLine WMS Implementation").id, name: "Contract → Kick-off",   startEventId: ev("FrostLine WMS Implementation", "Contract Signed").id, endEventId: ev("FrostLine WMS Implementation", "Kick-off").id, benchmarkDays: 14 },
+    { projectId: proj("FrostLine WMS Implementation").id, name: "Kick-off → Blueprint",  startEventId: ev("FrostLine WMS Implementation", "Kick-off").id,        endEventId: ev("FrostLine WMS Implementation", "Blueprint Approved").id, benchmarkDays: 45 },
+    { projectId: proj("FrostLine WMS Implementation").id, name: "Blueprint → Config",    startEventId: ev("FrostLine WMS Implementation", "Blueprint Approved").id, endEventId: ev("FrostLine WMS Implementation", "Config Complete").id, benchmarkDays: 90 },
+    // VeloFreight
+    { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, name: "Contract → Kick-off",     startEventId: ev("VeloFreight TMS Rollout – Phase 1", "Contract Signed").id, endEventId: ev("VeloFreight TMS Rollout – Phase 1", "Kick-off").id, benchmarkDays: 21 },
+    { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, name: "Kick-off → Requirements", startEventId: ev("VeloFreight TMS Rollout – Phase 1", "Kick-off").id,        endEventId: ev("VeloFreight TMS Rollout – Phase 1", "Requirements Approved").id, benchmarkDays: 30 },
+    // PrimePack
+    { projectId: proj("Oracle WMS Cloud Migration").id, name: "Contract → Kick-off",       startEventId: ev("Oracle WMS Cloud Migration", "Contract Signed").id, endEventId: ev("Oracle WMS Cloud Migration", "Kick-off").id, benchmarkDays: 14 },
+    { projectId: proj("Oracle WMS Cloud Migration").id, name: "Kick-off → Migration Plan", startEventId: ev("Oracle WMS Cloud Migration", "Kick-off").id,        endEventId: ev("Oracle WMS Cloud Migration", "Migration Plan Approved").id, benchmarkDays: 30 },
+    // SwiftRoute
+    { projectId: proj("Route Optimisation Engine Deployment").id, name: "Contract → Kick-off", startEventId: ev("Route Optimisation Engine Deployment", "Contract Signed").id, endEventId: ev("Route Optimisation Engine Deployment", "Kick-off").id, benchmarkDays: 21 },
+    { projectId: proj("Route Optimisation Engine Deployment").id, name: "Kick-off → Launch",   startEventId: ev("Route Optimisation Engine Deployment", "Kick-off").id,        endEventId: ev("Route Optimisation Engine Deployment", "Production Launch").id, benchmarkDays: 180 },
+    // HarbourLink
+    { projectId: proj("HarbourLink EDI Integration").id, name: "Contract → Kick-off", startEventId: ev("HarbourLink EDI Integration", "Contract Signed").id, endEventId: ev("HarbourLink EDI Integration", "Kick-off").id, benchmarkDays: 14 },
+  ]);
+
+  // ─── CSAT Surveys (sent to clients on milestone tasks) ─────────────────
+  const milestoneTasks = await db
+    .select()
+    .from(schema.tasksTable)
+    .where(eq(schema.tasksTable.isMilestone, true));
+
+  if (milestoneTasks.length > 0) {
+    const surveyRows = milestoneTasks.slice(0, 8).map((t, i) => {
+      const completed = t.status === "Completed";
+      return {
+        milestoneTaskId: t.id,
+        projectId: t.projectId,
+        recipientUserId: u("Marcus Webb").id,
+        rating: completed ? (i % 2 === 0 ? 5 : 4) : null,
+        comment: completed ? (i % 2 === 0 ? "Strong delivery, met all acceptance criteria." : "Solid milestone, minor scope clarifications needed.") : null,
+        completedAt: completed ? new Date() : null,
+        token: `csat-token-${t.id}-${Math.random().toString(36).slice(2, 10)}`,
+      };
+    });
+    await db.insert(schema.csatSurveysTable).values(surveyRows as any);
   }
 
   // ─── Notifications ────────────────────────────────────────────────────────
