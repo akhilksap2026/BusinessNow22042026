@@ -35,7 +35,6 @@ import taskDependenciesRouter from "./taskDependencies";
 import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
 import { projectUpdatesRouter } from "./projectUpdates";
-import aiChatRouter from "./aiChat";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
 
@@ -86,6 +85,5 @@ router.use(taskDependenciesRouter);
 router.use(baselinesRouter);
 router.use(csatSurveysRouter);
 router.use(projectUpdatesRouter);
-router.use(aiChatRouter);
 
 export default router;
