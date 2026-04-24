@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListAllocations, useListProjects, useListUsers, useGetCapacityOverview,
@@ -197,6 +197,116 @@ export default function ResourceTimeline({ mode }: Props) {
       return cap > 0 ? Math.round((Number(a.hoursPerWeek) / cap) * 100) : null;
     }
     return null;
+  }
+
+  // ─── Bandwidth helpers (Feature 2 + 3) ──────────────────────────────────
+  function dailyHoursOf(a: any): number {
+    const hpd = Number(a.hoursPerDay ?? 0);
+    if (hpd > 0) return hpd;
+    const hpw = Number(a.hoursPerWeek ?? 0);
+    return hpw > 0 ? hpw / 5 : 0;
+  }
+  const dailyCap = (userId: number) => userCapacity(userId) / 5;
+
+  // Per-user per-day allocation hours (Mon–Fri only). Used by overflow stripes
+  // and bandwidth tooltips. Rebuilt only when the allocation list changes.
+  const dailyHoursByUser = useMemo(() => {
+    const map = new Map<number, Map<string, number>>();
+    for (const a of allocs) {
+      if (!a.userId) continue;
+      const hpd = dailyHoursOf(a);
+      if (hpd <= 0 || !a.startDate || !a.endDate) continue;
+      const cur = new Date(a.startDate + "T00:00:00Z");
+      const end = new Date(a.endDate + "T00:00:00Z");
+      if (isNaN(cur.getTime()) || isNaN(end.getTime()) || end < cur) continue;
+      while (cur <= end) {
+        const day = cur.getUTCDay();
+        if (day !== 0 && day !== 6) {
+          const key = cur.toISOString().slice(0, 10);
+          let inner = map.get(a.userId);
+          if (!inner) { inner = new Map(); map.set(a.userId, inner); }
+          inner.set(key, (inner.get(key) ?? 0) + hpd);
+        }
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+    return map;
+  }, [allocs]);
+
+  // True if, on ANY day inside this allocation's range (across all projects),
+  // the user's total daily hours exceed their daily capacity.
+  function barOverflows(a: any): boolean {
+    if (!a.userId || !a.startDate || !a.endDate) return false;
+    const cap = dailyCap(a.userId);
+    if (cap <= 0) return false;
+    const inner = dailyHoursByUser.get(a.userId);
+    if (!inner) return false;
+    const cur = new Date(a.startDate + "T00:00:00Z");
+    const end = new Date(a.endDate + "T00:00:00Z");
+    if (isNaN(cur.getTime()) || isNaN(end.getTime()) || end < cur) return false;
+    while (cur <= end) {
+      const day = cur.getUTCDay();
+      if (day !== 0 && day !== 6) {
+        const key = cur.toISOString().slice(0, 10);
+        if ((inner.get(key) ?? 0) > cap + 0.001) return true;
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return false;
+  }
+
+  // Bandwidth breakdown for a user across [periodStart, periodEnd]. Defaults
+  // to the full visible timeline range so the tooltip respects current zoom.
+  function bandwidth(userId: number, periodStart: string = rangeStart, periodEnd: string = rangeEnd) {
+    const cap = dailyCap(userId);
+    let workingDays = 0;
+    {
+      const cur = new Date(periodStart + "T00:00:00Z");
+      const end = new Date(periodEnd + "T00:00:00Z");
+      while (cur <= end) {
+        const d = cur.getUTCDay();
+        if (d !== 0 && d !== 6) workingDays++;
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+    const totalCapacity = cap * workingDays;
+    let hard = 0, soft = 0;
+    for (const a of allocs) {
+      if (a.userId !== userId) continue;
+      const s = a.startDate > periodStart ? a.startDate : periodStart;
+      const e = a.endDate < periodEnd ? a.endDate : periodEnd;
+      if (!s || !e || s > e) continue;
+      const hpd = dailyHoursOf(a);
+      if (hpd <= 0) continue;
+      const cur = new Date(s + "T00:00:00Z");
+      const end = new Date(e + "T00:00:00Z");
+      let wd = 0;
+      while (cur <= end) {
+        const d = cur.getUTCDay();
+        if (d !== 0 && d !== 6) wd++;
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+      const total = hpd * wd;
+      if (a.isSoftAllocation) soft += total; else hard += total;
+    }
+    return { totalCapacity, hard, soft, remaining: totalCapacity - hard - soft, workingDays };
+  }
+
+  function BandwidthBlock({ userId, periodStart, periodEnd }: { userId: number; periodStart?: string; periodEnd?: string }) {
+    const b = bandwidth(userId, periodStart, periodEnd);
+    return (
+      <div className="border-t border-slate-200/50 mt-1 pt-1 space-y-0.5">
+        <div className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">
+          Bandwidth · {b.workingDays}d · {ZOOM_LABELS[zoom].toLowerCase()} view
+        </div>
+        <div className="flex justify-between gap-3"><span className="text-slate-400">Total capacity</span><span className="tabular-nums">{b.totalCapacity.toFixed(1)}h</span></div>
+        <div className="flex justify-between gap-3"><span className="text-slate-400">Hard allocations</span><span className="tabular-nums">{b.hard.toFixed(1)}h</span></div>
+        <div className="flex justify-between gap-3"><span className="text-slate-400">Soft allocations</span><span className="tabular-nums">{b.soft.toFixed(1)}h</span></div>
+        <div className={`flex justify-between gap-3 font-semibold ${b.remaining < 0 ? "text-red-500" : ""}`}>
+          <span>Remaining</span><span className="tabular-nums">{b.remaining.toFixed(1)}h</span>
+        </div>
+      </div>
+    );
   }
 
   // ─── Timeline date range ─────────────────────────────────────────────────
@@ -654,33 +764,57 @@ export default function ResourceTimeline({ mode }: Props) {
                   className={`flex border-b transition-opacity ${row.dimmed ? "opacity-30" : ""} ${isParent ? "bg-slate-50 hover:bg-slate-100" : "bg-white hover:bg-slate-50/60"}`}
                   style={{ height: ROW_H }}
                 >
-                  {/* Label column */}
-                  <div
-                    className={`shrink-0 border-r flex items-center gap-1 px-2 cursor-pointer select-none`}
-                    style={{ width: LABEL_W, paddingLeft: isParent ? 8 : 24 }}
-                    onClick={() => {
-                      if (!isParent) return;
-                      setExpanded(prev => {
-                        const next = new Set(prev);
-                        if (next.has(row.key)) next.delete(row.key);
-                        else next.add(row.key);
-                        return next;
-                      });
-                    }}
-                  >
-                    {isParent && (
-                      isExpanded
-                        ? <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        : <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className={`truncate text-xs font-medium ${row.isOverAllocated ? "text-red-600" : "text-slate-800"}`}>
-                        {row.label}
-                        {row.isOverAllocated && <span className="ml-1 text-red-400">●</span>}
+                  {/* Label column. In People-mode parent rows we wrap the label in a Tooltip
+                      so hovering over the team-member row shows their bandwidth breakdown
+                      across the visible timeline window (Feature 3). */}
+                  {(() => {
+                    const peopleParentUserId =
+                      mode === "people" && isParent && row.key.startsWith("user-")
+                        ? Number(row.key.slice("user-".length))
+                        : null;
+                    const labelInner = (
+                      <div
+                        className={`shrink-0 border-r flex items-center gap-1 px-2 cursor-pointer select-none`}
+                        style={{ width: LABEL_W, paddingLeft: isParent ? 8 : 24 }}
+                        onClick={() => {
+                          if (!isParent) return;
+                          setExpanded(prev => {
+                            const next = new Set(prev);
+                            if (next.has(row.key)) next.delete(row.key);
+                            else next.add(row.key);
+                            return next;
+                          });
+                        }}
+                      >
+                        {isParent && (
+                          isExpanded
+                            ? <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            : <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className={`truncate text-xs font-medium ${row.isOverAllocated ? "text-red-600" : "text-slate-800"}`}>
+                            {row.label}
+                            {row.isOverAllocated && <span className="ml-1 text-red-400">●</span>}
+                          </div>
+                          {row.sublabel && <div className="truncate text-xs text-muted-foreground">{row.sublabel}</div>}
+                        </div>
                       </div>
-                      {row.sublabel && <div className="truncate text-xs text-muted-foreground">{row.sublabel}</div>}
-                    </div>
-                  </div>
+                    );
+                    if (peopleParentUserId !== null && Number.isFinite(peopleParentUserId)) {
+                      return (
+                        <Tooltip>
+                          <TooltipTrigger asChild>{labelInner}</TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <div className="space-y-0.5 text-xs">
+                              <div className="font-medium">{row.label}</div>
+                              <BandwidthBlock userId={peopleParentUserId} />
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+                    return labelInner;
+                  })()}
 
                   {/* Timeline column */}
                   <div className="relative flex-1 overflow-hidden" style={{ width: totalPx }}>
@@ -753,6 +887,15 @@ export default function ResourceTimeline({ mode }: Props) {
                                 className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize opacity-0 group-hover:opacity-100 rounded-r"
                                 onMouseDown={e => startDrag(e, a, "resize-end")}
                               />
+                              {/* Over-allocation indicator (Feature 2): red stripe on top of bar
+                                  when this user's TOTAL daily hours exceed daily capacity on any
+                                  day in the bar's range. Overlay only — does not replace bar colour. */}
+                              {barOverflows(a) && (
+                                <div
+                                  className="absolute left-0 right-0 top-0 h-[3px] bg-red-600 rounded-t pointer-events-none"
+                                  title="Over-allocated on at least one day in this range"
+                                />
+                              )}
                               {/* Split button */}
                               <button
                                 title="Split allocation"
@@ -770,6 +913,11 @@ export default function ResourceTimeline({ mode }: Props) {
                               <div>{a.hoursPerWeek ?? 0} hrs/wk · {a.hoursPerDay ?? 0} hrs/day · {a.totalHours ?? 0} total hrs</div>
                               {pct !== null && <div>{pct}% of capacity</div>}
                               {a.isSoftAllocation && <Badge variant="outline" className="text-amber-600 border-amber-300">Soft</Badge>}
+                              {barOverflows(a) && <div className="text-red-400 font-semibold">⚠ Over-allocated on ≥1 day</div>}
+                              {/* Bandwidth (Feature 3) — shown for project-mode bars where the
+                                  parent row is a project, so users learn this person's broader
+                                  bandwidth across the visible window without leaving the bar. */}
+                              {a.userId && <BandwidthBlock userId={a.userId} />}
                               <div className="text-slate-400 mt-1">Drag to shift · drag edges to resize · click to edit</div>
                             </div>
                           </TooltipContent>

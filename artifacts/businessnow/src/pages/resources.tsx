@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
 import ResourceTimeline from "@/components/resource-timeline";
+import { ResourceKpiBar } from "@/components/resource-kpi-bar";
 import SkillsMatrix from "@/components/skills-matrix";
 import {
   useGetCapacityOverview, useListUsers, useListProjects, useListResourceRequests, useUpdateResourceRequestStatus, getListResourceRequestsQueryKey,
@@ -306,6 +307,7 @@ export default function Resources() {
   return (
     <Layout>
       <div className="space-y-4">
+        <ResourceKpiBar />
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Team Resources</h1>
           {pendingRequests.length > 0 && (
