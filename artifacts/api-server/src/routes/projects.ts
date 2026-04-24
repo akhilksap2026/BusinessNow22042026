@@ -234,5 +234,83 @@ router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<vo
   res.json({ shifted: taskIdsToShift.size, days: shiftDays });
 });
 
+// ── Gantt data ────────────────────────────────────────────────────────────────
+router.get("/projects/:id/gantt", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+  const tasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, id));
+
+  const taskIds = tasks.map(t => t.id);
+  const deps = taskIds.length > 0
+    ? await db.select().from(taskDependenciesTable).where(
+        inArray(taskDependenciesTable.successorId, taskIds)
+      )
+    : [];
+
+  // Build a set of task IDs that are parents
+  const parentIds = new Set(tasks.filter(t => t.parentTaskId !== null).map(t => t.parentTaskId as number));
+
+  // Compute depth for each task by walking the parent chain
+  const depthMap = new Map<number, number>();
+  function getDepth(taskId: number, visited = new Set<number>()): number {
+    if (depthMap.has(taskId)) return depthMap.get(taskId)!;
+    if (visited.has(taskId)) return 0;
+    visited.add(taskId);
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.parentTaskId === null) {
+      depthMap.set(taskId, 0);
+      return 0;
+    }
+    const d = 1 + getDepth(task.parentTaskId, visited);
+    depthMap.set(taskId, d);
+    return d;
+  }
+  tasks.forEach(t => getDepth(t.id));
+
+  // Sort tasks: top-level first, then by parent hierarchy
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const da = depthMap.get(a.id) ?? 0;
+    const db_ = depthMap.get(b.id) ?? 0;
+    if (da !== db_) return da - db_;
+    return a.id - b.id;
+  });
+
+  const rows = sortedTasks.map(t => ({
+    id: t.id,
+    type: t.isMilestone ? "milestone" : "task",
+    name: t.name,
+    startDate: t.startDate ?? null,
+    dueDate: t.dueDate ?? null,
+    status: t.status,
+    completion: 0,
+    parentId: t.parentTaskId ?? null,
+    parentTaskId: t.parentTaskId ?? null,
+    depth: depthMap.get(t.id) ?? 0,
+    isMilestone: t.isMilestone,
+    milestoneType: t.milestoneType ?? null,
+    hasChildren: parentIds.has(t.id),
+  }));
+
+  const dependencies = deps.map(d => ({
+    id: d.id,
+    predecessorId: d.predecessorId,
+    successorId: d.successorId,
+    dependencyType: d.dependencyType ?? "FS",
+    lagDays: d.lagDays ?? 0,
+  }));
+
+  // Determine project date range from tasks if project dates are missing
+  const allStarts = tasks.map(t => t.startDate).filter(Boolean) as string[];
+  const allEnds = tasks.map(t => t.dueDate).filter(Boolean) as string[];
+  const projectStart = project.startDate || (allStarts.length ? allStarts.sort()[0] : new Date().toISOString().slice(0, 10));
+  const projectEnd = project.dueDate || (allEnds.length ? allEnds.sort().at(-1)! : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+
+  res.json({ projectId: id, projectStart, projectEnd, rows, dependencies });
+});
+
 export default router;
 
