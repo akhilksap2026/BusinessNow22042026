@@ -1,0 +1,46 @@
+In my existing Replit web application, **add** a new AI-powered chatbot as an **addon functionality only**. 
+Do NOT change, refactor, or remove any of my existing code, files, or functionality. This is purely an additional feature.
+
+**Important Instructions:**
+- Only add new files/folders where necessary.
+- Do not modify my current UI layout, navigation, or existing pages unless absolutely required to embed the chatbot.
+- The chatbot should act as a **smart data-filling helper AI** for time tracking — it helps the user quickly log time by understanding natural language and filling the data into the existing system.
+
+**PHASE 1 — Deep Project Analysis (Do this first)**
+Carefully explore and understand my current project without making any changes. Analyze:
+- Tech stack, existing files, authentication, projects, tasks, and time logging related code.
+- Current data models for Projects, Tasks, and TimeLogs.
+- All existing API endpoints related to projects, tasks, and time entries (especially GET/POST for time logging).
+Summarize your understanding of the current time-tracking functionality before proceeding to Phase 2.
+
+**PHASE 2 — Add the AI Time Tracking Helper Chatbot**
+
+Create a floating AI chatbot (bottom-right corner widget) that works as a helpful data-filling assistant.
+
+**Core Behavior:**
+- It should understand natural language inputs like:
+  - “Log 5 hours on Project Alpha for database optimization”
+  - “I worked 3 hours yesterday on Task B, completed the UI part”
+  - “Log time for last 3 days on Website Redesign”
+  - “What’s left to log this week?”
+- After understanding the request, it asks smart follow-up questions only when needed (e.g. missing details like exact hours, date, description).
+- Finally, it shows a clear summary of what it’s about to log and asks for confirmation before calling the existing API to save the time entries.
+- It should have knowledge of current projects, tasks, already logged hours, and pending work by calling existing APIs.
+
+**Key Features:**
+- Proactive help for time logging journey (reminders, quick summaries, progress check)
+- Real-time warnings if hours are going above allocated time
+- Supports single day or multiple days logging
+- Clean, professional chat UI (use Tailwind if available)
+- Maintain short conversation history in the session
+
+**Technical Requirements:**
+- Add the chatbot as a reusable component (one JS file + one CSS file + HTML snippet I can include).
+- Create **only one new backend route** (e.g. POST /api/ai-time-helper) that receives the user message and returns AI response + suggested time log data.
+- Use Groq (llama-3.3-70b or similar) or OpenAI GPT-4o-mini. Add .env support for the API key.
+- Use tool/function calling so the AI can safely read projects/tasks/logs from existing APIs and prepare time entry data.
+- After user confirms, call the **existing** time logging API to actually save the data.
+
+After Phase 1, first show me a short summary of what you understood about my current app, then add only the new chatbot files and integration code.
+
+Keep everything modular, well-commented, and easy to remove if needed. Make the chatbot feel like a smart helper that fills data for the existing time tracking system.

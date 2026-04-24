@@ -24,6 +24,7 @@ import Opportunities from "@/pages/opportunities";
 import Forbidden from "@/pages/forbidden";
 import { RequirePermission } from "@/components/require-permission";
 import { RoleSelectorModal } from "@/components/role-selector-modal";
+import { AITimeAssistant } from "@/components/ai-time-assistant";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoading } = useCurrentUser();
@@ -80,6 +81,7 @@ function App() {
                     </ErrorBoundary>
                   </AuthGate>
                   <RoleSelectorModal />
+                  <AITimeAssistant />
                 </WouterRouter>
                 <Toaster />
               </TooltipProvider>
