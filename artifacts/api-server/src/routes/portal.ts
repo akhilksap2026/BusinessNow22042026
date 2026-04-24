@@ -176,13 +176,13 @@ router.get("/portal/:token", async (req, res) => {
   try {
     const cos = await db.select().from(changeOrdersTable)
       .where(and(eq(changeOrdersTable.projectId, project.id), eq(changeOrdersTable.status, "Approved")));
+    // SECURITY: financial fields (amount, additionalHours) are intentionally
+    // omitted from the public portal payload — clients see scope/status only.
     approvedChangeRequests = cos.map(co => ({
       id: co.id,
       crNumber: co.crNumber,
       title: co.title,
       description: co.description,
-      amount: Number(co.amount),
-      additionalHours: Number(co.additionalHours ?? 0),
       decisionDate: co.decisionDate ?? co.approvedDate,
     }));
   } catch {

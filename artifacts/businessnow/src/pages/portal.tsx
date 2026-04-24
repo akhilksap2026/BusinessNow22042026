@@ -205,8 +205,7 @@ export default function PortalPage() {
                       </div>
                     </div>
                     <div className="flex-shrink-0 text-right">
-                      {cr.amount > 0 && <p className="text-sm font-bold text-green-700">+${Number(cr.amount).toLocaleString()}</p>}
-                      {cr.additionalHours > 0 && <p className="text-xs text-slate-500">+{cr.additionalHours}h</p>}
+                      {/* Financial details intentionally hidden from the public client portal (default OFF). */}
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, projectsTable, invoicesTable, timeEntriesTable, usersTable, allocationsTable, notificationsTable } from "@workspace/db";
+import { db, projectsTable, invoicesTable, timeEntriesTable, usersTable, allocationsTable, notificationsTable, changeOrdersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import {
   GetDashboardSummaryResponse,
   GetDashboardActivityResponse,
@@ -37,6 +38,17 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   const upcomingDeadlines = projects.filter(p => p.dueDate >= nowStr && p.dueDate <= in30Str && p.status !== 'Completed').length;
 
   res.json(GetDashboardSummaryResponse.parse({ totalProjects, activeProjects, atRiskProjects, totalRevenue, outstandingInvoices, billableHoursThisMonth, teamUtilization, upcomingDeadlines }));
+});
+
+// CR impact aggregate. project.budget is mutated to the REVISED total when a CR
+// is approved (see changeOrders.ts), so we derive original = revised − approvedSum.
+router.get("/dashboard/cr-impact", async (_req, res): Promise<void> => {
+  const projects = await db.select().from(projectsTable);
+  const cos = await db.select().from(changeOrdersTable).where(eq(changeOrdersTable.status, "Approved"));
+  const revised = projects.reduce((s, p) => s + Number(p.budget ?? 0), 0);
+  const crAdditions = cos.reduce((s, c) => s + Number(c.amount ?? 0), 0);
+  const originalBudget = Math.max(0, revised - crAdditions);
+  res.json({ originalBudget, crAdditions, revised });
 });
 
 router.get("/dashboard/activity", async (_req, res): Promise<void> => {

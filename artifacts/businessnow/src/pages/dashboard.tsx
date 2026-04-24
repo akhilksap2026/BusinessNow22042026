@@ -6,12 +6,24 @@ import { Briefcase, DollarSign, Clock, Users, AlertTriangle, AlertCircle, CheckC
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
   const { data: activities, isLoading: isLoadingActivity } = useGetDashboardActivity();
   const { data: healthReport } = useGetProjectHealthReport();
   const { data: invoices } = useListInvoices();
+
+  // Single aggregate endpoint avoids N+1 fan-out. Server derives Original from
+  // (Revised − sum of approved CRs) since approval mutates project.budget.
+  const { data: crImpact } = useQuery<{ originalBudget: number; crAdditions: number; revised: number }>({
+    queryKey: ["dashboard-cr-impact"],
+    queryFn: async () => {
+      const res = await fetch("/api/dashboard/cr-impact");
+      if (!res.ok) return { originalBudget: 0, crAdditions: 0, revised: 0 };
+      return res.json();
+    },
+  });
 
   const atRiskProjects = healthReport?.projects?.filter(p => p.health === "At Risk" || p.health === "Off Track") ?? [];
   const overdueInvoices = invoices?.filter(inv => inv.status === "Overdue") ?? [];
@@ -46,7 +58,7 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Link href="/projects">
             <Card className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -120,6 +132,29 @@ export default function Dashboard() {
                     <div className="text-2xl font-bold">{summary?.teamUtilization}%</div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Average across {summary?.totalProjects} projects
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/projects">
+            <Card className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all" data-testid="card-cr-impact">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Budget (incl. CRs)</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {crImpact === undefined ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{formatCurrency(crImpact.revised)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Original {formatCurrency(crImpact.originalBudget)}
+                      {crImpact.crAdditions > 0 && (
+                        <span className="text-emerald-600 dark:text-emerald-400"> · +{formatCurrency(crImpact.crAdditions)} CRs</span>
+                      )}
                     </p>
                   </>
                 )}

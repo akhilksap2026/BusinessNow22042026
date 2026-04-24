@@ -280,6 +280,15 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
           >
             {task.isMilestone && <Milestone className="h-3.5 w-3.5 text-purple-500 shrink-0" />}
             <span className={`truncate ${depth === 0 ? "font-medium" : ""}`}>{task.name}</span>
+            {depth === 0 && (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1 py-0 h-4 text-indigo-600 border-indigo-300 bg-indigo-50 dark:bg-indigo-950/30 shrink-0"
+                title="Top-level task — acts as a project phase"
+              >
+                Phase
+              </Badge>
+            )}
             {task.isMilestone && task.milestoneType && (
               <Badge
                 variant="outline"
