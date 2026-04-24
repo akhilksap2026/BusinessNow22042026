@@ -136,14 +136,14 @@ export default function ProjectDetail() {
       if (editCrId) {
         await fetch(`/api/change-orders/${editCrId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+          headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify(payload),
         });
         toast({ title: "Change request updated" });
       } else {
         await fetch(`/api/projects/${projectId}/change-orders`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+          headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify(payload),
         });
         toast({ title: "Change request created" });
@@ -161,7 +161,7 @@ export default function ProjectDetail() {
         ? new Date().toISOString().slice(0, 10) : undefined;
       await fetch(`/api/change-orders/${coId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ status, ...(decisionDate ? { decisionDate } : {}) }),
       });
       refetchChangeOrders();
@@ -172,7 +172,7 @@ export default function ProjectDetail() {
 
   async function handleDeleteCO(coId: number) {
     try {
-      await fetch(`/api/change-orders/${coId}`, { method: "DELETE", headers: { "x-user-role": "PM" } });
+      await fetch(`/api/change-orders/${coId}`, { method: "DELETE", headers: authHeaders() });
       refetchChangeOrders();
     } catch {
       toast({ title: "Failed to delete change request", variant: "destructive" });
@@ -232,7 +232,7 @@ export default function ProjectDetail() {
 
   const [jobRoles, setJobRoles] = useState<{ id: number; name: string }[]>([]);
   useEffect(() => {
-    fetch("/api/job-roles").then(r => r.ok ? r.json() : []).then(setJobRoles).catch(() => {});
+    fetch("/api/job-roles", { headers: authHeaders() }).then(r => r.ok ? r.json() : []).then(setJobRoles).catch(() => {});
   }, []);
 
   const getUser = (userId: number) => users?.find(u => u.id === userId);
@@ -389,7 +389,7 @@ export default function ProjectDetail() {
 
         await fetch(`/api/resource-requests/${newId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+          headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             type: resReqForm.type,
             region: resReqForm.region || undefined,
@@ -584,7 +584,7 @@ export default function ProjectDetail() {
   const { data: csatSurveys = [], refetch: refetchSurveys } = useQuery<any[]>({
     queryKey: ["csat-surveys", projectId],
     queryFn: async () => {
-      const r = await fetch(`/api/projects/${projectId}/csat-surveys`);
+      const r = await fetch(`/api/projects/${projectId}/csat-surveys`, { headers: authHeaders() });
       return r.json();
     },
     enabled: !!projectId,
@@ -593,7 +593,7 @@ export default function ProjectDetail() {
   const { data: changeOrders, refetch: refetchChangeOrders } = useQuery<any[]>({
     queryKey: ["change-orders", projectId],
     queryFn: async () => {
-      const res = await fetch(`/api/projects/${projectId}/change-orders`);
+      const res = await fetch(`/api/projects/${projectId}/change-orders`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load change orders");
       return res.json();
     },
@@ -606,7 +606,7 @@ export default function ProjectDetail() {
   }>({
     queryKey: ["health-stats", projectId],
     queryFn: async () => {
-      const res = await fetch(`/api/projects/${projectId}/health-stats`);
+      const res = await fetch(`/api/projects/${projectId}/health-stats`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load health stats");
       return res.json();
     },
@@ -616,7 +616,7 @@ export default function ProjectDetail() {
   const { data: projectUpdates = [], refetch: refetchUpdates } = useQuery<any[]>({
     queryKey: ["project-updates", projectId],
     queryFn: async () => {
-      const res = await fetch(`/api/projects/${projectId}/updates`);
+      const res = await fetch(`/api/projects/${projectId}/updates`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load updates");
       return res.json();
     },
@@ -629,7 +629,7 @@ export default function ProjectDetail() {
     try {
       const res = await fetch(`/api/projects/${projectId}/updates`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(updateForm),
       });
       if (!res.ok) throw new Error("Failed to send");
