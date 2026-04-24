@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Plus, MoreHorizontal, Search, X, Archive, RotateCcw } from "lucide-react";
+import { Plus, MoreHorizontal, Search, X, Archive, RotateCcw, Download, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
@@ -73,6 +74,7 @@ export default function Projects() {
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("All Health");
   const [showArchived, setShowArchived] = useState(false);
   const [viewFilter, setViewFilter] = useState<FilterValue>(EMPTY_FILTER);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const qc = useQueryClient();
   const { toast } = useToast();
   const deleteMut = useDeleteProject();
@@ -109,6 +111,52 @@ export default function Projects() {
       },
       onError: () => toast({ title: "Failed to archive project", variant: "destructive" }),
     });
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === visibleProjects.length && visibleProjects.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visibleProjects.map(p => p.id)));
+    }
+  }
+
+  function handleBulkArchive() {
+    const names = visibleProjects.filter(p => selectedIds.has(p.id)).map(p => p.name);
+    if (!confirm(`Archive ${selectedIds.size} project${selectedIds.size !== 1 ? "s" : ""}?\n\n${names.slice(0, 5).join("\n")}${names.length > 5 ? `\n…and ${names.length - 5} more` : ""}`)) return;
+    Promise.all([...selectedIds].map(id => deleteMut.mutateAsync({ id }))).then(() => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast({ title: `${selectedIds.size} project${selectedIds.size !== 1 ? "s" : ""} archived` });
+      setSelectedIds(new Set());
+    }).catch(() => toast({ title: "Some projects failed to archive", variant: "destructive" }));
+  }
+
+  function handleBulkExport() {
+    const selected = visibleProjects.filter(p => selectedIds.has(p.id));
+    const header = ["Name", "Account", "Owner", "Status", "Health", "Type", "Tracked Hrs", "Allocated Hrs"];
+    const rows = selected.map(p => [
+      p.name,
+      (p as any).companyName ?? `Account #${p.accountId}`,
+      users?.find(u => u.id === p.ownerId)?.name ?? "",
+      p.status, p.health,
+      (p as any).internalExternal ?? "",
+      String(Math.round((p.trackedHours ?? 0) * 10) / 10),
+      String(Math.round((p.allocatedHours ?? 0) * 10) / 10),
+    ]);
+    const csv = [header, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "projects.csv"; a.click();
+    URL.revokeObjectURL(url);
   }
 
   const baseFiltered = (projects?.filter(p => !p.isAdminProject) ?? [])
@@ -319,6 +367,14 @@ export default function Projects() {
                 <Table>
                   <TableHeader>
                     <TableRow className="text-xs">
+                      <TableHead className="w-10 pl-3" onClick={e => e.stopPropagation()}>
+                        <Checkbox
+                          checked={visibleProjects.length > 0 && selectedIds.size === visibleProjects.length}
+                          data-state={selectedIds.size > 0 && selectedIds.size < visibleProjects.length ? "indeterminate" : undefined}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all projects"
+                        />
+                      </TableHead>
                       <TableHead className="w-[220px]">Project Name</TableHead>
                       <TableHead>Account</TableHead>
                       <TableHead>Owner</TableHead>
@@ -334,12 +390,20 @@ export default function Projects() {
                     {visibleProjects.map((project) => {
                       const trackedHrs = Math.round((project.trackedHours ?? 0) * 10) / 10;
                       const allocatedHrs = Math.round((project.allocatedHours ?? 0) * 10) / 10;
+                      const isSelected = selectedIds.has(project.id);
                       return (
                       <TableRow
                         key={project.id}
-                        className="text-xs cursor-pointer hover:bg-muted/50"
+                        className={`text-xs cursor-pointer hover:bg-muted/50 ${isSelected ? "bg-primary/5" : ""}`}
                         onClick={() => navigate(`/projects/${project.id}`)}
                       >
+                        <TableCell className="pl-3" onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelect(project.id)}
+                            aria-label={`Select ${project.name}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium whitespace-nowrap">
                           <Link
                             href={`/projects/${project.id}`}
@@ -389,6 +453,25 @@ export default function Projects() {
                   </TableBody>
                 </Table>
                 </div>
+
+                {/* US-8: Sticky bulk action bar */}
+                {selectedIds.size > 0 && (
+                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-border bg-card shadow-lg px-4 py-2.5 text-sm animate-in slide-in-from-bottom-2">
+                    <span className="font-medium text-foreground">{selectedIds.size} selected</span>
+                    <div className="w-px h-4 bg-border" />
+                    <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={handleBulkExport}>
+                      <Download className="h-3.5 w-3.5" />
+                      Export CSV
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300" onClick={handleBulkArchive}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Archive
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </CardContent>

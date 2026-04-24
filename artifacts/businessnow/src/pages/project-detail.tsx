@@ -1992,6 +1992,10 @@ export default function ProjectDetail() {
             {/* ─────────────── add_member ─────────────── */}
             {resReqForm.type === "add_member" && (
               <>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">Role &amp; Skills</h3>
+                  <div className="flex-1 border-t border-border" />
+                </div>
                 <div className="space-y-1.5">
                   <Label>Role Needed *</Label>
                   {jobRoles.length > 0 ? (
@@ -2063,6 +2067,11 @@ export default function ProjectDetail() {
                   )}
                 </div>
 
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">Schedule</h3>
+                  <div className="flex-1 border-t border-border" />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Start Date *</Label>
@@ -2074,7 +2083,7 @@ export default function ProjectDetail() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Hours / Day</Label>
                     <Input type="number" min={1} max={16} step="0.5" value={resReqForm.hoursPerDay} onChange={e => setResReqForm(f => ({ ...f, hoursPerDay: e.target.value }))} />
@@ -2090,15 +2099,21 @@ export default function ProjectDetail() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Priority</Label>
-                    <Select value={resReqForm.priority} onValueChange={v => setResReqForm(f => ({ ...f, priority: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {["Low","Medium","High","Critical"].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">Priority</h3>
+                  <div className="flex-1 border-t border-border" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Priority</Label>
+                  <Select value={resReqForm.priority} onValueChange={v => setResReqForm(f => ({ ...f, priority: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Low","Medium","High","Critical"].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}

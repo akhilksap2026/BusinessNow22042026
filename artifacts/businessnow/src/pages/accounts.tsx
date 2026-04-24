@@ -4,6 +4,7 @@ import { listAccounts, createAccount, updateAccount, deleteAccount, listOpportun
 import { Account } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
+import { TooltipCell } from "@/components/ui/tooltip-cell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -270,7 +271,7 @@ export default function Accounts() {
                               {account.name}
                             </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{account.domain}</TableCell>
+                          <TableCell className="text-muted-foreground"><TooltipCell value={account.domain} maxWidth="max-w-[10rem]" /></TableCell>
                           <TableCell>
                             <StatusBadge status={account.status} />
                           </TableCell>

@@ -28,6 +28,14 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **API contract**: OpenAPI spec → Orval codegen → React Query hooks + Zod schemas
 - **Packages**: `@workspace/api-spec`, `@workspace/api-zod`, `@workspace/db`, `@workspace/api-server`, `@workspace/businessnow`
 
+### UI Polish — Low Priority (April 2026 Audit §6.5)
+- **Sidebar section grouping** (VH-8): NAV_ITEMS split into `WORKSPACE_NAV` (Dashboard→Resources) and `ADMIN_NAV` (Finance/Reports/Admin); section labels + thin dividers in both desktop sidebar and mobile sheet drawer.
+- **Sidebar collapse to icon rail** (US-14): Toggle button (ChevronLeft/Right) at top-right edge of sidebar. Collapsed state: 56px wide, icon-only nav with Tooltip labels on right hover; persisted in `localStorage("sidebarCollapsed")`. Full expanded state: 224px as before.
+- **Tooltip-on-truncate component** (US-13): `artifacts/businessnow/src/components/ui/tooltip-cell.tsx` — `<TooltipCell value maxWidth />` wraps any text cell with truncation + tooltip on hover. Applied to Accounts domain column; em-dash fallback for null.
+- **Resource Capacity skills column** (VH-6): `UserSkillsCell` truncated from top-4 to top-2 skills + "+N more" overflow pill (`resources.tsx`).
+- **Dialog form section dividers** (US-10): Resource Request dialog (`add_member` flow) now has "Role & Skills" / "Schedule" / "Priority" horizontal rule + h3 section separators.
+- **Bulk row actions** (US-8): Projects desktop table has a leading checkbox column (select-all header + per-row). When ≥1 row selected, a sticky floating action bar appears at the bottom: selected count · Export CSV · Archive · ✕ clear. CSV export downloads `projects.csv` with all visible columns.
+
 ### UI Polish (April 2026 Audit Quick Wins)
 - **Shared StatusBadge** (`artifacts/businessnow/src/components/ui/status-badge.tsx`): single component with documented color map for all status types — project status, project health, account status, invoice status, resource request status, timesheet status, billing schedule status. Replaces all ad-hoc inline badge classes across pages.
 - **Consistent page titles**: all page h1 elements use `text-2xl font-bold tracking-tight` (was `text-3xl`) across dashboard, admin, finance, accounts, projects, time, notifications, reports, resources, project-detail.
