@@ -94,6 +94,42 @@ export function getRoleLevel(role: string): number {
 }
 
 /**
+ * The three valid project-level roles.  Lower granularity than account roles —
+ * an "admin" project role implies full per-project authority, not account-wide.
+ */
+export const PROJECT_ROLES = ["admin", "collaborator", "customer"] as const;
+export type ProjectRoleValue = (typeof PROJECT_ROLES)[number];
+
+/**
+ * resolveProjectRole(accountRole, projectRole)
+ *
+ * Compute the effective role a user has at a given project.  The account role
+ * is a ceiling — `projectRole` cannot escalate beyond it:
+ *
+ *  - account_admin / super_user → always 'admin' at every project
+ *  - collaborator               → uses `projectRole` (defaults to 'collaborator')
+ *  - customer                   → always 'customer' (cannot be promoted)
+ *
+ * Pass either canonical or legacy `accountRole` strings; the function resolves
+ * them via LEGACY_ROLE_MAP.  Pass `undefined` for `projectRole` when no
+ * membership row exists.
+ */
+export function resolveProjectRole(
+  accountRole: string,
+  projectRole?: string | null,
+): ProjectRoleValue {
+  const canonical = resolveRole(accountRole);
+  if (canonical === "account_admin" || canonical === "super_user") return "admin";
+  if (canonical === "customer") return "customer";
+  // canonical === "collaborator"
+  const pr = (projectRole ?? "collaborator") as ProjectRoleValue;
+  // Defensive: a collaborator at the account level cannot be promoted to admin
+  // at the project level — that would breach the account-role ceiling.
+  if (pr === "admin") return "collaborator";
+  return PROJECT_ROLES.includes(pr) ? pr : "collaborator";
+}
+
+/**
  * Return true when the supplied role meets or exceeds the required minimum.
  */
 export function hasRole(userRole: string, minimumRole: RoleValue): boolean {

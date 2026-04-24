@@ -1,6 +1,7 @@
 export * from "./accounts";
 export * from "./users";
 export * from "./projects";
+export * from "./projectMembers";
 export * from "./phases";
 export * from "./tasks";
 export * from "./taskRelations";

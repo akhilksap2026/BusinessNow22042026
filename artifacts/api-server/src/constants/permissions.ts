@@ -1,3 +1,5 @@
+import { resolveProjectRole } from "./roles";
+
 /**
  * Centralized permission matrix — Rocketlane-style architecture.
  *
@@ -234,6 +236,26 @@ export function canOnProject(
 ): boolean {
   const row = PROJECT_PERMISSIONS[permission];
   return row[projectRole] ?? false;
+}
+
+/**
+ * canOnProjectFor(accountRole, projectRole, permission)
+ *
+ * Preferred entry point for project-scoped authz checks.  Always applies the
+ * account-role ceiling via resolveProjectRole() before consulting the matrix,
+ * which prevents accidentally over-privileging a collaborator-on-account who
+ * happens to have a stale `project_role='admin'` row.  Use this in routes
+ * rather than calling canOnProject() directly.
+ *
+ * @example
+ *   if (canOnProjectFor(req.headers["x-user-role"], member?.projectRole, "task.create")) { … }
+ */
+export function canOnProjectFor(
+  accountRole: string,
+  projectRole: string | null | undefined,
+  permission: ProjectPermission,
+): boolean {
+  return canOnProject(resolveProjectRole(accountRole, projectRole), permission);
 }
 
 /**

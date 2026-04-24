@@ -80,6 +80,35 @@ export function getRoleLevel(role: string): number {
 }
 
 /**
+ * The three valid project-level roles.  Lower granularity than account roles —
+ * an "admin" project role implies full per-project authority, not account-wide.
+ */
+export const PROJECT_ROLES = ["admin", "collaborator", "customer"] as const;
+export type ProjectRoleValue = (typeof PROJECT_ROLES)[number];
+
+/**
+ * resolveProjectRole(accountRole, projectRole)
+ *
+ * Compute the effective role a user has at a given project.  The account role
+ * is a ceiling — projectRole cannot escalate beyond it:
+ *  - account_admin / super_user → 'admin' at every project
+ *  - collaborator               → uses projectRole (defaults to 'collaborator')
+ *  - customer                   → always 'customer'
+ */
+export function resolveProjectRole(
+  accountRole: string,
+  projectRole?: string | null,
+): ProjectRoleValue {
+  const canonical = resolveRole(accountRole);
+  if (canonical === "account_admin" || canonical === "super_user") return "admin";
+  if (canonical === "customer") return "customer";
+  const pr = (projectRole ?? "collaborator") as ProjectRoleValue;
+  // Account role is the ceiling — collaborator-on-account cannot be admin-on-project.
+  if (pr === "admin") return "collaborator";
+  return PROJECT_ROLES.includes(pr) ? pr : "collaborator";
+}
+
+/**
  * Return true when the user's role meets or exceeds the required minimum.
  *
  * @example

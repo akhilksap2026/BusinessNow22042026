@@ -27,7 +27,7 @@
  *     viewProjects    → projects.view
  */
 
-import { resolveRole, type RoleValue } from "@/lib/roles";
+import { resolveRole, resolveProjectRole, type RoleValue } from "@/lib/roles";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -229,6 +229,22 @@ export function canOnProject(
 ): boolean {
   const row = PROJECT_PERMISSIONS[permission];
   return row[projectRole] ?? false;
+}
+
+/**
+ * canOnProjectFor(accountRole, projectRole, permission)
+ *
+ * Preferred entry point for project-scoped checks in the UI.  Always applies
+ * the account-role ceiling via resolveProjectRole() before consulting the
+ * matrix, so a stale `project_role='admin'` row cannot over-privilege a
+ * collaborator-on-account.
+ */
+export function canOnProjectFor(
+  accountRole: string,
+  projectRole: string | null | undefined,
+  permission: ProjectPermission,
+): boolean {
+  return canOnProject(resolveProjectRole(accountRole, projectRole), permission);
 }
 
 /**
