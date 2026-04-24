@@ -15,7 +15,7 @@
  */
 
 import { type Request, type Response, type NextFunction } from "express";
-import { resolveRole, type RoleValue } from "../constants/roles";
+import { LEGACY_ROLE_MAP, resolveRole, type RoleValue } from "../constants/roles";
 
 const ALLOWED_ASSIGNMENTS: Record<RoleValue, RoleValue[]> = {
   account_admin: ["account_admin", "super_user", "collaborator", "customer"],
@@ -29,7 +29,20 @@ export function validateInviteRole(
   res: Response,
   next: NextFunction,
 ): void {
-  const headerRole = (req.headers["x-user-role"] as string) ?? "";
+  // The inviter role must come from a recognized header value. We do NOT
+  // fall back to the default `resolveRole` behavior here (which silently
+  // demotes unknown strings to 'collaborator'), because on a privileged
+  // endpoint that fallback could let an unauthenticated/unidentified
+  // request inherit collaborator-level invite powers. Require an explicit,
+  // known role string instead.
+  const rawHeader = req.headers["x-user-role"];
+  const headerRole = typeof rawHeader === "string" ? rawHeader : "";
+  if (headerRole.length === 0 || !(headerRole in LEGACY_ROLE_MAP)) {
+    res.status(401).json({
+      error: "Missing or unrecognized x-user-role header",
+    });
+    return;
+  }
   const inviterRole = resolveRole(headerRole);
 
   const rawTarget = req.body?.role;
