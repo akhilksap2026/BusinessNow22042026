@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/auth-headers";
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
@@ -259,7 +260,7 @@ export default function Resources() {
     try {
       const res = await fetch(`/api/resource-requests/${blockRequestId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ status: "Blocked", blockedReason: blockReason }),
       });
       if (!res.ok) throw new Error();

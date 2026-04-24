@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, listPortalTokens, createPortalToken, useListSkills } from "@workspace/api-client-react";
@@ -2354,7 +2355,7 @@ function CsatTab({ projectId, csatSummary, csatSurveys, refetchSurveys }: {
     mutationFn: async ({ taskId, enabled }: { taskId: number; enabled: boolean }) => {
       const r = await fetch(`/api/tasks/${taskId}/csat-enabled`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ csatEnabled: enabled }),
       });
       if (!r.ok) throw new Error("Failed to update");

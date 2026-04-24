@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/auth-headers";
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
@@ -54,7 +55,7 @@ export default function Finance() {
   const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
   const deleteInvoiceMut = useMutation({
     mutationFn: async (id: string) => {
-      const r = await fetch(`${BASE}/api/invoices/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      const r = await fetch(`${BASE}/api/invoices/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!r.ok && r.status !== 204) throw new Error("Failed to delete invoice");
     },
     onSuccess: () => {

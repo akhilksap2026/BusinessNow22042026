@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/auth-headers";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -166,7 +167,7 @@ export default function OpportunitiesPage() {
       // Refresh selected opportunity so the linked project card appears immediately
       try {
         const res = await fetch(`${BASE_URL}/api/opportunities/${selected!.id}`, {
-          headers: { "x-user-role": "Admin" },
+          headers: authHeaders(),
         });
         if (res.ok) setSelected(await res.json());
       } catch { /* keep sheet open with old data */ }

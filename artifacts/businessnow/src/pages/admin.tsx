@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
@@ -191,7 +192,7 @@ function UserConfigTab({ users, BASE, onRefresh }: {
     try {
       const res = await fetch(`${BASE}/api/users/${userId}/secondary-roles`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ secondaryRoles: updated }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -286,7 +287,7 @@ export default function Admin() {
   const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
   const deleteUserMut = useMutation({
     mutationFn: async (id: number) => {
-      const r = await fetch(`${BASE}/api/users/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      const r = await fetch(`${BASE}/api/users/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!r.ok && r.status !== 204) throw new Error("Failed to delete user");
     },
     onSuccess: () => {
@@ -420,7 +421,7 @@ export default function Admin() {
     try {
       const res = await fetch("/api/job-roles", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ name: newJobRoleName.trim() }),
       });
       if (res.ok) {
@@ -440,7 +441,7 @@ export default function Admin() {
 
   async function handleDeleteJobRole(id: number) {
     try {
-      await fetch(`/api/job-roles/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      await fetch(`/api/job-roles/${id}`, { method: "DELETE", headers: authHeaders() });
       fetchJobRoles();
       toast({ title: "Job role deleted" });
     } catch {
@@ -539,7 +540,7 @@ export default function Admin() {
       const url = editSectionId ? `${BASE}/api/custom-field-sections/${editSectionId}` : `${BASE}/api/custom-field-sections`;
       const res = await fetch(url, {
         method: editSectionId ? "PUT" : "POST",
-        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "content-type": "application/json" }),
         body: JSON.stringify(sectionForm),
       });
       if (!res.ok) throw new Error();
@@ -551,7 +552,7 @@ export default function Admin() {
   }
   async function handleDeleteSection(id: number) {
     try {
-      const res = await fetch(`${BASE}/api/custom-field-sections/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      const res = await fetch(`${BASE}/api/custom-field-sections/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) throw new Error();
       toast({ title: "Section deleted" });
       setDeleteSectionId(null);
@@ -585,7 +586,7 @@ export default function Admin() {
       const url = editActivityId ? `${BASE}/api/activity-defaults/${editActivityId}` : `${BASE}/api/activity-defaults`;
       const res = await fetch(url, {
         method: editActivityId ? "PUT" : "POST",
-        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "content-type": "application/json" }),
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
@@ -597,7 +598,7 @@ export default function Admin() {
   }
   async function handleDeleteActivity(id: number) {
     try {
-      const res = await fetch(`${BASE}/api/activity-defaults/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+      const res = await fetch(`${BASE}/api/activity-defaults/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) throw new Error();
       toast({ title: "Activity default deleted" });
       setDeleteActivityId(null);
@@ -641,7 +642,7 @@ export default function Admin() {
     mutationFn: async (data: typeof companyForm) => {
       const res = await fetch(`${BASE}/api/company-settings`, {
         method: "PUT",
-        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "content-type": "application/json" }),
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to save");
@@ -694,7 +695,7 @@ export default function Admin() {
     mutationFn: async () => {
       const r = await fetch(`${BASE}/api/portal-auth/accounts/${portalBrandingAccountId}/branding`, {
         method: "PATCH",
-        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "content-type": "application/json" }),
         body: JSON.stringify({
           primaryColor: portalBrandingForm.primaryColor,
           accentColor: portalBrandingForm.accentColor,
@@ -790,7 +791,7 @@ export default function Admin() {
     mutationFn: async (data: typeof timeSettingsForm) => {
       const res = await fetch(`${BASE}/api/time-settings`, {
         method: "PUT",
-        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "content-type": "application/json" }),
         body: JSON.stringify({ ...data, workingDays: data.workingDays.join(",") }),
       });
       if (!res.ok) throw new Error("Failed to save");
@@ -807,7 +808,7 @@ export default function Admin() {
   const { data: deletedProjects, refetch: refetchDeleted } = useQuery({
     queryKey: ["deleted-projects"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/projects/deleted`, { headers: { "x-user-role": "Admin" } });
+      const res = await fetch(`${BASE}/api/projects/deleted`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json() as Promise<{ id: number; name: string; deletedAt: string | null }[]>;
     },
@@ -817,7 +818,7 @@ export default function Admin() {
     mutationFn: async (id: number) => {
       const res = await fetch(`${BASE}/api/projects/${id}/restore`, {
         method: "POST",
-        headers: { "x-user-role": "Admin" },
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to restore");
     },
@@ -889,7 +890,7 @@ export default function Admin() {
     try {
       const res = await fetch(`${BASE}/api/time-categories/reorder`, {
         method: "PUT",
-        headers: { "content-type": "application/json", "x-user-role": "Admin" },
+        headers: authHeaders({ "content-type": "application/json" }),
         body: JSON.stringify({ ids: newOrder.map(c => c.id) }),
       });
       if (!res.ok) throw new Error("reorder failed");
@@ -3420,7 +3421,7 @@ function PlaceholdersCatalog({ base }: { base: string }) {
   async function remove(id: number, isDefault: boolean) {
     if (isDefault) { toast({ title: "Default placeholders cannot be deleted", variant: "destructive" }); return; }
     if (!confirm("Delete this placeholder? Existing allocations referencing it will keep their text role label.")) return;
-    const r = await fetch(`${base}/api/placeholders/${id}`, { method: "DELETE", headers: { "x-user-role": "Admin" } });
+    const r = await fetch(`${base}/api/placeholders/${id}`, { method: "DELETE", headers: authHeaders() });
     if (r.status === 204) { toast({ title: "Placeholder deleted" }); load(); }
     else { toast({ title: "Failed to delete", variant: "destructive" }); }
   }

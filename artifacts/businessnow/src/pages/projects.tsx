@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/auth-headers";
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
@@ -88,7 +89,7 @@ export default function Projects() {
   const { data: archivedProjects = [], isLoading: isLoadingArchived } = useQuery<{ id: number; name: string; deletedAt: string | null }[]>({
     queryKey: ["projects-deleted"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/projects/deleted`, { headers: { "x-user-role": "Admin" } });
+      const res = await fetch(`${BASE}/api/projects/deleted`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json();
     },
@@ -97,7 +98,7 @@ export default function Projects() {
 
   const restoreMut = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${BASE}/api/projects/${id}/restore`, { method: "POST", headers: { "x-user-role": "Admin" } });
+      const res = await fetch(`${BASE}/api/projects/${id}/restore`, { method: "POST", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to restore");
     },
     onSuccess: () => {
