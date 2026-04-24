@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCurrentUser } from "@/contexts/current-user";
 import { useDensity } from "@/contexts/density";
 import { useTheme, type Theme } from "@/contexts/theme";
@@ -33,6 +34,8 @@ import {
   LogOut,
   X,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ShieldCheck,
   SlidersHorizontal,
   Sun,
@@ -46,7 +49,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
-const NAV_ITEMS = [
+/* ---- Nav groups (VH-8: Workspace / Admin section labels) ---------- */
+
+const WORKSPACE_NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: Briefcase },
   { href: "/accounts", label: "Accounts", icon: Users },
@@ -54,10 +59,17 @@ const NAV_ITEMS = [
   { href: "/opportunities", label: "Opportunities", icon: TrendingUp },
   { href: "/time", label: "Time Tracking", icon: Clock },
   { href: "/resources", label: "Resources", icon: CalendarDays },
+];
+
+const ADMIN_NAV = [
   { href: "/finance", label: "Finance", icon: DollarSign },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin", label: "Admin", icon: Settings },
 ];
+
+const ALL_NAV = [...WORKSPACE_NAV, ...ADMIN_NAV];
+
+/* ------------------------------------------------------------------ */
 
 function timeAgo(date: string) {
   const diff = Date.now() - new Date(date).getTime();
@@ -201,7 +213,7 @@ function NotificationsBell() {
 /* ------------------------------------------------------------------ */
 
 interface UserChipProps {
-  variant?: "sidebar" | "compact";
+  variant?: "sidebar" | "compact" | "icon";
 }
 
 function UserChip({ variant = "sidebar" }: UserChipProps) {
@@ -233,7 +245,19 @@ function UserChip({ variant = "sidebar" }: UserChipProps) {
   }
 
   const Trigger =
-    variant === "compact" ? (
+    variant === "icon" ? (
+      <button
+        className="flex items-center justify-center rounded-full hover:bg-muted transition-colors p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Account menu"
+      >
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={currentUser?.avatarUrl ?? ""} />
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+            {currentUser?.initials ?? "?"}
+          </AvatarFallback>
+        </Avatar>
+      </button>
+    ) : variant === "compact" ? (
       <button
         className="flex items-center gap-1 rounded-full hover:bg-muted transition-colors p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="Account menu"
@@ -267,7 +291,7 @@ function UserChip({ variant = "sidebar" }: UserChipProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{Trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end" side={variant === "compact" ? "bottom" : "top"} className="w-56 mb-1">
+      <DropdownMenuContent align="end" side={variant === "compact" || variant === "icon" ? "bottom" : "top"} className="w-56 mb-1">
         <div className="px-3 py-2">
           <p className="text-sm font-medium">{currentUser?.name ?? "—"}</p>
           <p className="text-xs text-muted-foreground">{currentUser?.email ?? ""}</p>
@@ -363,30 +387,123 @@ function UserChip({ variant = "sidebar" }: UserChipProps) {
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
 
-  const NavLinks = ({ onNavigate }: { onNavigate?: () => void } = {}) => (
+  /* US-14: sidebar collapse ---------------------------------------- */
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("sidebarCollapsed") === "true"; }
+    catch { return false; }
+  });
+
+  function toggleCollapsed() {
+    setCollapsed(v => {
+      const next = !v;
+      try { localStorage.setItem("sidebarCollapsed", String(next)); } catch {}
+      return next;
+    });
+  }
+
+  /* Nav item helpers ----------------------------------------------- */
+  function isActive(href: string) {
+    return location === href || (href !== "/" && location.startsWith(href));
+  }
+
+  function NavItem({ item, onNavigate }: { item: { href: string; label: string; icon: typeof LayoutDashboard }; onNavigate?: () => void }) {
+    const Icon = item.icon;
+    const active = isActive(item.href);
+    if (collapsed) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href={item.href}>
+              <div
+                role="link"
+                aria-current={active ? "page" : undefined}
+                aria-label={item.label}
+                className={cn(
+                  "flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-colors cursor-pointer outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-ring",
+                  active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                data-testid={`nav-${item.label.toLowerCase().replace(/ /g, "-")}`}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>{item.label}</TooltipContent>
+        </Tooltip>
+      );
+    }
+    return (
+      <Link href={item.href}>
+        <div
+          role="link"
+          aria-current={active ? "page" : undefined}
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
+            "focus-visible:ring-2 focus-visible:ring-ring",
+            active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+          data-testid={`nav-${item.label.toLowerCase().replace(/ /g, "-")}`}
+        >
+          <Icon className="h-4 w-4" />
+          {item.label}
+        </div>
+      </Link>
+    );
+  }
+
+  const MobileNavLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
-      {NAV_ITEMS.map(item => {
+      <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Workspace</p>
+      {WORKSPACE_NAV.map(item => {
         const Icon = item.icon;
-        const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+        const active = isActive(item.href);
         return (
-          <Link key={item.href} href={item.href}>
-            <div
-              role="link"
-              aria-current={isActive ? "page" : undefined}
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
-                "focus-visible:ring-2 focus-visible:ring-ring",
-                isActive
-                  ? "bg-primary text-primary-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-              data-testid={`nav-${item.label.toLowerCase().replace(" ", "-")}`}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </div>
-          </Link>
+          <SheetClose asChild key={item.href}>
+            <Link href={item.href}>
+              <div
+                role="link"
+                aria-current={active ? "page" : undefined}
+                onClick={onNavigate}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-ring",
+                  active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                data-testid={`nav-mobile-${item.label.toLowerCase().replace(/ /g, "-")}`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </div>
+            </Link>
+          </SheetClose>
+        );
+      })}
+      <div className="my-1 border-t border-border" />
+      <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Admin</p>
+      {ADMIN_NAV.map(item => {
+        const Icon = item.icon;
+        const active = isActive(item.href);
+        return (
+          <SheetClose asChild key={item.href}>
+            <Link href={item.href}>
+              <div
+                role="link"
+                aria-current={active ? "page" : undefined}
+                onClick={onNavigate}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-ring",
+                  active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                data-testid={`nav-mobile-${item.label.toLowerCase().replace(/ /g, "-")}`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </div>
+            </Link>
+          </SheetClose>
         );
       })}
     </>
@@ -402,25 +519,86 @@ export function Layout({ children }: { children: ReactNode }) {
         Skip to content
       </a>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-56 bg-card border-r border-border h-full">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer font-bold text-lg tracking-tight text-primary">
-              <Briefcase className="h-5 w-5" />
-              BusinessNow
-            </div>
-          </Link>
-          <NotificationsBell />
+      {/* Desktop Sidebar (US-14: collapsible) */}
+      <aside
+        className={cn(
+          "relative hidden md:flex flex-col bg-card border-r border-border h-full transition-all duration-200 ease-in-out",
+          collapsed ? "w-14" : "w-56",
+        )}
+      >
+        {/* Header */}
+        <div className={cn("border-b border-border flex items-center h-14 flex-shrink-0", collapsed ? "px-2 justify-center" : "px-4 justify-between")}>
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href="/">
+                  <div className="cursor-pointer text-primary flex items-center justify-center h-9 w-9 rounded-md hover:bg-muted">
+                    <Briefcase className="h-5 w-5" />
+                  </div>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">BusinessNow</TooltipContent>
+            </Tooltip>
+          ) : (
+            <>
+              <Link href="/">
+                <div className="flex items-center gap-2 cursor-pointer font-bold text-lg tracking-tight text-primary">
+                  <Briefcase className="h-5 w-5" />
+                  BusinessNow
+                </div>
+              </Link>
+              <NotificationsBell />
+            </>
+          )}
         </div>
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto" aria-label="Primary">
-          <NavLinks />
+
+        {/* Navigation */}
+        <nav
+          className={cn("flex-1 overflow-y-auto", collapsed ? "p-1.5 space-y-0.5" : "p-3 space-y-0.5")}
+          aria-label="Primary"
+        >
+          {/* VH-8: Workspace group */}
+          {!collapsed && (
+            <p className="px-2 pt-1 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Workspace</p>
+          )}
+          {WORKSPACE_NAV.map(item => <NavItem key={item.href} item={item} />)}
+
+          <div className="my-1 border-t border-border" />
+
+          {/* VH-8: Admin group */}
+          {!collapsed && (
+            <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Admin</p>
+          )}
+          {ADMIN_NAV.map(item => <NavItem key={item.href} item={item} />)}
         </nav>
 
-        {/* User chip */}
-        <div className="p-3 border-t border-border">
-          <UserChip variant="sidebar" />
+        {/* Footer */}
+        <div className="border-t border-border flex-shrink-0">
+          {collapsed ? (
+            <div className="flex flex-col items-center gap-1 py-2">
+              <NotificationsBell />
+              <UserChip variant="icon" />
+            </div>
+          ) : (
+            <div className="p-3">
+              <UserChip variant="sidebar" />
+            </div>
+          )}
         </div>
+
+        {/* Collapse toggle button */}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(
+            "absolute top-[3.75rem] -right-3 z-20 h-6 w-6 rounded-full border border-border bg-card shadow-sm",
+            "flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors",
+          )}
+        >
+          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </button>
       </aside>
 
       {/* Main column */}
@@ -446,32 +624,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   </SheetClose>
                 </div>
                 <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto" aria-label="Primary">
-                  {/* Wrap each link in SheetClose so tapping a destination dismisses the sheet */}
-                  {NAV_ITEMS.map(item => {
-                    const Icon = item.icon;
-                    const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
-                    return (
-                      <SheetClose asChild key={item.href}>
-                        <Link href={item.href}>
-                          <div
-                            role="link"
-                            aria-current={isActive ? "page" : undefined}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
-                              "focus-visible:ring-2 focus-visible:ring-ring",
-                              isActive
-                                ? "bg-primary text-primary-foreground font-medium"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            )}
-                            data-testid={`nav-mobile-${item.label.toLowerCase().replace(" ", "-")}`}
-                          >
-                            <Icon className="h-4 w-4" />
-                            {item.label}
-                          </div>
-                        </Link>
-                      </SheetClose>
-                    );
-                  })}
+                  <MobileNavLinks />
                 </nav>
                 <div className="p-3 border-t border-border">
                   <UserChip variant="sidebar" />
@@ -500,3 +653,6 @@ export function Layout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+/* Keep backward compat: re-export NAV_ITEMS for any consumers */
+export const NAV_ITEMS = ALL_NAV;

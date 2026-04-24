@@ -79,14 +79,14 @@ function UserSkillsCell({ userId }: { userId: number }) {
   if (!userSkills?.length) return <span className="text-xs text-muted-foreground">—</span>;
   return (
     <div className="flex flex-wrap gap-1">
-      {userSkills.slice(0, 4).map(us => (
+      {userSkills.slice(0, 2).map(us => (
         <span key={us.id} className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted text-xs font-medium">
           <ProficiencyDot level={us.proficiencyLevel} />
           {us.skillName}
         </span>
       ))}
-      {userSkills.length > 4 && (
-        <span className="px-1.5 py-0.5 rounded bg-muted text-xs text-muted-foreground">+{userSkills.length - 4}</span>
+      {userSkills.length > 2 && (
+        <span className="px-1.5 py-0.5 rounded bg-muted text-xs text-muted-foreground">+{userSkills.length - 2}</span>
       )}
     </div>
   );
