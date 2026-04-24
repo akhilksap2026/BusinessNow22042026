@@ -51,6 +51,13 @@ router.get("/projects", async (req, res): Promise<void> => {
 router.post("/projects", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // Cross-field guard: dueDate must not precede startDate.
+  const sd = (parsed.data as any).startDate;
+  const dd = (parsed.data as any).dueDate;
+  if (sd && dd && new Date(dd) < new Date(sd)) {
+    res.status(400).json({ error: "dueDate must be on or after startDate" });
+    return;
+  }
   const [row] = await db.insert(projectsTable).values(parsed.data as any).returning();
   await logAudit({ entityType: "project", entityId: row.id, action: "created", description: `Project "${row.name}" created` });
   res.status(201).json(GetProjectResponse.parse(mapProject(row)));
@@ -74,6 +81,21 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // Soft-delete leak guard: do not allow edits to a soft-deleted project
+  // (callers should use the dedicated /restore endpoint first).
+  const [existing] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Project not found" }); return; }
+  if (existing.deletedAt) {
+    res.status(409).json({ error: "Project is deleted; restore it before editing." });
+    return;
+  }
+  // Cross-field guard against the merged value, so PATCH-only-startDate or
+  // PATCH-only-dueDate cannot create an inverted range.
+  const merged = { ...existing, ...(parsed.data as any) };
+  if (merged.startDate && merged.dueDate && new Date(merged.dueDate) < new Date(merged.startDate)) {
+    res.status(400).json({ error: "dueDate must be on or after startDate" });
+    return;
+  }
   const [row] = await db.update(projectsTable).set(parsed.data as any).where(eq(projectsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
   await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
@@ -83,7 +105,17 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
 router.delete("/projects/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteProjectParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [previous] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
   await db.update(projectsTable).set({ deletedAt: new Date() } as any).where(eq(projectsTable.id, params.data.id));
+  if (previous) {
+    await logAudit({
+      entityType: "project",
+      entityId: previous.id,
+      action: "deleted",
+      actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+      description: `Project "${previous.name}" archived (soft-deleted)`,
+    });
+  }
   res.sendStatus(204);
 });
 
@@ -92,6 +124,13 @@ router.post("/projects/:id/restore", requireAdmin, async (req, res): Promise<voi
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [row] = await db.update(projectsTable).set({ deletedAt: null } as any).where(eq(projectsTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
+  await logAudit({
+    entityType: "project",
+    entityId: row.id,
+    action: "updated",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+    description: `Project "${row.name}" restored from archive`,
+  });
   res.json(mapProject(row));
 });
 

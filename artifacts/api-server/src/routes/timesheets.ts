@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, inArray } from "drizzle-orm";
 import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable, timesheetMessagesTable, notificationPreferencesTable, usersTable } from "@workspace/db";
 import { getGovernanceSettings, checkTimesheetStatusChangeable, checkTimesheetEditable } from "../lib/governance";
+import { requirePM } from "../middleware/rbac";
 import {
   ListTimesheetsQueryParams,
   ListTimesheetsResponse,
@@ -174,13 +175,18 @@ router.post("/timesheets/:id/submit", async (req, res): Promise<void> => {
   res.json(SubmitTimesheetResponse.parse(mapTimesheet(row)));
 });
 
-router.post("/timesheets/:id/approve", async (req, res): Promise<void> => {
+router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void> => {
   const params = ApproveTimesheetParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const body = ApproveTimesheetBody.safeParse(req.body ?? {});
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Submitted") { res.status(400).json({ error: "Only Submitted timesheets can be approved" }); return; }
+  const actorId = Number(req.headers["x-user-id"] ?? 0);
+  if (actorId === existing.userId) {
+    res.status(403).json({ error: "You cannot approve your own timesheet." });
+    return;
+  }
   {
     const role = String(req.headers["x-user-role"] ?? "");
     const settings = await getGovernanceSettings();
@@ -265,15 +271,17 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
 });
 
 // Bulk approve: accepts { ids: number[], approvedByUserId?: number }
-router.post("/timesheets/bulk-approve", async (req, res): Promise<void> => {
+router.post("/timesheets/bulk-approve", requirePM, async (req, res): Promise<void> => {
   const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
   const approvedByUserId = req.body?.approvedByUserId ?? null;
   const existing = await db.select().from(timesheetsTable).where(inArray(timesheetsTable.id, ids));
   const role = String(req.headers["x-user-role"] ?? "");
+  const actorId = Number(req.headers["x-user-id"] ?? 0);
   const settings = await getGovernanceSettings();
   const eligible = existing
     .filter(t => t.status === "Submitted")
+    .filter(t => t.userId !== actorId)
     .filter(t => !checkTimesheetStatusChangeable(t, role, settings))
     .map(t => t.id);
   if (eligible.length === 0) { res.json({ approved: 0, skipped: ids.length }); return; }

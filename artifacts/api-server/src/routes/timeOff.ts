@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, timeOffRequestsTable, holidayCalendarsTable, holidayDatesTable, notificationsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { requirePM } from "../middleware/rbac";
 import {
   ListTimeOffRequestsQueryParams,
   CreateTimeOffRequestBody,
@@ -79,11 +80,21 @@ router.post("/time-off-requests", async (req, res): Promise<void> => {
   res.status(201).json(mapTimeOff(row));
 });
 
-router.patch("/time-off-requests/:id", async (req, res): Promise<void> => {
+router.patch("/time-off-requests/:id", requirePM, async (req, res): Promise<void> => {
   const params = UpdateTimeOffRequestStatusParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateTimeOffRequestStatusBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const newStatus = (parsed.data as any).status as string | undefined;
+  if (newStatus === "Approved" || newStatus === "Rejected") {
+    const [existing] = await db.select().from(timeOffRequestsTable).where(eq(timeOffRequestsTable.id, params.data.id));
+    if (!existing) { res.status(404).json({ error: "Time-off request not found" }); return; }
+    const actorId = Number(req.headers["x-user-id"] ?? 0);
+    if (actorId && actorId === existing.userId) {
+      res.status(403).json({ error: `You cannot ${newStatus.toLowerCase()} your own time-off request.` });
+      return;
+    }
+  }
   const [row] = await db.update(timeOffRequestsTable)
     .set({ ...parsed.data, updatedAt: new Date() } as any)
     .where(eq(timeOffRequestsTable.id, params.data.id))

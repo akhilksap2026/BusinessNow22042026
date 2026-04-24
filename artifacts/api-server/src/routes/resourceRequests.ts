@@ -104,7 +104,7 @@ router.delete("/resource-requests/:id", requirePM, async (req, res): Promise<voi
 
 // ─── Status transitions ───────────────────────────────────────────────────────
 
-router.patch("/resource-requests/:id/status", async (req, res): Promise<void> => {
+router.patch("/resource-requests/:id/status", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   const { status, assignedUserId, rejectionReason, blockedReason, ignoresSoftAllocations } = req.body;
   if (!status) { res.status(400).json({ error: "status required" }); return; }
@@ -114,6 +114,14 @@ router.patch("/resource-requests/:id/status", async (req, res): Promise<void> =>
 
   const [existing] = await db.select().from(resourceRequestsTable).where(eq(resourceRequestsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+  if (status === "Approved" || status === "Fulfilled" || status === "Rejected") {
+    const actorId = Number(req.headers["x-user-id"] ?? 0);
+    if (actorId && existing.requestedByUserId && actorId === existing.requestedByUserId) {
+      res.status(403).json({ error: `You cannot ${status.toLowerCase()} a resource request you submitted.` });
+      return;
+    }
+  }
 
   const updates: any = { status, updatedAt: new Date() };
   if (assignedUserId !== undefined) updates.assignedUserId = assignedUserId;

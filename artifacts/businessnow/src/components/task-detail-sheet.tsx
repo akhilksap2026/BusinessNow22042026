@@ -282,9 +282,16 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                   ) : (
                     <Input
                       type="number"
+                      min={0}
+                      step="0.25"
                       className="h-8 text-sm"
                       defaultValue={task?.effort ?? 0}
-                      onBlur={(e) => { if (e.target.value !== "") handleUpdateField("effort", Number(e.target.value)); }}
+                      onBlur={(e) => {
+                        if (e.target.value === "") return;
+                        const n = Math.max(0, Number(e.target.value) || 0);
+                        if (n !== Number(e.target.value)) e.target.value = String(n);
+                        handleUpdateField("effort", n);
+                      }}
                     />
                   )}
                   {isParent && (

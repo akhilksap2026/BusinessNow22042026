@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
 import { requirePM } from "../middleware/rbac";
 import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable, projectsTable } from "@workspace/db";
+import { logAudit } from "../lib/audit";
 import {
   ListAllocationsResponse,
   ListAllocationsQueryParams,
@@ -214,13 +215,33 @@ router.delete("/projects/:projectId/users/:userId/allocations", requirePM, async
   const removed = await db.delete(allocationsTable)
     .where(and(eq(allocationsTable.projectId, projectId), eq(allocationsTable.userId, userId)))
     .returning();
+  if (removed.length > 0) {
+    await logAudit({
+      entityType: "allocation",
+      entityId: `project:${projectId}/user:${userId}`,
+      action: "deleted",
+      actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+      description: `Removed ${removed.length} allocation(s) for user ${userId} on project ${projectId}`,
+    });
+  }
   res.json({ removedCount: removed.length });
 });
 
 router.delete("/allocations/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteAllocationParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [previous] = await db.select().from(allocationsTable).where(eq(allocationsTable.id, params.data.id));
   await db.delete(allocationsTable).where(eq(allocationsTable.id, params.data.id));
+  if (previous) {
+    await logAudit({
+      entityType: "allocation",
+      entityId: previous.id,
+      action: "deleted",
+      actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+      description: `Allocation ${previous.id} deleted (project ${previous.projectId}, user ${previous.userId})`,
+      previousValue: { hoursPerWeek: previous.hoursPerWeek, startDate: previous.startDate, endDate: previous.endDate },
+    });
+  }
   res.sendStatus(204);
 });
 

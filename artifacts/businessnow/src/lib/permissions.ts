@@ -136,7 +136,32 @@ export const ACCOUNT_PERMISSIONS = {
 
   // ── MARKETPLACE ───────────────────────────────────────────────────────────
   "marketplace.manage":        { account_admin: true,  super_user: false, collaborator: false, customer: false },
+
+  // ── SELF-SCOPED (every internal user can act on their own data) ───────────
+  // These are codified so feature gates can reference them explicitly rather
+  // than relying on implicit "always true for collaborator+" assumptions.
+  "self.time.logOwn":          { account_admin: true,  super_user: true,  collaborator: true,  customer: false },
+  "self.time.viewOwn":         { account_admin: true,  super_user: true,  collaborator: true,  customer: false },
+  "self.tasks.viewAssigned":   { account_admin: true,  super_user: true,  collaborator: true,  customer: false },
+  "self.notifications.viewOwn":{ account_admin: true,  super_user: true,  collaborator: true,  customer: false },
+  "self.profile.editOwn":      { account_admin: true,  super_user: true,  collaborator: true,  customer: false },
+  "self.timeOff.requestOwn":   { account_admin: true,  super_user: true,  collaborator: true,  customer: false },
 } satisfies Record<string, AccountRoleMap>;
+
+// ---------------------------------------------------------------------------
+// "NEVER SELF-ACTION" RULE (server-enforced, not in this matrix)
+// ---------------------------------------------------------------------------
+// The following actions are blocked at the API layer when actor === subject,
+// regardless of role. They are NOT representable as a true/false matrix entry
+// because the answer depends on who you are vs. who the record belongs to:
+//   - timesheet.approve           (timesheets POST /:id/approve)
+//   - timesheet.bulkApprove       (timesheets POST /bulk-approve filters self)
+//   - changeOrder.approve         (changeOrders PATCH when status -> Approved)
+//   - timeOff.approveOrReject     (timeOff PATCH when status -> Approved/Rejected)
+//   - resourceRequest.fulfill     (resource-requests /status when Approved/Fulfilled/Rejected)
+// The frontend should still render the buttons (a manager approving someone
+// else's submission is the common path); the server returns 403 with a clear
+// message if you try to self-approve, and that message surfaces as a toast.
 
 // ---------------------------------------------------------------------------
 // PROJECT-LEVEL permission matrix

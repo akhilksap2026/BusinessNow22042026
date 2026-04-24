@@ -36,6 +36,7 @@ import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
 import { projectUpdatesRouter } from "./projectUpdates";
 import { denyCustomerRole } from "../middleware/rbac";
+import { verifyRoleClaim } from "../middleware/roleClaim";
 
 const router: IRouter = Router();
 
@@ -44,6 +45,10 @@ router.use(healthRouter);
 
 // Customer role has no UI surface and no internal-API access.
 router.use(denyCustomerRole);
+
+// Verify the x-user-role header is actually one of the user's assigned roles
+// and that the user is still active. /me and /healthz are bootstrap-exempt.
+router.use(verifyRoleClaim);
 
 router.use(dashboardRouter);
 router.use(accountsRouter);

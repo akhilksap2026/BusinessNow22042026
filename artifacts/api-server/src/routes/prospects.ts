@@ -1,9 +1,24 @@
 import { Router } from "express";
 import { db, prospectsTable, accountsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { z } from "zod";
 import { requirePM } from "../middleware/rbac";
 
 const router = Router();
+
+const ProspectBodySchema = z.object({
+  name: z.string().min(1, "name is required"),
+  contactName: z.string().nullish(),
+  contactEmail: z.string().email("invalid email").nullish().or(z.literal("")),
+  contactPhone: z.string().nullish(),
+  status: z.string().nullish(),
+  source: z.string().nullish(),
+  estimatedValue: z.union([z.number(), z.string()]).nullish(),
+  notes: z.string().nullish(),
+  ownerId: z.union([z.number().int().positive(), z.string()]).nullish(),
+});
+
+const ProspectPatchSchema = ProspectBodySchema.partial();
 
 function mapProspect(row: typeof prospectsTable.$inferSelect) {
   return {
@@ -38,8 +53,9 @@ router.get("/prospects", async (req, res) => {
 });
 
 router.post("/prospects", requirePM, async (req, res) => {
-  const { name, contactName, contactEmail, contactPhone, status, source, estimatedValue, notes, ownerId } = req.body;
-  if (!name) return res.status(400).json({ error: "name required" });
+  const parsed = ProspectBodySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+  const { name, contactName, contactEmail, contactPhone, status, source, estimatedValue, notes, ownerId } = parsed.data;
   const [row] = await db.insert(prospectsTable).values({
     name,
     contactName: contactName || null,
@@ -63,7 +79,9 @@ router.get("/prospects/:id", async (req, res) => {
 
 router.patch("/prospects/:id", requirePM, async (req, res) => {
   const id = Number(req.params.id);
-  const { name, contactName, contactEmail, contactPhone, status, source, estimatedValue, notes, ownerId } = req.body;
+  const parsed = ProspectPatchSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+  const { name, contactName, contactEmail, contactPhone, status, source, estimatedValue, notes, ownerId } = parsed.data;
   const updates: Partial<typeof prospectsTable.$inferInsert> = { updatedAt: new Date() };
   if (name !== undefined) updates.name = name;
   if (contactName !== undefined) updates.contactName = contactName;

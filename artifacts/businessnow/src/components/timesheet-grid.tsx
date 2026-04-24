@@ -291,7 +291,8 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   // ─── Cell editing ─────────────────────────────────────────────────────────────
 
   async function handleCellSave(row: TimesheetRow, dayStr: string, rawValue: string) {
-    const newHours = parseFloat(rawValue) || 0;
+    const parsed = parseFloat(rawValue) || 0;
+    const newHours = Math.min(24, Math.max(0, parsed));
     const currentHours = row.days[dayStr] || 0;
     const existingIds: number[] = row.entryIds[dayStr] || [];
     setEditingCell(null);

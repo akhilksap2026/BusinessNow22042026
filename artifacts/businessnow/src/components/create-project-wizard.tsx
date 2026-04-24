@@ -38,7 +38,10 @@ const projectSchema = z.object({
   teamMembers: z.array(z.number()).default([]),
   rateCardId: z.coerce.number().optional(),
   internalExternal: z.enum(["Internal", "External"]).default("External"),
-});
+}).refine(
+  (d) => !d.startDate || !d.dueDate || new Date(d.dueDate) >= new Date(d.startDate),
+  { message: "Due date must be on or after start date", path: ["dueDate"] },
+);
 
 const templateProjectSchema = z.object({
   name: z.string().min(1, "Project name is required"),

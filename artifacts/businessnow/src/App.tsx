@@ -20,6 +20,9 @@ import Admin from "@/pages/admin";
 import Notifications from "@/pages/notifications";
 import Prospects from "@/pages/prospects";
 import Opportunities from "@/pages/opportunities";
+import Forbidden from "@/pages/forbidden";
+import { RequirePermission } from "@/components/require-permission";
+import { RoleSelectorModal } from "@/components/role-selector-modal";
 
 function Router() {
   return (
@@ -33,10 +36,23 @@ function Router() {
       <Route path="/time" component={TimeTracking} />
       <Route path="/time-tracking"><Redirect to="/time" /></Route>
       <Route path="/resources" component={Resources} />
-      <Route path="/finance" component={Finance} />
-      <Route path="/reports" component={Reports} />
-      <Route path="/admin" component={Admin} />
+      <Route path="/finance">
+        <RequirePermission permission="invoicing.view">
+          <Finance />
+        </RequirePermission>
+      </Route>
+      <Route path="/reports">
+        <RequirePermission permission="reports.viewStandard">
+          <Reports />
+        </RequirePermission>
+      </Route>
+      <Route path="/admin">
+        <RequirePermission permission="settings.manageTeam">
+          <Admin />
+        </RequirePermission>
+      </Route>
       <Route path="/notifications" component={Notifications} />
+      <Route path="/forbidden"><Forbidden /></Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -54,6 +70,7 @@ function App() {
                   <ErrorBoundary>
                     <Router />
                   </ErrorBoundary>
+                  <RoleSelectorModal />
                 </WouterRouter>
                 <Toaster />
               </TooltipProvider>

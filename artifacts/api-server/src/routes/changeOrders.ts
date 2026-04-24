@@ -101,6 +101,15 @@ router.patch("/change-orders/:id", requirePM, async (req, res): Promise<void> =>
 
   updates.updatedAt = new Date();
 
+  // ── Self-approval guard MUST run before any DB writes ────────────────────
+  if (status === "Approved" && existing.status !== "Approved") {
+    const actorId = Number(req.headers["x-user-id"] ?? 0);
+    if (actorId && existing.submittedByUserId && actorId === existing.submittedByUserId) {
+      res.status(403).json({ error: "You cannot approve a change request you submitted." });
+      return;
+    }
+  }
+
   const [row] = await db
     .update(changeOrdersTable)
     .set(updates)

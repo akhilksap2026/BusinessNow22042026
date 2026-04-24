@@ -123,6 +123,12 @@ router.get("/tasks", async (req, res): Promise<void> => {
 router.post("/tasks", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateTaskBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const sd = (parsed.data as any).startDate;
+  const dd = (parsed.data as any).dueDate;
+  if (sd && dd && new Date(dd) < new Date(sd)) {
+    res.status(400).json({ error: "dueDate must be on or after startDate" });
+    return;
+  }
   const assigneeIds = parsed.data.assigneeIds ?? [];
   const [row] = await db.insert(tasksTable).values({ ...parsed.data as any, assigneeIds }).returning();
   await logAudit({ entityType: "task", entityId: row.id, action: "created", description: `Task "${row.name}" created` });
@@ -158,6 +164,12 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
 
   const parsed = UpdateTaskBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const merged = { ...existing, ...(parsed.data as any) };
+  if (merged.startDate && merged.dueDate && new Date(merged.dueDate) < new Date(merged.startDate)) {
+    res.status(400).json({ error: "dueDate must be on or after startDate" });
+    return;
+  }
 
   const [row] = await db.update(tasksTable).set(parsed.data as any).where(eq(tasksTable.id, params.data.id)).returning();
 

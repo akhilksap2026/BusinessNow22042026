@@ -12,6 +12,7 @@ import {
   usersTable,
 } from "@workspace/db";
 import { eq, asc, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 
 const router: IRouter = Router();
@@ -118,9 +119,45 @@ router.get("/project-templates", async (_req, res): Promise<void> => {
   res.json(results.filter(Boolean));
 });
 
+const TemplateBodySchema = z.object({
+  name: z.string().min(1, "name is required"),
+  description: z.string().nullish(),
+  billingType: z.string().nullish(),
+  totalDurationDays: z.number().int().min(1).nullish(),
+  accountId: z.number().int().positive().nullish(),
+  createdByUserId: z.number().int().positive().nullish(),
+  autoAllocate: z.boolean().nullish(),
+});
+
+const TemplatePhaseBodySchema = z.object({
+  name: z.string().min(1, "name is required"),
+  relativeStartOffset: z.number().int().min(0).nullish(),
+  relativeEndOffset: z.number().int().min(0).nullish(),
+  order: z.number().int().min(0).nullish(),
+});
+const TemplatePhasePatchSchema = TemplatePhaseBodySchema.partial();
+function checkPhaseDateOrder(d: { relativeStartOffset?: number | null; relativeEndOffset?: number | null }): string | null {
+  if (d.relativeStartOffset != null && d.relativeEndOffset != null && d.relativeEndOffset < d.relativeStartOffset) {
+    return "relativeEndOffset must be >= relativeStartOffset";
+  }
+  return null;
+}
+
+const TemplateTaskBodySchema = z.object({
+  name: z.string().min(1, "name is required"),
+  relativeDueDateOffset: z.number().int().min(0).nullish(),
+  effort: z.union([z.number().min(0), z.string()]).nullish(),
+  billableDefault: z.boolean().nullish(),
+  categoryId: z.union([z.number().int().positive(), z.null()]).nullish(),
+  priority: z.string().nullish(),
+  assigneeRolePlaceholder: z.string().nullish(),
+  order: z.number().int().min(0).nullish(),
+});
+
 router.post("/project-templates", requirePM, async (req, res): Promise<void> => {
-  const { name, description, billingType, totalDurationDays, accountId, createdByUserId, autoAllocate } = req.body;
-  if (!name) { res.status(400).json({ error: "name is required" }); return; }
+  const parsed = TemplateBodySchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const { name, description, billingType, totalDurationDays, accountId, createdByUserId, autoAllocate } = parsed.data;
   const [row] = await db
     .insert(projectTemplatesTable)
     .values({
@@ -146,7 +183,9 @@ router.get("/project-templates/:id", async (req, res): Promise<void> => {
 
 router.put("/project-templates/:id", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  const { name, description, billingType, totalDurationDays, accountId, isArchived, autoAllocate } = req.body;
+  const parsed = TemplateBodySchema.partial().extend({ isArchived: z.boolean().optional() }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const { name, description, billingType, totalDurationDays, accountId, isArchived, autoAllocate } = parsed.data;
   const [row] = await db
     .update(projectTemplatesTable)
     .set({
@@ -158,7 +197,7 @@ router.put("/project-templates/:id", requirePM, async (req, res): Promise<void> 
       ...(isArchived !== undefined && { isArchived }),
       ...(autoAllocate !== undefined && { autoAllocate }),
       updatedAt: new Date(),
-    })
+    } as any)
     .where(eq(projectTemplatesTable.id, id))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -188,8 +227,11 @@ router.get("/project-templates/:id/phases", async (req, res): Promise<void> => {
 
 router.post("/project-templates/:id/phases", requirePM, async (req, res): Promise<void> => {
   const templateId = parseInt(req.params.id, 10);
-  const { name, relativeStartOffset, relativeEndOffset, order } = req.body;
-  if (!name) { res.status(400).json({ error: "name is required" }); return; }
+  const parsed = TemplatePhaseBodySchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const phaseErr = checkPhaseDateOrder(parsed.data);
+  if (phaseErr) { res.status(400).json({ error: phaseErr }); return; }
+  const { name, relativeStartOffset, relativeEndOffset, order } = parsed.data;
   const [row] = await db
     .insert(templatePhasesTable)
     .values({
@@ -205,7 +247,11 @@ router.post("/project-templates/:id/phases", requirePM, async (req, res): Promis
 
 router.put("/template-phases/:phaseId", requirePM, async (req, res): Promise<void> => {
   const phaseId = parseInt(req.params.phaseId, 10);
-  const { name, relativeStartOffset, relativeEndOffset, order } = req.body;
+  const parsed = TemplatePhasePatchSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const phaseErr = checkPhaseDateOrder(parsed.data);
+  if (phaseErr) { res.status(400).json({ error: phaseErr }); return; }
+  const { name, relativeStartOffset, relativeEndOffset, order } = parsed.data;
   const [row] = await db
     .update(templatePhasesTable)
     .set({
@@ -214,7 +260,7 @@ router.put("/template-phases/:phaseId", requirePM, async (req, res): Promise<voi
       ...(relativeEndOffset !== undefined && { relativeEndOffset }),
       ...(order !== undefined && { order }),
       updatedAt: new Date(),
-    })
+    } as any)
     .where(eq(templatePhasesTable.id, phaseId))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -254,8 +300,9 @@ router.post("/template-phases/:phaseId/tasks", requirePM, async (req, res): Prom
     .from(templatePhasesTable)
     .where(eq(templatePhasesTable.id, phaseId));
   if (!phase) { res.status(404).json({ error: "Phase not found" }); return; }
-  const { name, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = req.body;
-  if (!name) { res.status(400).json({ error: "name is required" }); return; }
+  const parsed = TemplateTaskBodySchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const { name, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = parsed.data;
   const [row] = await db
     .insert(templateTasksTable)
     .values({
@@ -276,7 +323,9 @@ router.post("/template-phases/:phaseId/tasks", requirePM, async (req, res): Prom
 
 router.put("/template-tasks/:taskId", requirePM, async (req, res): Promise<void> => {
   const taskId = parseInt(req.params.taskId, 10);
-  const { name, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = req.body;
+  const parsed = TemplateTaskBodySchema.partial().safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const { name, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = parsed.data;
   const [row] = await db
     .update(templateTasksTable)
     .set({
@@ -289,7 +338,7 @@ router.put("/template-tasks/:taskId", requirePM, async (req, res): Promise<void>
       ...(assigneeRolePlaceholder !== undefined && { assigneeRolePlaceholder }),
       ...(order !== undefined && { order }),
       updatedAt: new Date(),
-    })
+    } as any)
     .where(eq(templateTasksTable.id, taskId))
     .returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }

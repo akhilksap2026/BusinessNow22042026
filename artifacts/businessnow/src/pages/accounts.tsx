@@ -1,5 +1,6 @@
 import { useState, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 import { listAccounts, createAccount, updateAccount, deleteAccount, listOpportunities, listProjects } from "@workspace/api-client-react";
 import { Account } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
@@ -102,12 +103,14 @@ export default function Accounts() {
       status: form.status,
       contractValue: Number(form.contractValue) || 0,
     }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowCreate(false); resetForm(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowCreate(false); resetForm(); toast({ title: "Account created" }); },
+    onError: (err: any) => toast({ title: "Failed to create account", description: err?.message ?? "Please try again.", variant: "destructive" }),
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) => updateAccount(id, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+    onError: (err: any) => toast({ title: "Failed to update status", description: err?.message ?? "Please try again.", variant: "destructive" }),
   });
 
   const editMut = useMutation({
@@ -119,12 +122,14 @@ export default function Accounts() {
       status: editForm.status,
       contractValue: Number(editForm.contractValue) || 0,
     }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowEdit(false); setEditTarget(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowEdit(false); setEditTarget(null); toast({ title: "Account updated" }); },
+    onError: (err: any) => toast({ title: "Failed to save account", description: err?.message ?? "Please try again.", variant: "destructive" }),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteAccount(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowDelete(false); setEditTarget(null); if (selected?.id === editTarget?.id) setSelected(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowDelete(false); setEditTarget(null); if (selected?.id === editTarget?.id) setSelected(null); toast({ title: "Account deleted" }); },
+    onError: (err: any) => toast({ title: "Failed to delete account", description: err?.message ?? "Please try again.", variant: "destructive" }),
   });
 
   function openEdit(account: Account) {

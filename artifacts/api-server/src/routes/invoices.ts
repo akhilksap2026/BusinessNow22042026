@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { db, invoicesTable, timesheetsTable, timeEntriesTable, projectsTable } from "@workspace/db";
 import { requireFinance } from "../middleware/rbac";
+import { logAudit } from "../lib/audit";
 import {
   ListInvoicesResponse,
   ListInvoicesQueryParams,
@@ -81,8 +82,20 @@ router.patch("/invoices/:id", requireFinance, async (req, res): Promise<void> =>
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateInvoiceBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const [previous] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, params.data.id));
   const [row] = await db.update(invoicesTable).set(parsed.data as any).where(eq(invoicesTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Invoice not found" }); return; }
+  if (previous && parsed.data.status && previous.status !== parsed.data.status) {
+    await logAudit({
+      entityType: "invoice",
+      entityId: row.id,
+      action: "status_changed",
+      actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+      description: `Invoice ${row.id} status: ${previous.status} → ${row.status}`,
+      previousValue: { status: previous.status },
+      newValue: { status: row.status },
+    });
+  }
   res.json(UpdateInvoiceResponse.parse(mapInvoice(row)));
 });
 
@@ -90,6 +103,13 @@ router.delete("/invoices/:id", requireFinance, async (req, res): Promise<void> =
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const [row] = await db.delete(invoicesTable).where(eq(invoicesTable.id, raw)).returning();
   if (!row) { res.status(404).json({ error: "Invoice not found" }); return; }
+  await logAudit({
+    entityType: "invoice",
+    entityId: row.id,
+    action: "deleted",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+    description: `Invoice ${row.id} deleted`,
+  });
   res.status(204).end();
 });
 

@@ -4,6 +4,7 @@ import { db, usersTable } from "@workspace/db";
 import { requireAdmin } from "../middleware/rbac";
 import { validateInviteRole } from "../middleware/inviteValidation";
 import { resolveRole } from "../constants/roles";
+import { logAudit } from "../lib/audit";
 import {
   ListUsersResponse,
   CreateUserBody,
@@ -26,9 +27,23 @@ function mapUser(u: typeof usersTable.$inferSelect) {
   };
 }
 
-router.get("/me", async (_req, res): Promise<void> => {
-  const [u] = await db.select().from(usersTable).where(eq(usersTable.id, 1));
+router.get("/me", async (req, res): Promise<void> => {
+  // Identity bootstrap. Bypassed by `verifyRoleClaim` so the route must do its
+  // own validation: read the verified `x-user-id` header, ensure the user
+  // exists and is active, and only then return the profile. Falls back to user
+  // 1 only when no header is present (legacy unauthenticated dev calls).
+  const headerId = req.headers["x-user-id"];
+  const userId = headerId !== undefined ? Number(headerId) : 1;
+  if (!Number.isFinite(userId) || userId <= 0) {
+    res.status(401).json({ error: "Invalid x-user-id" });
+    return;
+  }
+  const [u] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!u) { res.status(404).json({ error: "User not found" }); return; }
+  if (u.activeStatus !== "active") {
+    res.status(401).json({ error: "Account deactivated" });
+    return;
+  }
   res.json(mapUser(u));
 });
 
@@ -129,8 +144,31 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   if (req.body.isInternal !== undefined) userUpdates.isInternal = Boolean(req.body.isInternal);
   if (req.body.activeStatus !== undefined) userUpdates.activeStatus = req.body.activeStatus;
   if (req.body.holidayCalendarId !== undefined) userUpdates.holidayCalendarId = req.body.holidayCalendarId === null || req.body.holidayCalendarId === "" ? null : Number(req.body.holidayCalendarId);
+  const [previous] = await db.select().from(usersTable).where(eq(usersTable.id, params.data.id));
   const [row] = await db.update(usersTable).set(userUpdates).where(eq(usersTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  if (previous) {
+    const sensitive = ["role", "secondaryRoles", "activeStatus", "isActive", "costRate"] as const;
+    const changed: Record<string, { from: unknown; to: unknown }> = {};
+    for (const key of sensitive) {
+      const before = (previous as any)[key];
+      const after = (row as any)[key];
+      const beforeJson = JSON.stringify(before);
+      const afterJson = JSON.stringify(after);
+      if (beforeJson !== afterJson) changed[key] = { from: before, to: after };
+    }
+    if (Object.keys(changed).length > 0) {
+      await logAudit({
+        entityType: "user",
+        entityId: row.id,
+        action: "updated",
+        actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+        description: `User "${row.name}" updated: ${Object.keys(changed).join(", ")}`,
+        previousValue: Object.fromEntries(Object.entries(changed).map(([k, v]) => [k, v.from])),
+        newValue: Object.fromEntries(Object.entries(changed).map(([k, v]) => [k, v.to])),
+      });
+    }
+  }
   res.json(UpdateUserResponse.parse(mapUser(row)));
 });
 
@@ -139,8 +177,18 @@ router.patch("/users/:id/secondary-roles", requireAdmin, async (req, res): Promi
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { secondaryRoles } = req.body;
   if (!Array.isArray(secondaryRoles)) { res.status(400).json({ error: "secondaryRoles must be an array" }); return; }
+  const [previous] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   const [row] = await db.update(usersTable).set({ secondaryRoles } as any).where(eq(usersTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  await logAudit({
+    entityType: "user",
+    entityId: row.id,
+    action: "updated",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+    description: `User "${row.name}" secondary roles changed`,
+    previousValue: { secondaryRoles: previous?.secondaryRoles ?? [] },
+    newValue: { secondaryRoles: row.secondaryRoles ?? [] },
+  });
   res.json(mapUser(row));
 });
 
@@ -155,6 +203,14 @@ router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {
     .where(eq(usersTable.id, params.data.id))
     .returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  await logAudit({
+    entityType: "user",
+    entityId: row.id,
+    action: "deleted",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+    description: `User "${row.name}" deactivated`,
+    newValue: { activeStatus: "deactivated" },
+  });
   res.status(204).end();
 });
 
@@ -167,6 +223,14 @@ router.post("/users/:id/reactivate", requireAdmin, async (req, res): Promise<voi
     .where(eq(usersTable.id, id))
     .returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  await logAudit({
+    entityType: "user",
+    entityId: row.id,
+    action: "updated",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+    description: `User "${row.name}" reactivated`,
+    newValue: { activeStatus: "active" },
+  });
   res.json(mapUser(row));
 });
 
