@@ -1,20 +1,22 @@
 /**
  * AI Time Tracking Assistant — chat route.
  *
- * Single endpoint, mounted under `/api/ai-time-helper`. Authenticated by
- * the global `verifyRoleClaim` middleware — userId is always taken from
- * the verified `x-user-id` header, never from the request body.
+ * Endpoints:
+ *   POST /api/ai-chat          (canonical, per task spec)
+ *   POST /api/ai-time-helper   (alias kept for backward compatibility)
+ *   GET  /api/ai-chat/welcome  (proactive opening message + catch-up reminder)
  *
- * Body:
- *   { sessionId: string, message?: string, confirmedEntries?: ProposedEntry[] }
+ * All routes are authenticated by the global `verifyRoleClaim` middleware
+ * — userId is always taken from the verified `x-user-id` header, never
+ * from the request body or LLM output.
  *
- * Behavior:
- *   - With `message` → run an LLM turn and return reply + optional proposal.
- *   - With `confirmedEntries` → commit them via the existing
- *     POST /api/time-entries route (preserving all governance / RBAC).
+ * POST body:
+ *   { sessionId: string, message?: string, confirmedEntries?: ProposedEntry[], reset?: boolean }
  *
- * Adding this route does not modify any existing file other than
- * `routes/index.ts` (one import + one `router.use(...)` line).
+ * - With `message` → run an LLM turn, return `{ reply, proposal?, toolCalls[] }`.
+ * - With `confirmedEntries` → commit each entry via the existing
+ *   POST /api/time-entries route (full governance preserved).
+ * - With `reset: true` → drop the server-side session history for this user.
  */
 
 import { Router, type IRouter } from "express";
@@ -24,12 +26,13 @@ import {
   runAssistantTurn,
   commitEntries,
   clearSession,
+  buildWelcome,
   type ProposedEntry,
 } from "../lib/aiTimeAssistant";
 
 const router: IRouter = Router();
 
-router.post("/ai-time-helper", async (req, res): Promise<void> => {
+async function handleChatPost(req: any, res: any): Promise<void> {
   const userIdRaw = req.headers["x-user-id"];
   const userRoleRaw = req.headers["x-user-role"];
   const userId = Number(userIdRaw);
@@ -53,9 +56,12 @@ router.post("/ai-time-helper", async (req, res): Promise<void> => {
 
   if (body.reset) {
     clearSession(userId, sessionId);
+    if (!body.message && !body.confirmedEntries) {
+      res.json({ reply: "Conversation reset.", reset: true, sessionId });
+      return;
+    }
   }
 
-  // Resolve self-call base URL for committing entries via the existing route.
   const port = process.env.PORT ?? "8080";
   const baseUrl = `http://127.0.0.1:${port}`;
   const forwardHeaders: Record<string, string> = {
@@ -63,7 +69,7 @@ router.post("/ai-time-helper", async (req, res): Promise<void> => {
     "x-user-role": userRole,
   };
 
-  // Branch A: user confirmed a previously-proposed batch — commit it.
+  // Branch A: commit confirmed entries through the existing route.
   if (body.confirmedEntries && Array.isArray(body.confirmedEntries) && body.confirmedEntries.length > 0) {
     const result = await commitEntries({
       entries: body.confirmedEntries,
@@ -100,13 +106,12 @@ router.post("/ai-time-helper", async (req, res): Promise<void> => {
     return;
   }
 
-  // Resolve user's display name for the system prompt (single small DB lookup).
   let userName = "the user";
   try {
     const [u] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId));
     if (u?.name) userName = u.name;
   } catch {
-    // Non-blocking — name is just a courtesy in the prompt.
+    /* non-blocking */
   }
 
   const result = await runAssistantTurn({
@@ -127,6 +132,33 @@ router.post("/ai-time-helper", async (req, res): Promise<void> => {
     error: result.error,
     sessionId,
   });
-});
+}
+
+async function handleWelcomeGet(req: any, res: any): Promise<void> {
+  const userIdRaw = req.headers["x-user-id"];
+  const userId = Number(userIdRaw);
+  if (!userId || !Number.isFinite(userId)) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  let userName = "there";
+  try {
+    const [u] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId));
+    if (u?.name) userName = u.name;
+  } catch {
+    /* non-blocking */
+  }
+  const payload = await buildWelcome(userId, userName);
+  res.json(payload);
+}
+
+// Canonical path
+router.post("/ai-chat", handleChatPost);
+router.get("/ai-chat/welcome", handleWelcomeGet);
+
+// Backward-compatible alias (the user-facing prompt for this feature called it
+// /api/ai-time-helper). Both paths share the same handler so existing clients
+// keep working.
+router.post("/ai-time-helper", handleChatPost);
 
 export default router;

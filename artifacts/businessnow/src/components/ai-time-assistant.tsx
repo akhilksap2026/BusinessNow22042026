@@ -1,29 +1,52 @@
 /**
  * AI Time Tracking Assistant — floating chat widget.
  *
- * Pure addon: this component owns its own state, fetches a single backend
- * route (`POST /api/ai-time-helper`), and renders itself as a fixed
- * bottom-right launcher. It does not modify any other page or component.
+ * Pure addon: this component owns its own state, fetches `/api/ai-chat`
+ * (with `/api/ai-time-helper` as a backward-compatible alias), and
+ * renders itself as a fixed bottom-right launcher. It does not modify
+ * any other page or component.
  *
  * Visual contract:
  *   - Collapsed: pill-style "Time AI" button at bottom-right.
  *   - Expanded: 380×560 panel on desktop; full-screen sheet on <sm.
- *   - Confirmation card: when the AI proposes entries, a structured card
- *     appears with Confirm / Cancel buttons. On confirm we send the same
- *     entries back to the server, which calls the existing
- *     POST /api/time-entries (governance preserved).
+ *   - Empty state: 3 suggestion chips for first-message guidance.
+ *   - Each assistant turn shows a row of tool-call chips below the
+ *     bubble (transparency about what the model fetched).
+ *   - When the model proposes entries, a confirmation card appears
+ *     with Confirm / Cancel buttons. Confirm sends `confirmedEntries`
+ *     back to the same endpoint, which re-issues each one through the
+ *     existing POST /api/time-entries route (governance preserved).
+ *
+ * Session: a fresh sessionId is generated on every component mount so
+ * a browser refresh starts a brand new conversation (per spec).
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Send, X, RotateCw, CheckCircle2, AlertCircle, Loader2, Sparkles } from "lucide-react";
+import {
+  Bot,
+  Send,
+  X,
+  RotateCw,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+  AlertTriangle,
+  Wrench,
+} from "lucide-react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useCurrentUser } from "@/contexts/current-user";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQueryClient } from "@tanstack/react-query";
-import { getListTimeEntriesQueryKey, getGetTimeEntrySummaryQueryKey, getListTimesheetsQueryKey } from "@workspace/api-client-react";
+import {
+  getListTimeEntriesQueryKey,
+  getGetTimeEntrySummaryQueryKey,
+  getListTimesheetsQueryKey,
+} from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
@@ -40,6 +63,13 @@ interface ProposedEntry {
 interface Proposal {
   summary: string;
   entries: ProposedEntry[];
+  warnings?: string[];
+}
+
+interface ToolCallSummary {
+  name: string;
+  ok: boolean;
+  error?: string;
 }
 
 interface ChatTurn {
@@ -47,57 +77,82 @@ interface ChatTurn {
   role: "user" | "assistant" | "system";
   text: string;
   proposal?: Proposal;
+  toolCalls?: ToolCallSummary[];
   loggedCount?: number;
   failedCount?: number;
   failedDetails?: string;
   pending?: boolean;
 }
 
+interface WelcomePayload {
+  greeting: string;
+  daysSinceLastLog: number | null;
+  catchUpReminder?: string;
+  suggestionChips: string[];
+  configured: boolean;
+}
+
+const DEFAULT_CHIPS = [
+  "Log 2h on … today",
+  "What's my week look like?",
+  "Show my pending tasks",
+];
+
 function newId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function getOrCreateSessionId(): string {
-  const KEY = "aiTimeAssistant.sessionId";
-  if (typeof window === "undefined") return newId();
-  try {
-    let id = sessionStorage.getItem(KEY);
-    if (!id) {
-      id = newId();
-      sessionStorage.setItem(KEY, id);
-    }
-    return id;
-  } catch {
-    return newId();
-  }
-}
-
 export function AITimeAssistant() {
   const { currentUser } = useCurrentUser();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
-  const sessionId = useMemo(getOrCreateSessionId, []);
+  const [welcome, setWelcome] = useState<WelcomePayload | null>(null);
+  // Fresh sessionId per component mount → browser refresh = new server-side session.
+  const [sessionId, setSessionId] = useState(() => newId());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Greet on first open if no history yet.
+  const chips = useMemo(() => welcome?.suggestionChips ?? DEFAULT_CHIPS, [welcome]);
+
+  // Fetch welcome (proactive opening message) on first open.
   useEffect(() => {
-    if (!open || turns.length > 0 || !currentUser) return;
-    setTurns([
-      {
-        id: newId(),
-        role: "assistant",
-        text:
-          `Hi ${currentUser.name.split(" ")[0]} — I can help log your time. Try things like:\n` +
-          `• "Log 5 hours on Project Atlas for database optimization"\n` +
-          `• "I worked 3 hours yesterday on the redesign task"\n` +
-          `• "What's left to log this week?"`,
-      },
-    ]);
-  }, [open, turns.length, currentUser]);
+    if (!open || !currentUser || welcome !== null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`${BASE}/api/ai-chat/welcome`, { headers: authHeaders() });
+        if (!r.ok) throw new Error(String(r.status));
+        const data: WelcomePayload = await r.json();
+        if (!cancelled) {
+          setWelcome(data);
+          setTurns(t =>
+            t.length === 0
+              ? [{ id: newId(), role: "assistant", text: data.greeting }]
+              : t,
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          // Soft-fall back to a static greeting.
+          const fallback: WelcomePayload = {
+            greeting: `Hi ${currentUser.name.split(" ")[0]} — I can help you log time fast.`,
+            daysSinceLastLog: null,
+            suggestionChips: DEFAULT_CHIPS,
+            configured: true,
+          };
+          setWelcome(fallback);
+          setTurns(t => (t.length === 0 ? [{ id: newId(), role: "assistant", text: fallback.greeting }] : t));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, currentUser, welcome]);
 
   // Auto-scroll on new turns.
   useEffect(() => {
@@ -118,7 +173,7 @@ export function AITimeAssistant() {
   }
 
   async function callApi(payload: Record<string, unknown>): Promise<any> {
-    const r = await fetch(`${BASE}/api/ai-time-helper`, {
+    const r = await fetch(`${BASE}/api/ai-chat`, {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ sessionId, ...payload }),
@@ -147,6 +202,7 @@ export function AITimeAssistant() {
                 ...turn,
                 text: data.reply ?? "(no reply)",
                 proposal: data.proposal ?? undefined,
+                toolCalls: Array.isArray(data.toolCalls) ? data.toolCalls : undefined,
                 pending: false,
               }
             : turn,
@@ -156,10 +212,15 @@ export function AITimeAssistant() {
       setTurns(t =>
         t.map(turn =>
           turn.id === pendingTurn.id
-            ? { ...turn, text: `⚠ ${err?.message ?? "Failed to reach AI assistant"}`, pending: false }
+            ? { ...turn, text: `Couldn't reach the assistant. Please try again.`, pending: false }
             : turn,
         ),
       );
+      toast({
+        variant: "destructive",
+        title: "AI assistant error",
+        description: err?.message ?? "Failed to reach AI assistant.",
+      });
     } finally {
       setSending(false);
     }
@@ -175,10 +236,7 @@ export function AITimeAssistant() {
       const errors = Array.isArray(data.errors) ? data.errors : [];
       setTurns(t =>
         t.map(turn => {
-          if (turn.id === turnId) {
-            // Strip the proposal from the original turn so the buttons go away.
-            return { ...turn, proposal: undefined };
-          }
+          if (turn.id === turnId) return { ...turn, proposal: undefined };
           if (turn.id === pendingTurn.id) {
             return {
               ...turn,
@@ -196,14 +254,29 @@ export function AITimeAssistant() {
         }),
       );
       if (logged > 0) invalidateTimeQueries();
+      if (errors.length > 0) {
+        toast({
+          variant: "destructive",
+          title:
+            logged > 0
+              ? `Logged ${logged}, but ${errors.length} failed`
+              : `Couldn't log ${errors.length} ${errors.length === 1 ? "entry" : "entries"}`,
+          description: errors.map((e: any) => e.error).slice(0, 3).join("\n"),
+        });
+      }
     } catch (err: any) {
       setTurns(t =>
         t.map(turn =>
           turn.id === pendingTurn.id
-            ? { ...turn, text: `⚠ ${err?.message ?? "Failed to log entries"}`, pending: false }
+            ? { ...turn, text: `Couldn't reach the assistant.`, pending: false }
             : turn,
         ),
       );
+      toast({
+        variant: "destructive",
+        title: "Failed to log entries",
+        description: err?.message ?? "Network or server error.",
+      });
     } finally {
       setSending(false);
     }
@@ -213,7 +286,11 @@ export function AITimeAssistant() {
     setTurns(t =>
       t.map(turn =>
         turn.id === turnId
-          ? { ...turn, proposal: undefined, text: turn.text + "\n\n(Cancelled. Tell me what to change.)" }
+          ? {
+              ...turn,
+              proposal: undefined,
+              text: turn.text + "\n\n(Cancelled. Tell me what to change.)",
+            }
           : turn,
       ),
     );
@@ -221,17 +298,17 @@ export function AITimeAssistant() {
   }
 
   async function resetConversation() {
+    const oldSession = sessionId;
     setTurns([]);
-    try {
-      // Tell the server to drop the session history too.
-      await fetch(`${BASE}/api/ai-time-helper`, {
-        method: "POST",
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ sessionId, reset: true, message: "" }),
-      }).catch(() => {});
-    } catch {
+    setWelcome(null);
+    setSessionId(newId());
+    fetch(`${BASE}/api/ai-chat`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ sessionId: oldSession, reset: true }),
+    }).catch(() => {
       /* ignore */
-    }
+    });
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -241,8 +318,9 @@ export function AITimeAssistant() {
     }
   }
 
-  // Hide widget for unauthenticated visitors (during /me bootstrap).
   if (!currentUser) return null;
+
+  const hasUserTurn = turns.some(t => t.role === "user");
 
   return (
     <>
@@ -317,6 +395,12 @@ export function AITimeAssistant() {
           {/* Conversation */}
           <ScrollArea className="flex-1 px-3 py-3" data-testid="scroll-ai-conversation">
             <div ref={scrollRef} className="flex flex-col gap-3">
+              {welcome && !welcome.configured && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+                  AI assistant is not configured. Add a <code>GROQ_API_KEY</code> (or{" "}
+                  <code>OPENAI_API_KEY</code>) secret to enable it.
+                </div>
+              )}
               {turns.map(turn => (
                 <ChatBubble
                   key={turn.id}
@@ -325,6 +409,29 @@ export function AITimeAssistant() {
                   onDecline={() => declineProposal(turn.id)}
                 />
               ))}
+
+              {/* Suggestion chips on empty state */}
+              {!hasUserTurn && (
+                <div className="flex flex-wrap gap-1.5 mt-1" data-testid="suggestion-chips">
+                  {chips.map((chip, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => sendMessage(chip)}
+                      disabled={sending}
+                      data-testid={`chip-suggestion-${idx}`}
+                      className={cn(
+                        "rounded-full border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40",
+                        "px-3 py-1 text-xs text-indigo-800 dark:text-indigo-300",
+                        "hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors",
+                        "disabled:opacity-50",
+                      )}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </ScrollArea>
 
@@ -409,8 +516,33 @@ function ChatBubble({
         )}
       </div>
 
+      {/* Tool-call chips below assistant bubble for transparency. */}
+      {!isUser && turn.toolCalls && turn.toolCalls.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1.5 max-w-[88%]" data-testid="tool-call-chips">
+          {turn.toolCalls.map((tc, idx) => (
+            <span
+              key={idx}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-mono border",
+                tc.ok
+                  ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300"
+                  : "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300",
+              )}
+              title={tc.error ?? ""}
+              data-testid={`chip-tool-${tc.name}`}
+            >
+              <Wrench className="h-2.5 w-2.5" />
+              {tc.name}
+            </span>
+          ))}
+        </div>
+      )}
+
       {turn.proposal && turn.proposal.entries.length > 0 && (
-        <Card className="mt-2 w-full border-indigo-200 dark:border-indigo-900" data-testid="card-ai-proposal">
+        <Card
+          className="mt-2 w-full border-indigo-200 dark:border-indigo-900"
+          data-testid="card-ai-proposal"
+        >
           <CardContent className="p-3">
             <p className="text-xs font-medium text-indigo-700 dark:text-indigo-400 mb-2">
               Confirm to log:
@@ -427,7 +559,9 @@ function ChatBubble({
                     {e.hours}h
                   </Badge>
                   <span className="flex-1 truncate" title={e.description}>
-                    {e.description || <span className="italic text-muted-foreground">no description</span>}
+                    {e.description || (
+                      <span className="italic text-muted-foreground">no description</span>
+                    )}
                   </span>
                   {e.billable === false && (
                     <Badge variant="outline" className="text-[10px]">
@@ -437,6 +571,22 @@ function ChatBubble({
                 </div>
               ))}
             </div>
+            {turn.proposal.warnings && turn.proposal.warnings.length > 0 && (
+              <div
+                className="mt-2 rounded border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-2 py-1.5"
+                data-testid="proposal-warnings"
+              >
+                {turn.proposal.warnings.map((w, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-1.5 text-[11px] text-amber-900 dark:text-amber-200"
+                  >
+                    <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                    <span>{w}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2 mt-3">
               <Button
                 size="sm"
