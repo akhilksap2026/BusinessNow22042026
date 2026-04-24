@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/contexts/current-user";
+import { useAccountPermissions } from "@/lib/permissions";
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 
@@ -53,7 +54,9 @@ export default function TimeTracking() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { currentUser } = useCurrentUser();
+  const { currentUser, activeRole } = useCurrentUser();
+  const checkPerm = useAccountPermissions(activeRole);
+  const canApproveTimesheets = checkPerm("timeTracking.approve");
   const currentUserId = currentUser?.id ?? 1;
 
   const { data: timeSettings } = useQuery({
@@ -428,7 +431,7 @@ export default function TimeTracking() {
                     <CardDescription>Review and approve team timesheets for the selected week</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    {selectedTsIds.size > 0 && (
+                    {canApproveTimesheets && selectedTsIds.size > 0 && (
                       <Button size="sm" onClick={handleBulkApprove}>
                         Bulk Approve ({selectedTsIds.size})
                       </Button>
@@ -579,7 +582,7 @@ export default function TimeTracking() {
                                     <Bell className="h-3 w-3 mr-1" /> Remind
                                   </Button>
                                 ) : null}
-                                {status === "Submitted" && ts && (
+                                {canApproveTimesheets && status === "Submitted" && ts && (
                                   <>
                                     <Button
                                       size="sm"
@@ -769,7 +772,7 @@ export default function TimeTracking() {
                           <TableCell><StatusBadge status={req.status} /></TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              {req.status === "Pending" && (
+                              {canApproveTimesheets && req.status === "Pending" && (
                                 <>
                                   <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30" onClick={() => handleApprove(req.id)} disabled={updateTimeOff.isPending}>
                                     <CheckCircle className="h-3 w-3 mr-1" /> Approve

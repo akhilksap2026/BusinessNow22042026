@@ -1161,9 +1161,11 @@ export default function Admin() {
               <TabsTrigger value="holidays" className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4" /> Holiday Calendars
               </TabsTrigger>
-              <TabsTrigger value="ratecards" className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4" /> Rate Cards
-              </TabsTrigger>
+              {can(activeRole, "financials.viewRateCards") && (
+                <TabsTrigger value="ratecards" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" /> Rate Cards
+                </TabsTrigger>
+              )}
               <TabsTrigger value="customfields" className="flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4" /> Custom Fields
               </TabsTrigger>
@@ -2018,6 +2020,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="ratecards" className="m-0">
+            {can(activeRole, "financials.viewRateCards") && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -2079,6 +2082,7 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="customfields" className="m-0">

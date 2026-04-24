@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCurrentUser } from "@/contexts/current-user";
+import { useAccountPermissions, type AccountPermission } from "@/lib/permissions";
 import { useDensity } from "@/contexts/density";
 import { useTheme, type Theme } from "@/contexts/theme";
 import {
@@ -51,8 +52,20 @@ const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 /* ---- Nav groups (VH-8: Workspace / Admin section labels) ---------- */
 
-const WORKSPACE_NAV = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+type NavItemDef = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  /**
+   * Account-level permission required to see this nav entry.  When omitted
+   * the entry is always visible.  Hiding the entry is a UX guard only —
+   * destination routes still enforce access on the backend.
+   */
+  requires?: AccountPermission;
+};
+
+const WORKSPACE_NAV: NavItemDef[] = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, requires: "dashboards.view" },
   { href: "/projects", label: "Projects", icon: Briefcase },
   { href: "/accounts", label: "Accounts", icon: Users },
   { href: "/prospects", label: "Prospects", icon: UserSearch },
@@ -61,10 +74,10 @@ const WORKSPACE_NAV = [
   { href: "/resources", label: "Resources", icon: CalendarDays },
 ];
 
-const ADMIN_NAV = [
+const ADMIN_NAV: NavItemDef[] = [
   { href: "/finance", label: "Finance", icon: DollarSign },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/admin", label: "Admin", icon: Settings },
+  { href: "/reports", label: "Reports", icon: BarChart3, requires: "reports.viewStandard" },
+  { href: "/admin", label: "Admin", icon: Settings, requires: "settings.manageTeam" },
 ];
 
 const ALL_NAV = [...WORKSPACE_NAV, ...ADMIN_NAV];
@@ -386,6 +399,10 @@ function UserChip({ variant = "sidebar" }: UserChipProps) {
 
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { activeRole } = useCurrentUser();
+  const checkPerm = useAccountPermissions(activeRole);
+  const visibleWorkspaceNav = WORKSPACE_NAV.filter(item => !item.requires || checkPerm(item.requires));
+  const visibleAdminNav = ADMIN_NAV.filter(item => !item.requires || checkPerm(item.requires));
 
   /* US-14: sidebar collapse ---------------------------------------- */
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -406,7 +423,7 @@ export function Layout({ children }: { children: ReactNode }) {
     return location === href || (href !== "/" && location.startsWith(href));
   }
 
-  function NavItem({ item, onNavigate }: { item: { href: string; label: string; icon: typeof LayoutDashboard }; onNavigate?: () => void }) {
+  function NavItem({ item, onNavigate }: { item: NavItemDef; onNavigate?: () => void }) {
     const Icon = item.icon;
     const active = isActive(item.href);
     if (collapsed) {
@@ -561,15 +578,19 @@ export function Layout({ children }: { children: ReactNode }) {
           {!collapsed && (
             <p className="px-2 pt-1 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Workspace</p>
           )}
-          {WORKSPACE_NAV.map(item => <NavItem key={item.href} item={item} />)}
+          {visibleWorkspaceNav.map(item => <NavItem key={item.href} item={item} />)}
 
-          <div className="my-1 border-t border-border" />
+          {visibleAdminNav.length > 0 && (
+            <>
+              <div className="my-1 border-t border-border" />
 
-          {/* VH-8: Admin group */}
-          {!collapsed && (
-            <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Admin</p>
+              {/* VH-8: Admin group */}
+              {!collapsed && (
+                <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Admin</p>
+              )}
+              {visibleAdminNav.map(item => <NavItem key={item.href} item={item} />)}
+            </>
           )}
-          {ADMIN_NAV.map(item => <NavItem key={item.href} item={item} />)}
         </nav>
 
         {/* Footer */}

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
+import { useCurrentUser } from "@/contexts/current-user";
+import { useAccountPermissions } from "@/lib/permissions";
 import { useListProjects, useDeleteProject, useListUsers } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
@@ -78,6 +80,10 @@ export default function Projects() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const deleteMut = useDeleteProject();
+  const { activeRole } = useCurrentUser();
+  const checkPerm = useAccountPermissions(activeRole);
+  const canCreateProject = checkPerm("projects.create");
+  const canDeleteProject = checkPerm("projects.delete");
 
   const { data: archivedProjects = [], isLoading: isLoadingArchived } = useQuery<{ id: number; name: string; deletedAt: string | null }[]>({
     queryKey: ["projects-deleted"],
@@ -180,18 +186,22 @@ export default function Projects() {
           title="Projects"
           actions={
             <>
-              <Button
-                variant={showArchived ? "secondary" : "outline"}
-                size="sm"
-                onClick={() => setShowArchived(v => !v)}
-                className="gap-1.5"
-              >
-                <Archive className="h-4 w-4" />
-                {showArchived ? "Hide Archived" : "Show Archived"}
-              </Button>
-              <Button onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" /> New Project
-              </Button>
+              {checkPerm("projects.archive.view") && (
+                <Button
+                  variant={showArchived ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowArchived(v => !v)}
+                  className="gap-1.5"
+                >
+                  <Archive className="h-4 w-4" />
+                  {showArchived ? "Hide Archived" : "Show Archived"}
+                </Button>
+              )}
+              {canCreateProject && (
+                <Button onClick={() => setIsCreateOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> New Project
+                </Button>
+              )}
             </>
           }
         />
@@ -335,12 +345,14 @@ export default function Projects() {
                                 <DropdownMenuItem asChild>
                                   <Link href={`/projects/${project.id}`}>View Details</Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-red-600"
-                                  onClick={() => handleDelete(project.id, project.name)}
-                                >
-                                  Archive Project
-                                </DropdownMenuItem>
+                                {canDeleteProject && (
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() => handleDelete(project.id, project.name)}
+                                  >
+                                    Archive Project
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -438,12 +450,14 @@ export default function Projects() {
                               <DropdownMenuItem asChild>
                                 <Link href={`/projects/${project.id}`}>View Details</Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleDelete(project.id, project.name)}
-                              >
-                                Archive Project
-                              </DropdownMenuItem>
+                              {canDeleteProject && (
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => handleDelete(project.id, project.name)}
+                                >
+                                  Archive Project
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -463,10 +477,12 @@ export default function Projects() {
                       <Download className="h-3.5 w-3.5" />
                       Export CSV
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300" onClick={handleBulkArchive}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Archive
-                    </Button>
+                    {canDeleteProject && (
+                      <Button size="sm" variant="outline" className="h-7 gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300" onClick={handleBulkArchive}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Archive
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
                       <X className="h-3.5 w-3.5" />
                     </Button>
