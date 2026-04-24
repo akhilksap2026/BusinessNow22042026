@@ -125,16 +125,16 @@
   --app-font-sans: 'DM Sans', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  --radius: .375rem; 
+  --radius: .5rem;
 
-  --shadow-2xs: 0px 2px 0px 0px hsl(202 89% 53% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(202 89% 53% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(202 89% 53% / 0.00), 0px 1px 2px -1px hsl(202 89% 53% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(202 89% 53% / 0.00), 0px 1px 2px -1px hsl(202 89% 53% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(202 89% 53% / 0.00), 0px 2px 4px -1px hsl(202 89% 53% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(202 89% 53% / 0.00), 0px 4px 6px -1px hsl(202 89% 53% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(202 89% 53% / 0.00), 0px 8px 10px -1px hsl(202 89% 53% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(202 89% 53% / 0.00);
+  --shadow-2xs: 0 1px 1px 0 hsl(222 47% 11% / 0.04);
+  --shadow-xs:  0 1px 2px 0 hsl(222 47% 11% / 0.05);
+  --shadow-sm:  0 1px 2px 0 hsl(222 47% 11% / 0.06), 0 1px 3px 0 hsl(222 47% 11% / 0.04);
+  --shadow:     0 2px 4px -1px hsl(222 47% 11% / 0.08), 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+  --shadow-md:  0 4px 8px -2px hsl(222 47% 11% / 0.10), 0 2px 4px -2px hsl(222 47% 11% / 0.06);
+  --shadow-lg:  0 12px 24px -6px hsl(222 47% 11% / 0.12), 0 4px 8px -4px hsl(222 47% 11% / 0.08);
+  --shadow-xl:  0 24px 48px -12px hsl(222 47% 11% / 0.18);
+  --shadow-2xl: 0 32px 64px -16px hsl(222 47% 11% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -215,15 +215,18 @@
   }
 
   html {
-    /* Compact (default): 14.25px root keeps ~11% global scale-down while
-       ensuring h-9 / min-h-9 controls land at 32.06px >= touch-target floor. */
-    font-size: 14.25px;
+    /* Comfortable (default): 16px root — Tailwind's calibrated baseline,
+       meets WCAG body-text norms and keeps every rem-sized control at its
+       designed footprint. */
+    font-size: 16px;
   }
 
-  /* Comfortable density: opt-in via the DensityProvider toggling this class. */
-  html.density-comfortable {
-    font-size: 16px;
-    --radius: .5rem;
+  /* Compact density: opt-in via the DensityProvider toggling this class.
+     14.25px root yields ~11% global scale-down for power users while still
+     keeping h-9 / min-h-9 controls at 32.06px >= touch-target floor. */
+  html.density-compact {
+    font-size: 14.25px;
+    --radius: .375rem;
   }
 
   body {

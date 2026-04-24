@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { Plus, MoreHorizontal, Search, X, Archive, RotateCcw } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
@@ -144,7 +145,7 @@ export default function Projects() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -152,43 +153,71 @@ export default function Projects() {
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
               className="pl-9"
+              aria-label="Search projects"
             />
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {STATUS_FILTERS.map(f => (
-              <button
-                key={f}
-                onClick={() => setStatusFilter(f)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  statusFilter === f
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div
+              role="radiogroup"
+              aria-label="Filter by status"
+              className="flex items-center gap-1.5 flex-wrap"
+            >
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mr-1">
+                Status
+              </span>
+              {STATUS_FILTERS.map(f => (
+                <button
+                  key={f}
+                  type="button"
+                  role="radio"
+                  aria-checked={statusFilter === f}
+                  onClick={() => setStatusFilter(f)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    statusFilter === f
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            <Separator orientation="vertical" className="h-6 hidden md:block" />
+
+            <div
+              role="radiogroup"
+              aria-label="Filter by health"
+              className="flex items-center gap-1.5 flex-wrap"
+            >
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mr-1">
+                Health
+              </span>
+              {HEALTH_FILTERS.map(f => (
+                <button
+                  key={f}
+                  type="button"
+                  role="radio"
+                  aria-checked={healthFilter === f}
+                  onClick={() => setHealthFilter(f)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    healthFilter === f
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground h-7 px-2 gap-1">
+                <X className="h-3.5 w-3.5" /> Clear
+              </Button>
+            )}
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {HEALTH_FILTERS.map(f => (
-              <button
-                key={f}
-                onClick={() => setHealthFilter(f)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  healthFilter === f
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground h-7 px-2 gap-1">
-              <X className="h-3.5 w-3.5" /> Clear
-            </Button>
-          )}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">

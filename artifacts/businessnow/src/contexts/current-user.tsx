@@ -20,6 +20,7 @@ interface CurrentUserCtx {
   activeRole: string;
   availableRoles: string[];
   switchRole: (role: string) => void;
+  logout: () => Promise<void>;
 }
 
 const CurrentUserContext = createContext<CurrentUserCtx>({
@@ -28,6 +29,7 @@ const CurrentUserContext = createContext<CurrentUserCtx>({
   activeRole: "Admin",
   availableRoles: ["Admin"],
   switchRole: () => {},
+  logout: async () => {},
 });
 
 function applyRoleHeaders(role: string, userId?: number) {
@@ -69,6 +71,22 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     applyRoleHeaders(role, currentUser?.id);
   }
 
+  async function logout() {
+    // Best-effort server-side session teardown; never block the UI on it.
+    try {
+      await fetch(`${BASE}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      /* ignore — frontend state is the source of truth in dev */
+    }
+    localStorage.removeItem("activeRole");
+    setCurrentUser(null);
+    setActiveRole("Admin");
+    applyRoleHeaders("Admin");
+  }
+
   const availableRoles = currentUser
     ? [
         currentUser.role,
@@ -78,7 +96,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     : [activeRole];
 
   return (
-    <CurrentUserContext.Provider value={{ currentUser, isLoading, activeRole, availableRoles, switchRole }}>
+    <CurrentUserContext.Provider value={{ currentUser, isLoading, activeRole, availableRoles, switchRole, logout }}>
       {children}
     </CurrentUserContext.Provider>
   );

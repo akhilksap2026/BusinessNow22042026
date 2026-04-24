@@ -8,23 +8,23 @@ interface DensityCtx {
 }
 
 const DensityContext = createContext<DensityCtx>({
-  density: "compact",
+  density: "comfortable",
   setDensity: () => {},
 });
 
 export function DensityProvider({ children }: { children: ReactNode }) {
   const [density, setDensityState] = useState<Density>(() => {
     const stored = localStorage.getItem("uiDensity");
-    return stored === "comfortable" ? "comfortable" : "compact";
+    return stored === "compact" ? "compact" : "comfortable";
   });
 
   // useLayoutEffect runs synchronously after DOM mutations and before paint,
-  // preventing any flash-of-unstyled-content when the user has chosen comfortable.
+  // preventing any flash-of-unstyled-content when the user has opted into compact.
   useLayoutEffect(() => {
-    if (density === "comfortable") {
-      document.documentElement.classList.add("density-comfortable");
+    if (density === "compact") {
+      document.documentElement.classList.add("density-compact");
     } else {
-      document.documentElement.classList.remove("density-comfortable");
+      document.documentElement.classList.remove("density-compact");
     }
   }, [density]);
 
