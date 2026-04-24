@@ -547,3 +547,43 @@ Architect review of the 8-step plan flagged one critical and three high-severity
 - Cross-approve (different user) → 200
 - Role-switch audit endpoint → 204
 - Dashboard on fresh load → zero 401 errors in browser console; all metric cards populated
+
+### 2026-04-24 — Dynamic Role-Based Identity & Permission System (verification pass)
+
+Verified end-to-end completion of the 8-step Dynamic Role-Based Identity & Permission System. All implementation pieces from the approved plan are in place:
+
+**Backend (api-server)**
+- `middleware/roleClaim.ts` — loads `users.role + secondaryRoles + activeStatus` for the `x-user-id`; rejects 401 (missing/invalid id, deactivated user) or 403 (claimed role not in assigned set). Mounted globally in `routes/index.ts` after `denyCustomerRole`. `/me` and `/healthz` are bootstrap-exempt.
+- `routes/timesheets.ts` `/approve` (line 187) + `/bulk-approve` (line 280) — reject 403 when actor === timesheet owner.
+- `routes/changeOrders.ts` PATCH (line 108) — reject 403 when actor === createdByUserId on transition to Approved.
+- `routes/timeOff.ts` PATCH (line 93) — reject 403 when actor === request.userId.
+- `routes/resourceRequests.ts` `/status` (line 120) — reject 403 when actor === requestedByUserId on Approved/Fulfilled/Rejected.
+- `routes/auditLog.ts` `POST /audit/role-switch` — validates `from`/`to` against the actor's assigned roles, writes `entityType: "role_switch"` audit row.
+- Audit-log expansion: `users.ts` (PATCH role + secondary-roles + DELETE + reactivate), `projects.ts` (DELETE + restore + shift-dates), `invoices.ts` (status changes), `rateCards.ts` (POST/PATCH/DELETE), `allocations.ts` (DELETE + cascade-delete).
+
+**Frontend (businessnow)**
+- `components/require-permission.tsx` — wraps a route; if `!can(activeRole, permission)` → renders `<Forbidden permission=...>`.
+- `pages/forbidden.tsx` — friendly 403 page with "Back to dashboard" + "Switch role" (dispatches `open-role-selector` event when `availableRoles.length > 1`).
+- `App.tsx` — `/admin`, `/finance`, `/reports` wrapped in `<RequirePermission>`.
+- `components/role-selector-modal.tsx` — opens automatically for multi-role users on first visit (no `localStorage.activeRole`); listens for `open-role-selector` event; lists each role with description.
+- `contexts/current-user.tsx` — bootstraps `/me`, persists `activeRole` to localStorage, applies `x-user-id` + `x-user-role` headers via `setDefaultHeaders()`. Re-validates every 60 s: deactivated → clear + reload; revoked role → reset to primary + toast.
+- `lib/permissions.ts` — full account + project permission matrices, including `self.*` codified entries (`time.logOwn`, `time.viewOwn`, `tasks.viewAssigned`, `notifications.viewOwn`, `profile.editOwn`, `timeOff.requestOwn`); explicit "never self-action" comment block documenting server-enforced rules.
+
+**Validation-audit fixes (T008)**
+- `routes/prospects.ts` POST/PATCH — `ProspectBodySchema` Zod (name required, email format, ownerId int).
+- `routes/projectTemplates.ts` — `TemplateBodySchema` / `TemplatePhaseBodySchema` / `TemplateTaskBodySchema` Zod (name required, numeric `effort`/offsets ≥ 0).
+- `routes/projects.ts` PATCH — soft-delete leak guard (line 88: 409 if `existing.deletedAt`).
+- `routes/projects.ts` POST/PATCH (lines 58/96) + `routes/tasks.ts` POST/PATCH (lines 129/170) — `dueDate >= startDate`.
+- `task-detail-sheet.tsx` Effort input — `min={0}` + clamp on blur (line 286-294).
+- `timesheet-grid.tsx` hours cell — `min="0" max="24"` + `Math.min(24, Math.max(0, parsed))` clamp in `handleCellSave` (line 296).
+- `pages/accounts.tsx` create / edit / status / delete mutations — `onError` toasts with destructive variant.
+- `components/create-project-wizard.tsx` — Zod `.refine()` enforces `dueDate >= startDate` (line 41).
+
+**Smoke test results (all green, 2026-04-24 16:30 UTC)**
+- `/api/healthz` (no headers) → 200.
+- `/api/me` (no headers) → 200 (bootstrap-exempt).
+- `/api/projects` (no `x-user-id`) → 401 "Authentication required".
+- `/api/projects` (user 5 spoofing role "Admin") → 403 `Role "Admin" is not assigned to user 5`.
+- `/api/projects` (user 1 with assigned role "Project Manager") → 200.
+- `POST /api/audit/role-switch` (legitimate self-transition) → 204.
+- `POST /api/audit/role-switch` (user 1 to unassigned "Admin") → 403 "Cannot log a role transition you are not assigned to".
