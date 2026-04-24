@@ -24,7 +24,6 @@ import Opportunities from "@/pages/opportunities";
 import Forbidden from "@/pages/forbidden";
 import { RequirePermission } from "@/components/require-permission";
 import { RoleSelectorModal } from "@/components/role-selector-modal";
-import { AiChatWidget } from "@/components/ai-chat-widget";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoading } = useCurrentUser();
@@ -81,9 +80,6 @@ function App() {
                     </ErrorBoundary>
                   </AuthGate>
                   <RoleSelectorModal />
-                  <AuthGate>
-                    <AiChatWidget />
-                  </AuthGate>
                 </WouterRouter>
                 <Toaster />
               </TooltipProvider>
