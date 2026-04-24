@@ -1,0 +1,54 @@
+Generate a professional System Architecture Document for a SaaS application prototype in Markdown format.
+Save it to /docs/technical/01_system_architecture.md
+
+The document must include the following sections. Use placeholder values in [BRACKETS] where specific project details are needed so the author can fill them in later.
+
+Sections to include:
+
+1. Document Header
+   - Title, Version (v0.1 - Draft), Date, Author: [Your Name], Status: Draft
+
+2. Executive Summary
+   - 2-3 sentences describing what the SaaS application does and who it's for.
+   - Use placeholders: [PRODUCT NAME], [TARGET USER], [CORE VALUE PROPOSITION]
+
+3. System Overview
+   - High-level description of the system
+   - Technology Stack table with columns: Layer | Technology | Version | Notes
+     Rows: Frontend, Backend/API, Database, Authentication, Hosting/Cloud, CI/CD, Monitoring
+     Use placeholders like [FRONTEND FRAMEWORK], [BACKEND LANGUAGE], [DATABASE]
+
+4. Architecture Diagram (Text-based)
+   - ASCII or Mermaid diagram showing: Client → CDN → Load Balancer → API Gateway → Services → Database
+   - Use Mermaid flowchart syntax
+
+5. Core Components
+   - For each component (Frontend App, API Layer, Database, Auth Service, Storage, Email/Notifications):
+     - Component name
+     - Responsibility
+     - Technology: [PLACEHOLDER]
+     - Key interactions
+
+6. Data Flow Description
+   - Step-by-step description of a typical user request lifecycle (Login → Request → API → DB → Response)
+
+7. Infrastructure & Hosting
+   - Cloud provider: [AWS / GCP / Azure - TBD]
+   - Environments: Development, Staging, Production
+   - Table: Environment | URL | Purpose | Access Level
+
+8. Scalability Considerations
+   - Horizontal vs. vertical scaling notes
+   - Expected initial load: [X concurrent users]
+   - Bottlenecks to monitor
+
+9. Third-Party Integrations
+   - Table: Service | Purpose | Integration Type | Owner
+
+10. Open Questions / Decisions Pending
+    - Bulleted list of 5-7 architecture decisions still to be made
+
+11. Revision History
+    - Table: Version | Date | Author | Changes
+
+Format the entire document cleanly in Markdown with proper headers (##, ###), tables, and code blocks where appropriate.
