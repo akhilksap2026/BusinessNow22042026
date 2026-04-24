@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, projectsTable, phasesTable, tasksTable, allocationsTable, accountsTable, documentsTable } from "@workspace/db";
+import { db, projectsTable, tasksTable, allocationsTable, accountsTable, documentsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 
 export const portalAuthRouter = Router();
@@ -87,11 +87,10 @@ portalAuthRouter.get("/portal-auth/projects/:id", requireCustomer, async (req, r
   const [account] = await db.select().from(accountsTable).where(eq(accountsTable.id, project.accountId));
   const theme = account?.portalTheme ?? defaultTheme();
 
-  const phases = await db.select().from(phasesTable)
-    .where(and(eq(phasesTable.projectId, projectId), eq(phasesTable.isSharedWithClient, true)));
-
   const tasks = await db.select().from(tasksTable)
     .where(and(eq(tasksTable.projectId, projectId), eq(tasksTable.visibleToClient, true)));
+
+  const phaseTasks = tasks.filter(t => t.parentTaskId == null && t.isPhase);
 
   const docs = await db.select().from(documentsTable).where(eq(documentsTable.projectId, projectId));
 
@@ -103,22 +102,22 @@ portalAuthRouter.get("/portal-auth/projects/:id", requireCustomer, async (req, r
     .filter(t => t.isMilestone)
     .map(m => ({ id: m.id, name: m.name, status: m.status, dueDate: m.dueDate }));
 
-  const phasesWithTasks = phases.map(ph => ({
+  const phasesWithTasks = phaseTasks.map(ph => ({
     id: ph.id,
     name: ph.name,
     status: ph.status,
     startDate: ph.startDate,
-    endDate: ph.endDate,
+    endDate: ph.dueDate,
     tasks: tasks
-      .filter(t => t.phaseId === ph.id && !t.isMilestone)
+      .filter(t => t.parentTaskId === ph.id && !t.isMilestone)
       .map(t => ({
         id: t.id,
         name: t.name,
         status: t.status,
         dueDate: t.dueDate,
-        assigneeId: t.assigneeId,
+        assigneeIds: t.assigneeIds,
         priority: t.priority,
-        isMine: t.assigneeId === userId,
+        isMine: (t.assigneeIds ?? []).includes(userId),
       })),
   }));
 

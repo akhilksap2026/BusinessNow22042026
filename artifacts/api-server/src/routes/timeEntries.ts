@@ -16,6 +16,21 @@ import {
 
 const router: IRouter = Router();
 
+async function isParentOrPhaseTask(taskId: number): Promise<boolean> {
+  const [self] = await db
+    .select({ isPhase: tasksTable.isPhase })
+    .from(tasksTable)
+    .where(eq(tasksTable.id, taskId))
+    .limit(1);
+  if (self?.isPhase) return true;
+  const children = await db
+    .select({ id: tasksTable.id })
+    .from(tasksTable)
+    .where(eq(tasksTable.parentTaskId, taskId))
+    .limit(1);
+  return children.length > 0;
+}
+
 function mapEntry(e: typeof timeEntriesTable.$inferSelect) {
   return {
     ...e,
@@ -52,6 +67,12 @@ router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
   }
   if (body.taskId !== undefined && data.taskId === undefined) {
     data.taskId = body.taskId === null ? null : Number(body.taskId);
+  }
+  if (data.taskId != null) {
+    if (await isParentOrPhaseTask(Number(data.taskId))) {
+      res.status(400).json({ error: "Cannot log time on a parent task. Log against an individual child task." });
+      return;
+    }
   }
   // Enforce: non-project activities must be non-billable
   if (!data.projectId) { data.projectId = null; data.billable = false; }
@@ -111,6 +132,12 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   const body = req.body ?? {};
   if (body.categoryId !== undefined) teUpdates.categoryId = body.categoryId === null ? null : Number(body.categoryId);
   if (body.taskId !== undefined) teUpdates.taskId = body.taskId === null ? null : Number(body.taskId);
+  if (teUpdates.taskId != null) {
+    if (await isParentOrPhaseTask(Number(teUpdates.taskId))) {
+      res.status(400).json({ error: "Cannot log time on a parent task. Log against an individual child task." });
+      return;
+    }
+  }
   if (typeof body.role === "string") teUpdates.role = body.role.trim() || null;
   if (typeof body.rejected === "boolean") teUpdates.rejected = body.rejected;
   if (typeof body.rejectionNote === "string") teUpdates.rejectionNote = body.rejectionNote.trim() || null;

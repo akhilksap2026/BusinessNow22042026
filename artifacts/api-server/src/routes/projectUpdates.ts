@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, projectUpdatesTable, updateRecipientsTable, tasksTable, phasesTable, documentsTable, allocationsTable, usersTable, notificationsTable } from "@workspace/db";
+import { db, projectUpdatesTable, updateRecipientsTable, tasksTable, documentsTable, allocationsTable, usersTable, notificationsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 
 export const projectUpdatesRouter = Router();
@@ -133,13 +133,13 @@ projectUpdatesRouter.get("/projects/:id/health-stats", async (req, res): Promise
   const onTrack = nonMilestones.filter(t => t.status === "In Progress" && (!t.dueDate || t.dueDate >= today)).length;
   const completionPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const phases = await db.select().from(phasesTable).where(eq(phasesTable.projectId, projectId));
-  const phaseStats = phases.map(ph => {
-    const phaseTasks = nonMilestones.filter(t => t.phaseId === ph.id);
-    const phTotal = phaseTasks.length;
-    const phDone = phaseTasks.filter(t => t.status === "Completed").length;
+  const phaseTaskList = tasks.filter(t => t.parentTaskId == null && t.isPhase);
+  const phaseStats = phaseTaskList.map(ph => {
+    const childTasks = nonMilestones.filter(t => t.parentTaskId === ph.id);
+    const phTotal = childTasks.length;
+    const phDone = childTasks.filter(t => t.status === "Completed").length;
     const pct = phTotal > 0 ? Math.round((phDone / phTotal) * 100) : 0;
-    const phOverdue = phaseTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== "Completed").length;
+    const phOverdue = childTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== "Completed").length;
     return {
       id: ph.id,
       name: ph.name,
@@ -149,7 +149,7 @@ projectUpdatesRouter.get("/projects/:id/health-stats", async (req, res): Promise
       completionPct: pct,
       overdueTasks: phOverdue,
       startDate: ph.startDate,
-      endDate: ph.endDate,
+      endDate: ph.dueDate,
     };
   });
 

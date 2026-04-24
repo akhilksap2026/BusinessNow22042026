@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, baselinesTable, phasesTable, tasksTable } from "@workspace/db";
+import { db, baselinesTable, tasksTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 
 const router: IRouter = Router();
@@ -25,22 +25,22 @@ router.post("/projects/:id/baselines", async (req, res): Promise<void> => {
   const { name, notes } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
 
-  // Snapshot current phases and tasks
-  const phases = await db.select().from(phasesTable).where(eq(phasesTable.projectId, projectId));
+  // Snapshot current Level-1 phase tasks (acting as phases) and all tasks
   const tasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, projectId));
+  const phaseTasks = tasks.filter(t => t.parentTaskId == null && t.isPhase);
 
-  const phaseSnapshot = phases.map(p => ({
+  const phaseSnapshot = phaseTasks.map(p => ({
     id: p.id,
     name: p.name,
     startDate: p.startDate,
-    endDate: p.endDate,
+    endDate: p.dueDate,
   }));
   const taskSnapshot = tasks.map(t => ({
     id: t.id,
     name: t.name,
     startDate: t.startDate,
     dueDate: t.dueDate,
-    phaseId: t.phaseId,
+    parentTaskId: t.parentTaskId,
   }));
 
   const today = new Date().toISOString().slice(0, 10);

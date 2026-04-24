@@ -301,7 +301,7 @@ export const ListTasksQueryParams = zod.object({
 export const ListTasksResponseItem = zod.object({
   id: zod.number(),
   projectId: zod.number(),
-  phaseId: zod.number().nullish(),
+  isPhase: zod.boolean().optional(),
   name: zod.string(),
   status: zod.string(),
   priority: zod.string(),
@@ -330,7 +330,8 @@ export const ListTasksResponse = zod.array(ListTasksResponseItem);
  */
 export const CreateTaskBody = zod.object({
   projectId: zod.number(),
-  phaseId: zod.number().optional(),
+  parentTaskId: zod.number().nullish(),
+  isPhase: zod.boolean().optional(),
   name: zod.string(),
   status: zod.string(),
   priority: zod.string(),
@@ -352,7 +353,7 @@ export const GetTaskParams = zod.object({
 export const GetTaskResponse = zod.object({
   id: zod.number(),
   projectId: zod.number(),
-  phaseId: zod.number().nullish(),
+  isPhase: zod.boolean().optional(),
   name: zod.string(),
   status: zod.string(),
   priority: zod.string(),
@@ -383,7 +384,8 @@ export const UpdateTaskParams = zod.object({
 });
 
 export const UpdateTaskBody = zod.object({
-  phaseId: zod.number().optional(),
+  parentTaskId: zod.number().nullish(),
+  isPhase: zod.boolean().optional(),
   name: zod.string().optional(),
   status: zod.string().optional(),
   priority: zod.string().optional(),
@@ -398,7 +400,7 @@ export const UpdateTaskBody = zod.object({
 export const UpdateTaskResponse = zod.object({
   id: zod.number(),
   projectId: zod.number(),
-  phaseId: zod.number().nullish(),
+  isPhase: zod.boolean().optional(),
   name: zod.string(),
   status: zod.string(),
   priority: zod.string(),
@@ -1001,93 +1003,6 @@ export const MarkNotificationReadResponse = zod.object({
 });
 
 /**
- * @summary List phases for a project
- */
-export const ListPhasesQueryParams = zod.object({
-  projectId: zod.coerce.number(),
-});
-
-export const ListPhasesResponseItem = zod.object({
-  id: zod.number(),
-  projectId: zod.number(),
-  name: zod.string(),
-  status: zod.string(),
-  startDate: zod.string().nullish(),
-  dueDate: zod.string().nullish(),
-  order: zod.number(),
-  isSharedWithClient: zod.boolean(),
-  createdAt: zod.string(),
-});
-export const ListPhasesResponse = zod.array(ListPhasesResponseItem);
-
-/**
- * @summary Create a phase
- */
-export const CreatePhaseBody = zod.object({
-  projectId: zod.number(),
-  name: zod.string(),
-  status: zod.string().optional(),
-  startDate: zod.string().optional(),
-  dueDate: zod.string().optional(),
-  order: zod.number().optional(),
-  isSharedWithClient: zod.boolean().optional(),
-});
-
-/**
- * @summary Get phase by ID
- */
-export const GetPhaseParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const GetPhaseResponse = zod.object({
-  id: zod.number(),
-  projectId: zod.number(),
-  name: zod.string(),
-  status: zod.string(),
-  startDate: zod.string().nullish(),
-  dueDate: zod.string().nullish(),
-  order: zod.number(),
-  isSharedWithClient: zod.boolean(),
-  createdAt: zod.string(),
-});
-
-/**
- * @summary Update phase
- */
-export const UpdatePhaseParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const UpdatePhaseBody = zod.object({
-  name: zod.string().optional(),
-  status: zod.string().optional(),
-  startDate: zod.string().optional(),
-  dueDate: zod.string().optional(),
-  order: zod.number().optional(),
-  isSharedWithClient: zod.boolean().optional(),
-});
-
-export const UpdatePhaseResponse = zod.object({
-  id: zod.number(),
-  projectId: zod.number(),
-  name: zod.string(),
-  status: zod.string(),
-  startDate: zod.string().nullish(),
-  dueDate: zod.string().nullish(),
-  order: zod.number(),
-  isSharedWithClient: zod.boolean(),
-  createdAt: zod.string(),
-});
-
-/**
- * @summary Delete phase
- */
-export const DeletePhaseParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-/**
  * @summary List timesheets
  */
 export const ListTimesheetsQueryParams = zod.object({
@@ -1392,7 +1307,6 @@ export const CreateResourceRequestBody = zod.object({
   requestedByUserId: zod.number(),
   role: zod.string(),
   requiredSkills: zod.array(zod.string()).optional(),
-  requiredSkillsWithLevel: zod.array(zod.object({ skillId: zod.number(), skillName: zod.string(), competencyLevel: zod.string() })).optional(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
@@ -1410,7 +1324,6 @@ export const UpdateResourceRequestParams = zod.object({
 export const UpdateResourceRequestBody = zod.object({
   role: zod.string().optional(),
   requiredSkills: zod.array(zod.string()).optional(),
-  requiredSkillsWithLevel: zod.array(zod.object({ skillId: zod.number(), skillName: zod.string(), competencyLevel: zod.string() })).optional(),
   startDate: zod.string().optional(),
   endDate: zod.string().optional(),
   hoursPerWeek: zod.number().optional(),

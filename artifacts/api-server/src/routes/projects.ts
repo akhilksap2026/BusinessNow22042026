@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
-import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, tasksTable, phasesTable, taskDependenciesTable } from "@workspace/db";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, tasksTable, taskDependenciesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
@@ -177,20 +177,8 @@ router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<vo
     }).where(eq(tasksTable.id, task.id));
   }
 
-  // Shift phases: recalc from tasks after update
-  const updatedTasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, projectId));
-  const phases = await db.select().from(phasesTable).where(eq(phasesTable.projectId, projectId));
-  for (const phase of phases) {
-    const phaseTasks = updatedTasks.filter(t => t.phaseId === phase.id);
-    const starts = phaseTasks.map(t => t.startDate).filter(Boolean).sort() as string[];
-    const dues = phaseTasks.map(t => t.dueDate).filter(Boolean).sort() as string[];
-    if (starts.length > 0 || dues.length > 0) {
-      await db.update(phasesTable).set({
-        startDate: starts[0] ?? phase.startDate,
-        endDate: dues[dues.length - 1] ?? phase.endDate,
-      }).where(eq(phasesTable.id, phase.id));
-    }
-  }
+  // Phase rollup: Level-1 phase tasks now hold their own dates and are shifted in the
+  // tasks loop above; no separate phases entity to recalc.
 
   // Optionally shift project dates too
   if (!fromTaskId) {

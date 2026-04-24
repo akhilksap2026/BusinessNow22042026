@@ -459,3 +459,17 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - T003: Resources Capacity — search bar (filters by name/role) + department dropdown filter above capacity table; IIFE-rendered filtered results
 - T004: Notification Bell — replaced bare `<Link>` with `<Popover>`; shows last 6 notifications (unread highlighted, blue dot, timestamp via `timeAgo()`); "Mark all read" button; "View all notifications" footer link; `useMarkNotificationRead` + `getListNotificationsQueryKey` for cache invalidation
 - T005: Finance Invoices — per-row `⋮` DropdownMenu with "View Details" + "Mark as [next-status]" (Draft→In Review→Approved→Paid); `useUpdateInvoice` mutation; `e.stopPropagation()` prevents row click from also opening detail
+
+### 2026-04-24 — Module 2 Remediation (PSA Audit 2.2 / 2.3 / 2.5)
+- 2.2 Block time-logging on parent tasks
+  - `routes/timeEntries.ts`: added `taskHasChildren()` helper; POST + PATCH return 400 with message "Cannot log time on a parent task. Log against an individual child task." when `taskId` has any child.
+  - `components/timesheet-grid.tsx` + `components/tracked-time-tab.tsx`: parent tasks filtered out of all four task pickers (timesheet add/edit + tracked-time edit/add-on-behalf).
+- 2.3 Logged-time rollup on parent tasks
+  - `components/project-phases.tsx`: added `useListTimeEntries({ projectId })` + `hoursByTaskId` Map + `calcLoggedHours(node)` recursive sum; effort cell widened to `w-28` and now shows planned + logged hours stacked, both with extended "Auto-calculated" tooltip.
+- 2.5 Drop separate Phases entity — Level-1 tasks ARE phases
+  - DB: added `tasks.is_phase boolean DEFAULT false`; backfilled 18 Level-1 phase tasks from `phases`; re-parented 33 child tasks; finally dropped `tasks.phase_id` and the entire `phases` table.
+  - Schema: deleted `lib/db/src/schema/phases.ts` + export; removed `phaseId` from `tasksTable`.
+  - API: deleted `routes/phases.ts` + router registration; removed `/phases` and `/phases/{id}` paths from `openapi.yaml`; deleted `Phase` / `CreatePhaseBody` / `UpdatePhaseBody` schemas; `phaseId` swapped for `isPhase: boolean` (+ `parentTaskId`) on Task / CreateTaskBody / UpdateTaskBody; codegen re-run.
+  - Server callsites switched off `phasesTable`: `baselines.ts`, `reports.ts`, `portalAuth.ts`, `projectUpdates.ts`, `projects.ts`, `projectTemplates.ts` (both apply-template and from-template instantiation paths now create Level-1 `is_phase=true` tasks and parent child tasks under them).
+  - Frontend: `tracked-time-tab.tsx` no longer fetches `/api/phases`; "Phase" group-by now derives the top-level ancestor task. `project-phases.tsx` shows a "Phase" badge on rows where `task.isPhase === true`.
+  - `template_phases` table (template-only concept) untouched.

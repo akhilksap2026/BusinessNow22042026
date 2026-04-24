@@ -5,7 +5,6 @@ import { z } from "zod/v4";
 export const tasksTable = pgTable("tasks", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
-  phaseId: integer("phase_id"),
   parentTaskId: integer("parent_task_id"),
   name: text("name").notNull(),
   status: text("status").notNull().default("Not Started"),
@@ -25,6 +24,7 @@ export const tasksTable = pgTable("tasks", {
   appliedTemplateId: integer("applied_template_id"),
   csatEnabled: boolean("csat_enabled").notNull().default(true),
   privateNotes: text("private_notes"),
+  isPhase: boolean("is_phase").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

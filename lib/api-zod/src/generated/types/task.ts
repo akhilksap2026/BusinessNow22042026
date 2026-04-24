@@ -9,8 +9,7 @@
 export interface Task {
   id: number;
   projectId: number;
-  /** @nullable */
-  phaseId?: number | null;
+  isPhase?: boolean;
   name: string;
   status: string;
   priority: string;

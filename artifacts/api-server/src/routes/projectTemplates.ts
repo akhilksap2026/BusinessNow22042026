@@ -6,7 +6,6 @@ import {
   templateTasksTable,
   templateAllocationsTable,
   projectsTable,
-  phasesTable,
   tasksTable,
   allocationsTable,
   placeholdersTable,
@@ -488,26 +487,34 @@ router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise
     .where(eq(templateTasksTable.templateId, templateId))
     .orderBy(asc(templateTasksTable.order));
 
-  const createdPhases: typeof phasesTable.$inferSelect[] = [];
+  const createdPhaseTasks: typeof tasksTable.$inferSelect[] = [];
   const createdTasks: typeof tasksTable.$inferSelect[] = [];
 
   for (const tPhase of templatePhases) {
     const phaseStart = addCalendarDays(startDate, tPhase.relativeStartOffset);
     const phaseEnd = addCalendarDays(startDate, tPhase.relativeEndOffset);
 
-    const [phase] = await db
-      .insert(phasesTable)
+    const [phaseTask] = await db
+      .insert(tasksTable)
       .values({
         projectId,
+        parentTaskId: null,
+        isPhase: true,
         name: tPhase.name,
         status: "Not Started",
+        priority: "Medium",
+        effort: "0",
+        billable: true,
+        assigneeIds: [],
         startDate: phaseStart,
         dueDate: phaseEnd,
-        order: tPhase.order,
-        isSharedWithClient: tPhase.privacyDefault === "shared",
+        isMilestone: false,
+        visibleToClient: tPhase.privacyDefault === "shared",
+        fromTemplate: true,
+        appliedTemplateId: templateId,
       })
       .returning();
-    createdPhases.push(phase);
+    createdPhaseTasks.push(phaseTask);
 
     const phaseTasks = templateTasks.filter(t => t.templatePhaseId === tPhase.id);
     for (const tTask of phaseTasks) {
@@ -516,7 +523,7 @@ router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise
         .insert(tasksTable)
         .values({
           projectId,
-          phaseId: phase.id,
+          parentTaskId: phaseTask.id,
           name: tTask.name,
           status: "Not Started",
           priority: tTask.priority,
@@ -541,7 +548,7 @@ router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise
     templateName: template.name,
     projectId,
     startDate,
-    phasesCreated: createdPhases.length,
+    phasesCreated: createdPhaseTasks.length,
     tasksCreated: createdTasks.length,
   });
 });
@@ -600,16 +607,24 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
     const phaseStart = addCalendarDays(startDate, tPhase.relativeStartOffset);
     const phaseEnd = addCalendarDays(startDate, tPhase.relativeEndOffset);
 
-    const [phase] = await db
-      .insert(phasesTable)
+    const [phaseTask] = await db
+      .insert(tasksTable)
       .values({
         projectId: project.id,
+        parentTaskId: null,
+        isPhase: true,
         name: tPhase.name,
         status: "Not Started",
+        priority: "Medium",
+        effort: "0",
+        billable: true,
+        assigneeIds: [],
         startDate: phaseStart,
         dueDate: phaseEnd,
-        order: tPhase.order,
-        isSharedWithClient: tPhase.privacyDefault === "shared",
+        isMilestone: false,
+        visibleToClient: tPhase.privacyDefault === "shared",
+        fromTemplate: true,
+        appliedTemplateId: templateId,
       })
       .returning();
 
@@ -618,7 +633,7 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
       const taskDue = addCalendarDays(startDate, tTask.relativeDueDateOffset);
       await db.insert(tasksTable).values({
         projectId: project.id,
-        phaseId: phase.id,
+        parentTaskId: phaseTask.id,
         name: tTask.name,
         status: "Not Started",
         priority: tTask.priority,

@@ -7,7 +7,9 @@
  */
 
 export interface UpdateTaskBody {
-  phaseId?: number;
+  /** @nullable */
+  parentTaskId?: number | null;
+  isPhase?: boolean;
   name?: string;
   status?: string;
   priority?: string;

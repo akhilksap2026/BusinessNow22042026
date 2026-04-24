@@ -13,8 +13,6 @@ tags:
     description: Dashboard summary operations
   - name: projects
     description: Project management
-  - name: phases
-    description: Project phase management
   - name: tasks
     description: Task management
   - name: accounts
@@ -903,102 +901,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Notification"
-
-  # ─── PHASES ───────────────────────────────────────────────────
-  /phases:
-    get:
-      operationId: listPhases
-      tags: [phases]
-      summary: List phases for a project
-      parameters:
-        - name: projectId
-          in: query
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: List of phases
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Phase"
-    post:
-      operationId: createPhase
-      tags: [phases]
-      summary: Create a phase
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreatePhaseBody"
-      responses:
-        "201":
-          description: Created phase
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Phase"
-
-  /phases/{id}:
-    get:
-      operationId: getPhase
-      tags: [phases]
-      summary: Get phase by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Phase
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Phase"
-        "404":
-          description: Not found
-    patch:
-      operationId: updatePhase
-      tags: [phases]
-      summary: Update phase
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdatePhaseBody"
-      responses:
-        "200":
-          description: Updated phase
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Phase"
-    delete:
-      operationId: deletePhase
-      tags: [phases]
-      summary: Delete phase
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: Deleted
 
   # ─── TIMESHEETS ────────────────────────────────────────────────
   /timesheets:
@@ -3832,8 +3734,8 @@ components:
           type: integer
         projectId:
           type: integer
-        phaseId:
-          type: ["integer", "null"]
+        isPhase:
+          type: boolean
         name:
           type: string
         status:
@@ -3883,8 +3785,10 @@ components:
       properties:
         projectId:
           type: integer
-        phaseId:
-          type: integer
+        parentTaskId:
+          type: ["integer", "null"]
+        isPhase:
+          type: boolean
         name:
           type: string
         status:
@@ -3916,8 +3820,10 @@ components:
     UpdateTaskBody:
       type: object
       properties:
-        phaseId:
-          type: integer
+        parentTaskId:
+          type: ["integer", "null"]
+        isPhase:
+          type: boolean
         name:
           type: string
         status:
@@ -4632,74 +4538,6 @@ components:
         - message
         - read
         - timestamp
-
-    # ─── PHASE ──────────────────────────────────────────────────
-    Phase:
-      type: object
-      properties:
-        id:
-          type: integer
-        projectId:
-          type: integer
-        name:
-          type: string
-        status:
-          type: string
-        startDate:
-          type: ["string", "null"]
-        dueDate:
-          type: ["string", "null"]
-        order:
-          type: integer
-        isSharedWithClient:
-          type: boolean
-        createdAt:
-          type: string
-      required:
-        - id
-        - projectId
-        - name
-        - status
-        - order
-        - isSharedWithClient
-        - createdAt
-
-    CreatePhaseBody:
-      type: object
-      properties:
-        projectId:
-          type: integer
-        name:
-          type: string
-        status:
-          type: string
-        startDate:
-          type: string
-        dueDate:
-          type: string
-        order:
-          type: integer
-        isSharedWithClient:
-          type: boolean
-      required:
-        - projectId
-        - name
-
-    UpdatePhaseBody:
-      type: object
-      properties:
-        name:
-          type: string
-        status:
-          type: string
-        startDate:
-          type: string
-        dueDate:
-          type: string
-        order:
-          type: integer
-        isSharedWithClient:
-          type: boolean
 
     # ─── TIMESHEET ──────────────────────────────────────────────
     Timesheet:

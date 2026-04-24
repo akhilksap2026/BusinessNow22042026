@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, phasesTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable, timesheetsTable } from "@workspace/db";
+import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable, timesheetsTable } from "@workspace/db";
 import { eq, and, isNull } from "drizzle-orm";
 import {
   GetUtilizationReportResponse,
@@ -435,7 +435,6 @@ router.get("/reports/csat-trend", async (_req, res): Promise<void> => {
 router.get("/reports/interval-iq", async (_req, res): Promise<void> => {
   const projects = await db.select().from(projectsTable);
   const tasks = await db.select().from(tasksTable);
-  const phases = await db.select().from(phasesTable);
 
   const existingEvents = await db.select().from(keyEventsTable);
 

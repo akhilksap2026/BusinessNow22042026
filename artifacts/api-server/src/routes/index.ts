@@ -3,7 +3,6 @@ import healthRouter from "./health";
 import dashboardRouter from "./dashboard";
 import accountsRouter from "./accounts";
 import projectsRouter from "./projects";
-import phasesRouter from "./phases";
 import tasksRouter from "./tasks";
 import usersRouter from "./users";
 import timeEntriesRouter from "./timeEntries";
@@ -58,7 +57,6 @@ router.use((req: Request, res: Response, next: NextFunction) => {
 router.use(dashboardRouter);
 router.use(accountsRouter);
 router.use(projectsRouter);
-router.use(phasesRouter);
 router.use(tasksRouter);
 router.use(usersRouter);
 router.use(timeEntriesRouter);

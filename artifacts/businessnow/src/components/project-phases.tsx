@@ -10,8 +10,10 @@ import {
   useDeleteTask,
   useListUsers,
   useListAllocations,
+  useListTimeEntries,
   getListTasksQueryKey,
   getListAllocationsQueryKey,
+  getListTimeEntriesQueryKey,
 } from "@workspace/api-client-react";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
 import { Button } from "@/components/ui/button";
@@ -79,6 +81,11 @@ function calcEffort(node: TaskNode): number {
   return node.children.reduce((sum, child) => sum + calcEffort(child), 0);
 }
 
+function calcLoggedHours(node: TaskNode, hoursByTaskId: Map<number, number>): number {
+  const own = hoursByTaskId.get(node.task.id) ?? 0;
+  return node.children.reduce((sum, child) => sum + calcLoggedHours(child, hoursByTaskId), own);
+}
+
 function allNodeIds(nodes: TaskNode[]): number[] {
   return nodes.flatMap((n) => [n.task.id, ...allNodeIds(n.children)]);
 }
@@ -119,6 +126,19 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
     { projectId },
     { query: { enabled: !!projectId, queryKey: getListAllocationsQueryKey({ projectId }) } }
   );
+  const { data: timeEntries } = useListTimeEntries(
+    { projectId },
+    { query: { enabled: !!projectId, queryKey: getListTimeEntriesQueryKey({ projectId }) } }
+  );
+
+  const hoursByTaskId = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const e of (timeEntries as any[]) ?? []) {
+      if (e.taskId == null) continue;
+      map.set(e.taskId, (map.get(e.taskId) ?? 0) + Number(e.hours ?? 0));
+    }
+    return map;
+  }, [timeEntries]);
 
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -243,6 +263,9 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
     const hasChildren = children.length > 0;
     const isExpanded = expandedIds.has(task.id);
     const totalEffort = calcEffort(node);
+    const ownLogged = hoursByTaskId.get(task.id) ?? 0;
+    const totalLogged = hasChildren ? calcLoggedHours(node, hoursByTaskId) : ownLogged;
+    const showPhaseBadge = !!task.isPhase;
 
     return (
       <div key={task.id}>
@@ -280,11 +303,11 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
           >
             {task.isMilestone && <Milestone className="h-3.5 w-3.5 text-purple-500 shrink-0" />}
             <span className={`truncate ${depth === 0 ? "font-medium" : ""}`}>{task.name}</span>
-            {depth === 0 && (
+            {showPhaseBadge && (
               <Badge
                 variant="outline"
                 className="text-[10px] px-1 py-0 h-4 text-indigo-600 border-indigo-300 bg-indigo-50 dark:bg-indigo-950/30 shrink-0"
-                title="Top-level task — acts as a project phase"
+                title="Phase — top-level task that groups child tasks"
               >
                 Phase
               </Badge>
@@ -344,18 +367,26 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
             )}
           </div>
 
-          {/* Effort */}
-          <div className="w-20 shrink-0 text-xs text-right tabular-nums">
+          {/* Effort + Logged time */}
+          <div className="w-28 shrink-0 text-xs text-right tabular-nums">
             {task.isMilestone ? null : hasChildren ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-muted-foreground cursor-help">
-                    {totalEffort > 0 ? `${totalEffort % 1 === 0 ? totalEffort : totalEffort.toFixed(1)}h` : "—"}
-                    <span className="text-[10px] ml-0.5 opacity-50">∑</span>
-                  </span>
+                  <div className="cursor-help leading-tight">
+                    <div className="text-muted-foreground">
+                      {totalEffort > 0 ? `${totalEffort % 1 === 0 ? totalEffort : totalEffort.toFixed(1)}h` : "—"}
+                      <span className="text-[10px] ml-0.5 opacity-50">plan ∑</span>
+                    </div>
+                    <div className="text-emerald-600 dark:text-emerald-400">
+                      {totalLogged > 0 ? `${totalLogged % 1 === 0 ? totalLogged : totalLogged.toFixed(1)}h` : "—"}
+                      <span className="text-[10px] ml-0.5 opacity-60">logged ∑</span>
+                    </div>
+                  </div>
                 </TooltipTrigger>
-                <TooltipContent side="left" className="max-w-[220px] text-xs">
-                  <p className="font-semibold">Auto-calculated: {totalEffort.toFixed(1)}h</p>
+                <TooltipContent side="left" className="max-w-[240px] text-xs">
+                  <p className="font-semibold">Auto-calculated</p>
+                  <p className="mt-0.5">Planned effort: {totalEffort.toFixed(1)}h</p>
+                  <p>Logged time: {totalLogged.toFixed(1)}h</p>
                   <p className="text-muted-foreground mt-0.5">
                     Sum of all {countDescendants(node)} descendant task
                     {countDescendants(node) !== 1 ? "s" : ""}. Log time directly on leaf tasks only.
@@ -363,7 +394,14 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <span>{totalEffort > 0 ? `${totalEffort % 1 === 0 ? totalEffort : totalEffort.toFixed(1)}h` : "—"}</span>
+              <div className="leading-tight">
+                <div>{totalEffort > 0 ? `${totalEffort % 1 === 0 ? totalEffort : totalEffort.toFixed(1)}h` : "—"}</div>
+                {ownLogged > 0 && (
+                  <div className="text-emerald-600 dark:text-emerald-400 text-[10px]">
+                    {ownLogged % 1 === 0 ? ownLogged : ownLogged.toFixed(1)}h logged
+                  </div>
+                )}
+              </div>
             )}
           </div>
 

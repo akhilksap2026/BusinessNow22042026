@@ -134,8 +134,7 @@ export interface UpdateProjectBody {
 export interface Task {
   id: number;
   projectId: number;
-  /** @nullable */
-  phaseId?: number | null;
+  isPhase?: boolean;
   name: string;
   status: string;
   priority: string;
@@ -162,7 +161,9 @@ export interface Task {
 
 export interface CreateTaskBody {
   projectId: number;
-  phaseId?: number;
+  /** @nullable */
+  parentTaskId?: number | null;
+  isPhase?: boolean;
   name: string;
   status: string;
   priority: string;
@@ -175,7 +176,9 @@ export interface CreateTaskBody {
 }
 
 export interface UpdateTaskBody {
-  phaseId?: number;
+  /** @nullable */
+  parentTaskId?: number | null;
+  isPhase?: boolean;
   name?: string;
   status?: string;
   priority?: string;
@@ -478,39 +481,6 @@ export interface Notification {
   /** @nullable */
   projectName?: string | null;
   timestamp: string;
-}
-
-export interface Phase {
-  id: number;
-  projectId: number;
-  name: string;
-  status: string;
-  /** @nullable */
-  startDate?: string | null;
-  /** @nullable */
-  dueDate?: string | null;
-  order: number;
-  isSharedWithClient: boolean;
-  createdAt: string;
-}
-
-export interface CreatePhaseBody {
-  projectId: number;
-  name: string;
-  status?: string;
-  startDate?: string;
-  dueDate?: string;
-  order?: number;
-  isSharedWithClient?: boolean;
-}
-
-export interface UpdatePhaseBody {
-  name?: string;
-  status?: string;
-  startDate?: string;
-  dueDate?: string;
-  order?: number;
-  isSharedWithClient?: boolean;
 }
 
 export interface Timesheet {
@@ -1578,10 +1548,6 @@ export type ListInvoicesParams = {
 export type ListAllocationsParams = {
   projectId?: number;
   userId?: number;
-};
-
-export type ListPhasesParams = {
-  projectId: number;
 };
 
 export type ListTimesheetsParams = {

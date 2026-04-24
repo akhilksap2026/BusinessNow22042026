@@ -8,7 +8,9 @@
 
 export interface CreateTaskBody {
   projectId: number;
-  phaseId?: number;
+  /** @nullable */
+  parentTaskId?: number | null;
+  isPhase?: boolean;
   name: string;
   status: string;
   priority: string;

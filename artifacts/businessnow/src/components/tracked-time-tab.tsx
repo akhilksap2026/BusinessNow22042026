@@ -50,7 +50,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-type Phase = { id: number; name: string; projectId: number };
 type Category = { id: number; name: string; isBillable?: boolean };
 
 interface Props {
@@ -114,15 +113,9 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "PM" }: P
   const { data: tasks } = useListTasks({ projectId });
   const { data: allocations } = useListAllocations({ projectId });
 
-  const [phases, setPhases] = useState<Phase[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // Lazy-fetch phases + categories once
   useMemo(() => {
-    fetch(`/api/phases?projectId=${projectId}`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setPhases(Array.isArray(data) ? data : []))
-      .catch(() => {});
     fetch(`/api/time-categories`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setCategories(Array.isArray(data) ? data : []))
@@ -149,7 +142,19 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "PM" }: P
   // ── Helpers ───────────────────────────────────────────────────────────────
   const userById = useMemo(() => new Map((users ?? []).map((u: any) => [u.id, u])), [users]);
   const taskById = useMemo(() => new Map((tasks ?? []).map((t: any) => [t.id, t])), [tasks]);
-  const phaseById = useMemo(() => new Map(phases.map((p) => [p.id, p])), [phases]);
+  const topLevelAncestor = useMemo(() => {
+    const cache = new Map<number, any>();
+    const resolve = (id: number | null | undefined): any => {
+      if (id == null) return null;
+      if (cache.has(id)) return cache.get(id);
+      const t = taskById.get(id) as any;
+      if (!t) return null;
+      const top = t.isPhase ? t : (t.parentTaskId == null ? t : resolve(t.parentTaskId));
+      cache.set(id, top);
+      return top;
+    };
+    return resolve;
+  }, [taskById]);
   const catById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   // Resolve role: prefer entry.role, else allocation.role for that user on this project
@@ -212,11 +217,9 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "PM" }: P
           break;
         }
         case "phase": {
-          const t = taskById.get(e.taskId) as any;
-          const phaseId = t?.phaseId;
-          const phase = phaseId ? (phaseById.get(phaseId) as any) : null;
-          label = phase?.name ?? "No phase";
-          key = String(phaseId ?? "none");
+          const top = topLevelAncestor(e.taskId);
+          label = top?.name ?? "No phase";
+          key = String(top?.id ?? "none");
           break;
         }
         case "task": {
@@ -247,7 +250,7 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "PM" }: P
       label: ((groups as any)._labels as Map<string, string>).get(key) ?? key,
       entries: ents.sort((a: any, b: any) => (a.date < b.date ? 1 : -1)),
     }));
-  }, [filtered, groupBy, userById, taskById, phaseById, allocations]);
+  }, [filtered, groupBy, userById, taskById, topLevelAncestor, allocations]);
 
   // ── Bulk action handlers ─────────────────────────────────────────────────
   const invalidate = () => {
@@ -779,7 +782,9 @@ function EditEntryDialog({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">— None —</SelectItem>
-                {tasks.map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
+                {tasks
+                  .filter((t) => !tasks.some((c) => c.parentTaskId === t.id))
+                  .map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
             {!taskEditable && <p className="text-xs text-muted-foreground">Task is locked because this entry is approved.</p>}
@@ -948,7 +953,9 @@ function AddOnBehalfDialog({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">— None —</SelectItem>
-                {tasks.map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
+                {tasks
+                  .filter((t) => !tasks.some((c) => c.parentTaskId === t.id))
+                  .map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

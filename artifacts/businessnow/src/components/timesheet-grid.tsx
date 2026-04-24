@@ -812,7 +812,9 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                     <Select onValueChange={field.onChange} value={field.value?.toString()} disabled={!selectedProjectId}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select task" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        {projectTasks?.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                        {projectTasks
+                          ?.filter(t => !projectTasks.some(c => c.parentTaskId === t.id))
+                          .map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </FormItem>
@@ -890,7 +892,10 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                   <Select value={activityForm.taskId} onValueChange={v => setActivityForm(f => ({ ...f, taskId: v }))} disabled={!activityForm.projectId}>
                     <SelectTrigger><SelectValue placeholder="Select task" /></SelectTrigger>
                     <SelectContent>
-                      {allTasks?.filter(t => t.projectId === Number(activityForm.projectId)).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                      {allTasks
+                        ?.filter(t => t.projectId === Number(activityForm.projectId))
+                        .filter(t => !(allTasks ?? []).some(c => c.parentTaskId === t.id))
+                        .map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
