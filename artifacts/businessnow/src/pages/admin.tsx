@@ -71,6 +71,27 @@ import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TemplateEditor } from "@/components/template-editor";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser } from "@/contexts/current-user";
+import { can } from "@/lib/permissions";
+import { resolveRole, ROLES, type RoleValue } from "@/lib/roles";
+
+/**
+ * Role-assignment matrix — mirrors validateInviteRole on the API.
+ * Determines which canonical roles the current user may assign.
+ */
+const ALLOWED_ASSIGNMENTS: Record<RoleValue, RoleValue[]> = {
+  account_admin: ["account_admin", "super_user", "collaborator", "customer"],
+  super_user:    ["collaborator", "customer"],
+  collaborator:  ["customer"],
+  customer:      [],
+};
+
+const ROLE_LABELS: Record<RoleValue, string> = {
+  account_admin: "Account Admin",
+  super_user:    "Super User",
+  collaborator:  "Collaborator",
+  customer:      "Customer",
+};
 
 function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: number; userName: string; allSkills: { id: number; name: string; categoryId: number }[]; onClose: () => void }) {
   const { data: userSkills, isLoading } = useGetUserSkills({ userId });
@@ -280,6 +301,54 @@ export default function Admin() {
   const [editUser, setEditUser] = useState<any>(null);
   const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
   const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "" });
+
+  /* ── Invite + role-management context ─────────────────────────── */
+  const { activeRole } = useCurrentUser();
+  const inviterCanonical = resolveRole(activeRole) as RoleValue;
+  const allowedAssignments = ALLOWED_ASSIGNMENTS[inviterCanonical] ?? [];
+  const canManageTeam = can(activeRole, "settings.manageTeam");
+  const isAccountAdmin = inviterCanonical === ROLES.ACCOUNT_ADMIN;
+
+  /**
+   * The Admin page is global — no project context.  The invite-matrix requires
+   * a projectId for any `customer` target (and any collaborator inviter, who
+   * may only assign customers).  Customer invites therefore belong on the
+   * Project page; here we offer only internal/account roles.
+   */
+  const adminPageInviteRoles = allowedAssignments.filter(r => r !== "customer");
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: "", name: "", role: "" });
+  const inviteUserMut = useMutation({
+    mutationFn: async (payload: { email: string; name: string; role: string }) => {
+      const r = await fetch(`${BASE}/api/users/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-role": activeRole },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "Invite failed");
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+      toast({ title: `Invitation sent to ${inviteForm.email}` });
+      setInviteOpen(false);
+      setInviteForm({ email: "", name: "", role: "" });
+    },
+    onError: (err: Error) => toast({ title: "Invite failed", description: err.message, variant: "destructive" }),
+  });
+
+  /** Inline role change — uses the existing PATCH /users/:id, gated by assignment matrix. */
+  const changeRoleMut = useMutation({
+    mutationFn: async (vars: { id: number; role: RoleValue }) => {
+      await updateUser.mutateAsync({ id: vars.id, data: { role: vars.role } as any });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+      toast({ title: "Role updated" });
+    },
+    onError: (err: Error) => toast({ title: "Role change failed", description: err.message, variant: "destructive" }),
+  });
 
   function openAddUser() {
     setEditUser(null);
@@ -1134,7 +1203,16 @@ export default function Admin() {
                       <CardTitle>User Management</CardTitle>
                       <CardDescription>Manage team members, roles, and permissions</CardDescription>
                     </div>
-                    <Button size="sm" onClick={openAddUser}><Plus className="h-4 w-4 mr-2" /> Add User</Button>
+                    <div className="flex items-center gap-2">
+                      {canManageTeam && adminPageInviteRoles.length > 0 && (
+                        <Button size="sm" variant="outline" onClick={() => setInviteOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" /> Invite via Email
+                        </Button>
+                      )}
+                      {canManageTeam && (
+                        <Button size="sm" onClick={openAddUser}><Plus className="h-4 w-4 mr-2" /> Add User</Button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {isLoadingUsers ? (
@@ -1162,7 +1240,35 @@ export default function Admin() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                              <TableCell><Badge variant="outline" className="font-normal">{user.role}</Badge></TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const userCanonical = resolveRole(user.role) as RoleValue;
+                                  // Inline edit goes through PATCH /users/:id which is
+                                  // gated by requireAdmin, so we restrict the dropdown
+                                  // to account_admins to avoid a UI/backend 403 mismatch.
+                                  // (When the matrix is extended to PATCH in a later
+                                  // phase, this gate widens to `canManageTeam`.)
+                                  const canEdit = isAccountAdmin && allowedAssignments.includes(userCanonical);
+                                  if (!canEdit) {
+                                    return <Badge variant="outline" className="font-normal">{user.role}</Badge>;
+                                  }
+                                  return (
+                                    <Select
+                                      value={userCanonical}
+                                      onValueChange={(v) => changeRoleMut.mutate({ id: user.id, role: v as RoleValue })}
+                                    >
+                                      <SelectTrigger className="h-7 w-[140px] text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {(allowedAssignments as RoleValue[]).map(r => (
+                                          <SelectItem key={r} value={r} className="text-xs">{ROLE_LABELS[r]}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  );
+                                })()}
+                              </TableCell>
                               <TableCell>{user.department}{user.region ? <span className="text-muted-foreground ml-1 text-xs">· {user.region}</span> : null}</TableCell>
                               <TableCell>
                                 {user.activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
@@ -1184,10 +1290,14 @@ export default function Admin() {
                                       <DropdownMenuItem onClick={() => openEditUser(user)}>
                                         <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                                       </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem className="text-red-600" onClick={() => setUserDeleteId(user.id)}>
-                                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                                      </DropdownMenuItem>
+                                      {isAccountAdmin && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem className="text-red-600" onClick={() => setUserDeleteId(user.id)}>
+                                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </div>
@@ -3202,6 +3312,53 @@ export default function Admin() {
             <Button variant="outline" onClick={() => setUserDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveUser} disabled={createUser.isPending || updateUser.isPending || !userForm.name || !userForm.email}>
               {editUser ? "Save Changes" : "Add User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite-via-email dialog — posts to /api/users/invite (validated server-side) */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite Team Member</DialogTitle>
+            <DialogDescription>
+              They'll receive an email with a sign-up link.
+              {adminPageInviteRoles.length === 0 && " Your role cannot invite team members from this page."}
+              {adminPageInviteRoles.length > 0 && " To invite a customer, open the relevant project and use Invite there."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>Email *</Label>
+              <Input type="email" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} placeholder="name@company.com" />
+            </div>
+            <div className="space-y-1">
+              <Label>Name</Label>
+              <Input value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} placeholder="Optional — defaults from email" />
+            </div>
+            <div className="space-y-1">
+              <Label>Role *</Label>
+              <Select value={inviteForm.role} onValueChange={v => setInviteForm(f => ({ ...f, role: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
+                <SelectContent>
+                  {adminPageInviteRoles.map(r => (
+                    <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                You ({ROLE_LABELS[inviterCanonical] ?? activeRole}) can invite: {adminPageInviteRoles.map(r => ROLE_LABELS[r]).join(", ") || "—"}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+            <Button
+              disabled={!inviteForm.email || !inviteForm.role || inviteUserMut.isPending}
+              onClick={() => inviteUserMut.mutate({ email: inviteForm.email, name: inviteForm.name, role: inviteForm.role })}
+            >
+              {inviteUserMut.isPending ? "Sending…" : "Send Invite"}
             </Button>
           </DialogFooter>
         </DialogContent>

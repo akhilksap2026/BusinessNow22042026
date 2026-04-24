@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { requireAdmin } from "../middleware/rbac";
+import { validateInviteRole } from "../middleware/inviteValidation";
+import { resolveRole } from "../constants/roles";
 import {
   ListUsersResponse,
   CreateUserBody,
@@ -41,6 +43,70 @@ router.post("/users", requireAdmin, async (req, res): Promise<void> => {
   const initials = parsed.data.name.split(' ').map((p: string) => p[0]).join('').toUpperCase().slice(0, 2);
   const [row] = await db.insert(usersTable).values({ ...parsed.data, initials, skills: parsed.data.skills ?? [], costRate: String(parsed.data.costRate ?? 0) } as any).returning();
   res.status(201).json(GetUserResponse.parse(mapUser(row)));
+});
+
+/**
+ * POST /users/invite
+ *
+ * Email-based invite flow. Enforces the role-assignment matrix via
+ * validateInviteRole middleware. Body:
+ *   { email: string; name?: string; role: string; projectId?: number }
+ *
+ * Notes:
+ *   - This endpoint is additive — POST /users continues to work for the
+ *     existing "Add User" admin form. Use /users/invite for the email-flow.
+ *   - Token/email delivery is intentionally a no-op stub here; the response
+ *     includes an `invite` payload describing what would be sent.
+ *   - Both legacy and canonical role strings on the inviter's header and
+ *     in the body are accepted (resolveRole normalises them).
+ */
+router.post("/users/invite", validateInviteRole, async (req, res): Promise<void> => {
+  const { email, name, role, projectId } = req.body ?? {};
+
+  if (typeof email !== "string" || !email.includes("@")) {
+    res.status(400).json({ error: "Body field 'email' must be a valid email" });
+    return;
+  }
+
+  const canonicalRole = resolveRole(role);
+  const displayName: string =
+    typeof name === "string" && name.length > 0
+      ? name
+      : email.split("@")[0];
+  const initials = displayName
+    .split(/\s+/)
+    .map((p: string) => p[0] ?? "")
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "??";
+
+  // Persist the invited user as a pending row so they appear in the team list.
+  // accountId is set when present on the inviter's auth context (future hook).
+  const [row] = await db
+    .insert(usersTable)
+    .values({
+      name: displayName,
+      email,
+      role: canonicalRole,
+      department: "",
+      initials,
+      skills: [],
+      costRate: "0",
+      activeStatus: "invited",
+      isInternal: canonicalRole !== "customer",
+    } as any)
+    .returning();
+
+  res.status(201).json({
+    user: mapUser(row),
+    invite: {
+      email,
+      role: canonicalRole,
+      projectId: projectId ?? null,
+      // Stub — a real implementation would enqueue an email with a signed token.
+      tokenSent: false,
+    },
+  });
 });
 
 router.get("/users/:id", async (req, res): Promise<void> => {
