@@ -739,6 +739,38 @@ async function main() {
     // HarbourLink
     { projectId: proj("HarbourLink EDI Integration").id, userId: u("Daniel Osei").id, role: "Integration Engineer", startDate: "2025-03-01", endDate: "2025-10-31", hoursPerWeek: "32", isTimesheetApprover: true },
     { projectId: proj("HarbourLink EDI Integration").id, userId: u("Raj Krishnamurthy").id, role: "Data Engineer", startDate: "2025-06-02", endDate: "2025-10-31", hoursPerWeek: "16" },
+
+    // ── Forward-looking 2026 allocations ──────────────────────────────────
+    // Real engagements continue past their original 2025 end dates (extensions,
+    // hyper-care, phase 2 work). These cover the next 12 weeks shown on the
+    // Resource Utilisation Heat Map and the upcoming-quarter views.
+    // FrostLine — hyper-care + phase 2 expansion
+    { projectId: proj("FrostLine WMS Implementation").id, userId: u("Marcus Webb").id,        role: "Project Manager",       startDate: "2026-01-05", endDate: "2026-12-18", hoursPerWeek: "12", isTimesheetApprover: true },
+    { projectId: proj("FrostLine WMS Implementation").id, userId: u("Priya Nair").id,         role: "Solutions Architect",   startDate: "2026-01-05", endDate: "2026-09-25", hoursPerWeek: "20" },
+    { projectId: proj("FrostLine WMS Implementation").id, userId: u("Daniel Osei").id,        role: "Integration Engineer",  startDate: "2026-01-05", endDate: "2026-12-18", hoursPerWeek: "24" },
+    { projectId: proj("FrostLine WMS Implementation").id, userId: u("Tom Bridges").id,        role: "QA Engineer",           startDate: "2026-03-02", endDate: "2026-08-28", hoursPerWeek: "28" },
+    { projectId: proj("FrostLine WMS Implementation").id, userId: u("Leila Hassan").id,       role: "Change Management Lead",startDate: "2026-01-05", endDate: "2026-06-26", hoursPerWeek: "16" },
+    // VeloFreight — Phase 2 rollout
+    { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, userId: u("Marcus Webb").id,   role: "Project Manager",       startDate: "2026-01-05", endDate: "2026-12-18", hoursPerWeek: "16" },
+    { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, userId: u("Sophie Laurent").id,role: "Business Analyst",      startDate: "2026-01-05", endDate: "2026-10-30", hoursPerWeek: "32" },
+    { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, userId: u("Leila Hassan").id,  role: "Change Management Lead",startDate: "2026-01-05", endDate: "2026-09-25", hoursPerWeek: "20" },
+    { projectId: proj("VeloFreight TMS Rollout – Phase 1").id, userId: u("Raj Krishnamurthy").id, role: "Data Engineer",     startDate: "2026-04-06", endDate: "2026-12-18", hoursPerWeek: "20" },
+    // Oracle WMS Cloud Migration — extension wave
+    { projectId: proj("Oracle WMS Cloud Migration").id, userId: u("Priya Nair").id,           role: "Solutions Architect",   startDate: "2026-01-05", endDate: "2026-08-28", hoursPerWeek: "16" },
+    { projectId: proj("Oracle WMS Cloud Migration").id, userId: u("Daniel Osei").id,         role: "Integration Engineer",  startDate: "2026-01-05", endDate: "2026-08-28", hoursPerWeek: "16" },
+    { projectId: proj("Oracle WMS Cloud Migration").id, userId: u("Sophie Laurent").id,      role: "Business Analyst",      startDate: "2026-01-05", endDate: "2026-06-26", hoursPerWeek: "12" },
+    { projectId: proj("Oracle WMS Cloud Migration").id, userId: u("Tom Bridges").id,         role: "QA Engineer",           startDate: "2026-04-06", endDate: "2026-08-28", hoursPerWeek: "20" },
+    // HarbourLink — extended hyper-care
+    { projectId: proj("HarbourLink EDI Integration").id, userId: u("Daniel Osei").id,        role: "Integration Engineer",  startDate: "2026-01-05", endDate: "2026-10-30", hoursPerWeek: "20" },
+    { projectId: proj("HarbourLink EDI Integration").id, userId: u("Raj Krishnamurthy").id,  role: "Data Engineer",         startDate: "2026-01-05", endDate: "2026-10-30", hoursPerWeek: "16" },
+    // Fleet Telemetry MVP — finally kicked off
+    { projectId: proj("Fleet Telemetry MVP").id, userId: u("Marcus Webb").id,                role: "Project Manager",       startDate: "2026-03-02", endDate: "2026-12-18", hoursPerWeek: "12" },
+    { projectId: proj("Fleet Telemetry MVP").id, userId: u("Daniel Osei").id,                role: "Integration Engineer",  startDate: "2026-03-02", endDate: "2026-12-18", hoursPerWeek: "24" },
+    { projectId: proj("Fleet Telemetry MVP").id, userId: u("Raj Krishnamurthy").id,          role: "Data Engineer",         startDate: "2026-03-02", endDate: "2026-12-18", hoursPerWeek: "20" },
+    { projectId: proj("Fleet Telemetry MVP").id, userId: u("Tom Bridges").id,                role: "QA Engineer",           startDate: "2026-06-01", endDate: "2026-12-18", hoursPerWeek: "16" },
+    { projectId: proj("Fleet Telemetry MVP").id, userId: u("Amara Diallo").id,               role: "Consultant",            startDate: "2026-03-02", endDate: "2026-09-25", hoursPerWeek: "20" },
+    // Spread one extra allocation across PrimePack for Amara so all 8 users have 2026 coverage
+    { projectId: proj("Oracle WMS Cloud Migration").id, userId: u("Amara Diallo").id,        role: "Consultant",            startDate: "2026-01-05", endDate: "2026-08-28", hoursPerWeek: "12" },
   ]);
 
   // ─── Time Entries ─────────────────────────────────────────────────────────
