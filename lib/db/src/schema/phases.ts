@@ -9,6 +9,7 @@ export const phasesTable = pgTable("phases", {
   status: text("status").notNull().default("Not Started"),
   startDate: text("start_date"),
   dueDate: text("due_date"),
+  durationDays: integer("duration_days"),
   order: integer("order").notNull().default(0),
   isSharedWithClient: boolean("is_shared_with_client").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

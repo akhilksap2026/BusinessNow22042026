@@ -18,6 +18,7 @@ export const allocationsTable = pgTable("allocations", {
   percentOfCapacity: numeric("percent_of_capacity", { precision: 5, scale: 2 }),
   role: text("role").notNull(),
   isSoftAllocation: boolean("is_soft_allocation").notNull().default(false),
+  source: text("source").notNull().default("manual"),
   isTimesheetApprover: boolean("is_timesheet_approver").notNull().default(false),
   isLeaveApprover: boolean("is_leave_approver").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
