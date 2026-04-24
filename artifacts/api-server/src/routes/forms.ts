@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, formsTable, formFieldsTable, formResponsesTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { requirePM } from "../middleware/rbac";
 
 const router = Router();
 
@@ -40,7 +41,7 @@ router.get("/forms", async (req, res) => {
   return res.json(rows.map(mapForm));
 });
 
-router.post("/forms", async (req, res) => {
+router.post("/forms", requirePM, async (req, res) => {
   const { projectId, name, description, createdByUserId } = req.body;
   if (!projectId || !name) return res.status(400).json({ error: "projectId and name required" });
   const [row] = await db.insert(formsTable).values({
@@ -62,7 +63,7 @@ router.get("/forms/:id", async (req, res) => {
   return res.json({ ...mapForm(form), fields: fields.map(mapField) });
 });
 
-router.delete("/forms/:id", async (req, res) => {
+router.delete("/forms/:id", requirePM, async (req, res) => {
   const id = Number(req.params.id);
   await db.delete(formResponsesTable).where(eq(formResponsesTable.formId, id));
   await db.delete(formFieldsTable).where(eq(formFieldsTable.formId, id));
@@ -70,7 +71,7 @@ router.delete("/forms/:id", async (req, res) => {
   return res.status(204).send();
 });
 
-router.post("/forms/:id/fields", async (req, res) => {
+router.post("/forms/:id/fields", requirePM, async (req, res) => {
   const formId = Number(req.params.id);
   const { label, fieldType, isRequired, options, order } = req.body;
   if (!label || !fieldType) return res.status(400).json({ error: "label and fieldType required" });
@@ -85,7 +86,7 @@ router.post("/forms/:id/fields", async (req, res) => {
   return res.status(201).json(mapField(row));
 });
 
-router.delete("/forms/:id/fields/:fieldId", async (req, res) => {
+router.delete("/forms/:id/fields/:fieldId", requirePM, async (req, res) => {
   const fieldId = Number(req.params.fieldId);
   await db.delete(formFieldsTable).where(eq(formFieldsTable.id, fieldId));
   return res.status(204).send();

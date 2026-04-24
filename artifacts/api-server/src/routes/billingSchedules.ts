@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, billingSchedulesTable, invoicesTable, projectsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { requireFinance } from "../middleware/rbac";
 import {
   ListBillingSchedulesQueryParams,
   CreateBillingScheduleBody,
@@ -35,7 +36,7 @@ router.get("/billing-schedules", async (req, res): Promise<void> => {
   res.json(rows.map(mapSchedule));
 });
 
-router.post("/billing-schedules", async (req, res): Promise<void> => {
+router.post("/billing-schedules", requireFinance, async (req, res): Promise<void> => {
   const parsed = CreateBillingScheduleBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(billingSchedulesTable).values(parsed.data as any).returning();
@@ -50,7 +51,7 @@ router.get("/billing-schedules/:id", async (req, res): Promise<void> => {
   res.json(mapSchedule(row));
 });
 
-router.patch("/billing-schedules/:id", async (req, res): Promise<void> => {
+router.patch("/billing-schedules/:id", requireFinance, async (req, res): Promise<void> => {
   const params = UpdateBillingScheduleParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateBillingScheduleBody.safeParse(req.body);
@@ -60,14 +61,14 @@ router.patch("/billing-schedules/:id", async (req, res): Promise<void> => {
   res.json(mapSchedule(row));
 });
 
-router.delete("/billing-schedules/:id", async (req, res): Promise<void> => {
+router.delete("/billing-schedules/:id", requireFinance, async (req, res): Promise<void> => {
   const params = DeleteBillingScheduleParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(billingSchedulesTable).where(eq(billingSchedulesTable.id, params.data.id));
   res.status(204).send();
 });
 
-router.post("/billing-schedules/:id/trigger", async (req, res): Promise<void> => {
+router.post("/billing-schedules/:id/trigger", requireFinance, async (req, res): Promise<void> => {
   const params = TriggerBillingScheduleParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 

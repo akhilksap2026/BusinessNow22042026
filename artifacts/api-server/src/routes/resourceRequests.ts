@@ -6,6 +6,7 @@ import {
   CreateResourceRequestBody,
   UpdateResourceRequestBody,
 } from "@workspace/api-zod";
+import { requirePM } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
@@ -75,7 +76,7 @@ router.post("/resource-requests", async (req, res): Promise<void> => {
   res.status(201).json(mapRR(row));
 });
 
-router.patch("/resource-requests/:id", async (req, res): Promise<void> => {
+router.patch("/resource-requests/:id", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   const parsed = UpdateResourceRequestBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
@@ -94,7 +95,7 @@ router.patch("/resource-requests/:id", async (req, res): Promise<void> => {
   res.json(mapRR(row));
 });
 
-router.delete("/resource-requests/:id", async (req, res): Promise<void> => {
+router.delete("/resource-requests/:id", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   await db.delete(resourceRequestCommentsTable).where(eq(resourceRequestCommentsTable.requestId, id));
   await db.delete(resourceRequestsTable).where(eq(resourceRequestsTable.id, id));

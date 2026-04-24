@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, or, inArray } from "drizzle-orm";
 import { db, taskDependenciesTable, tasksTable } from "@workspace/db";
+import { requirePM } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
@@ -42,7 +43,7 @@ async function wouldCreateCycle(predecessorId: number, successorId: number): Pro
   return false;
 }
 
-router.post("/tasks/:id/dependencies", async (req, res): Promise<void> => {
+router.post("/tasks/:id/dependencies", requirePM, async (req, res): Promise<void> => {
   const successorId = parseInt(req.params.id, 10);
   if (isNaN(successorId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const { predecessorId, dependencyType = "FS", lagDays = 0 } = req.body;
@@ -85,7 +86,7 @@ router.post("/tasks/:id/dependencies", async (req, res): Promise<void> => {
   res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
 });
 
-router.patch("/task-dependencies/:id", async (req, res): Promise<void> => {
+router.patch("/task-dependencies/:id", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { lagDays } = req.body;
@@ -96,7 +97,7 @@ router.patch("/task-dependencies/:id", async (req, res): Promise<void> => {
   res.json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
 });
 
-router.delete("/task-dependencies/:id", async (req, res): Promise<void> => {
+router.delete("/task-dependencies/:id", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(taskDependenciesTable).where(eq(taskDependenciesTable.id, id));

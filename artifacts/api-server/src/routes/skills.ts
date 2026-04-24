@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, skillCategoriesTable, skillsTable, userSkillsTable, jobRolesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { requireAdmin } from "../middleware/rbac";
 import {
   ListSkillsQueryParams,
   CreateSkillCategoryBody,
@@ -23,14 +24,14 @@ router.get("/skill-categories", async (_req, res): Promise<void> => {
   })));
 });
 
-router.post("/skill-categories", async (req, res): Promise<void> => {
+router.post("/skill-categories", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateSkillCategoryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(skillCategoriesTable).values(parsed.data).returning();
   res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
 });
 
-router.delete("/skill-categories/:id", async (req, res): Promise<void> => {
+router.delete("/skill-categories/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeleteSkillCategoryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(skillCategoriesTable).where(eq(skillCategoriesTable.id, params.data.id));
@@ -48,14 +49,14 @@ router.get("/skills", async (req, res): Promise<void> => {
   res.json(rows.map(r => ({ ...r, createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt })));
 });
 
-router.post("/skills", async (req, res): Promise<void> => {
+router.post("/skills", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateSkillBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(skillsTable).values(parsed.data).returning();
   res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
 });
 
-router.delete("/skills/:id", async (req, res): Promise<void> => {
+router.delete("/skills/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeleteSkillParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(skillsTable).where(eq(skillsTable.id, params.data.id));
@@ -169,7 +170,7 @@ router.get("/job-roles", async (_req, res): Promise<void> => {
   res.json(rows.map(r => ({ ...r, createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt })));
 });
 
-router.post("/job-roles", async (req, res): Promise<void> => {
+router.post("/job-roles", requireAdmin, async (req, res): Promise<void> => {
   const { name } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) {
     res.status(400).json({ error: "name is required" }); return;
@@ -183,7 +184,7 @@ router.post("/job-roles", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/job-roles/:id", async (req, res): Promise<void> => {
+router.delete("/job-roles/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(jobRolesTable).where(eq(jobRolesTable.id, id));

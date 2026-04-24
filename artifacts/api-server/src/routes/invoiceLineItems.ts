@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, invoiceLineItemsTable, timeEntriesTable, usersTable, rateCardsTable } from "@workspace/db";
+import { requireFinance } from "../middleware/rbac";
 import {
   ListInvoiceLineItemsParams,
   ListInvoiceLineItemsResponse,
@@ -35,7 +36,7 @@ router.get("/invoices/:id/line-items", async (req, res): Promise<void> => {
   res.json(ListInvoiceLineItemsResponse.parse(rows.map(mapLineItem)));
 });
 
-router.post("/invoices/:id/line-items", async (req, res): Promise<void> => {
+router.post("/invoices/:id/line-items", requireFinance, async (req, res): Promise<void> => {
   const params = CreateInvoiceLineItemParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = CreateInvoiceLineItemBody.safeParse(req.body);
@@ -46,7 +47,7 @@ router.post("/invoices/:id/line-items", async (req, res): Promise<void> => {
   res.status(201).json(mapLineItem(row));
 });
 
-router.patch("/invoices/:id/line-items/:lineItemId", async (req, res): Promise<void> => {
+router.patch("/invoices/:id/line-items/:lineItemId", requireFinance, async (req, res): Promise<void> => {
   const params = UpdateInvoiceLineItemParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateInvoiceLineItemBody.safeParse(req.body);
@@ -59,7 +60,7 @@ router.patch("/invoices/:id/line-items/:lineItemId", async (req, res): Promise<v
   res.json(UpdateInvoiceLineItemResponse.parse(mapLineItem(row)));
 });
 
-router.delete("/invoices/:id/line-items/:lineItemId", async (req, res): Promise<void> => {
+router.delete("/invoices/:id/line-items/:lineItemId", requireFinance, async (req, res): Promise<void> => {
   const params = DeleteInvoiceLineItemParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(invoiceLineItemsTable)
@@ -67,7 +68,7 @@ router.delete("/invoices/:id/line-items/:lineItemId", async (req, res): Promise<
   res.sendStatus(204);
 });
 
-router.post("/invoices/:id/line-items/autofill", async (req, res): Promise<void> => {
+router.post("/invoices/:id/line-items/autofill", requireFinance, async (req, res): Promise<void> => {
   const params = AutofillInvoiceLineItemsParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 

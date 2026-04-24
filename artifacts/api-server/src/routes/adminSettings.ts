@@ -25,7 +25,7 @@ router.get("/tax-codes", async (_req, res): Promise<void> => {
   res.json(rows.map(mapTaxCode));
 });
 
-router.post("/tax-codes", async (req, res): Promise<void> => {
+router.post("/tax-codes", requireAdmin, async (req, res): Promise<void> => {
   const { name, rate, description, isDefault, isActive } = req.body;
   if (!name || rate === undefined) { res.status(400).json({ error: "name and rate required" }); return; }
   const [row] = await db.insert(taxCodesTable).values({
@@ -38,7 +38,7 @@ router.post("/tax-codes", async (req, res): Promise<void> => {
   res.status(201).json(mapTaxCode(row));
 });
 
-router.put("/tax-codes/:id", async (req, res): Promise<void> => {
+router.put("/tax-codes/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { name, rate, description, isDefault, isActive } = req.body;
@@ -53,7 +53,7 @@ router.put("/tax-codes/:id", async (req, res): Promise<void> => {
   res.json(mapTaxCode(row));
 });
 
-router.delete("/tax-codes/:id", async (req, res): Promise<void> => {
+router.delete("/tax-codes/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(taxCodesTable).where(eq(taxCodesTable.id, id));
@@ -65,7 +65,7 @@ router.get("/time-categories", async (_req, res): Promise<void> => {
   res.json(rows.map(mapTimeCategory));
 });
 
-router.post("/time-categories", async (req, res): Promise<void> => {
+router.post("/time-categories", requireAdmin, async (req, res): Promise<void> => {
   const { name, description, isActive, defaultBillable, sortOrder } = req.body;
   if (!name) { res.status(400).json({ error: "name required" }); return; }
   // Append at end if no sortOrder supplied
@@ -84,7 +84,7 @@ router.post("/time-categories", async (req, res): Promise<void> => {
   res.status(201).json(mapTimeCategory(row));
 });
 
-router.put("/time-categories/:id", async (req, res): Promise<void> => {
+router.put("/time-categories/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { name, description, isActive, defaultBillable, sortOrder } = req.body;
@@ -104,7 +104,7 @@ router.put("/time-categories/:id", async (req, res): Promise<void> => {
 // category does NOT delete historical time_entries — they retain the original
 // categoryId pointer and the (now-deleted) name is shown via reports' join
 // fallback. We do not enforce FK cascade for that reason.
-router.put("/time-categories/reorder", async (req, res): Promise<void> => {
+router.put("/time-categories/reorder", requireAdmin, async (req, res): Promise<void> => {
   const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
   for (let i = 0; i < ids.length; i++) {
@@ -113,7 +113,7 @@ router.put("/time-categories/reorder", async (req, res): Promise<void> => {
   res.json({ reordered: ids.length });
 });
 
-router.delete("/time-categories/:id", async (req, res): Promise<void> => {
+router.delete("/time-categories/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(timeCategoriesTable).where(eq(timeCategoriesTable.id, id));

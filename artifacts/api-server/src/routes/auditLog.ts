@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, auditLogTable, usersTable } from "@workspace/db";
+import { requireAdmin } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
-router.get("/audit-log", async (req, res): Promise<void> => {
+router.get("/audit-log", requireAdmin, async (req, res): Promise<void> => {
   const { entityType, actorUserId, limit } = req.query as Record<string, string>;
   const maxLimit = Math.min(parseInt(limit || "100", 10), 500);
 

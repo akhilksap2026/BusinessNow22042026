@@ -1,0 +1,187 @@
+## FEATURE: Dynamic Role-Based Identity & Permission System
+
+### PHILOSOPHY FIRST — READ THIS BEFORE DOING ANYTHING
+
+Do not assume, invent, or hardcode any roles, permissions, modules, or 
+workflows. Everything in this feature must be derived from what actually 
+exists in the BusinessNow codebase.
+
+Your job is to be an intelligent observer first, a builder second.
+
+---
+
+### PHASE 0 — SYSTEM DISCOVERY (Do This Before Writing Any Code)
+
+Scan the entire codebase and answer the following questions. Output your 
+findings as a structured discovery report before proceeding:
+
+**A. Who exists in this system?**
+- What user types, roles, or personas are already defined?
+- Where are they defined? (models, constants, enums, config files, 
+  database seeds, auth middleware)
+- Are there any existing role hierarchies or groupings?
+- Is there already a concept of a "base user" or "employee" identity?
+
+**B. What can users currently do?**
+- What routes, pages, and actions exist in the system?
+- Which of these are already gated by role or auth checks?
+- Which are currently ungated (accessible to anyone logged in)?
+- Are there any existing permission matrices, guard components, 
+  or middleware?
+
+**C. What modules and data exist?**
+- List every module, entity, and workflow present in the codebase
+- For each, note whether it currently has any access control applied
+- Identify which modules handle: self-only data vs shared/team data vs 
+  administrative data
+
+**D. What is the current login and session flow?**
+- How does authentication currently work?
+- Is there any role selection, role switching, or context-switching 
+  already in place?
+- How is the current user's identity stored and passed around 
+  (JWT, session, context, store)?
+
+**E. What gaps and conflicts exist?**
+- Are there places where role logic is inconsistent or missing?
+- Are there any self-approval risks (e.g. a user who can approve their 
+  own submissions)?
+- Are there any routes or actions that expose data beyond what a user 
+  should see?
+
+Output this discovery report clearly before writing a single line of 
+new code. Flag anything uncertain with ⚠️.
+
+---
+
+### PHASE 1 — DESIGN BEFORE YOU BUILD
+
+Based only on what you discovered in Phase 0, design the role system 
+before implementing it. Present this design for review:
+
+**A. Proposed Role Structure**
+- What should the base identity be? (likely Employee, but confirm from 
+  the codebase — it may be called something else)
+- What elevated roles should exist, based on the modules and workflows 
+  you found?
+- Do not create a role for a module that doesn't exist in the system
+- Do not merge roles that the codebase treats separately
+
+**B. Proposed Permission Boundaries**
+- For each discovered role, what is the natural scope of access based 
+  on what the system actually does?
+- Which actions should be self-scoped (own data only)?
+- Which actions require elevated access?
+- Which actions should never be self-actioned regardless of role 
+  (e.g. approving your own submissions)?
+
+**C. Proposed Role Selector UX**
+- Based on the existing UI framework and component patterns in the 
+  codebase, what is the most natural way to implement a post-login 
+  role selector?
+- Should it be a full screen, a modal, a step in the existing auth 
+  flow? Decide based on what the codebase already uses.
+
+**D. Proposed Session & Switching Model**
+- Based on how the codebase currently manages auth state, what is the 
+  least invasive way to add active-role context to the session?
+- Can this extend the existing auth mechanism, or does it need a 
+  new layer?
+
+Present this design as a structured plan. Identify what needs to be 
+built from scratch vs what can be extended from existing code.
+
+---
+
+### PHASE 2 — IMPLEMENT INCREMENTALLY
+
+Only begin implementation after Phase 0 and Phase 1 are complete.
+
+Build in this order, completing and testing each step before moving on:
+
+**Step 1 — Role Data Model**
+- Extend or create the user/role model based on what you found
+- Every user must have a base role (whatever the codebase calls the 
+  default user type)
+- Additional roles are additive — they extend, never replace, the base
+- If a role system already exists, extend it rather than replacing it
+
+**Step 2 — Post-Login Role Selector**
+- If user has only one role → bypass selector, enter directly
+- If user has multiple roles → show role selector screen
+- Role selector must match the existing UI patterns and component 
+  library already used in the project
+- Show only roles the user has actually been assigned
+- Store the selected active role in the session using whatever auth 
+  state mechanism the codebase already uses
+
+**Step 3 — Session-Aware Permission Enforcement**
+- Create a central permissions config derived from Phase 1 design
+- Permissions must reference real modules and real actions found in 
+  the codebase — no invented ones
+- Implement a guard/middleware that checks active session role against 
+  this config for every protected route and action
+- Enforce at both UI layer (hide/show elements) and API layer (reject 
+  unauthorized requests)
+
+**Step 4 — Role Switching**
+- Add a "Switch Role" option in the nav/profile area (wherever the 
+  codebase already has user controls)
+- Re-open the role selector without logging out
+- Clear active role context, load new context, re-render UI
+- If unsaved state exists, warn the user before switching
+
+**Step 5 — Self-Scope Guardrails for Base Role**
+- When active role is the base identity (Employee or equivalent):
+  - All data queries must be filtered to own records only
+  - All approval, assignment, and administrative actions must be 
+    hidden and blocked
+  - Enforce at the API layer — not just hidden in UI
+- Self-approval must be blocked at the service layer for ALL roles, 
+  not just the base role
+
+**Step 6 — Audit Trail**
+- Log every role switch: who, from which role, to which role, when
+- Store in whatever logging or audit mechanism already exists in the 
+  codebase, or create a simple audit_log table if none exists
+- Expose this log only to the highest-privilege role found in the system
+
+---
+
+### PHASE 3 — EDGE CASE HANDLING
+
+After core implementation, handle these scenarios. 
+Adapt the exact implementation to what the codebase supports:
+
+- User's elevated role is revoked while they are mid-session → 
+  invalidate that role context, gracefully downgrade to base role 
+  with an in-app notification
+- User tries to access a restricted URL directly → redirect to a 
+  permission-denied screen with a role-switch option
+- User's permissions are upgraded mid-session by Admin → notify user 
+  to switch roles to access new capabilities
+- Admin deactivates a user who is currently logged in → invalidate 
+  their session immediately
+- Any user attempts to approve/action their own submission via direct 
+  API call → reject at service layer regardless of active role
+- Role selector is opened mid-session with unsaved form data → 
+  confirm before discarding
+
+For any edge case the current codebase cannot support without major 
+rework, flag it with ⚠️ and propose the minimum viable approach.
+
+---
+
+### GUIDING PRINCIPLES (Apply Throughout All Phases)
+
+1. Observe before building — never assume what roles or modules exist
+2. Extend before replacing — if something already handles part of this, 
+   build on it
+3. Central config over inline checks — all permission logic lives in 
+   one place, not scattered across components
+4. Enforce at both layers — UI hiding is UX; API blocking is security. 
+   Both are required
+5. Flag uncertainty — if you cannot determine the correct behaviour from 
+   the codebase alone, mark it ⚠️ and surface it rather than guessing
+6. Least surprise — the role system should feel native to the existing 
+   app, not bolted on

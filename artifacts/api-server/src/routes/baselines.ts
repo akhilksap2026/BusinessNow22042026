@@ -19,7 +19,7 @@ router.get("/projects/:id/baselines", async (req, res): Promise<void> => {
 });
 
 // Create a baseline snapshot for a project
-router.post("/projects/:id/baselines", async (req, res): Promise<void> => {
+router.post("/projects/:id/baselines", requirePM, async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.id, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
   const { name, notes } = req.body;

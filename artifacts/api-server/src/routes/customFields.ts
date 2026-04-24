@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, asc } from "drizzle-orm";
 import { db, customFieldDefinitionsTable, customFieldValuesTable, customFieldSectionsTable } from "@workspace/db";
+import { requireAdmin, requirePM } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
@@ -43,7 +44,7 @@ router.get("/custom-field-definitions", async (req, res): Promise<void> => {
   res.json(rows.map(mapDef));
 });
 
-router.post("/custom-field-definitions", async (req, res): Promise<void> => {
+router.post("/custom-field-definitions", requireAdmin, async (req, res): Promise<void> => {
   const b = req.body ?? {};
   if (!b.entityType || !b.name || !b.fieldType) { res.status(400).json({ error: "entityType, name and fieldType required" }); return; }
   const [row] = await db.insert(customFieldDefinitionsTable).values({
@@ -62,7 +63,7 @@ router.post("/custom-field-definitions", async (req, res): Promise<void> => {
   res.status(201).json(mapDef(row));
 });
 
-router.put("/custom-field-definitions/:id", async (req, res): Promise<void> => {
+router.put("/custom-field-definitions/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const b = req.body ?? {};
@@ -94,7 +95,7 @@ router.get("/custom-field-sections", async (req, res): Promise<void> => {
   res.json(rows.map(mapSection));
 });
 
-router.post("/custom-field-sections", async (req, res): Promise<void> => {
+router.post("/custom-field-sections", requireAdmin, async (req, res): Promise<void> => {
   const b = req.body ?? {};
   if (!b.entityType || !b.name) { res.status(400).json({ error: "entityType and name required" }); return; }
   // Append at end if no sortOrder supplied
@@ -115,7 +116,7 @@ router.post("/custom-field-sections", async (req, res): Promise<void> => {
   res.status(201).json(mapSection(row));
 });
 
-router.put("/custom-field-sections/:id", async (req, res): Promise<void> => {
+router.put("/custom-field-sections/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const b = req.body ?? {};
@@ -131,7 +132,7 @@ router.put("/custom-field-sections/:id", async (req, res): Promise<void> => {
   res.json(mapSection(row));
 });
 
-router.delete("/custom-field-sections/:id", async (req, res): Promise<void> => {
+router.delete("/custom-field-sections/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   // Detach fields that reference this section (set sectionId=null)
@@ -140,7 +141,7 @@ router.delete("/custom-field-sections/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-router.delete("/custom-field-definitions/:id", async (req, res): Promise<void> => {
+router.delete("/custom-field-definitions/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(customFieldDefinitionsTable).where(eq(customFieldDefinitionsTable.id, id));
@@ -158,7 +159,7 @@ router.get("/custom-field-values", async (req, res): Promise<void> => {
   res.json(rows.map(mapVal));
 });
 
-router.put("/custom-field-values", async (req, res): Promise<void> => {
+router.put("/custom-field-values", requirePM, async (req, res): Promise<void> => {
   const { fieldDefinitionId, entityType, entityId, value } = req.body;
   if (!fieldDefinitionId || !entityType || entityId === undefined) { res.status(400).json({ error: "fieldDefinitionId, entityType and entityId required" }); return; }
   const eid = typeof entityId === "string" ? parseInt(entityId, 10) : entityId;
