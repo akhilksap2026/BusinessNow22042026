@@ -121,19 +121,19 @@ function BudgetSummaryCards() {
     <div className="grid gap-4 md:grid-cols-3">
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total Budget</CardTitle></CardHeader>
-        <CardContent><div className="text-2xl font-bold">${data.totals.totalBudget.toLocaleString()}</div></CardContent>
+        <CardContent><div className="text-2xl font-bold tracking-tight">${data.totals.totalBudget.toLocaleString()}</div></CardContent>
       </Card>
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total Spent</CardTitle></CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${data.totals.totalSpent.toLocaleString()}</div>
+          <div className="text-2xl font-bold tracking-tight">${data.totals.totalSpent.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground mt-1">{Math.round(data.totals.totalSpent / data.totals.totalBudget * 100)}% of budget</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Remaining</CardTitle></CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">${data.totals.totalRemaining.toLocaleString()}</div>
+          <div className="text-2xl font-bold tracking-tight text-green-600">${data.totals.totalRemaining.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground mt-1">Avg {Math.round(data.totals.averagePercentUsed)}% utilized</p>
         </CardContent>
       </Card>
@@ -247,21 +247,21 @@ function ProjectPerformanceReport() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Projects</p>
-          <p className="text-2xl font-bold">{filtered.length}</p>
+          <p className="text-2xl font-bold tracking-tight">{filtered.length}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Avg On-Time Rate</p>
-          <p className="text-2xl font-bold text-green-600">{filtered.length ? Math.round(avgOnTime) : "—"}%</p>
+          <p className="text-2xl font-bold tracking-tight text-green-600">{filtered.length ? Math.round(avgOnTime) : "—"}%</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Avg CSAT</p>
-          <p className="text-2xl font-bold text-amber-600">
+          <p className="text-2xl font-bold tracking-tight text-amber-600">
             {avgCsat.length ? (avgCsat.reduce((s, p) => s + p.csatAvg, 0) / avgCsat.length).toFixed(1) : "—"}
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Template Projects</p>
-          <p className="text-2xl font-bold">{filtered.filter(p => p.templateUsed).length}</p>
+          <p className="text-2xl font-bold tracking-tight">{filtered.filter(p => p.templateUsed).length}</p>
         </Card>
       </div>
 
@@ -465,17 +465,17 @@ function CsatTrendReport() {
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Overall Average</p>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-2xl font-bold text-amber-600">{data?.overallAvg ?? "—"}</p>
+            <p className="text-2xl font-bold tracking-tight text-amber-600">{data?.overallAvg ?? "—"}</p>
             {data?.overallAvg && <div className="flex">{[1,2,3,4,5].map(i => <Star key={i} className={`h-4 w-4 ${i <= Math.round(data.overallAvg) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"}`} />)}</div>}
           </div>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Total Responses</p>
-          <p className="text-2xl font-bold">{data?.totalResponses ?? 0}</p>
+          <p className="text-2xl font-bold tracking-tight">{data?.totalResponses ?? 0}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Projects with CSAT</p>
-          <p className="text-2xl font-bold">{byProject.length}</p>
+          <p className="text-2xl font-bold tracking-tight">{byProject.length}</p>
         </Card>
       </div>
 
@@ -561,19 +561,19 @@ function IntervalIqReport() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Intervals Tracked</p>
-          <p className="text-2xl font-bold">{rows.length}</p>
+          <p className="text-2xl font-bold tracking-tight">{rows.length}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-red-500" /> Overruns</p>
-          <p className="text-2xl font-bold text-red-600">{overruns.length}</p>
+          <p className="text-2xl font-bold tracking-tight text-red-600">{overruns.length}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-500" /> On/Under Benchmark</p>
-          <p className="text-2xl font-bold text-green-600">{onTime.length}</p>
+          <p className="text-2xl font-bold tracking-tight text-green-600">{onTime.length}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Avg Delta vs Benchmark</p>
-          <p className={`text-2xl font-bold ${avgDelta > 0 ? "text-red-600" : "text-green-600"}`}>
+          <p className={`text-2xl font-bold tracking-tight ${avgDelta > 0 ? "text-red-600" : "text-green-600"}`}>
             {rows.filter(r => r.delta !== null).length > 0 ? `${avgDelta > 0 ? "+" : ""}${Math.round(avgDelta)}d` : "—"}
           </p>
         </Card>
@@ -1051,10 +1051,10 @@ function TimesheetSubmissionsReport() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-4"><p className="text-xs text-muted-foreground">Compliance</p><p className="text-2xl font-bold text-emerald-600">{compliancePct}%</p></Card>
-        <Card className="p-4"><p className="text-xs text-muted-foreground">{view === "approval" ? "Approved" : "Submitted"}</p><p className="text-2xl font-bold text-emerald-600">{totalGreen}</p></Card>
-        <Card className="p-4"><p className="text-xs text-muted-foreground">Partial</p><p className="text-2xl font-bold text-amber-600">{totalYellow}</p></Card>
-        <Card className="p-4"><p className="text-xs text-muted-foreground">Not {view === "approval" ? "Approved" : "Submitted"}</p><p className="text-2xl font-bold text-red-600">{totalRed}</p></Card>
+        <Card className="p-4"><p className="text-xs text-muted-foreground">Compliance</p><p className="text-2xl font-bold tracking-tight text-emerald-600">{compliancePct}%</p></Card>
+        <Card className="p-4"><p className="text-xs text-muted-foreground">{view === "approval" ? "Approved" : "Submitted"}</p><p className="text-2xl font-bold tracking-tight text-emerald-600">{totalGreen}</p></Card>
+        <Card className="p-4"><p className="text-xs text-muted-foreground">Partial</p><p className="text-2xl font-bold tracking-tight text-amber-600">{totalYellow}</p></Card>
+        <Card className="p-4"><p className="text-xs text-muted-foreground">Not {view === "approval" ? "Approved" : "Submitted"}</p><p className="text-2xl font-bold tracking-tight text-red-600">{totalRed}</p></Card>
       </div>
 
       <Card>
@@ -1312,10 +1312,10 @@ export default function Reports() {
                 [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)
               ) : (
                 <>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold text-green-600">{health?.onTrack || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">At Risk</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold text-amber-600">{health?.atRisk || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Off Track</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold text-red-600">{health?.offTrack || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold text-blue-600">{health?.completed || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-green-600">{health?.onTrack || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">At Risk</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-amber-600">{health?.atRisk || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Off Track</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-red-600">{health?.offTrack || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-blue-600">{health?.completed || 0}</div></CardContent></Card>
                 </>
               )}
             </div>

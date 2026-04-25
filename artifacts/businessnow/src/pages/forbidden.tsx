@@ -16,7 +16,7 @@ export default function Forbidden({ permission }: ForbiddenProps) {
       <div className="rounded-full bg-amber-100 dark:bg-amber-950/40 p-4 mb-4">
         <ShieldAlert className="h-10 w-10 text-amber-600 dark:text-amber-400" />
       </div>
-      <h1 className="text-2xl font-semibold mb-2">Permission denied</h1>
+      <h1 className="text-2xl font-bold tracking-tight mb-2">Permission denied</h1>
       <p className="text-muted-foreground max-w-md mb-1">
         Your current role <span className="font-medium text-foreground">{activeRole}</span>{" "}
         doesn't have access to this page.

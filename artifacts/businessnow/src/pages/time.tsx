@@ -367,7 +367,7 @@ export default function TimeTracking() {
             </CardHeader>
             <CardContent>
               {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold">{summary?.totalHoursThisWeek}h</div>
+                <div className="text-2xl font-bold tracking-tight">{summary?.totalHoursThisWeek}h</div>
               )}
             </CardContent>
           </Card>
@@ -378,7 +378,7 @@ export default function TimeTracking() {
             </CardHeader>
             <CardContent>
               {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold">{summary?.totalHoursThisMonth}h</div>
+                <div className="text-2xl font-bold tracking-tight">{summary?.totalHoursThisMonth}h</div>
               )}
             </CardContent>
           </Card>
@@ -389,7 +389,7 @@ export default function TimeTracking() {
             </CardHeader>
             <CardContent>
               {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{summary?.billablePercent}%</div>
+                <div className="text-2xl font-bold tracking-tight text-green-600 dark:text-green-400">{summary?.billablePercent}%</div>
               )}
             </CardContent>
           </Card>
@@ -1040,7 +1040,7 @@ export default function TimeTracking() {
                   { label: "Entries", value: detailEntries.length },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-muted/40 rounded-lg p-3 text-center">
-                    <div className="text-lg font-bold">{value}</div>
+                    <div className="text-lg font-bold tracking-tight">{value}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
                   </div>
                 ))}

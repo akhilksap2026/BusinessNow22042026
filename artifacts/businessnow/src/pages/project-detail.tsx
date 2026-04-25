@@ -661,7 +661,7 @@ export default function ProjectDetail() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold">Project not found</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Project not found</h2>
           <p className="text-muted-foreground mt-2">The project you are looking for does not exist or has been removed.</p>
         </div>
       </Layout>
@@ -712,7 +712,7 @@ export default function ProjectDetail() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary?.budgetUsedPercent}%</div>
+              <div className="text-2xl font-bold tracking-tight">{summary?.budgetUsedPercent}%</div>
               <Progress value={summary?.budgetUsedPercent} className="h-2 mt-2" />
               <p className="text-xs text-muted-foreground mt-2">
                 {formatCurrency(summary?.invoicedAmount ?? 0)} invoiced of {formatCurrency(project.budget)}
@@ -725,7 +725,7 @@ export default function ProjectDetail() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary?.hoursUsedPercent}%</div>
+              <div className="text-2xl font-bold tracking-tight">{summary?.hoursUsedPercent}%</div>
               <Progress value={summary?.hoursUsedPercent} className="h-2 mt-2" />
               <p className="text-xs text-muted-foreground mt-2">
                 {project.trackedHours} of {project.budgetedHours} hours tracked
@@ -738,7 +738,7 @@ export default function ProjectDetail() {
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{project.completion}%</div>
+              <div className="text-2xl font-bold tracking-tight">{project.completion}%</div>
               <Progress value={project.completion} className="h-2 mt-2" />
               <p className="text-xs text-muted-foreground mt-2">
                 Based on task completion
@@ -751,7 +751,7 @@ export default function ProjectDetail() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary?.daysRemaining} days</div>
+              <div className="text-2xl font-bold tracking-tight">{summary?.daysRemaining} days</div>
               <p className="text-xs text-muted-foreground mt-2">
                 Remaining until {new Date(project.dueDate).toLocaleDateString()}
               </p>
@@ -769,7 +769,7 @@ export default function ProjectDetail() {
               <AlertTriangle className="h-4 w-4 text-red-500" />
               <span className="text-xs font-medium text-muted-foreground">Overdue</span>
             </div>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{healthStats?.overdue ?? "–"}</div>
+            <div className="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">{healthStats?.overdue ?? "–"}</div>
             <div className="text-xs text-muted-foreground mt-0.5">tasks past due</div>
           </button>
           <button
@@ -780,7 +780,7 @@ export default function ProjectDetail() {
               <ShieldAlert className="h-4 w-4 text-orange-500" />
               <span className="text-xs font-medium text-muted-foreground">Blocked</span>
             </div>
-            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{healthStats?.blocked ?? "–"}</div>
+            <div className="text-2xl font-bold tracking-tight text-orange-600 dark:text-orange-400">{healthStats?.blocked ?? "–"}</div>
             <div className="text-xs text-muted-foreground mt-0.5">tasks blocked</div>
           </button>
           <button
@@ -791,7 +791,7 @@ export default function ProjectDetail() {
               <Target className="h-4 w-4 text-amber-500" />
               <span className="text-xs font-medium text-muted-foreground">At Risk</span>
             </div>
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{healthStats?.atRisk ?? "–"}</div>
+            <div className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{healthStats?.atRisk ?? "–"}</div>
             <div className="text-xs text-muted-foreground mt-0.5">milestones at risk</div>
           </button>
           <button
@@ -802,7 +802,7 @@ export default function ProjectDetail() {
               <CheckCircle2 className="h-4 w-4 text-green-500" />
               <span className="text-xs font-medium text-muted-foreground">On Track</span>
             </div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{healthStats?.onTrack ?? "–"}</div>
+            <div className="text-2xl font-bold tracking-tight text-green-600 dark:text-green-400">{healthStats?.onTrack ?? "–"}</div>
             <div className="text-xs text-muted-foreground mt-0.5">in progress, on time</div>
           </button>
         </div>
@@ -1108,7 +1108,7 @@ export default function ProjectDetail() {
                       <div className="space-y-4">
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Base Budget</p>
-                          <p className="text-2xl font-bold">{formatCurrency(project.budget)}</p>
+                          <p className="text-2xl font-bold tracking-tight">{formatCurrency(project.budget)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Approved Change Orders</p>
@@ -1144,7 +1144,7 @@ export default function ProjectDetail() {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Margin %</p>
-                          <p className={`text-2xl font-bold ${marginColor}`}>{marginPct.toFixed(1)}%</p>
+                          <p className={`text-2xl font-bold tracking-tight ${marginColor}`}>{marginPct.toFixed(1)}%</p>
                         </div>
                       </div>
                     </div>
@@ -1461,7 +1461,7 @@ export default function ProjectDetail() {
                           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                             <Icon className="h-3.5 w-3.5" /> {label}
                           </div>
-                          <p className="text-2xl font-bold">{value}</p>
+                          <p className="text-2xl font-bold tracking-tight">{value}</p>
                         </CardContent>
                       </Card>
                     ))}
@@ -2289,7 +2289,7 @@ function CsatTab({ projectId, csatSummary, csatSurveys, refetchSurveys }: {
           <CardContent>
             {csatSummary && csatSummary.totalResponses > 0 ? (
               <div className="flex items-center gap-2">
-                <span className="text-3xl font-bold">{csatSummary.averageRating.toFixed(1)}</span>
+                <span className="text-3xl font-bold tracking-tight">{csatSummary.averageRating.toFixed(1)}</span>
                 <span className="text-muted-foreground text-sm">/ 5</span>
                 <div className="flex ml-1">
                   {[1,2,3,4,5].map(s => (
@@ -2303,13 +2303,13 @@ function CsatTab({ projectId, csatSummary, csatSurveys, refetchSurveys }: {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Surveys Pending</CardTitle></CardHeader>
           <CardContent>
-            <div className={`text-3xl font-bold ${pending.length > 0 ? "text-amber-500" : "text-emerald-600"}`}>{pending.length}</div>
+            <div className={`text-3xl font-bold tracking-tight ${pending.length > 0 ? "text-amber-500" : "text-emerald-600"}`}>{pending.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Surveys Completed</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-emerald-600">{completed.length}</div>
+            <div className="text-3xl font-bold tracking-tight text-emerald-600">{completed.length}</div>
           </CardContent>
         </Card>
         <Card>

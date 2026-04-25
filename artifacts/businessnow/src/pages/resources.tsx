@@ -650,7 +650,7 @@ export default function Resources() {
                           <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900/30 space-y-2">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-2">
-                                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Relevant Matches</p>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Relevant Matches</p>
                                 {hasAnySkills && (
                                   <span className="text-xs text-indigo-600">{qualifiedCandidates.length} of {allCandidates.length} meet ≥50%</span>
                                 )}
@@ -747,7 +747,7 @@ export default function Resources() {
                       {/* Chat thread */}
                       {isChatOpen && (
                         <div className="border rounded-lg p-3 space-y-2 bg-white dark:bg-slate-950">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Thread</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Thread</p>
                           {threadMsgs.length === 0 && <p className="text-xs text-muted-foreground">No messages yet. Start a conversation to resolve this request.</p>}
                           <div className="space-y-2 max-h-40 overflow-y-auto">
                             {threadMsgs.map((m: any) => (
@@ -886,7 +886,7 @@ export default function Resources() {
                     const pctClass = fc.pct > 100 ? "text-red-600 font-bold" : fc.pct > 80 ? "text-amber-600 font-semibold" : "text-green-600 font-semibold";
                     return (
                       <div className="rounded-lg border p-3 bg-slate-50 text-sm space-y-2">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Forecasted utilization after assignment</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Forecasted utilization after assignment</p>
                         <p>Current: <span className="font-medium">{fc.current}h/wk</span> + Proposed: <span className="font-medium">{req.hoursPerWeek}h/wk</span> = <span className={pctClass}>{fc.proposed}h ({fc.pct}% of {fc.capacity}h capacity)</span></p>
                         {fc.pct > 100 && <p className="text-red-600 text-xs">⚠ This will over-allocate the team member. Consider reassigning or adjusting hours.</p>}
                         {ignoreSoft && <p className="text-xs text-indigo-500">* Soft allocations excluded</p>}

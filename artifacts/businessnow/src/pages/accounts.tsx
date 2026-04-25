@@ -170,7 +170,7 @@ export default function Accounts() {
             <div className="flex items-center justify-between">
               <CardTitle>All Accounts</CardTitle>
               <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input className="pl-9" placeholder="Search accounts…" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
             </div>
@@ -267,12 +267,12 @@ export default function Accounts() {
                             <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10 transition-colors">
                               {isExpanded
                                 ? <ChevronDown className="h-3.5 w-3.5 text-primary" />
-                                : <ChevronRight className="h-3.5 w-3.5 text-slate-400" />}
+                                : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
                             </Button>
                           </TableCell>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-slate-400" />
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
                               {account.name}
                             </div>
                           </TableCell>
@@ -560,7 +560,7 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
     <>
       <SheetHeader>
         <SheetTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-slate-400" />
+          <Building2 className="h-5 w-5 text-muted-foreground" />
           {account.name}
         </SheetTitle>
       </SheetHeader>
@@ -572,14 +572,14 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div><p className="text-xs text-slate-500">Domain</p><p className="text-sm font-medium">{account.domain}</p></div>
-          <div><p className="text-xs text-slate-500">Region</p><p className="text-sm font-medium">{account.region}</p></div>
-          <div><p className="text-xs text-slate-500">Contract Value</p><p className="text-sm font-medium">{fmt(account.contractValue)}</p></div>
-          <div><p className="text-xs text-slate-500">Since</p><p className="text-sm font-medium">{new Date(account.createdAt).toLocaleDateString()}</p></div>
+          <div><p className="text-xs text-muted-foreground">Domain</p><p className="text-sm font-medium">{account.domain}</p></div>
+          <div><p className="text-xs text-muted-foreground">Region</p><p className="text-sm font-medium">{account.region}</p></div>
+          <div><p className="text-xs text-muted-foreground">Contract Value</p><p className="text-sm font-medium">{fmt(account.contractValue)}</p></div>
+          <div><p className="text-xs text-muted-foreground">Since</p><p className="text-sm font-medium">{new Date(account.createdAt).toLocaleDateString()}</p></div>
         </div>
 
         <div className="pt-2 border-t space-y-2">
-          <Label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Account Status</Label>
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Account Status</Label>
           <Select value={account.status} onValueChange={onStatusChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -601,18 +601,18 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
           <TabsContent value="opportunities" className="mt-3">
             {opportunities.length > 0 && (
               <div className="flex gap-4 mb-3 text-sm">
-                <div><span className="text-slate-500">Pipeline: </span><span className="font-medium">{fmt(totalOppValue)}</span></div>
-                <div><span className="text-slate-500">Won: </span><span className="font-medium text-green-600">{fmt(wonValue)}</span></div>
+                <div><span className="text-muted-foreground">Pipeline: </span><span className="font-medium">{fmt(totalOppValue)}</span></div>
+                <div><span className="text-muted-foreground">Won: </span><span className="font-medium text-green-600">{fmt(wonValue)}</span></div>
               </div>
             )}
             <div className="space-y-2">
               {opportunities.map(o => (
                 <Link key={o.id} href="/opportunities">
-                  <div className="border rounded-md p-3 bg-white hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="border rounded-md p-3 bg-card hover:bg-muted/30 cursor-pointer transition-colors">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm font-medium text-primary hover:underline">{o.name}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{o.probability}% probability</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{o.probability}% probability</p>
                       </div>
                       <div className="text-right">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[o.stage] ?? ""}`}>{o.stage}</span>
@@ -623,7 +623,7 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
                 </Link>
               ))}
               {opportunities.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-6">No opportunities yet</p>
+                <p className="text-sm text-muted-foreground text-center py-6">No opportunities yet</p>
               )}
             </div>
           </TabsContent>
@@ -631,11 +631,11 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
           <TabsContent value="projects" className="mt-3">
             <div className="space-y-2">
               {projects.map((p: any) => (
-                <div key={p.id} className="border rounded-md p-3 bg-white hover:bg-slate-50 transition-colors">
+                <div key={p.id} className="border rounded-md p-3 bg-card hover:bg-muted/30 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-medium">{p.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{p.billingType} · {p.completion}% complete</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{p.billingType} · {p.completion}% complete</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right">
@@ -656,7 +656,7 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
                 </div>
               ))}
               {projects.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-6">No projects yet</p>
+                <p className="text-sm text-muted-foreground text-center py-6">No projects yet</p>
               )}
             </div>
           </TabsContent>

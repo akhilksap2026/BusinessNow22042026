@@ -253,7 +253,7 @@ export default function Finance() {
                 </CardHeader>
                 <CardContent>
                   {isLoadingSummary ? <Skeleton className="h-8 w-24" /> : (
-                    <div className={`text-2xl font-bold ${colors[i]}`}>${vals[i]?.toLocaleString()}</div>
+                    <div className={`text-2xl font-bold tracking-tight ${colors[i]}`}>${vals[i]?.toLocaleString()}</div>
                   )}
                 </CardContent>
               </Card>

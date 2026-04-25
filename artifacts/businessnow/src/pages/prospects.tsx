@@ -361,7 +361,7 @@ export default function ProspectsPage() {
                 )}
 
                 <div className="pt-4 border-t space-y-3">
-                  <Label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Update Status</Label>
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Update Status</Label>
                   <Select
                     value={selected.status}
                     onValueChange={val => {

@@ -149,7 +149,7 @@ export function ResourceKpiBar({ startDate, endDate }: Props) {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                   <Clock className="h-3.5 w-3.5" /> Total Capacity
                 </div>
-                <div className="text-xl font-bold tabular-nums">{Math.round(metrics.totalCapacity).toLocaleString()}<span className="text-xs font-normal text-muted-foreground ml-1">hrs</span></div>
+                <div className="text-xl font-bold tracking-tight tabular-nums">{Math.round(metrics.totalCapacity).toLocaleString()}<span className="text-xs font-normal text-muted-foreground ml-1">hrs</span></div>
               </div>
             </TooltipTrigger>
             <TooltipContent>Sum of daily capacity × working days for every team member.</TooltipContent>
@@ -161,7 +161,7 @@ export function ResourceKpiBar({ startDate, endDate }: Props) {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                   <Users className="h-3.5 w-3.5" /> Total Allocated
                 </div>
-                <div className="text-xl font-bold tabular-nums">{Math.round(metrics.totalAllocated).toLocaleString()}<span className="text-xs font-normal text-muted-foreground ml-1">hrs</span></div>
+                <div className="text-xl font-bold tracking-tight tabular-nums">{Math.round(metrics.totalAllocated).toLocaleString()}<span className="text-xs font-normal text-muted-foreground ml-1">hrs</span></div>
               </div>
             </TooltipTrigger>
             <TooltipContent>Sum of hard + soft allocation hours falling inside the period (Mon–Fri).</TooltipContent>
@@ -173,7 +173,7 @@ export function ResourceKpiBar({ startDate, endDate }: Props) {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                   <Gauge className="h-3.5 w-3.5" /> Utilisation
                 </div>
-                <div className={`text-xl font-bold tabular-nums ${utilColor}`}>
+                <div className={`text-xl font-bold tracking-tight tabular-nums ${utilColor}`}>
                   {metrics.utilisation.toFixed(1)}%
                 </div>
               </div>
@@ -189,7 +189,7 @@ export function ResourceKpiBar({ startDate, endDate }: Props) {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                   <AlertTriangle className={`h-3.5 w-3.5 ${metrics.overAllocatedCount > 0 ? "text-red-600" : ""}`} /> Over-Allocated
                 </div>
-                <div className={`text-xl font-bold tabular-nums ${metrics.overAllocatedCount > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+                <div className={`text-xl font-bold tracking-tight tabular-nums ${metrics.overAllocatedCount > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
                   {metrics.overAllocatedCount} <span className="text-xs font-normal">{metrics.overAllocatedCount === 1 ? "member" : "members"}</span>
                 </div>
               </div>
