@@ -170,9 +170,6 @@ export const ListProjectsResponseItem = zod.object({
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
-  companyName: zod.string().nullish(),
-  companyDomain: zod.string().nullish(),
-  ownerName: zod.string().nullish(),
 });
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
 
@@ -312,6 +309,17 @@ export const ListTasksResponseItem = zod.object({
   startDate: zod.string().nullish(),
   dueDate: zod.string().nullish(),
   effort: zod.number(),
+  plannedHours: zod.number().describe("Initial planned hours for this task"),
+  estimateHours: zod
+    .number()
+    .describe("Current estimate of hours required (defaults to plannedHours)"),
+  actualHours: zod
+    .number()
+    .describe("Sum of time entries logged against this task"),
+  etc: zod
+    .number()
+    .describe("Estimate To Complete = estimateHours − actualHours"),
+  eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
@@ -341,6 +349,8 @@ export const CreateTaskBody = zod.object({
   startDate: zod.string().optional(),
   dueDate: zod.string().optional(),
   effort: zod.number(),
+  plannedHours: zod.number().optional(),
+  estimateHours: zod.number().optional(),
   billable: zod.boolean(),
   isMilestone: zod.boolean().optional(),
 });
@@ -363,6 +373,17 @@ export const GetTaskResponse = zod.object({
   startDate: zod.string().nullish(),
   dueDate: zod.string().nullish(),
   effort: zod.number(),
+  plannedHours: zod.number().describe("Initial planned hours for this task"),
+  estimateHours: zod
+    .number()
+    .describe("Current estimate of hours required (defaults to plannedHours)"),
+  actualHours: zod
+    .number()
+    .describe("Sum of time entries logged against this task"),
+  etc: zod
+    .number()
+    .describe("Estimate To Complete = estimateHours − actualHours"),
+  eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
@@ -394,6 +415,8 @@ export const UpdateTaskBody = zod.object({
   startDate: zod.string().optional(),
   dueDate: zod.string().optional(),
   effort: zod.number().optional(),
+  plannedHours: zod.number().optional(),
+  estimateHours: zod.number().optional(),
   billable: zod.boolean().optional(),
   isMilestone: zod.boolean().optional(),
 });
@@ -409,6 +432,17 @@ export const UpdateTaskResponse = zod.object({
   startDate: zod.string().nullish(),
   dueDate: zod.string().nullish(),
   effort: zod.number(),
+  plannedHours: zod.number().describe("Initial planned hours for this task"),
+  estimateHours: zod
+    .number()
+    .describe("Current estimate of hours required (defaults to plannedHours)"),
+  actualHours: zod
+    .number()
+    .describe("Sum of time entries logged against this task"),
+  etc: zod
+    .number()
+    .describe("Estimate To Complete = estimateHours − actualHours"),
+  eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
@@ -538,13 +572,13 @@ export const ListTimeEntriesResponse = zod.array(ListTimeEntriesResponseItem);
  * @summary Log a time entry
  */
 export const CreateTimeEntryBody = zod.object({
-  projectId: zod.number(),
+  projectId: zod.number().optional(),
   userId: zod.number(),
-  taskId: zod.number().optional(),
+  taskId: zod.number().nullish(),
   date: zod.string(),
   hours: zod.number(),
   description: zod.string(),
-  billable: zod.boolean(),
+  billable: zod.boolean().optional(),
 });
 
 /**
@@ -559,6 +593,7 @@ export const UpdateTimeEntryBody = zod.object({
   description: zod.string().optional(),
   billable: zod.boolean().optional(),
   approved: zod.boolean().optional(),
+  taskId: zod.number().nullish(),
 });
 
 export const UpdateTimeEntryResponse = zod.object({
@@ -2550,6 +2585,44 @@ export const CreateTaskCommentBody = zod.object({
 export const DeleteTaskCommentParams = zod.object({
   id: zod.coerce.number(),
   commentId: zod.coerce.number(),
+});
+
+/**
+ * @summary List task notes
+ */
+export const ListTaskNotesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTaskNotesResponseItem = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  userId: zod.number(),
+  userName: zod.string(),
+  content: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListTaskNotesResponse = zod.array(ListTaskNotesResponseItem);
+
+/**
+ * @summary Add a task note
+ */
+export const CreateTaskNoteParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateTaskNoteBody = zod.object({
+  content: zod.string(),
+  userId: zod.number(),
+});
+
+/**
+ * @summary Delete task note
+ */
+export const DeleteTaskNoteParams = zod.object({
+  taskId: zod.coerce.number(),
+  noteId: zod.coerce.number(),
 });
 
 /**

@@ -7,11 +7,12 @@
  */
 
 export interface CreateTimeEntryBody {
-  projectId: number;
+  projectId?: number;
   userId: number;
-  taskId?: number;
+  /** @nullable */
+  taskId?: number | null;
   date: string;
   hours: number;
   description: string;
-  billable: boolean;
+  billable?: boolean;
 }

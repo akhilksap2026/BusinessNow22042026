@@ -17,6 +17,8 @@ export interface UpdateTaskBody {
   startDate?: string;
   dueDate?: string;
   effort?: number;
+  plannedHours?: number;
+  estimateHours?: number;
   billable?: boolean;
   isMilestone?: boolean;
 }

@@ -58,6 +58,7 @@ import type {
   CreateTaskBody,
   CreateTaskChecklistItemBody,
   CreateTaskCommentBody,
+  CreateTaskNoteBody,
   CreateTaxCodeBody,
   CreateTemplateAllocationBody,
   CreateTemplatePhaseBody,
@@ -126,6 +127,7 @@ import type {
   Task,
   TaskChecklistItem,
   TaskComment,
+  TaskNote,
   TaxCode,
   TemplateAllocation,
   TemplateAllocationsSummary,
@@ -10025,6 +10027,265 @@ export const useDeleteTaskComment = <
   TContext
 > => {
   return useMutation(getDeleteTaskCommentMutationOptions(options));
+};
+
+/**
+ * @summary List task notes
+ */
+export const getListTaskNotesUrl = (id: number) => {
+  return `/api/tasks/${id}/notes`;
+};
+
+export const listTaskNotes = async (
+  id: number,
+  options?: RequestInit,
+): Promise<TaskNote[]> => {
+  return customFetch<TaskNote[]>(getListTaskNotesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTaskNotesQueryKey = (id: number) => {
+  return [`/api/tasks/${id}/notes`] as const;
+};
+
+export const getListTaskNotesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTaskNotes>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTaskNotes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListTaskNotesQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTaskNotes>>> = ({
+    signal,
+  }) => listTaskNotes(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTaskNotes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTaskNotesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTaskNotes>>
+>;
+export type ListTaskNotesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List task notes
+ */
+
+export function useListTaskNotes<
+  TData = Awaited<ReturnType<typeof listTaskNotes>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTaskNotes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTaskNotesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a task note
+ */
+export const getCreateTaskNoteUrl = (id: number) => {
+  return `/api/tasks/${id}/notes`;
+};
+
+export const createTaskNote = async (
+  id: number,
+  createTaskNoteBody: CreateTaskNoteBody,
+  options?: RequestInit,
+): Promise<TaskNote> => {
+  return customFetch<TaskNote>(getCreateTaskNoteUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTaskNoteBody),
+  });
+};
+
+export const getCreateTaskNoteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTaskNote>>,
+    TError,
+    { id: number; data: BodyType<CreateTaskNoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTaskNote>>,
+  TError,
+  { id: number; data: BodyType<CreateTaskNoteBody> },
+  TContext
+> => {
+  const mutationKey = ["createTaskNote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTaskNote>>,
+    { id: number; data: BodyType<CreateTaskNoteBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createTaskNote(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTaskNoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTaskNote>>
+>;
+export type CreateTaskNoteMutationBody = BodyType<CreateTaskNoteBody>;
+export type CreateTaskNoteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a task note
+ */
+export const useCreateTaskNote = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTaskNote>>,
+    TError,
+    { id: number; data: BodyType<CreateTaskNoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createTaskNote>>,
+  TError,
+  { id: number; data: BodyType<CreateTaskNoteBody> },
+  TContext
+> => {
+  return useMutation(getCreateTaskNoteMutationOptions(options));
+};
+
+/**
+ * @summary Delete task note
+ */
+export const getDeleteTaskNoteUrl = (taskId: number, noteId: number) => {
+  return `/api/tasks/${taskId}/notes/${noteId}`;
+};
+
+export const deleteTaskNote = async (
+  taskId: number,
+  noteId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteTaskNoteUrl(taskId, noteId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteTaskNoteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTaskNote>>,
+    TError,
+    { taskId: number; noteId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTaskNote>>,
+  TError,
+  { taskId: number; noteId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteTaskNote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTaskNote>>,
+    { taskId: number; noteId: number }
+  > = (props) => {
+    const { taskId, noteId } = props ?? {};
+
+    return deleteTaskNote(taskId, noteId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTaskNoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTaskNote>>
+>;
+
+export type DeleteTaskNoteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete task note
+ */
+export const useDeleteTaskNote = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTaskNote>>,
+    TError,
+    { taskId: number; noteId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTaskNote>>,
+  TError,
+  { taskId: number; noteId: number },
+  TContext
+> => {
+  return useMutation(getDeleteTaskNoteMutationOptions(options));
 };
 
 /**

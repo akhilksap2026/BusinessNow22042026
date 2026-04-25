@@ -11,4 +11,6 @@ export interface UpdateTimeEntryBody {
   description?: string;
   billable?: boolean;
   approved?: boolean;
+  /** @nullable */
+  taskId?: number | null;
 }

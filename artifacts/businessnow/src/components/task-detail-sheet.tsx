@@ -12,8 +12,12 @@ import {
   useDeleteTaskChecklistItem,
   useUpdateTask,
   useListUsers,
+  useListTaskNotes,
+  useCreateTaskNote,
+  useDeleteTaskNote,
   getListTaskCommentsQueryKey,
   getListTaskChecklistQueryKey,
+  getListTaskNotesQueryKey,
   getListTasksQueryKey,
 } from "@workspace/api-client-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -25,9 +29,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch } from "lucide-react";
-import { format } from "date-fns";
+import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch, AlertTriangle, FileText } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 
 interface TaskDetailSheetProps {
   taskId: number | null;
@@ -66,18 +71,25 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const { data: checklist, isLoading: loadingChecklist } = useListTaskChecklist(taskId ?? 0, {
     query: { enabled: !!taskId, queryKey: [...getListTaskChecklistQueryKey(taskId ?? 0)] },
   });
+  const { data: notes, isLoading: loadingNotes } = useListTaskNotes(taskId ?? 0, {
+    query: { enabled: !!taskId, queryKey: [...getListTaskNotesQueryKey(taskId ?? 0)] },
+  });
 
   const createComment = useCreateTaskComment();
   const deleteComment = useDeleteTaskComment();
   const createItem = useCreateTaskChecklistItem();
   const updateItem = useUpdateTaskChecklistItem();
   const deleteItem = useDeleteTaskChecklistItem();
+  const createNote = useCreateTaskNote();
+  const deleteNote = useDeleteTaskNote();
   const updateTask = useUpdateTask();
 
   const [newComment, setNewComment] = useState("");
   const [newChecklistItem, setNewChecklistItem] = useState("");
+  const [newNote, setNewNote] = useState("");
   const [addingComment, setAddingComment] = useState(false);
   const [addingChecklist, setAddingChecklist] = useState(false);
+  const [addingNote, setAddingNote] = useState(false);
   const [addingDep, setAddingDep] = useState(false);
   const [depForm, setDepForm] = useState({ predecessorId: "", dependencyType: "FS", lagDays: "0" });
 
@@ -126,6 +138,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: getListTaskCommentsQueryKey(taskId ?? 0) });
     queryClient.invalidateQueries({ queryKey: getListTaskChecklistQueryKey(taskId ?? 0) });
+    queryClient.invalidateQueries({ queryKey: getListTaskNotesQueryKey(taskId ?? 0) });
     queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
   }
 
@@ -161,6 +174,28 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
     if (!taskId) return;
     await deleteComment.mutateAsync({ id: taskId, commentId });
     queryClient.invalidateQueries({ queryKey: getListTaskCommentsQueryKey(taskId) });
+  }
+
+  async function handleAddNote() {
+    if (!newNote.trim() || !taskId) return;
+    try {
+      await createNote.mutateAsync({ id: taskId, data: { userId: currentUserId, content: newNote.trim() } });
+      setNewNote("");
+      setAddingNote(false);
+      queryClient.invalidateQueries({ queryKey: getListTaskNotesQueryKey(taskId) });
+    } catch {
+      toast({ title: "Failed to add note", variant: "destructive" });
+    }
+  }
+
+  async function handleDeleteNote(noteId: number) {
+    if (!taskId) return;
+    try {
+      await deleteNote.mutateAsync({ taskId, noteId });
+      queryClient.invalidateQueries({ queryKey: getListTaskNotesQueryKey(taskId) });
+    } catch {
+      toast({ title: "Failed to delete note", variant: "destructive" });
+    }
   }
 
   async function handleUpdateField(field: string, value: any) {
@@ -252,8 +287,8 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                 </div>
               </div>
 
-              {/* Dates & Effort */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Start Date</label>
                   <Input
@@ -272,35 +307,106 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                     onBlur={(e) => { if (e.target.value) handleUpdateField("dueDate", e.target.value); }}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planned Hours</label>
-                  {isParent ? (
-                    <div className="h-8 flex items-center gap-1.5 rounded border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-2 text-xs text-amber-700 dark:text-amber-400">
-                      <span className="font-medium">Auto-calculated</span>
-                      <span className="text-amber-500">—</span>
-                      <span>sum of child tasks</span>
+              </div>
+
+              {/* Hours: Planned, Estimate, Actual, ETC, EAC */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Hours</label>
+                {isParent ? (
+                  <div className="h-9 flex items-center gap-1.5 rounded border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-3 text-xs text-amber-700 dark:text-amber-400">
+                    <span className="font-medium">Auto-calculated</span>
+                    <span className="text-amber-500">—</span>
+                    <span>sum of child tasks. Log time on leaf tasks only.</span>
+                  </div>
+                ) : (
+                  <TooltipProvider delayDuration={200}>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-[11px] uppercase tracking-wide text-muted-foreground cursor-help">Planned</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-[220px]">
+                            Hours originally planned when the task was created.
+                          </TooltipContent>
+                        </Tooltip>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.25"
+                          className="h-8 text-sm"
+                          defaultValue={task?.plannedHours ?? task?.effort ?? 0}
+                          onBlur={(e) => {
+                            if (e.target.value === "") return;
+                            const n = Math.max(0, Number(e.target.value) || 0);
+                            handleUpdateField("plannedHours", n);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-[11px] uppercase tracking-wide text-muted-foreground cursor-help">Estimate</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-[220px]">
+                            Initially equals Planned. Adjust as you learn more about scope.
+                          </TooltipContent>
+                        </Tooltip>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.25"
+                          className="h-8 text-sm"
+                          defaultValue={task?.estimateHours ?? task?.plannedHours ?? task?.effort ?? 0}
+                          onBlur={(e) => {
+                            if (e.target.value === "") return;
+                            const n = Math.max(0, Number(e.target.value) || 0);
+                            handleUpdateField("estimateHours", n);
+                          }}
+                        />
+                      </div>
                     </div>
-                  ) : (
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.25"
-                      className="h-8 text-sm"
-                      defaultValue={task?.effort ?? 0}
-                      onBlur={(e) => {
-                        if (e.target.value === "") return;
-                        const n = Math.max(0, Number(e.target.value) || 0);
-                        if (n !== Number(e.target.value)) e.target.value = String(n);
-                        handleUpdateField("effort", n);
-                      }}
-                    />
-                  )}
-                  {isParent && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-500">
-                      This task has sub-tasks. Log time on leaf tasks only.
-                    </p>
-                  )}
-                </div>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="rounded border bg-slate-50 px-2 py-1.5 cursor-help">
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Actual</div>
+                            <div className="text-sm font-semibold text-slate-700">{(task?.actualHours ?? 0).toFixed(1)}h</div>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                          Sum of logged time entries for this task.
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className={`rounded border px-2 py-1.5 cursor-help ${Number(task?.etc ?? 0) < 0 ? "bg-red-50 border-red-200" : "bg-slate-50"}`}>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                              ETC {Number(task?.etc ?? 0) < 0 && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                            </div>
+                            <div className={`text-sm font-semibold ${Number(task?.etc ?? 0) < 0 ? "text-red-600" : "text-slate-700"}`}>
+                              {(task?.etc ?? 0).toFixed(1)}h
+                            </div>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                          Estimate to Complete = Estimate − Actual. Negative means the task is over its estimate.
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="rounded border bg-slate-50 px-2 py-1.5 cursor-help">
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">EAC</div>
+                            <div className="text-sm font-semibold text-slate-700">{(task?.eac ?? 0).toFixed(1)}h</div>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                          Estimate at Completion = Actual + |ETC|.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
+                )}
               </div>
 
               {/* Flags row */}
@@ -557,6 +663,82 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleAddComment} disabled={!newComment.trim()}>Post</Button>
                       <Button size="sm" variant="ghost" onClick={() => { setAddingComment(false); setNewComment(""); }}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Notes */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Notes</span>
+                    {(notes?.length ?? 0) > 0 && (
+                      <span className="text-xs text-muted-foreground">{notes?.length}</span>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingNote(true)}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Note
+                  </Button>
+                </div>
+
+                {loadingNotes ? (
+                  <p className="text-sm text-muted-foreground">Loading…</p>
+                ) : (
+                  <div className="space-y-3">
+                    {notes?.length === 0 && !addingNote && (
+                      <p className="text-sm text-muted-foreground">No notes yet.</p>
+                    )}
+                    {notes?.map((note) => {
+                      const canDelete = note.userId === currentUserId || ["Admin", "PM", "Super User"].includes(currentUser?.role ?? "");
+                      return (
+                        <div key={note.id} className="flex gap-3 group">
+                          <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
+                            <AvatarFallback className="text-xs bg-emerald-100 text-emerald-700">
+                              {(note.userName || `U${note.userId}`).split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-xs font-medium">{note.userName}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {note.createdAt ? formatDistanceToNow(new Date(note.createdAt), { addSuffix: true }) : ""}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-700 mt-0.5 break-words whitespace-pre-wrap">{note.content}</p>
+                          </div>
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground flex-shrink-0"
+                              onClick={() => handleDeleteNote(note.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {addingNote && (
+                  <div className="mt-3 space-y-2">
+                    <Textarea
+                      placeholder="Add a note…"
+                      className="text-sm resize-none"
+                      rows={3}
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAddNote} disabled={!newNote.trim()}>Save</Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setAddingNote(false); setNewNote(""); }}>Cancel</Button>
                     </div>
                   </div>
                 )}

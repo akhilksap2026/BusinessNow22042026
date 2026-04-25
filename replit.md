@@ -587,3 +587,34 @@ Verified end-to-end completion of the 8-step Dynamic Role-Based Identity & Permi
 - `/api/projects` (user 1 with assigned role "Project Manager") → 200.
 - `POST /api/audit/role-switch` (legitimate self-transition) → 204.
 - `POST /api/audit/role-switch` (user 1 to unassigned "Admin") → 403 "Cannot log a role transition you are not assigned to".
+
+### 2026-04-25 — Phase 2: Hours Model + Task Notes + Time→Task Linking
+
+**Database (lib/db/src/schema/tasks.ts)**
+- Added `plannedHours` (numeric 12,2) and `estimateHours` (numeric 12,2) columns to `tasksTable`.
+- Created `taskNotesTable` (`id serial`, `task_id → tasks.id ON DELETE CASCADE`, `user_id → users.id`, `content text`, `created_at`, `updated_at`).
+- `taskId` already existed on `timeEntriesTable` — now actively used.
+- Schema synced via `cd lib/db && pnpm run push --force`.
+
+**Backend (artifacts/api-server)**
+- `routes/tasks.ts`: `mapTask` now returns `plannedHours`, `estimateHours`, `actualHours`, `etc` (`estimate − actual`), `eac` (`actual + |etc|`), all 2-decimal numbers. `getActualHoursMap` aggregates `time_entries.hours` grouped by `task_id` for the rows being returned. POST mirrors `plannedHours → effort` (back-compat) and defaults `estimate = planned`. PATCH accepts `plannedHours` / `estimateHours` pass-through.
+- `routes/taskDetails.ts`: New routes `GET /tasks/:id/notes` (with users JOIN for `userName`, ascending `created_at`), `POST /tasks/:id/notes` (validates `content` + `userId`), `DELETE /tasks/:taskId/notes/:noteId` (note owner OR PM/Admin/Super User only — 403 otherwise).
+
+**API spec / codegen (lib/api-spec/openapi.yaml)**
+- `Task` schema gained `plannedHours / estimateHours / actualHours / etc / eac` (all required). `CreateTaskBody` + `UpdateTaskBody` accept optional `plannedHours / estimateHours`.
+- `CreateTimeEntryBody.taskId` is now nullable; `projectId / billable` removed from required (only `userId / date / hours / description` required). `UpdateTimeEntryBody` accepts `taskId`.
+- New `TaskNote` + `CreateTaskNoteBody` schemas; new paths `/tasks/{id}/notes` (GET/POST) and `/tasks/{taskId}/notes/{noteId}` (DELETE).
+- Regenerated via `pnpm --filter @workspace/api-spec run codegen` → fresh hooks (`useListTaskNotes`, `useCreateTaskNote`, `useDeleteTaskNote`) and Zod schemas.
+
+**Frontend (artifacts/businessnow)**
+- `task-detail-sheet.tsx`: Replaced single "Planned Hours" input with a structured 5-field Hours section — two editable inputs (Planned, Estimate) over three readonly tiles (Actual / ETC / EAC). ETC tile turns red with an alert icon when negative. Each label/tile has a tooltip explaining the field. Parent/phase tasks show the auto-rollup banner instead of inputs. Added a new Notes section after Comments using the same layout pattern (Avatar + name + relative time + content) with delete (trash) visible to note owner or PM/Admin/Super User. Wired hooks + cache invalidation.
+- `pages/time.tsx`: Log Time dialog now has an optional Task selector populated by `useListTasks({ projectId })`, filtered to leaf tasks only (no phases). Project change resets the task to "No task". `taskId` is sent to `createTimeEntry` only when a task is selected.
+- `components/timesheet-grid.tsx`: Already had taskId support — no changes needed.
+
+### 2026-04-25 — Phase 2 Architect Remediation
+
+Fixes applied after architect code review:
+- **PATCH /tasks/:id back-compat**: when a legacy client sends only `effort` (no `plannedHours`/`estimateHours`), the route now mirrors `effort` into both new fields so the hours model stays in sync. Verified: `PATCH {effort:99}` returns `effort:99, plannedHours:99, estimateHours:99`.
+- **Notes POST identity binding**: `POST /tasks/:id/notes` now derives the author from the trusted `x-user-id` header (validated by `roleClaim` middleware) and ignores any `userId` in the request body, preventing impersonation. Returns 401 when missing.
+- **Log Time leaf-task filter**: `time.tsx` was filtering using `parentId` but the task schema field is `parentTaskId`. Fixed the filter and also added an `isPhase` exclusion so phases never appear in the time-entry Task selector.
+- **Stale task hours after time mutations**: `handleLogTime`, `handleSaveEntry`, and `handleDeleteEntry` in `time.tsx` now invalidate `["listTasks"]` (in addition to time-entry queries) so derived `actualHours/etc/eac` refresh in any open task views.

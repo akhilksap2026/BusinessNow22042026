@@ -92,9 +92,6 @@ export interface Project {
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
-  companyName?: string | null;
-  companyDomain?: string | null;
-  ownerName?: string | null;
 }
 
 export interface ProjectSummary {
@@ -147,6 +144,16 @@ export interface Task {
   /** @nullable */
   dueDate?: string | null;
   effort: number;
+  /** Initial planned hours for this task */
+  plannedHours: number;
+  /** Current estimate of hours required (defaults to plannedHours) */
+  estimateHours: number;
+  /** Sum of time entries logged against this task */
+  actualHours: number;
+  /** Estimate To Complete = estimateHours − actualHours */
+  etc: number;
+  /** Estimate At Completion = actualHours + abs(etc) */
+  eac: number;
   billable: boolean;
   isMilestone: boolean;
   /** True if this task was created by applying a template */
@@ -173,6 +180,8 @@ export interface CreateTaskBody {
   startDate?: string;
   dueDate?: string;
   effort: number;
+  plannedHours?: number;
+  estimateHours?: number;
   billable: boolean;
   isMilestone?: boolean;
 }
@@ -188,6 +197,8 @@ export interface UpdateTaskBody {
   startDate?: string;
   dueDate?: string;
   effort?: number;
+  plannedHours?: number;
+  estimateHours?: number;
   billable?: boolean;
   isMilestone?: boolean;
 }
@@ -240,13 +251,14 @@ export interface TimeEntry {
 }
 
 export interface CreateTimeEntryBody {
-  projectId: number;
+  projectId?: number;
   userId: number;
-  taskId?: number;
+  /** @nullable */
+  taskId?: number | null;
   date: string;
   hours: number;
   description: string;
-  billable: boolean;
+  billable?: boolean;
 }
 
 export interface UpdateTimeEntryBody {
@@ -254,6 +266,8 @@ export interface UpdateTimeEntryBody {
   description?: string;
   billable?: boolean;
   approved?: boolean;
+  /** @nullable */
+  taskId?: number | null;
 }
 
 export type TimeSummaryByProjectItem = {
@@ -1032,6 +1046,21 @@ export interface UpdateTaskChecklistItemBody {
   name?: string;
   completed?: boolean;
   order?: number;
+}
+
+export interface TaskNote {
+  id: number;
+  taskId: number;
+  userId: number;
+  userName: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTaskNoteBody {
+  content: string;
+  userId: number;
 }
 
 export interface TaxCode {

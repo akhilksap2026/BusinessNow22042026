@@ -14,6 +14,8 @@ export const tasksTable = pgTable("tasks", {
   startDate: text("start_date"),
   dueDate: text("due_date"),
   effort: numeric("effort", { precision: 8, scale: 2 }).notNull().default("0"),
+  plannedHours: numeric("planned_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  estimateHours: numeric("estimate_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   billable: boolean("billable").notNull().default(true),
   categoryId: integer("category_id"),
   isMilestone: boolean("is_milestone").notNull().default(false),
@@ -32,3 +34,16 @@ export const tasksTable = pgTable("tasks", {
 export const insertTaskSchema = createInsertSchema(tasksTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasksTable.$inferSelect;
+
+export const taskNotesTable = pgTable("task_notes", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").notNull(),
+  userId: integer("user_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTaskNoteSchema = createInsertSchema(taskNotesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTaskNote = z.infer<typeof insertTaskNoteSchema>;
+export type TaskNote = typeof taskNotesTable.$inferSelect;

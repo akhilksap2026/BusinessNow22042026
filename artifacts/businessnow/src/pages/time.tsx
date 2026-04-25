@@ -3,11 +3,11 @@ import { authHeaders } from "@/lib/auth-headers";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import {
-  useListTimeEntries, useGetTimeEntrySummary, useListProjects, useListUsers,
+  useListTimeEntries, useGetTimeEntrySummary, useListProjects, useListUsers, useListTasks,
   useListTimeOffRequests, useCreateTimeOffRequest, useUpdateTimeOffRequestStatus, useDeleteTimeOffRequest,
   useUpdateTimeEntry, useDeleteTimeEntry, useCreateTimeEntry, useListTimeCategories,
   useListTimesheets, useApproveTimesheet, useRejectTimesheet,
-  getListTimeOffRequestsQueryKey, getListTimeEntriesQueryKey, getListTimesheetsQueryKey,
+  getListTimeOffRequestsQueryKey, getListTimeEntriesQueryKey, getListTimesheetsQueryKey, getListTasksQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { addDays, format, startOfWeek } from "date-fns";
@@ -72,7 +72,18 @@ export default function TimeTracking() {
   const deleteTimeEntry = useDeleteTimeEntry();
   const createTimeEntry = useCreateTimeEntry();
   const [showLogTime, setShowLogTime] = useState(false);
-  const [logForm, setLogForm] = useState({ projectId: "", userId: "1", date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
+  const [logForm, setLogForm] = useState({ projectId: "", taskId: "__none", userId: "1", date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
+
+  const { data: logFormTasks } = useListTasks(
+    logForm.projectId ? { projectId: parseInt(logForm.projectId) } : undefined,
+    { query: { enabled: !!logForm.projectId } },
+  );
+  // A leaf task is one that has no children (no other task references it as parent)
+  // and is not itself a phase. Match the task schema field name `parentTaskId`.
+  const logFormLeafTasks = (logFormTasks ?? []).filter((t: any) => {
+    if (t.isPhase) return false;
+    return !(logFormTasks ?? []).some((other: any) => other.parentTaskId === t.id);
+  });
 
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -111,6 +122,7 @@ export default function TimeTracking() {
     try {
       await createTimeEntry.mutateAsync({ data: {
         projectId: parseInt(logForm.projectId),
+        taskId: logForm.taskId && logForm.taskId !== "__none" ? parseInt(logForm.taskId) : undefined,
         userId: parseInt(logForm.userId),
         date: logForm.date,
         hours: parseFloat(logForm.hours),
@@ -119,10 +131,13 @@ export default function TimeTracking() {
         categoryId: logForm.categoryId && logForm.categoryId !== "__none" ? parseInt(logForm.categoryId) : undefined,
       } as any });
       queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
+      // Task hours (actual/etc/eac) are derived from time entries; refresh task lists
+      // so any open task views reflect the new totals.
+      queryClient.invalidateQueries({ queryKey: ["listTasks"] });
       toast({ title: "Time logged" });
       setShowLogTime(false);
       setTimerSeconds(0);
-      setLogForm({ projectId: "", userId: String(currentUserId), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
+      setLogForm({ projectId: "", taskId: "__none", userId: String(currentUserId), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
     } catch {
       toast({ title: "Failed to log time", variant: "destructive" });
     }
@@ -147,6 +162,7 @@ export default function TimeTracking() {
         billable: editEntryForm.billable,
       } as any });
       queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["listTasks"] });
       toast({ title: "Time entry updated" });
       setEditEntryId(null);
     } catch {
@@ -159,6 +175,7 @@ export default function TimeTracking() {
     try {
       await deleteTimeEntry.mutateAsync({ id: deleteEntryId });
       queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["listTasks"] });
       toast({ title: "Time entry deleted" });
       setDeleteEntryId(null);
     } catch {
@@ -889,9 +906,27 @@ export default function TimeTracking() {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label>Project *</Label>
-              <Select value={logForm.projectId} onValueChange={v => setLogForm(f => ({ ...f, projectId: v }))}>
+              <Select value={logForm.projectId} onValueChange={v => setLogForm(f => ({ ...f, projectId: v, taskId: "__none" }))}>
                 <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
                 <SelectContent>{projects?.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Task</Label>
+              <Select
+                value={logForm.taskId}
+                onValueChange={v => setLogForm(f => ({ ...f, taskId: v }))}
+                disabled={!logForm.projectId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={logForm.projectId ? "Select task (optional)" : "Choose a project first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">No task</SelectItem>
+                  {logFormLeafTasks.map((t: any) => (
+                    <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">

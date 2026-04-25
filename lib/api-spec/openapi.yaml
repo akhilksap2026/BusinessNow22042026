@@ -2252,6 +2252,67 @@ paths:
         '204':
           description: Deleted
 
+  /tasks/{id}/notes:
+    get:
+      summary: List task notes
+      operationId: listTaskNotes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskNote'
+    post:
+      summary: Add a task note
+      operationId: createTaskNote
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskNoteBody'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskNote'
+
+  /tasks/{taskId}/notes/{noteId}:
+    delete:
+      summary: Delete task note
+      operationId: deleteTaskNote
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: noteId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
   /tasks/{id}/checklist:
     get:
       summary: List task checklist items
@@ -3671,6 +3732,21 @@ components:
           type: ["string", "null"]
         effort:
           type: number
+        plannedHours:
+          type: number
+          description: Initial planned hours for this task
+        estimateHours:
+          type: number
+          description: Current estimate of hours required (defaults to plannedHours)
+        actualHours:
+          type: number
+          description: Sum of time entries logged against this task
+        etc:
+          type: number
+          description: Estimate To Complete = estimateHours − actualHours
+        eac:
+          type: number
+          description: Estimate At Completion = actualHours + abs(etc)
         billable:
           type: boolean
         isMilestone:
@@ -3693,6 +3769,11 @@ components:
         - priority
         - assigneeIds
         - effort
+        - plannedHours
+        - estimateHours
+        - actualHours
+        - etc
+        - eac
         - billable
         - isMilestone
         - createdAt
@@ -3721,6 +3802,10 @@ components:
         dueDate:
           type: string
         effort:
+          type: number
+        plannedHours:
+          type: number
+        estimateHours:
           type: number
         billable:
           type: boolean
@@ -3756,6 +3841,10 @@ components:
         dueDate:
           type: string
         effort:
+          type: number
+        plannedHours:
+          type: number
+        estimateHours:
           type: number
         billable:
           type: boolean
@@ -3890,7 +3979,7 @@ components:
         userId:
           type: integer
         taskId:
-          type: integer
+          type: ["integer", "null"]
         date:
           type: string
         hours:
@@ -3900,12 +3989,10 @@ components:
         billable:
           type: boolean
       required:
-        - projectId
         - userId
         - date
         - hours
         - description
-        - billable
 
     UpdateTimeEntryBody:
       type: object
@@ -3918,6 +4005,8 @@ components:
           type: boolean
         approved:
           type: boolean
+        taskId:
+          type: ["integer", "null"]
 
     TimeSummary:
       type: object
@@ -5681,6 +5770,43 @@ components:
           type: boolean
         order:
           type: integer
+
+    TaskNote:
+      type: object
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - taskId
+        - userId
+        - userName
+        - content
+        - createdAt
+        - updatedAt
+
+    CreateTaskNoteBody:
+      type: object
+      properties:
+        content:
+          type: string
+        userId:
+          type: integer
+      required:
+        - content
+        - userId
 
     TaxCode:
       type: object

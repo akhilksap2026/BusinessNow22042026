@@ -19,6 +19,16 @@ export interface Task {
   /** @nullable */
   dueDate?: string | null;
   effort: number;
+  /** Initial planned hours for this task */
+  plannedHours: number;
+  /** Current estimate of hours required (defaults to plannedHours) */
+  estimateHours: number;
+  /** Sum of time entries logged against this task */
+  actualHours: number;
+  /** Estimate To Complete = estimateHours − actualHours */
+  etc: number;
+  /** Estimate At Completion = actualHours + abs(etc) */
+  eac: number;
   billable: boolean;
   isMilestone: boolean;
   /** True if this task was created by applying a template */

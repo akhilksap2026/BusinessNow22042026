@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, csatSurveysTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, csatSurveysTable, timeEntriesTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import { logAudit } from "../lib/audit";
 import {
@@ -22,14 +22,36 @@ function canReadPrivateNotes(role: string): boolean {
   return PM_ROLES.has(role);
 }
 
-function mapTask(t: typeof tasksTable.$inferSelect) {
+function mapTask(t: typeof tasksTable.$inferSelect, actualHoursById?: Map<number, number>) {
+  const planned = Number(t.plannedHours ?? 0) || Number(t.effort ?? 0);
+  const estimate = Number(t.estimateHours ?? 0) || planned;
+  const actual = actualHoursById?.get(t.id) ?? 0;
+  const etc = estimate - actual;
+  const eac = actual + Math.abs(etc);
   return {
     ...t,
     effort: Number(t.effort),
+    plannedHours: planned,
+    estimateHours: estimate,
+    actualHours: Number(actual.toFixed(2)),
+    etc: Number(etc.toFixed(2)),
+    eac: Number(eac.toFixed(2)),
     assigneeIds: t.assigneeIds ?? [],
     createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
     updatedAt: t.updatedAt instanceof Date ? t.updatedAt.toISOString() : t.updatedAt,
   };
+}
+
+// Build a map of taskId → sum of time-entry hours for the given task ids.
+async function getActualHoursMap(taskIds: number[]): Promise<Map<number, number>> {
+  const map = new Map<number, number>();
+  if (taskIds.length === 0) return map;
+  const rows = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.taskId, taskIds));
+  for (const r of rows) {
+    if (r.taskId == null) continue;
+    map.set(r.taskId, (map.get(r.taskId) ?? 0) + Number(r.hours ?? 0));
+  }
+  return map;
 }
 
 // Count Mon–Fri working days inclusive between two ISO date strings (yyyy-mm-dd).
@@ -112,8 +134,9 @@ router.get("/tasks", async (req, res): Promise<void> => {
   const rows = conditions.length
     ? await db.select().from(tasksTable).where(and(...conditions))
     : await db.select().from(tasksTable);
+  const actualMap = await getActualHoursMap(rows.map(r => r.id));
   const mapped = rows.map(t => {
-    const task = mapTask(t);
+    const task = mapTask(t, actualMap);
     if (!canReadPrivateNotes(role)) task.privateNotes = null;
     return task;
   });
@@ -130,7 +153,26 @@ router.post("/tasks", requirePM, async (req, res): Promise<void> => {
     return;
   }
   const assigneeIds = parsed.data.assigneeIds ?? [];
-  const [row] = await db.insert(tasksTable).values({ ...parsed.data as any, assigneeIds }).returning();
+  // Hours model: accept plannedHours/estimateHours; default estimate=planned;
+  // also persist effort=plannedHours for backward compatibility.
+  const body = req.body ?? {};
+  const insertValues: any = { ...parsed.data as any, assigneeIds };
+  const hasPlanned = body.plannedHours !== undefined && body.plannedHours !== null;
+  const hasEstimate = body.estimateHours !== undefined && body.estimateHours !== null;
+  if (hasPlanned) {
+    const planned = Number(body.plannedHours) || 0;
+    insertValues.plannedHours = String(planned);
+    insertValues.effort = String(planned);
+    insertValues.estimateHours = String(hasEstimate ? Number(body.estimateHours) || 0 : planned);
+  } else if (hasEstimate) {
+    insertValues.estimateHours = String(Number(body.estimateHours) || 0);
+  } else if (insertValues.effort !== undefined) {
+    // Back-compat: if only effort was sent, mirror it into plannedHours/estimateHours.
+    const planned = Number(insertValues.effort) || 0;
+    insertValues.plannedHours = String(planned);
+    insertValues.estimateHours = String(planned);
+  }
+  const [row] = await db.insert(tasksTable).values(insertValues).returning();
   await logAudit({ entityType: "task", entityId: row.id, action: "created", description: `Task "${row.name}" created` });
 
   // Auto-allocate hook on initial creation: every assignee is "newly assigned".
@@ -171,7 +213,30 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
     return;
   }
 
-  const [row] = await db.update(tasksTable).set(parsed.data as any).where(eq(tasksTable.id, params.data.id)).returning();
+  const updates: any = { ...parsed.data };
+  const body = req.body ?? {};
+  // Hours model: accept plannedHours/estimateHours pass-through; mirror planned↔effort.
+  if (body.plannedHours !== undefined && body.plannedHours !== null) {
+    const planned = Number(body.plannedHours) || 0;
+    updates.plannedHours = String(planned);
+    updates.effort = String(planned);
+  }
+  if (body.estimateHours !== undefined && body.estimateHours !== null) {
+    updates.estimateHours = String(Number(body.estimateHours) || 0);
+  }
+  // Back-compat: if a legacy client only sends `effort` (no plannedHours/estimateHours),
+  // mirror it into both new fields so the new hours model stays in sync.
+  if (
+    body.plannedHours === undefined &&
+    body.estimateHours === undefined &&
+    updates.effort !== undefined
+  ) {
+    const planned = Number(updates.effort) || 0;
+    updates.plannedHours = String(planned);
+    updates.estimateHours = String(planned);
+  }
+
+  const [row] = await db.update(tasksTable).set(updates).where(eq(tasksTable.id, params.data.id)).returning();
 
   // Audit status changes
   if (parsed.data.status && parsed.data.status !== existing.status) {
