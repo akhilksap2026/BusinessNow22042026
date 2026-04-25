@@ -281,7 +281,7 @@ router.patch("/tasks/reorder", requirePM, async (req, res): Promise<void> => {
   await logAudit({
     entityType: "task",
     entityId: 0,
-    action: "reordered",
+    action: "updated",
     description: `Bulk reorder applied to ${updated} task(s) in project ${projectId}`,
   });
   res.json({ updated });

@@ -11,6 +11,8 @@ export interface TemplateTask {
   id: number;
   templatePhaseId: number;
   templateId: number;
+  /** Parent template task id (for nested sub-tasks). Null for top-level tasks. */
+  parentTaskId?: number | null;
   name: string;
   /** Days from project start_date when this task is due */
   relativeDueDateOffset: number;

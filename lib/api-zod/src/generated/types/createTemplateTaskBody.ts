@@ -8,6 +8,8 @@
 
 export interface CreateTemplateTaskBody {
   name: string;
+  /** Parent template task id (for nesting under another template task in same template). */
+  parentTaskId?: number | null;
   relativeDueDateOffset?: number;
   effort?: number;
   billableDefault?: boolean;

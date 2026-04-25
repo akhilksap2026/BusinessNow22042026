@@ -10,6 +10,8 @@ export * from "./account";
 export * from "./activityItem";
 export * from "./addUserSkillBody";
 export * from "./allocation";
+export * from "./applyTemplateAsSegmentBody";
+export * from "./applyTemplateAsSegmentResult";
 export * from "./applyTemplateBody";
 export * from "./applyTemplateResult";
 export * from "./approveTimesheetBody";

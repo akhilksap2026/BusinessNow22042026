@@ -97,23 +97,54 @@ function InlineEdit({
   );
 }
 
-// ─── Task row ────────────────────────────────────────────────────────────────
+// ─── Task row (recursive) ────────────────────────────────────────────────────
 
 function TaskRow({
-  task, onDelete, onUpdate,
+  task,
+  children,
+  allTasks,
+  expandedIds,
+  toggleExpanded,
+  depth,
+  onDelete,
+  onUpdate,
 }: {
   task: TemplateTask;
+  children: TemplateTask[];
+  allTasks: TemplateTask[];
+  expandedIds: Set<number>;
+  toggleExpanded: (id: number) => void;
+  depth: number;
   onDelete: () => Promise<void>;
   onUpdate: (data: Partial<TemplateTask>) => Promise<void>;
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const expanded = expandedIds.has(task.id);
+  const hasChildren = children.length > 0;
+
+  // Eligible parent options: any task in the template EXCEPT self and its descendants.
+  const descendantIds = new Set<number>();
+  function collect(id: number) {
+    for (const t of allTasks) {
+      if (t.parentTaskId === id && !descendantIds.has(t.id)) {
+        descendantIds.add(t.id);
+        collect(t.id);
+      }
+    }
+  }
+  collect(task.id);
+  const parentOptions = allTasks.filter(t => t.id !== task.id && !descendantIds.has(t.id));
 
   return (
     <div className="border rounded-md bg-background">
-      <div className="flex items-center gap-2 px-3 py-2">
+      <div className="flex items-center gap-2 px-3 py-2" style={{ paddingLeft: 12 + depth * 20 }}>
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-        <button type="button" className="mr-0.5 text-muted-foreground hover:text-foreground" onClick={() => setExpanded(p => !p)}>
+        <button
+          type="button"
+          aria-label={expanded ? "Collapse" : "Expand"}
+          className={`mr-0.5 text-muted-foreground hover:text-foreground ${!hasChildren ? "" : ""}`}
+          onClick={() => toggleExpanded(task.id)}
+        >
           {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         </button>
         <div className="flex-1 min-w-0">
@@ -124,6 +155,11 @@ function TaskRow({
             onSave={v => onUpdate({ name: v })}
           />
         </div>
+        {hasChildren && (
+          <Badge variant="outline" className="text-xs shrink-0 text-muted-foreground">
+            {children.length} sub
+          </Badge>
+        )}
         <Badge variant="outline" className="text-xs shrink-0">Day +{task.relativeDueDateOffset}</Badge>
         <Badge
           variant="secondary"
@@ -142,64 +178,89 @@ function TaskRow({
       </div>
 
       {expanded && (
-        <div className="px-3 pb-3 pt-0 grid grid-cols-2 gap-3 border-t bg-muted/20">
-          <div className="space-y-1 mt-2">
-            <Label className="text-xs text-muted-foreground">Due offset (days from project start)</Label>
-            <Input
-              type="number"
-              min={0}
-              defaultValue={task.relativeDueDateOffset}
-              className="h-7 text-sm"
-              onBlur={e => onUpdate({ relativeDueDateOffset: parseInt(e.target.value, 10) || 0 })}
-            />
+        <>
+          <div className="px-3 pb-3 pt-0 grid grid-cols-2 gap-3 border-t bg-muted/20" style={{ paddingLeft: 12 + depth * 20 }}>
+            <div className="space-y-1 mt-2">
+              <Label className="text-xs text-muted-foreground">Due offset (days from project start)</Label>
+              <Input
+                type="number"
+                min={0}
+                defaultValue={task.relativeDueDateOffset}
+                className="h-7 text-sm"
+                onBlur={e => onUpdate({ relativeDueDateOffset: parseInt(e.target.value, 10) || 0 })}
+              />
+            </div>
+            <div className="space-y-1 mt-2">
+              <Label className="text-xs text-muted-foreground">Planned hours (effort)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.5}
+                defaultValue={task.effort}
+                className="h-7 text-sm"
+                onBlur={e => onUpdate({ effort: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Status</Label>
+              <Select value="Not Started" disabled>
+                <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Not Started">Not Started</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">Initial status used when applied to a project</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Priority</Label>
+              <Select defaultValue={task.priority} onValueChange={v => onUpdate({ priority: v })}>
+                <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Assignee role placeholder</Label>
+              <Select
+                value={task.assigneeRolePlaceholder ?? "__none__"}
+                onValueChange={v => onUpdate({ assigneeRolePlaceholder: v === "__none__" ? null : v })}
+              >
+                <SelectTrigger className="h-7 text-sm"><SelectValue placeholder="No placeholder" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No placeholder</SelectItem>
+                  {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Billable</Label>
+              <Select
+                value={task.billableDefault ? "yes" : "no"}
+                onValueChange={v => onUpdate({ billableDefault: v === "yes" })}
+              >
+                <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Billable</SelectItem>
+                  <SelectItem value="no">Non-Billable</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs text-muted-foreground">Parent task</Label>
+              <Select
+                value={task.parentTaskId == null ? "__top__" : String(task.parentTaskId)}
+                onValueChange={v => onUpdate({ parentTaskId: v === "__top__" ? null : Number(v) } as Partial<TemplateTask>)}
+              >
+                <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__top__">— Top level —</SelectItem>
+                  {parentOptions.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-1 mt-2">
-            <Label className="text-xs text-muted-foreground">Effort (hours)</Label>
-            <Input
-              type="number"
-              min={0}
-              step={0.5}
-              defaultValue={task.effort}
-              className="h-7 text-sm"
-              onBlur={e => onUpdate({ effort: parseFloat(e.target.value) || 0 })}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Priority</Label>
-            <Select defaultValue={task.priority} onValueChange={v => onUpdate({ priority: v })}>
-              <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Role placeholder</Label>
-            <Select
-              value={task.assigneeRolePlaceholder ?? ""}
-              onValueChange={v => onUpdate({ assigneeRolePlaceholder: v === "__none__" ? null : v })}
-            >
-              <SelectTrigger className="h-7 text-sm"><SelectValue placeholder="No placeholder" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">No placeholder</SelectItem>
-                {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1 col-span-2">
-            <Label className="text-xs text-muted-foreground">Billable by default</Label>
-            <Select
-              value={task.billableDefault ? "yes" : "no"}
-              onValueChange={v => onUpdate({ billableDefault: v === "yes" })}
-            >
-              <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="yes">Billable</SelectItem>
-                <SelectItem value="no">Non-Billable</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        </>
       )}
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -207,7 +268,7 @@ function TaskRow({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete task?</AlertDialogTitle>
             <AlertDialogDescription>
-              Remove <strong>{task.name}</strong> from this template. This won't affect existing projects.
+              Remove <strong>{task.name}</strong>{hasChildren ? ` and its ${children.length} sub-task(s)` : ""} from this template. This won't affect existing projects.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -220,6 +281,64 @@ function TaskRow({
   );
 }
 
+// ─── Recursive tree renderer for template tasks ──────────────────────────────
+
+function TaskTree({
+  parentId,
+  allTasks,
+  expandedIds,
+  toggleExpanded,
+  depth,
+  onDeleteTask,
+  onUpdateTask,
+}: {
+  parentId: number | null;
+  allTasks: TemplateTask[];
+  expandedIds: Set<number>;
+  toggleExpanded: (id: number) => void;
+  depth: number;
+  onDeleteTask: (taskId: number) => Promise<void>;
+  onUpdateTask: (taskId: number, data: Partial<TemplateTask>) => Promise<void>;
+}) {
+  const rows = allTasks.filter(t => (t.parentTaskId ?? null) === parentId);
+  if (rows.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      {rows.map(task => {
+        const children = allTasks.filter(t => t.parentTaskId === task.id);
+        const expanded = expandedIds.has(task.id);
+        return (
+          <div key={task.id}>
+            <TaskRow
+              task={task}
+              children={children}
+              allTasks={allTasks}
+              expandedIds={expandedIds}
+              toggleExpanded={toggleExpanded}
+              depth={depth}
+              onDelete={() => onDeleteTask(task.id)}
+              onUpdate={data => onUpdateTask(task.id, data)}
+            />
+            {expanded && children.length > 0 && (
+              <div className="mt-2">
+                <TaskTree
+                  parentId={task.id}
+                  allTasks={allTasks}
+                  expandedIds={expandedIds}
+                  toggleExpanded={toggleExpanded}
+                  depth={depth + 1}
+                  onDeleteTask={onDeleteTask}
+                  onUpdateTask={onUpdateTask}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Phase card ───────────────────────────────────────────────────────────────
 
 function PhaseCard({
@@ -228,25 +347,41 @@ function PhaseCard({
   phase: TemplatePhase & { tasks: TemplateTask[] };
   onUpdate: (data: Partial<TemplatePhase>) => Promise<void>;
   onDelete: () => Promise<void>;
-  onAddTask: (data: { name: string; relativeDueDateOffset: number; priority: string; effort: number; billableDefault: boolean; assigneeRolePlaceholder: string | null }) => Promise<void>;
+  onAddTask: (data: { name: string; parentTaskId: number | null; relativeDueDateOffset: number; priority: string; effort: number; billableDefault: boolean; assigneeRolePlaceholder: string | null }) => Promise<void>;
   onDeleteTask: (taskId: number) => Promise<void>;
   onUpdateTask: (taskId: number, data: Partial<TemplateTask>) => Promise<void>;
 }) {
   const [open, setOpen] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addingTask, setAddingTask] = useState(false);
-  const [taskForm, setTaskForm] = useState({ name: "", relativeDueDateOffset: phase.relativeEndOffset, priority: "Medium", effort: 0, billableDefault: true, assigneeRolePlaceholder: "" });
+  const initialForm = { name: "", parentTaskId: null as number | null, relativeDueDateOffset: phase.relativeEndOffset, status: "Not Started", priority: "Medium", effort: 0, billableDefault: true, assigneeRolePlaceholder: "" };
+  const [taskForm, setTaskForm] = useState(initialForm);
   const [savingTask, setSavingTask] = useState(false);
+
+  // Per-phase expandedIds set, shared across the recursive tree.
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(() => new Set());
+  const toggleExpanded = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   async function submitTask() {
     if (!taskForm.name.trim()) return;
     setSavingTask(true);
     await onAddTask({
-      ...taskForm,
+      name: taskForm.name,
+      parentTaskId: taskForm.parentTaskId,
+      relativeDueDateOffset: taskForm.relativeDueDateOffset,
+      priority: taskForm.priority,
+      effort: taskForm.effort,
+      billableDefault: taskForm.billableDefault,
       assigneeRolePlaceholder: taskForm.assigneeRolePlaceholder || null,
     });
     setSavingTask(false);
-    setTaskForm({ name: "", relativeDueDateOffset: phase.relativeEndOffset, priority: "Medium", effort: 0, billableDefault: true, assigneeRolePlaceholder: "" });
+    setTaskForm({ ...initialForm, relativeDueDateOffset: phase.relativeEndOffset });
     setAddingTask(false);
   }
 
@@ -308,14 +443,15 @@ function PhaseCard({
             {phase.tasks.length === 0 && !addingTask && (
               <p className="text-xs text-muted-foreground text-center py-3 border border-dashed rounded-md">No tasks yet — add one below</p>
             )}
-            {phase.tasks.map(task => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onDelete={() => onDeleteTask(task.id)}
-                onUpdate={data => onUpdateTask(task.id, data)}
-              />
-            ))}
+            <TaskTree
+              parentId={null}
+              allTasks={phase.tasks}
+              expandedIds={expandedIds}
+              toggleExpanded={toggleExpanded}
+              depth={0}
+              onDeleteTask={onDeleteTask}
+              onUpdateTask={onUpdateTask}
+            />
 
             {addingTask ? (
               <div className="border rounded-md p-3 bg-muted/20 space-y-2">
@@ -331,26 +467,27 @@ function PhaseCard({
                       className="h-7 text-sm"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Due offset (days from start)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={taskForm.relativeDueDateOffset}
-                      onChange={e => setTaskForm(f => ({ ...f, relativeDueDateOffset: parseInt(e.target.value, 10) || 0 }))}
-                      className="h-7 text-sm"
-                    />
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Parent Task</Label>
+                    <Select
+                      value={taskForm.parentTaskId == null ? "__top__" : String(taskForm.parentTaskId)}
+                      onValueChange={v => setTaskForm(f => ({ ...f, parentTaskId: v === "__top__" ? null : Number(v) }))}
+                    >
+                      <SelectTrigger className="h-7 text-sm"><SelectValue placeholder="Top level" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__top__">— Top level (no parent) —</SelectItem>
+                        {phase.tasks.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Effort (hours)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.5}
-                      value={taskForm.effort}
-                      onChange={e => setTaskForm(f => ({ ...f, effort: parseFloat(e.target.value) || 0 }))}
-                      className="h-7 text-sm"
-                    />
+                    <Label className="text-xs">Status</Label>
+                    <Select value={taskForm.status} disabled>
+                      <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Not Started">Not Started</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Priority</Label>
@@ -362,7 +499,41 @@ function PhaseCard({
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Role Placeholder</Label>
+                    <Label className="text-xs">Planned Hours</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={taskForm.effort}
+                      onChange={e => setTaskForm(f => ({ ...f, effort: parseFloat(e.target.value) || 0 }))}
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Due offset (days from start)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={taskForm.relativeDueDateOffset}
+                      onChange={e => setTaskForm(f => ({ ...f, relativeDueDateOffset: parseInt(e.target.value, 10) || 0 }))}
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Billable</Label>
+                    <Select
+                      value={taskForm.billableDefault ? "yes" : "no"}
+                      onValueChange={v => setTaskForm(f => ({ ...f, billableDefault: v === "yes" }))}
+                    >
+                      <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Billable</SelectItem>
+                        <SelectItem value="no">Non-Billable</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Assignee Role Placeholder</Label>
                     <Select value={taskForm.assigneeRolePlaceholder || "__none__"} onValueChange={v => setTaskForm(f => ({ ...f, assigneeRolePlaceholder: v === "__none__" ? "" : v }))}>
                       <SelectTrigger className="h-7 text-sm"><SelectValue placeholder="None" /></SelectTrigger>
                       <SelectContent>

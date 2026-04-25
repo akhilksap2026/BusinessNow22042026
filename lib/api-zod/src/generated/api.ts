@@ -1584,6 +1584,12 @@ export const ListProjectTemplatesResponseItem = zod.object({
               id: zod.number(),
               templatePhaseId: zod.number(),
               templateId: zod.number(),
+              parentTaskId: zod
+                .number()
+                .nullish()
+                .describe(
+                  "Parent template task id (for nested sub-tasks). Null for top-level tasks.",
+                ),
               name: zod.string(),
               relativeDueDateOffset: zod
                 .number()
@@ -1695,6 +1701,12 @@ export const GetProjectTemplateResponse = zod.object({
               id: zod.number(),
               templatePhaseId: zod.number(),
               templateId: zod.number(),
+              parentTaskId: zod
+                .number()
+                .nullish()
+                .describe(
+                  "Parent template task id (for nested sub-tasks). Null for top-level tasks.",
+                ),
               name: zod.string(),
               relativeDueDateOffset: zod
                 .number()
@@ -1800,6 +1812,12 @@ export const UpdateProjectTemplateResponse = zod.object({
               id: zod.number(),
               templatePhaseId: zod.number(),
               templateId: zod.number(),
+              parentTaskId: zod
+                .number()
+                .nullish()
+                .describe(
+                  "Parent template task id (for nested sub-tasks). Null for top-level tasks.",
+                ),
               name: zod.string(),
               relativeDueDateOffset: zod
                 .number()
@@ -1883,6 +1901,12 @@ export const ListTemplatePhasesResponseItem = zod.object({
         id: zod.number(),
         templatePhaseId: zod.number(),
         templateId: zod.number(),
+        parentTaskId: zod
+          .number()
+          .nullish()
+          .describe(
+            "Parent template task id (for nested sub-tasks). Null for top-level tasks.",
+          ),
         name: zod.string(),
         relativeDueDateOffset: zod
           .number()
@@ -1952,6 +1976,12 @@ export const UpdateTemplatePhaseResponse = zod.object({
         id: zod.number(),
         templatePhaseId: zod.number(),
         templateId: zod.number(),
+        parentTaskId: zod
+          .number()
+          .nullish()
+          .describe(
+            "Parent template task id (for nested sub-tasks). Null for top-level tasks.",
+          ),
         name: zod.string(),
         relativeDueDateOffset: zod
           .number()
@@ -1991,6 +2021,12 @@ export const ListTemplateTasksForPhaseResponseItem = zod.object({
   id: zod.number(),
   templatePhaseId: zod.number(),
   templateId: zod.number(),
+  parentTaskId: zod
+    .number()
+    .nullish()
+    .describe(
+      "Parent template task id (for nested sub-tasks). Null for top-level tasks.",
+    ),
   name: zod.string(),
   relativeDueDateOffset: zod
     .number()
@@ -2019,6 +2055,12 @@ export const CreateTemplateTaskParams = zod.object({
 
 export const CreateTemplateTaskBody = zod.object({
   name: zod.string(),
+  parentTaskId: zod
+    .number()
+    .nullish()
+    .describe(
+      "Parent template task id (for nesting under another template task in same template).",
+    ),
   relativeDueDateOffset: zod.number().optional(),
   effort: zod.number().optional(),
   billableDefault: zod.boolean().optional(),
@@ -2036,6 +2078,12 @@ export const UpdateTemplateTaskParams = zod.object({
 
 export const UpdateTemplateTaskBody = zod.object({
   name: zod.string(),
+  parentTaskId: zod
+    .number()
+    .nullish()
+    .describe(
+      "Parent template task id (for nesting under another template task in same template).",
+    ),
   relativeDueDateOffset: zod.number().optional(),
   effort: zod.number().optional(),
   billableDefault: zod.boolean().optional(),
@@ -2048,6 +2096,12 @@ export const UpdateTemplateTaskResponse = zod.object({
   id: zod.number(),
   templatePhaseId: zod.number(),
   templateId: zod.number(),
+  parentTaskId: zod
+    .number()
+    .nullish()
+    .describe(
+      "Parent template task id (for nested sub-tasks). Null for top-level tasks.",
+    ),
   name: zod.string(),
   relativeDueDateOffset: zod
     .number()
@@ -2218,6 +2272,23 @@ export const CreateProjectFromTemplateBody = zod.object({
   ownerId: zod.number(),
   startDate: zod.string(),
   budget: zod.number().optional(),
+});
+
+/**
+ * @summary Apply a template to a project as a single segment (one phase task with all template tasks nested under it).
+ */
+export const ApplyTemplateAsSegmentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ApplyTemplateAsSegmentBody = zod.object({
+  templateId: zod.number(),
+  phaseName: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional name for the phase task created on the project. Defaults to the template name.",
+    ),
 });
 
 /**

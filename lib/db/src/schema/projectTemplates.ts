@@ -39,6 +39,7 @@ export const templateTasksTable = pgTable("template_tasks", {
   id: serial("id").primaryKey(),
   templatePhaseId: integer("template_phase_id").notNull(),
   templateId: integer("template_id").notNull(),
+  parentTaskId: integer("parent_task_id"),
   name: text("name").notNull(),
   relativeDueDateOffset: integer("relative_due_date_offset").notNull().default(7),
   effort: numeric("effort", { precision: 8, scale: 2 }).notNull().default("0"),

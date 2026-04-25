@@ -683,6 +683,8 @@ export interface TemplateTask {
   id: number;
   templatePhaseId: number;
   templateId: number;
+  /** Parent template task id (for nested sub-tasks). Null for top-level tasks. */
+  parentTaskId?: number | null;
   name: string;
   /** Days from project start_date when this task is due */
   relativeDueDateOffset: number;
@@ -698,6 +700,8 @@ export interface TemplateTask {
 
 export interface CreateTemplateTaskBody {
   name: string;
+  /** Parent template task id (for nesting under another template task in same template). */
+  parentTaskId?: number | null;
   relativeDueDateOffset?: number;
   effort?: number;
   billableDefault?: boolean;
@@ -836,6 +840,18 @@ export interface ApplyTemplateResult {
   templateName: string;
   projectId: number;
   startDate: string;
+  phasesCreated: number;
+  tasksCreated: number;
+}
+
+export interface ApplyTemplateAsSegmentBody {
+  templateId: number;
+  /** Optional name for the phase task created on the project. Defaults to the template name. */
+  phaseName?: string;
+}
+
+export interface ApplyTemplateAsSegmentResult {
+  phaseTaskId: number;
   phasesCreated: number;
   tasksCreated: number;
 }

@@ -21,6 +21,8 @@ import type {
   ActivityItem,
   AddUserSkillBody,
   Allocation,
+  ApplyTemplateAsSegmentBody,
+  ApplyTemplateAsSegmentResult,
   ApplyTemplateBody,
   ApplyTemplateResult,
   ApproveTimesheetBody,
@@ -7762,6 +7764,97 @@ export const useCreateProjectFromTemplate = <
   TContext
 > => {
   return useMutation(getCreateProjectFromTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Apply a template to a project as a single segment (one phase task with all template tasks nested under it).
+ */
+export const getApplyTemplateAsSegmentUrl = (id: number) => {
+  return `/api/projects/${id}/apply-template`;
+};
+
+export const applyTemplateAsSegment = async (
+  id: number,
+  applyTemplateAsSegmentBody: ApplyTemplateAsSegmentBody,
+  options?: RequestInit,
+): Promise<ApplyTemplateAsSegmentResult> => {
+  return customFetch<ApplyTemplateAsSegmentResult>(
+    getApplyTemplateAsSegmentUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(applyTemplateAsSegmentBody),
+    },
+  );
+};
+
+export const getApplyTemplateAsSegmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyTemplateAsSegment>>,
+    TError,
+    { id: number; data: BodyType<ApplyTemplateAsSegmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyTemplateAsSegment>>,
+  TError,
+  { id: number; data: BodyType<ApplyTemplateAsSegmentBody> },
+  TContext
+> => {
+  const mutationKey = ["applyTemplateAsSegment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyTemplateAsSegment>>,
+    { id: number; data: BodyType<ApplyTemplateAsSegmentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return applyTemplateAsSegment(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyTemplateAsSegmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyTemplateAsSegment>>
+>;
+export type ApplyTemplateAsSegmentMutationBody =
+  BodyType<ApplyTemplateAsSegmentBody>;
+export type ApplyTemplateAsSegmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Apply a template to a project as a single segment (one phase task with all template tasks nested under it).
+ */
+export const useApplyTemplateAsSegment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyTemplateAsSegment>>,
+    TError,
+    { id: number; data: BodyType<ApplyTemplateAsSegmentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof applyTemplateAsSegment>>,
+  TError,
+  { id: number; data: BodyType<ApplyTemplateAsSegmentBody> },
+  TContext
+> => {
+  return useMutation(getApplyTemplateAsSegmentMutationOptions(options));
 };
 
 /**

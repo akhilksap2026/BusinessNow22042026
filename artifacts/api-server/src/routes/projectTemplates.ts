@@ -145,6 +145,7 @@ function checkPhaseDateOrder(d: { relativeStartOffset?: number | null; relativeE
 
 const TemplateTaskBodySchema = z.object({
   name: z.string().min(1, "name is required"),
+  parentTaskId: z.union([z.number().int().positive(), z.null()]).nullish(),
   relativeDueDateOffset: z.number().int().min(0).nullish(),
   effort: z.union([z.number().min(0), z.string()]).nullish(),
   billableDefault: z.boolean().nullish(),
@@ -302,12 +303,26 @@ router.post("/template-phases/:phaseId/tasks", requirePM, async (req, res): Prom
   if (!phase) { res.status(404).json({ error: "Phase not found" }); return; }
   const parsed = TemplateTaskBodySchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { name, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = parsed.data;
+  const { name, parentTaskId, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = parsed.data;
+
+  // Validate parent (must be in same template if provided).
+  if (parentTaskId != null) {
+    const [parent] = await db
+      .select()
+      .from(templateTasksTable)
+      .where(eq(templateTasksTable.id, parentTaskId));
+    if (!parent || parent.templateId !== phase.templateId) {
+      res.status(400).json({ error: "parentTaskId must refer to a task in the same template" });
+      return;
+    }
+  }
+
   const [row] = await db
     .insert(templateTasksTable)
     .values({
       templatePhaseId: phaseId,
       templateId: phase.templateId,
+      parentTaskId: parentTaskId ?? null,
       name,
       relativeDueDateOffset: relativeDueDateOffset ?? phase.relativeEndOffset,
       effort: String(effort ?? 0),
@@ -325,11 +340,41 @@ router.put("/template-tasks/:taskId", requirePM, async (req, res): Promise<void>
   const taskId = parseInt(req.params.taskId, 10);
   const parsed = TemplateTaskBodySchema.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { name, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = parsed.data;
+  const { name, parentTaskId, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = parsed.data;
+
+  // Validate parent if changing: same template, not self, no cycle.
+  if (parentTaskId !== undefined && parentTaskId !== null) {
+    if (parentTaskId === taskId) {
+      res.status(400).json({ error: "parentTaskId cannot be the task itself" });
+      return;
+    }
+    const [self] = await db.select().from(templateTasksTable).where(eq(templateTasksTable.id, taskId));
+    if (!self) { res.status(404).json({ error: "Not found" }); return; }
+    const [parent] = await db.select().from(templateTasksTable).where(eq(templateTasksTable.id, parentTaskId));
+    if (!parent || parent.templateId !== self.templateId) {
+      res.status(400).json({ error: "parentTaskId must refer to a task in the same template" });
+      return;
+    }
+    // Cycle check: walk up parent chain.
+    let cursor: number | null = parent.parentTaskId ?? null;
+    const seen = new Set<number>([taskId, parent.id]);
+    while (cursor !== null) {
+      if (seen.has(cursor)) {
+        res.status(400).json({ error: "Cycle detected in template task hierarchy" });
+        return;
+      }
+      seen.add(cursor);
+      const [next] = await db.select().from(templateTasksTable).where(eq(templateTasksTable.id, cursor));
+      if (!next) break;
+      cursor = next.parentTaskId ?? null;
+    }
+  }
+
   const [row] = await db
     .update(templateTasksTable)
     .set({
       ...(name !== undefined && { name }),
+      ...(parentTaskId !== undefined && { parentTaskId }),
       ...(relativeDueDateOffset !== undefined && { relativeDueDateOffset }),
       ...(effort !== undefined && { effort: String(effort) }),
       ...(billableDefault !== undefined && { billableDefault }),
@@ -772,6 +817,148 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
       allocationsSkipped,
       warnings,
     },
+  });
+});
+
+// ─── Apply template as a single segment (one phase task with all template tasks nested) ──
+// Body: { templateId: number, phaseName?: string }
+// Creates ONE phase task on the project, then inserts all template tasks under it,
+// preserving the template task hierarchy (parentTaskId chain) via a templateTaskId → realTaskId map.
+
+router.post("/projects/:id/apply-template", requirePM, async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.id, 10);
+  const { templateId, phaseName } = req.body ?? {};
+  if (!templateId || typeof templateId !== "number") {
+    res.status(400).json({ error: "templateId (number) is required" });
+    return;
+  }
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+  const [template] = await db.select().from(projectTemplatesTable).where(eq(projectTemplatesTable.id, templateId));
+  if (!template) { res.status(404).json({ error: "Template not found" }); return; }
+  if (template.isArchived) { res.status(400).json({ error: "Template is archived" }); return; }
+
+  const templateTasks = await db
+    .select()
+    .from(templateTasksTable)
+    .where(eq(templateTasksTable.templateId, templateId))
+    .orderBy(asc(templateTasksTable.order));
+
+  const baseStartDate = project.startDate ?? new Date().toISOString().slice(0, 10);
+  const finalPhaseName = (typeof phaseName === "string" && phaseName.trim()) ? phaseName.trim() : template.name;
+
+  // Determine sortOrder for the new phase task: append after existing top-level rows.
+  const existingTopLevel = await db
+    .select({ sortOrder: tasksTable.sortOrder })
+    .from(tasksTable)
+    .where(eq(tasksTable.projectId, projectId));
+  const maxSort = existingTopLevel.reduce((m, r) => Math.max(m, r.sortOrder ?? 0), 0);
+  const phaseSortOrder = maxSort + 10;
+
+  // Create the single phase task.
+  const phaseStart = baseStartDate;
+  const phaseEnd = addCalendarDays(baseStartDate, template.totalDurationDays);
+  const [phaseTask] = await db
+    .insert(tasksTable)
+    .values({
+      projectId,
+      parentTaskId: null,
+      isPhase: true,
+      name: finalPhaseName,
+      status: "Not Started",
+      priority: "Medium",
+      effort: "0",
+      billable: true,
+      assigneeIds: [],
+      startDate: phaseStart,
+      dueDate: phaseEnd,
+      isMilestone: false,
+      fromTemplate: true,
+      appliedTemplateId: templateId,
+      sortOrder: phaseSortOrder,
+    })
+    .returning();
+
+  // Two-pass insert preserving hierarchy via templateTaskId → realTaskId map.
+  const taskIdMap = new Map<number, number>();
+  let createdCount = 0;
+  let nextSort = 10;
+
+  // Pass 1: top-level template tasks (parentTaskId == null) → children of phaseTask.
+  for (const tTask of templateTasks.filter(t => t.parentTaskId == null)) {
+    const dueDate = addCalendarDays(baseStartDate, tTask.relativeDueDateOffset);
+    const [row] = await db
+      .insert(tasksTable)
+      .values({
+        projectId,
+        parentTaskId: phaseTask.id,
+        name: tTask.name,
+        status: "Not Started",
+        priority: tTask.priority,
+        effort: String(tTask.effort),
+        billable: tTask.billableDefault,
+        categoryId: tTask.categoryId ?? null,
+        assigneeIds: [],
+        startDate: phaseStart,
+        dueDate,
+        isMilestone: false,
+        fromTemplate: true,
+        appliedTemplateId: templateId,
+        sortOrder: nextSort,
+      })
+      .returning();
+    taskIdMap.set(tTask.id, row.id);
+    createdCount += 1;
+    nextSort += 10;
+  }
+
+  // Pass 2+: child template tasks. Iterate until all resolvable parents are placed
+  // (handles arbitrary nesting depth). Bail out if a pass makes no progress (orphans).
+  let pending = templateTasks.filter(t => t.parentTaskId != null);
+  let safety = 50; // guard against degenerate templates
+  while (pending.length > 0 && safety-- > 0) {
+    const next: typeof pending = [];
+    for (const tTask of pending) {
+      const realParentId = taskIdMap.get(tTask.parentTaskId!);
+      if (realParentId == null) {
+        next.push(tTask);
+        continue;
+      }
+      const dueDate = addCalendarDays(baseStartDate, tTask.relativeDueDateOffset);
+      const [row] = await db
+        .insert(tasksTable)
+        .values({
+          projectId,
+          parentTaskId: realParentId,
+          name: tTask.name,
+          status: "Not Started",
+          priority: tTask.priority,
+          effort: String(tTask.effort),
+          billable: tTask.billableDefault,
+          categoryId: tTask.categoryId ?? null,
+          assigneeIds: [],
+          startDate: phaseStart,
+          dueDate,
+          isMilestone: false,
+          fromTemplate: true,
+          appliedTemplateId: templateId,
+          sortOrder: nextSort,
+        })
+        .returning();
+      taskIdMap.set(tTask.id, row.id);
+      createdCount += 1;
+      nextSort += 10;
+    }
+    if (next.length === pending.length) break; // no progress → orphans
+    pending = next;
+  }
+
+  res.status(201).json({
+    phaseTaskId: phaseTask.id,
+    phasesCreated: 1,
+    tasksCreated: createdCount,
   });
 });
 
