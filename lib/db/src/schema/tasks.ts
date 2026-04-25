@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 export const tasksTable = pgTable("tasks", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
+  phaseId: integer("phase_id"),
   parentTaskId: integer("parent_task_id"),
   name: text("name").notNull(),
   status: text("status").notNull().default("Not Started"),
