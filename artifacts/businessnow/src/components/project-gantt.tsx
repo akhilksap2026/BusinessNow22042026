@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Layers, ArrowRightLeft, BookmarkPlus, Trash2, ChevronDown, ChevronRight, ChevronsDown, ChevronsUp } from "lucide-react";
+import { Layers, ArrowRightLeft, BookmarkPlus, Trash2, ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, MessageSquare } from "lucide-react";
+import { TaskDetailSheet } from "@/components/task-detail-sheet";
+import { authHeaders } from "@/lib/auth-headers";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -29,6 +31,8 @@ interface GanttRow {
   isMilestone: boolean;
   milestoneType: string | null;
   hasChildren: boolean;
+  assigneeIds: number[];
+  assigneeNames: string;
 }
 
 interface Dep {
@@ -96,6 +100,9 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
   const [baselineName, setBaselineName] = useState("");
   const [shiftDays, setShiftDays] = useState("0");
   const [saveBeforeShift, setSaveBeforeShift] = useState(false);
+
+  // ── Task detail sheet state ────────────────────────────────────────────────
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
   // ── Dependency interaction state ────────────────────────────────────────────
   const [hoveredRowId, setHoveredRowId] = useState<number | null>(null);
@@ -561,7 +568,7 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
 
                 return (
                   <div key={`row-${row.id}`}
-                    className="flex border-b hover:bg-slate-50/80 transition-colors"
+                    className="flex border-b hover:bg-slate-50/80 transition-colors group"
                     style={{ height: ROW_H }}>
 
                     {/* ── Left name pane (frozen) ── */}
@@ -580,7 +587,10 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
                       )}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className={`text-xs truncate ${row.depth === 0 && row.hasChildren ? "font-semibold text-slate-800" : "text-slate-700"}`}>
+                          <span
+                            className={`text-xs truncate cursor-pointer hover:text-indigo-600 ${row.depth === 0 && row.hasChildren ? "font-semibold text-slate-800" : "text-slate-700"}`}
+                            onClick={() => setSelectedTaskId(row.id)}
+                          >
                             {row.name}
                           </span>
                         </TooltipTrigger>
@@ -591,6 +601,13 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
                           {row.isMilestone && row.milestoneType && <div className="text-slate-500">{row.milestoneType} milestone</div>}
                         </TooltipContent>
                       </Tooltip>
+                      <button
+                        className="shrink-0 text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
+                        title="Open task notes"
+                        onClick={(e) => { e.stopPropagation(); setSelectedTaskId(row.id); }}
+                      >
+                        <MessageSquare className="h-3 w-3" />
+                      </button>
                     </div>
 
                     {/* ── Bar area ── */}
@@ -624,7 +641,8 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="absolute overflow-hidden"
-                              style={{ left, width: Math.max(width, 4), height: row.depth === 0 && row.hasChildren ? 20 : 16, top: "50%", transform: "translateY(-50%)", borderRadius: 4, background: barColor, cursor: "default" }}>
+                              onClick={() => { if (!row.isMilestone) setSelectedTaskId(row.id); }}
+                              style={{ left, width: Math.max(width, 4), height: row.depth === 0 && row.hasChildren ? 20 : 16, top: "50%", transform: "translateY(-50%)", borderRadius: 4, background: barColor, cursor: row.isMilestone ? "default" : "pointer" }}>
                               {/* Completion fill */}
                               {row.completion > 0 && (
                                 <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${row.completion}%`, background: "rgba(0,0,0,0.18)", borderRadius: "4px 0 0 4px" }} />
@@ -634,6 +652,28 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
                                 <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "white", letterSpacing: "0.02em" }}>
                                   {row.completion}%
                                 </span>
+                              )}
+                              {/* Info chips — only for non-parent task bars wide enough */}
+                              {!row.hasChildren && width > 80 && (
+                                <div className="flex items-center gap-1 px-2 h-full overflow-hidden" style={{ pointerEvents: "none" }}>
+                                  {row.assigneeNames && (
+                                    <span className="text-white/90 text-[10px] font-medium truncate max-w-[90px] shrink-0">
+                                      {row.assigneeNames}
+                                    </span>
+                                  )}
+                                  {width > 160 && (
+                                    <>
+                                      <span className="text-white/40 text-[10px] shrink-0">·</span>
+                                      <span className="text-white/70 text-[10px] shrink-0 whitespace-nowrap">
+                                        {row.startDate} – {row.dueDate}
+                                      </span>
+                                      <span className="text-white/40 text-[10px] shrink-0">·</span>
+                                      <span className="text-white/80 text-[10px] shrink-0 bg-white/15 px-1 rounded">
+                                        {row.status}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </TooltipTrigger>
@@ -714,6 +754,12 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
         </Dialog>
 
       </div>
+
+      <TaskDetailSheet
+        taskId={selectedTaskId}
+        open={selectedTaskId !== null}
+        onOpenChange={(open) => { if (!open) setSelectedTaskId(null); }}
+      />
     </TooltipProvider>
   );
 }

@@ -1,0 +1,169 @@
+STEP 1 — Database schema changes
+File: lib/db/src/schema/tasks.ts
+Add two columns to the existing tasksTable:
+  plannedHours:  numeric("planned_hours",  { precision: 8, scale: 2 }).notNull().default("0"),
+  estimateHours: numeric("estimate_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+Keep the existing effort column unchanged.
+
+File: lib/db/src/schema/timeEntries.ts
+Add one column to timeEntriesTable:
+  taskId: integer("task_id"),   -- nullable FK to tasks.id
+Keep all existing columns.
+
+─── NEW (Feedback 1): task_notes table ───────────────────
+File: lib/db/src/schema/tasks.ts  (append after tasksTable)
+OR create lib/db/src/schema/taskNotes.ts and export from schema/index.ts
+
+export const taskNotesTable = pgTable("task_notes", {
+  id:        serial("id").primaryKey(),
+  taskId:    integer("task_id").notNull(),
+  userId:    integer("user_id").notNull(),
+  content:   text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+Export the table from lib/db/src/schema/index.ts and from lib/db/src/index.ts
+so it can be imported as taskNotesTable from "@workspace/db".
+
+After editing all schema files, run: cd lib/db && npm run push
+
+STEP 2 — Backend: task routes (hours model)
+File: artifacts/api-server/src/routes/tasks.ts
+
+a) POST /tasks (create)
+  - Accept optional plannedHours and estimateHours in body.
+  - If plannedHours is provided and estimateHours is NOT, default estimateHours = plannedHours.
+  - Persist both. Keep persisting effort = plannedHours for backward compat.
+
+b) PATCH /tasks/:id (update)
+  - Accept optional plannedHours and estimateHours. Update whichever is provided.
+
+c) GET /tasks and GET /tasks/:id (read)
+  - For each task, compute and include:
+      actualHours: sum of time_entries.hours WHERE task_id = task.id (default 0 if none)
+      etc:         estimateHours − actualHours  (can be negative)
+      eac:         actualHours + Math.abs(etc)
+  - Return all 5 fields: plannedHours, estimateHours, actualHours, etc, eac.
+  - Keep returning the existing effort field.
+
+File: artifacts/api-server/src/routes/timeEntries.ts
+  - POST /time-entries: accept optional taskId (number | null). Persist it.
+    Validate: if taskId provided, the task must belong to the same projectId.
+  - GET /time-entries: include taskId in the response.
+
+─── NEW (Feedback 1): task notes routes ──────────────────
+File: artifacts/api-server/src/routes/tasks.ts
+(add after the existing task routes, or in a new tasks-notes.ts
+ that is mounted on the same Express router)
+
+Route A: GET /tasks/:id/notes
+  - Fetch all task_notes WHERE task_id = :id, ORDER BY created_at ASC.
+  - For each note, JOIN users to get the author name:
+      userName: usersTable.name where usersTable.id = note.userId
+  - Return: array of { id, taskId, userId, userName, content, createdAt, updatedAt }
+  - No auth restriction beyond logged-in.
+
+Route B: POST /tasks/:id/notes
+  - Body: { content: string, userId: number }
+  - Validate: content must be non-empty string, userId must be a valid user.
+  - INSERT into task_notes. Return the created note with userName resolved.
+  - No PM restriction — any logged-in user can add a note.
+
+Route C: DELETE /tasks/:taskId/notes/:noteId  (requirePM OR note owner)
+  - Delete a note by id if the requesting userId === note.userId OR role is PM/admin.
+  - Return 204 on success.
+
+STEP 3 — OpenAPI spec
+File: lib/api-spec/openapi.yaml
+In the Task schema, add:
+  plannedHours, estimateHours, actualHours, etc, eac  (all type: number)
+In CreateTaskBody and UpdateTaskBody, add:
+  plannedHours, estimateHours  (both type: number, optional)
+In TimeEntry schema, add:
+  taskId: { type: integer, nullable: true }
+In CreateTimeEntryBody, add:
+  taskId: { type: integer, nullable: true }
+
+Add new schemas and paths for notes:
+  TaskNote schema: { id, taskId, userId, userName, content, createdAt, updatedAt }
+  GET  /tasks/{id}/notes → array of TaskNote
+  POST /tasks/{id}/notes → body: { content, userId }, response: TaskNote
+  DELETE /tasks/{taskId}/notes/{noteId} → 204
+
+After editing, run the Orval codegen script to regenerate
+lib/api-client-react/src/generated/ and lib/api-zod/src/generated/.
+Do not hand-edit generated files.
+
+STEP 4 — Frontend: Task Detail Sheet (hours model)
+File: artifacts/businessnow/src/components/task-detail-sheet.tsx
+
+Replace the single "Planned Hours" input (the renamed effort field from Phase 1)
+with a structured hours section:
+
+  [ Planned Hours ] [ Estimate Hours ] | Actual: X.Xh | ETC: X.Xh | EAC: X.Xh
+
+- "Planned Hours" — editable numeric input → plannedHours.
+  Changes call PATCH /tasks/:id { plannedHours }.
+- "Estimate Hours" — editable numeric input → estimateHours.
+  Tooltip: "Initially equals Planned. Adjust as you learn more about scope."
+  Changes call PATCH /tasks/:id { estimateHours }.
+- "Actual" — read-only, shows task.actualHours.
+  Tooltip: "Sum of logged time entries for this task."
+- "ETC" — read-only, shows task.etc.
+  If negative, render in red with a warning icon.
+  Tooltip: "Estimate to Complete = Estimate − Actual."
+- "EAC" — read-only, shows task.eac.
+  Tooltip: "Estimate at Completion = Actual + |ETC|."
+
+─── NEW (Feedback 1): Notes tab in TaskDetailSheet ───────
+File: artifacts/businessnow/src/components/task-detail-sheet.tsx
+
+The TaskDetailSheet already has tabs (e.g. Details, Comments, Checklist).
+Add a new tab: "Notes"
+
+Tab trigger:
+  <TabsTrigger value="notes">
+    Notes
+    {notes.length > 0 && (
+      <span className="ml-1 text-xs bg-indigo-100 text-indigo-700 rounded-full px-1.5">
+        {notes.length}
+      </span>
+    )}
+  </TabsTrigger>
+
+Tab content:
+- Fetch notes using the generated hook (or a useQuery calling GET /tasks/:id/notes).
+  Use queryKey: ["task-notes", taskId].
+- Render notes as a chronological list:
+    Each note: author name + timestamp (relative), then the note text.
+    Show a small trash icon (🗑) on hover if current user is the note author or PM.
+    Clicking trash calls DELETE /tasks/:taskId/notes/:noteId, then invalidates the query.
+- Below the list, a textarea + "Add Note" button:
+    Placeholder: "Add a note about this task…"
+    On click "Add Note": POST /tasks/:id/notes { content, userId: currentUser.id }
+    On success: clear textarea, invalidate ["task-notes", taskId] query.
+    Show loading state on the button while saving. Show error toast on failure.
+- If there are no notes yet, show: "No notes yet. Add the first one below."
+- Use existing Textarea, Button, and ScrollArea components from @/components/ui/.
+
+This Notes tab is accessible from:
+  1. The task list → clicking a task row to open TaskDetailSheet (existing).
+  2. The Gantt timeline → clicking a task bar (GANTT 3 from Phase 1).
+  3. The Gantt timeline → clicking the note icon in the left pane (GANTT 4 from Phase 1).
+No additional wiring is needed — TaskDetailSheet is a single shared component.
+
+STEP 5 — Frontend: Task list table columns (hours)
+File: the task list table in project-detail.tsx
+- Add optional columns: Planned, Estimate, Actual, ETC, EAC (from the 5 new fields).
+- Default these columns to hidden. Add to column picker if one exists.
+- Render ETC in red if negative.
+- For parent/phase rows, show the sum of all children's values (roll-up).
+
+STEP 6 — Frontend: Log Time dialog
+File: wherever "Log Time" dialog is rendered.
+- Add optional "Task" Select/combobox listing tasks for the project.
+  Fetch from useListTasks({ projectId }).
+- When a task is selected, include taskId in POST /time-entries body.
+- If no task selected, submit with taskId: null (existing behaviour preserved).
+- Do not make the field required.

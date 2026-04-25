@@ -23,7 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil } from "lucide-react";
+import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,10 @@ export default function Finance() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterProjectId, setFilterProjectId] = useState<number | undefined>();
   const [invoiceSearch, setInvoiceSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isContractOpen, setIsContractOpen] = useState(false);
+  const [contractForm, setContractForm] = useState({ name: "", projectId: "", startDate: "", endDate: "", value: "", notes: "" });
+  const [isSavingContract, setIsSavingContract] = useState(false);
   const [editInvoice, setEditInvoice] = useState<any>(null);
   const [invoiceEditForm, setInvoiceEditForm] = useState({ description: "", amount: "", dueDate: "", status: "" });
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
@@ -226,6 +231,37 @@ export default function Finance() {
     }
   }
 
+  async function handleCreateContract() {
+    if (!contractForm.name || !contractForm.projectId) return;
+    setIsSavingContract(true);
+    try {
+      const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+      const res = await fetch(`${BASE}/api/projects/${contractForm.projectId}/documents`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          name: contractForm.name,
+          documentType: "Contract",
+          spaceType: "external",
+          content: [
+            contractForm.startDate ? `Start Date: ${contractForm.startDate}` : "",
+            contractForm.endDate ? `End Date: ${contractForm.endDate}` : "",
+            contractForm.value ? `Contract Value: $${contractForm.value}` : "",
+            contractForm.notes,
+          ].filter(Boolean).join("\n"),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save contract");
+      toast({ title: "Contract saved" });
+      setIsContractOpen(false);
+      setContractForm({ name: "", projectId: "", startDate: "", endDate: "", value: "", notes: "" });
+    } catch {
+      toast({ title: "Failed to save contract", variant: "destructive" });
+    } finally {
+      setIsSavingContract(false);
+    }
+  }
+
   const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4"];
 
   return (
@@ -261,7 +297,7 @@ export default function Finance() {
           })}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <Select onValueChange={v => setFilterProjectId(v ? parseInt(v) : undefined)}>
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Filter by project…" />
@@ -271,6 +307,18 @@ export default function Finance() {
               {projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 pl-9 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              placeholder="Search across all tabs…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setIsContractOpen(true)}>
+            <FilePlus className="h-4 w-4 mr-2" /> New Contract
+          </Button>
         </div>
 
         <Tabs defaultValue="invoices" className="w-full">
@@ -290,24 +338,21 @@ export default function Finance() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Invoices</CardTitle>
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 pl-9 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder="Search invoices…"
-                    value={invoiceSearch}
-                    onChange={e => setInvoiceSearch(e.target.value)}
-                  />
-                </div>
+                <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> New Invoice
+                </Button>
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const search = invoiceSearch.toLowerCase();
-                  const filtered = (invoices ?? []).filter(inv =>
-                    !search ||
-                    inv.id.toLowerCase().includes(search) ||
-                    (inv.description ?? "").toLowerCase().includes(search)
-                  );
+                  const search = searchQuery.toLowerCase();
+                  const filtered = (invoices ?? []).filter(inv => {
+                    if (!search) return true;
+                    const pName = projects?.find(p => p.id === (inv as any).projectId)?.name?.toLowerCase() ?? "";
+                    const aName = accounts?.find(a => a.id === (inv as any).accountId)?.name?.toLowerCase() ?? "";
+                    return inv.id.toLowerCase().includes(search) ||
+                      (inv.description ?? "").toLowerCase().includes(search) ||
+                      pName.includes(search) || aName.includes(search);
+                  });
                   return (
                     <Tabs defaultValue="all">
                       <TabsList className="mb-4">
@@ -384,7 +429,7 @@ export default function Finance() {
                                   })}
                                   {tabFiltered.length === 0 && (
                                     <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                      {invoiceSearch ? `No invoices match "${invoiceSearch}".` : "No invoices found."}
+                                      {searchQuery ? `No invoices match "${searchQuery}".` : "No invoices found."}
                                     </TableCell></TableRow>
                                   )}
                                 </TableBody>
@@ -435,7 +480,12 @@ export default function Finance() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {schedules?.map(s => (
+                      {(schedules ?? []).filter(s => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        const pName = projects?.find(p => p.id === s.projectId)?.name?.toLowerCase() ?? "";
+                        return s.name.toLowerCase().includes(q) || pName.includes(q);
+                      }).map(s => (
                         <TableRow key={s.id}>
                           <TableCell className="font-medium">{s.name}</TableCell>
                           <TableCell>{projects?.find(p => p.id === s.projectId)?.name ?? `#${s.projectId}`}</TableCell>
@@ -529,7 +579,12 @@ export default function Finance() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {revenueEntries?.map(e => (
+                      {(revenueEntries ?? []).filter(e => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        const pName = projects?.find(p => p.id === e.projectId)?.name?.toLowerCase() ?? "";
+                        return pName.includes(q) || (e.period ?? "").toLowerCase().includes(q) || (e.method ?? "").toLowerCase().includes(q);
+                      }).map(e => (
                         <TableRow key={e.id}>
                           <TableCell className="font-medium">{projects?.find(p => p.id === e.projectId)?.name ?? `#${e.projectId}`}</TableCell>
                           <TableCell>{e.period}</TableCell>
@@ -729,6 +784,74 @@ export default function Finance() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteRevenueId(null)}>Cancel</Button>
               <Button variant="destructive" onClick={() => deleteRevenueId && handleDeleteRevenue(deleteRevenueId)} disabled={deleteRevenue.isPending}>Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>New Contract</DialogTitle>
+              <DialogDescription>Save a contract document against a project.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-1">
+              <div className="space-y-1.5">
+                <Label>Contract Name *</Label>
+                <input
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  placeholder="e.g. Master Services Agreement"
+                  value={contractForm.name}
+                  onChange={e => setContractForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Project *</Label>
+                <Select value={contractForm.projectId} onValueChange={v => setContractForm(f => ({ ...f, projectId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
+                  <SelectContent>
+                    {projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Start Date</Label>
+                  <input type="date" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={contractForm.startDate} onChange={e => setContractForm(f => ({ ...f, startDate: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>End Date</Label>
+                  <input type="date" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={contractForm.endDate} onChange={e => setContractForm(f => ({ ...f, endDate: e.target.value }))} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Contract Value ($)</Label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  placeholder="0.00"
+                  value={contractForm.value}
+                  onChange={e => setContractForm(f => ({ ...f, value: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Notes</Label>
+                <Textarea
+                  placeholder="Optional contract notes…"
+                  rows={3}
+                  value={contractForm.notes}
+                  onChange={e => setContractForm(f => ({ ...f, notes: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsContractOpen(false)}>Cancel</Button>
+              <Button
+                onClick={handleCreateContract}
+                disabled={!contractForm.name || !contractForm.projectId || isSavingContract}
+              >
+                {isSavingContract ? "Saving…" : "Save Contract"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

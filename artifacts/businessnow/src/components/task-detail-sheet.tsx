@@ -36,15 +36,15 @@ interface TaskDetailSheetProps {
   isParent?: boolean;
 }
 
-const STATUS_OPTIONS = ["Not Started", "In Progress", "Blocked", "In Review", "Done"];
+const STATUS_OPTIONS = ["Not Started", "In Progress", "On Hold", "Canceled", "Completed"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 const APPROVAL_OPTIONS = ["none", "pending", "approved", "rejected"];
 
 function statusColor(status: string) {
-  if (status === "Done") return "bg-green-100 text-green-800";
+  if (status === "Completed") return "bg-green-100 text-green-800";
   if (status === "In Progress") return "bg-blue-100 text-blue-800";
-  if (status === "Blocked") return "bg-red-100 text-red-800";
-  if (status === "In Review") return "bg-yellow-100 text-yellow-800";
+  if (status === "On Hold") return "bg-amber-100 text-amber-800";
+  if (status === "Canceled") return "bg-slate-100 text-slate-500";
   return "bg-slate-100 text-slate-700";
 }
 
@@ -273,7 +273,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Effort (hrs)</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planned Hours</label>
                   {isParent ? (
                     <div className="h-8 flex items-center gap-1.5 rounded border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-2 text-xs text-amber-700 dark:text-amber-400">
                       <span className="font-medium">Auto-calculated</span>
@@ -432,7 +432,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                         <div key={dep.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{dep.dependencyType}</span>
-                            <span className="text-xs text-muted-foreground shrink-0">{isSuccessor ? "Depends on:" : "Blocks:"}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">{isSuccessor ? "Predecessor:" : "Successor / Blocks:"}</span>
                             <span className="text-sm truncate">{otherName}</span>
                             {dep.lagDays > 0 && <span className="text-xs text-muted-foreground shrink-0">+{dep.lagDays}d lag</span>}
                           </div>
@@ -454,7 +454,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                   <div className="mt-2 space-y-2 p-2 border rounded bg-muted/20">
                     <div className="flex gap-2">
                       <Select value={depForm.predecessorId} onValueChange={v => setDepForm(f => ({ ...f, predecessorId: v }))}>
-                        <SelectTrigger className="h-8 text-sm flex-1">
+                        <SelectTrigger className="h-8 text-sm flex-1" title="This task cannot start until the selected task is complete.">
                           <SelectValue placeholder="Predecessor task…" />
                         </SelectTrigger>
                         <SelectContent>

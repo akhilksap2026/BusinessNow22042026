@@ -1,0 +1,221 @@
+FIX 1 — PMO Settings → Rate Card routing
+File: artifacts/businessnow/src/pages/admin.tsx
+- Find the navigation item or tab that renders "Rate Card" inside the Admin page.
+- Ensure the onClick / href points to the section of the Admin page that renders
+  the rate card list and management UI (it may be a tab value like "rate-cards"
+  or a sub-route).
+- If it is a tab inside Admin, set the active tab to the correct value when the
+  user clicks the Rate Card link.
+- Do NOT create a new page. The rate card list already renders inside the Admin
+  page — fix only the navigation to reach it.
+
+FIX 2 — "New Contract" button
+File: artifacts/businessnow/src/pages/finance.tsx (or wherever Contract Manager renders)
+- Add a Dialog (using existing shadcn Dialog components) that opens when the
+  button is clicked.
+- Form fields: Contract Name (text, required), Project (searchable Select from
+  useListProjects()), Start Date (date), End Date (date), Contract Value (number),
+  Notes (textarea, optional).
+- On Submit: POST to /api/projects/:projectId/documents with:
+    { name: contractName, documentType: "Contract", spaceType: "external", content: notes }
+  (Re-uses the existing project documents endpoint — no new backend needed.)
+- On success: toast "Contract saved", close dialog, invalidate documents query.
+- Wrap in try/catch and show error toast on failure.
+
+FIX 3 — Finance page search
+File: artifacts/businessnow/src/pages/finance.tsx
+- Add controlled searchQuery state (string, default "").
+- Wire the search input's value and onChange to this state.
+- Apply client-side filter to invoices/projects data before rendering:
+    filter rows where invoice number, project name, or account name
+    includes searchQuery (case-insensitive).
+- Filter must apply across all visible sub-tabs.
+- Do NOT change API calls.
+
+FIX 4 — Task predecessor/successor label inversion
+File: artifacts/businessnow/src/components/task-detail-sheet.tsx
+- In the dependency rendering block, each dependency has: { predecessorId, successorId }.
+- If taskId === dep.successorId → the current task depends ON dep.predecessorId
+  → label that other task as "Predecessor".
+- If taskId === dep.predecessorId → the current task blocks dep.successorId
+  → label that other task as "Successor / Blocks".
+- Swap the labels if they are currently reversed.
+- Also fix the form tooltip: "This task cannot start until the selected task
+  is complete."
+
+FIX 5 — Task status values and default
+Files: task-detail-sheet.tsx and any other component with a task status Select.
+- Replace STATUS_OPTIONS with:
+    ["Not Started", "In Progress", "On Hold", "Canceled", "Completed"]
+- Update statusColor() / statusBadge() helper:
+    "Completed"   → green
+    "In Progress" → blue
+    "On Hold"     → amber
+    "Canceled"    → slate/grey
+    "Not Started" → slate/grey
+- Set default status in CreateTask form to "Not Started".
+- The DB column default is already "Not Started" — no migration needed.
+
+FIX 6 — Rename "Est. Hours" → "Planned Hours" (UI label only)
+Files: Search all .tsx files in artifacts/businessnow/src/ for:
+  "Est. Hours", "Estimated Hours", "est_hours", "estHours"
+- Replace every UI-visible label/placeholder with "Planned Hours".
+- Do NOT rename any TypeScript variable, prop, or the database column.
+
+─────────────────────────────────────────────────────────
+NEW (Feedback 1) — GANTT / TIMELINE ENHANCEMENTS
+─────────────────────────────────────────────────────────
+
+GANTT 1 — Include assignee info in Gantt API response
+File: artifacts/api-server/src/routes/projects.ts
+  (the GET /projects/:id/gantt route — specifically the `rows` mapping block)
+
+The GanttRow interface currently has: id, type, name, startDate, dueDate, status,
+completion, parentTaskId, depth, isMilestone, milestoneType, hasChildren.
+
+Change:
+- After fetching tasks, also fetch the users for the project:
+    const users = await db.select().from(usersTable);
+  (All users — Gantt only shows project tasks so assignees will be in scope.)
+- In the rows mapping, add two fields to each task row object:
+    assigneeIds:   t.assigneeIds ?? [],
+    assigneeNames: (t.assigneeIds ?? [])
+                     .map(id => users.find(u => u.id === id)?.name ?? `User ${id}`)
+                     .slice(0, 2)  // cap at 2 names to avoid bar overflow
+                     .join(", ")
+- Do NOT change any other field. Return all existing fields unchanged.
+
+Update the GanttRow interface in the frontend component:
+File: artifacts/businessnow/src/components/project-gantt.tsx
+  (or wherever the GanttRow interface is declared in the gantt component)
+- Add to the GanttRow interface:
+    assigneeIds:   number[];
+    assigneeNames: string;
+
+GANTT 2 — Show resource, dates, and status inside the task bar
+File: artifacts/businessnow/src/components/project-gantt.tsx
+  (the "Task bar" section — the TooltipTrigger wrapping the colored bar div)
+
+Currently the bar is:
+  <div className="absolute overflow-hidden" style={{ left, width, height, borderRadius, background: barColor }}>
+  (empty — no text content inside)
+
+Change: Inside that bar div, add a flex row of info chips ONLY when the bar
+is wide enough to show them (width > 80px). Use a conditional:
+
+  {width > 80 && (
+    <div className="flex items-center gap-1 px-2 h-full overflow-hidden"
+         style={{ pointerEvents: "none" }}>
+      {/* Resource name — first assignee only if space is tight */}
+      {row.assigneeNames && (
+        <span className="text-white/90 text-[10px] font-medium truncate max-w-[90px] shrink-0">
+          {row.assigneeNames}
+        </span>
+      )}
+      {width > 160 && (
+        <>
+          {/* Separator */}
+          <span className="text-white/40 text-[10px] shrink-0">·</span>
+          {/* Date range */}
+          <span className="text-white/70 text-[10px] shrink-0 whitespace-nowrap">
+            {row.startDate} – {row.dueDate}
+          </span>
+          {/* Separator */}
+          <span className="text-white/40 text-[10px] shrink-0">·</span>
+          {/* Status badge */}
+          <span className="text-white/80 text-[10px] shrink-0 bg-white/15 px-1 rounded">
+            {row.status}
+          </span>
+        </>
+      )}
+    </div>
+  )}
+
+- Keep the existing Tooltip (which shows the full info on hover) unchanged.
+- Keep all drag-handle, baseline, and dependency arrow logic unchanged.
+- Phase/parent bars (row.depth === 0 && row.hasChildren) should show only the
+  task name in the bar, not resource/dates (they are roll-up rows, not assignable).
+  Conditionally skip the resource chip for these rows:
+    {!row.hasChildren && width > 80 && ( ... chips ... )}
+
+GANTT 3 — Make each task bar clickable to open Task Detail
+File: artifacts/businessnow/src/components/project-gantt.tsx
+
+- Add state at the top of the ProjectGantt component:
+    const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+
+- On the task bar div (the colored bar, NOT the milestone diamond or baseline bar),
+  add an onClick handler:
+    onClick={() => { if (!row.isMilestone) setSelectedTaskId(row.id); }}
+  Change the cursor on the bar div:
+    style={{ ..., cursor: row.isMilestone ? "default" : "pointer" }}
+
+- Also make the task name in the LEFT PANE clickable (the frozen left column text):
+  Wrap the existing <span> with task name in an additional onClick:
+    onClick={() => setSelectedTaskId(row.id)}
+  Add cursor-pointer to the span className.
+
+- At the bottom of the ProjectGantt JSX (before the closing </div>), render the
+  TaskDetailSheet. Import TaskDetailSheet from the existing component:
+    import { TaskDetailSheet } from "@/components/task-detail-sheet";
+
+  Then add:
+    <TaskDetailSheet
+      taskId={selectedTaskId}
+      open={selectedTaskId !== null}
+      onOpenChange={(open) => { if (!open) setSelectedTaskId(null); }}
+    />
+
+- The TaskDetailSheet already handles fetching its own data by taskId, so no
+  additional data fetching is needed.
+- Do NOT change anything else in the Gantt component. Drag-to-create-dependency
+  still uses onMouseDown on the SVG handle circles — that must not conflict with
+  the bar onClick. The SVG layer is z-20 and has pointerEvents="none" for the
+  container, so clicks on the div bar (z-10 or lower) will not conflict.
+
+GANTT 4 — Task notes button in the Gantt row left pane
+File: artifacts/businessnow/src/components/project-gantt.tsx
+NOTE: The full notes feature (DB table + API) is built in Phase 2.
+In Phase 1, add only the UI entry point — clicking the note icon opens the
+TaskDetailSheet (same as GANTT 3), which will gain the Notes tab in Phase 2.
+This means the button is already functional after Phase 2 ships.
+
+- In the left name pane of each Gantt row (the frozen left column), add a small
+  note icon button that appears on row hover:
+    <button
+      className="shrink-0 text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100
+                 transition-opacity ml-auto"
+      title="Open task notes"
+      onClick={(e) => { e.stopPropagation(); setSelectedTaskId(row.id); }}
+    >
+      <MessageSquare className="h-3 w-3" />
+    </button>
+  Import MessageSquare from lucide-react (it is already available in the project).
+- Add the "group" class to the parent row div so group-hover works:
+    className="flex border-b hover:bg-slate-50/80 transition-colors group"
+
+─────────────────────────────────────────────────────────
+NEW (Feedback 1) — TASK LIST: ASSIGNED RESOURCE VIEW
+─────────────────────────────────────────────────────────
+
+TASK VIEW — Show "Assigned Resource" instead of "Team"
+File: wherever the project task list table is rendered in
+  artifacts/businessnow/src/pages/project-detail.tsx
+  (look for the table column that shows assignee avatars or "Team")
+
+- Find the column header currently labelled "Team", "Assignees", or showing a
+  generic team avatar group.
+- Rename the column header label to "Assigned Resource".
+- Change the cell content from a generic avatar group to a text display:
+    • If assigneeIds.length === 0 → show "Unassigned" in muted text.
+    • If assigneeIds.length === 1 → show the single user's full name.
+    • If assigneeIds.length === 2 → show "Name1, Name2".
+    • If assigneeIds.length > 2  → show "Name1 +N more".
+  Resolve names from the already-fetched users list (useListUsers() is already
+  called in the project detail page). Do not make a new API call.
+- Keep avatar images/initials if you want, but the primary display must be the
+  name text, not just icons.
+- The task detail sheet (opened by clicking a task row) already shows full
+  assignee details — no change needed there.
+- Do NOT change the task detail sheet itself. Do NOT change the Gantt.
+  This change is only in the project task list table column.

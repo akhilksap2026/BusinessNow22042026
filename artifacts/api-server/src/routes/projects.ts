@@ -245,6 +245,7 @@ router.get("/projects/:id/gantt", async (req, res): Promise<void> => {
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
 
   const tasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, id));
+  const users = await db.select().from(usersTable);
 
   const taskIds = tasks.map(t => t.id);
   const deps = taskIds.length > 0
@@ -281,21 +282,30 @@ router.get("/projects/:id/gantt", async (req, res): Promise<void> => {
     return a.id - b.id;
   });
 
-  const rows = sortedTasks.map(t => ({
-    id: t.id,
-    type: t.isMilestone ? "milestone" : "task",
-    name: t.name,
-    startDate: t.startDate ?? null,
-    dueDate: t.dueDate ?? null,
-    status: t.status,
-    completion: 0,
-    parentId: t.parentTaskId ?? null,
-    parentTaskId: t.parentTaskId ?? null,
-    depth: depthMap.get(t.id) ?? 0,
-    isMilestone: t.isMilestone,
-    milestoneType: t.milestoneType ?? null,
-    hasChildren: parentIds.has(t.id),
-  }));
+  const rows = sortedTasks.map(t => {
+    const assigneeIds = (t.assigneeIds ?? []) as number[];
+    const assigneeNames = assigneeIds
+      .map(id => users.find(u => u.id === id)?.name ?? `User ${id}`)
+      .slice(0, 2)
+      .join(", ");
+    return {
+      id: t.id,
+      type: t.isMilestone ? "milestone" : "task",
+      name: t.name,
+      startDate: t.startDate ?? null,
+      dueDate: t.dueDate ?? null,
+      status: t.status,
+      completion: 0,
+      parentId: t.parentTaskId ?? null,
+      parentTaskId: t.parentTaskId ?? null,
+      depth: depthMap.get(t.id) ?? 0,
+      isMilestone: t.isMilestone,
+      milestoneType: t.milestoneType ?? null,
+      hasChildren: parentIds.has(t.id),
+      assigneeIds,
+      assigneeNames,
+    };
+  });
 
   const dependencies = deps.map(d => ({
     id: d.id,

@@ -1,0 +1,65 @@
+STEP 1 — New DB table: budget_entries
+File: lib/db/src/schema/financials.ts or new lib/db/src/schema/budgetEntries.ts
+(export from lib/db/src/schema/index.ts)
+
+export const budgetEntriesTable = pgTable("budget_entries", {
+  id:            serial("id").primaryKey(),
+  projectId:     integer("project_id").notNull(),
+  entryDate:     text("entry_date").notNull(),
+  type:          text("type").notNull(),          -- 'SOW' | 'CO' | 'Adjustment'
+  description:   text("description").notNull(),
+  amount:        numeric("amount",  { precision: 15, scale: 2 }).notNull().default("0"),
+  hours:         numeric("hours",   { precision: 10, scale: 2 }).notNull().default("0"),
+  documentLink:  text("document_link"),
+  changeOrderId: integer("change_order_id"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+Run: cd lib/db && npm run push
+
+Migration for existing projects (script or seed addition):
+- For every project where budget > 0:
+  INSERT a 'SOW' budget_entry row: (project.id, project.start_date, 'SOW',
+  'Original SOW', project.budget, project.budgeted_hours)
+- Skip projects where budget = 0.
+
+STEP 2 — New API routes
+File: artifacts/api-server/src/routes/projects.ts
+
+Route A: GET /projects/:id/budget-entries
+- Fetch all budget_entries WHERE project_id = :id, ORDER BY entry_date ASC.
+- Compute running totals per row: runningAmount, runningHours.
+- Return: { totalAmount, totalHours, entries: [...with running totals] }
+
+Route B: POST /projects/:id/budget-entries  (requirePM)
+- Body: { entryDate, type, description, amount, hours, documentLink? }
+- Validate: type in ['SOW','CO','Adjustment'], description required.
+- INSERT row. Return created entry. Log audit.
+
+Auto-insert on CO approval:
+- In the PATCH handler that sets a change order to "Approved":
+  If changeOrder.amount > 0 or changeOrder.additionalHours > 0:
+    INSERT budget_entry { type:'CO', amount: changeOrder.amount,
+      hours: changeOrder.additionalHours, changeOrderId: changeOrder.id }
+  Also UPDATE projects SET budget = budget + changeOrder.amount,
+    budgeted_hours = budgeted_hours + changeOrder.additionalHours.
+
+STEP 3 — OpenAPI spec
+Add BudgetEntry schema and GET/POST /projects/{id}/budget-entries paths.
+Regenerate Orval hooks after this step.
+
+STEP 4 — Frontend: Change Order dialog
+File: artifacts/businessnow/src/pages/project-detail.tsx (coDialogOpen section)
+- Replace free-text Project Name input with searchable combobox from useListProjects().
+- Remove visible "Project ID" field from the form.
+- Add optional "Document Link" field (text input, URL).
+
+STEP 5 — Frontend: Project header — Budget overview
+File: artifacts/businessnow/src/pages/project-detail.tsx
+- Replace static "Budget: $X" with:
+    Line 1: "Revised Budget: $X" (from budget_entries totalAmount)
+    Line 2: Small text "Original SOW: $Y  +COs: $Z"
+- Add collapsible "Budget History" section (toggled by "▸ Budget History" link).
+  Table: Date | Type | Description | Amount | Hours | Running Total $ | Running hrs | Doc
+  Fetch from GET /projects/:id/budget-entries.
+- Add "+ Add Budget Entry" button (PM/admin only) → dialog to POST new entry.

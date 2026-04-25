@@ -1,5 +1,6 @@
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
@@ -269,6 +270,8 @@ function UserConfigTab({ users, BASE, onRefresh }: {
 }
 
 export default function Admin() {
+  const search = useSearch();
+  const [activeTab, setActiveTab] = useState(() => new URLSearchParams(search).get("tab") ?? "users");
   const { data: users, isLoading: isLoadingUsers } = useListUsers();
   const { data: templates, isLoading: isLoadingTemplates } = useListProjectTemplates();
   const { data: categories, isLoading: isLoadingCategories } = useListSkillCategories();
@@ -1077,7 +1080,7 @@ export default function Admin() {
           breadcrumbs={[{ label: "Admin" }]}
         />
 
-        <Tabs defaultValue="users">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="overflow-x-auto scrollbar-none mb-4">
             <TabsList className="w-max">
               <TabsTrigger value="users" className="flex items-center gap-2">

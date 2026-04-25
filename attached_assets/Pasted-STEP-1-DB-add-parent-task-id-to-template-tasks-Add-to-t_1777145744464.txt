@@ -1,0 +1,50 @@
+STEP 1 — DB: add parent_task_id to template_tasks
+Add to templateTasksTable: parentTaskId: integer("parent_task_id"),
+Run: cd lib/db && npm run push  (existing rows get NULL — correct)
+
+STEP 2 — Fix Admin: Template Task form
+File: artifacts/businessnow/src/pages/admin.tsx
+
+2a. Remove the dependency field from the template task create/edit form.
+2b. Add missing fields: Status (default: Not Started), Priority (default: Medium),
+    Planned Hours (→ effort), Billable (→ billableDefault),
+    Assignee Role Placeholder (→ assigneeRolePlaceholder),
+    Parent Task (Select of existing template tasks → parentTaskId).
+2c. Fix expand/collapse chevron: toggle a local expandedIds Set.
+    Render child tasks (parentTaskId = parentRow.id) indented below parent.
+2d. Fix multi-level nesting: render tasks as a recursive tree.
+2e. Fix PMO Settings nav: clicking "Project Templates" must navigate to the
+    template list, not redirect elsewhere.
+
+STEP 3 — Backend: update template task routes
+File: artifacts/api-server/src/routes/projectTemplates.ts
+- POST /template-phases/:phaseId/tasks: accept parentTaskId.
+- PUT /template-tasks/:taskId: accept parentTaskId.
+- GET /project-templates/:id (getTemplateWithPhases): include parentTaskId in tasks.
+
+STEP 4 — Backend: POST /projects/:id/apply-template  (requirePM)
+Body: { templateId: number, phaseName?: string }
+
+1. Fetch project (404 if missing). Fetch template with phases+tasks.
+2. Determine phase name: body.phaseName ?? template.name.
+3. INSERT a phase task (isPhase=true) on the project. Capture phaseTaskId.
+4. For each template task (top-level first, parentTaskId=null):
+   Calculate start/due dates from project.startDate + relative offsets.
+   INSERT into tasks (projectId, parentTaskId=phaseTaskId, name, status='Not Started',
+   priority, effort, billable, startDate, dueDate, fromTemplate=true, appliedTemplateId).
+   Store templateTaskId → real taskId map.
+5. For child template tasks (parentTaskId != null):
+   Set parentTaskId = taskIdMap[templateTask.parentTaskId].
+6. Log audit. Return { phaseTaskId, phasesCreated: 1, tasksCreated: N }.
+
+STEP 5 — Frontend: "Apply Template Segment" button
+On the Tasks tab → "Apply Template" button → Dialog:
+- Template: searchable Select from useListProjectTemplates().
+- Phase Name: optional text input (prefilled with template name).
+- On Apply: POST /projects/:id/apply-template { templateId, phaseName }.
+  Show loading. On success: invalidate listTasks, show toast.
+
+STEP 6 — Frontend: New Project dialog — "Start from Template"
+After project creation via POST /projects, if a template was selected:
+  POST /projects/:newProjectId/apply-template { templateId }
+Ensure the blank creation flow is not broken.

@@ -345,16 +345,17 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
             <StatusBadge status={task.priority} />
           </div>
 
-          {/* Assignees */}
-          <div className="w-16 shrink-0 flex -space-x-2">
-            {(task.assigneeIds ?? []).slice(0, 3).map((uid: number) => {
-              const user = users?.find((u) => u.id === uid);
-              return user ? (
-                <Avatar key={uid} className="h-5 w-5 border-2 border-background">
-                  <AvatarFallback className="text-[9px]">{user.initials}</AvatarFallback>
-                </Avatar>
-              ) : null;
-            })}
+          {/* Assigned Resource */}
+          <div className="w-32 shrink-0 text-xs text-muted-foreground truncate">
+            {(() => {
+              const ids = task.assigneeIds ?? [];
+              if (ids.length === 0) return <span className="italic">Unassigned</span>;
+              const names = ids.map((uid: number) => users?.find((u) => u.id === uid)?.name).filter(Boolean) as string[];
+              if (names.length === 0) return <span className="italic">Unassigned</span>;
+              if (names.length === 1) return <span className="font-medium text-foreground">{names[0]}</span>;
+              if (names.length === 2) return <span className="font-medium text-foreground">{names[0]}, {names[1]}</span>;
+              return <span className="font-medium text-foreground">{names[0]} <span className="text-muted-foreground">+{names.length - 1} more</span></span>;
+            })()}
           </div>
 
           {/* Due date */}
@@ -512,9 +513,9 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
           <div className="flex-1">Name</div>
           <div className="w-28 shrink-0">Status</div>
           <div className="w-20 shrink-0">Priority</div>
-          <div className="w-16 shrink-0">Team</div>
+          <div className="w-32 shrink-0">Assigned Resource</div>
           <div className="w-24 shrink-0">Due</div>
-          <div className="w-20 shrink-0 text-right">Effort</div>
+          <div className="w-20 shrink-0 text-right">Planned Hours</div>
           <div className="w-7 shrink-0" />
         </div>
 
