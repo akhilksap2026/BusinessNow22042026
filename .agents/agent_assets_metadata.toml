@@ -6,3 +6,9 @@ id = "ibPqRmMXEoZEj9UX1Agyn"
 uri = "file://docs/BusinessNow-PSA-Architecture.md"
 type = "text"
 title = "BusinessNow PSA — Architecture, DB Schema & Module Flow"
+
+[[outputs]]
+id = "BXzuISXS_vuXEB5eI0v5Z"
+uri = "file://codebase-snapshot.md"
+type = "text"
+title = "BusinessNow PSA — Full Codebase Snapshot"
