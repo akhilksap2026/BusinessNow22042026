@@ -14,7 +14,8 @@ import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApplyTemplateModal } from "@/components/apply-template-modal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectPhases } from "@/components/project-phases";
@@ -892,7 +893,27 @@ export default function ProjectDetail() {
           <div className="overflow-x-auto scrollbar-none mb-4">
             <TabsList className="w-max">
               <TabsTrigger value="tasks">Tasks</TabsTrigger>
-              <TabsTrigger value="team">Team & Allocations</TabsTrigger>
+              <TabsTrigger value="team" className="flex items-center gap-1.5">
+                Team & Allocations
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center text-muted-foreground hover:text-foreground cursor-help"
+                        data-testid="tooltip-team-allocations-info"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs text-xs">
+                      Add allocations here are scoped to <strong>this project</strong> — the project is pre-filled. To create allocations across other projects, open the Resources page.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </TabsTrigger>
               <TabsTrigger value="financials">Financials</TabsTrigger>
               <TabsTrigger value="changes" className="flex items-center gap-1.5">
                 <PackagePlus className="h-4 w-4" />
@@ -2076,7 +2097,15 @@ export default function ProjectDetail() {
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>
-              <Input value={editProjectForm.description} onChange={e => setEditProjectForm(f => ({ ...f, description: e.target.value }))} placeholder="Project description" />
+              <Input value={editProjectForm.description} onChange={e => setEditProjectForm(f => ({ ...f, description: e.target.value }))} placeholder="Project description" data-testid="input-edit-project-description" />
+              <p className="text-xs text-muted-foreground">
+                A short summary of the project's scope and goals. Helps teammates and stakeholders quickly understand what this project is about.
+              </p>
+              {!editProjectForm.description?.trim() && (
+                <p className="text-xs text-amber-600 dark:text-amber-400" data-testid="text-edit-description-warning">
+                  Tip: adding a description makes this project much easier to find and understand later. You can still save without one.
+                </p>
+              )}
             </div>
             <div className="flex items-start gap-3 rounded-md border p-3">
               <input

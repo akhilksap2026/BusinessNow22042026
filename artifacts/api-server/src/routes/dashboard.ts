@@ -8,22 +8,37 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const projects = await db.select().from(projectsTable);
   const invoices = await db.select().from(invoicesTable);
   const entries = await db.select().from(timeEntriesTable);
   const users = await db.select().from(usersTable);
   const allocations = await db.select().from(allocationsTable);
 
+  const periodRaw = typeof req.query.period === "string" ? req.query.period : "month";
+  const period = (["week", "month", "quarter", "ytd"] as const).includes(periodRaw as any) ? (periodRaw as "week"|"month"|"quarter"|"ytd") : "month";
+
+  const now = new Date();
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let periodStart: string;
+  if (period === "week") {
+    const d = new Date(now); const day = d.getDay(); const diff = (day + 6) % 7; d.setDate(d.getDate() - diff); periodStart = fmt(d);
+  } else if (period === "quarter") {
+    const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    periodStart = `${now.getFullYear()}-${String(qStartMonth + 1).padStart(2, '0')}-01`;
+  } else if (period === "ytd") {
+    periodStart = `${now.getFullYear()}-01-01`;
+  } else {
+    periodStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  }
+
   const totalProjects = projects.length;
   const activeProjects = projects.filter(p => p.status === 'In Progress').length;
   const atRiskProjects = projects.filter(p => p.health === 'At Risk').length;
-  const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + Number(i.total), 0);
+  const totalRevenue = invoices.filter(i => i.status === 'Paid' && i.issueDate >= periodStart).reduce((s, i) => s + Number(i.total), 0);
   const outstandingInvoices = invoices.filter(i => i.status === 'Approved' || i.status === 'In Review').reduce((s, i) => s + Number(i.total), 0);
 
-  const now = new Date();
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const billableHoursThisMonth = entries.filter(e => e.billable && e.date >= monthStart).reduce((s, e) => s + Number(e.hours), 0);
+  const billableHoursThisMonth = entries.filter(e => e.billable && e.date >= periodStart).reduce((s, e) => s + Number(e.hours), 0);
 
   const nowStr = now.toISOString().slice(0, 10);
   const totalCapacity = users.reduce((s, u) => s + u.capacity, 0);

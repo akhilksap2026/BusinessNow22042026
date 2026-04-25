@@ -107,7 +107,7 @@ function KpiTile({
 export default function Dashboard() {
   const [period, setPeriod] = useState<Period>("month");
 
-  const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
+  const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary({ period });
   const { data: activities, isLoading: isLoadingActivity } = useGetDashboardActivity();
   const { data: healthReport } = useGetProjectHealthReport();
   const { data: invoices } = useListInvoices();
@@ -177,16 +177,10 @@ export default function Dashboard() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="week">This Week</SelectItem>
                   <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="week" disabled>
-                    This Week — coming soon
-                  </SelectItem>
-                  <SelectItem value="quarter" disabled>
-                    This Quarter — coming soon
-                  </SelectItem>
-                  <SelectItem value="ytd" disabled>
-                    Year to Date — coming soon
-                  </SelectItem>
+                  <SelectItem value="quarter">This Quarter</SelectItem>
+                  <SelectItem value="ytd">Year to Date</SelectItem>
                 </SelectContent>
               </Select>
               <Link href="/projects">
@@ -214,7 +208,12 @@ export default function Dashboard() {
           <KpiTile
             title="Total Revenue"
             value={formatCurrency(summary?.totalRevenue ?? 0)}
-            caption={`${formatCurrency(summary?.outstandingInvoices ?? 0)} outstanding`}
+            caption={`${
+              period === "week" ? "This week · " :
+              period === "quarter" ? "This quarter · " :
+              period === "ytd" ? "Year to date · " :
+              "This month · "
+            }${formatCurrency(summary?.outstandingInvoices ?? 0)} outstanding (all-time)`}
             icon={DollarSign}
             status={(summary?.totalRevenue ?? 0) > 0 ? "success" : "neutral"}
             href="/finance"
@@ -224,7 +223,12 @@ export default function Dashboard() {
           <KpiTile
             title="Billable Hours"
             value={`${summary?.billableHoursThisMonth ?? 0}h`}
-            caption="This month"
+            caption={
+              period === "week" ? "This week"
+              : period === "quarter" ? "This quarter"
+              : period === "ytd" ? "Year to date"
+              : "This month"
+            }
             icon={Clock}
             status="neutral"
             href="/time"

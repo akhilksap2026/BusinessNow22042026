@@ -25,7 +25,10 @@ function mapAccount(r: typeof accountsTable.$inferSelect) {
 }
 
 router.get("/accounts", async (req, res): Promise<void> => {
-  const rows = await db.select().from(accountsTable).orderBy(accountsTable.name);
+  const typeFilter = typeof req.query.type === "string" ? req.query.type : undefined;
+  const rows = typeFilter
+    ? await db.select().from(accountsTable).where(eq(accountsTable.accountType, typeFilter)).orderBy(accountsTable.name)
+    : await db.select().from(accountsTable).orderBy(accountsTable.name);
   res.json(ListAccountsResponse.parse(rows.map(mapAccount)));
 });
 

@@ -39,6 +39,8 @@ export interface Account {
   tier: string;
   region: string;
   status: string;
+  /** Account type: 'client' (default) or 'internal' (e.g. KSAP itself) */
+  accountType: string;
   contractValue: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
@@ -53,6 +55,7 @@ export interface CreateAccountBody {
   tier: string;
   region: string;
   status?: string;
+  accountType?: string;
   contractValue: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
@@ -64,6 +67,7 @@ export interface UpdateAccountBody {
   tier?: string;
   region?: string;
   status?: string;
+  accountType?: string;
   contractValue?: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
@@ -1554,6 +1558,30 @@ export interface UpdateSavedViewBody {
   filters?: SavedViewFilters;
   visibility?: UpdateSavedViewBodyVisibility;
 }
+
+export type GetDashboardSummaryParams = {
+  /**
+   * Time window for billable hours and revenue (default month)
+   */
+  period?: GetDashboardSummaryPeriod;
+};
+
+export type GetDashboardSummaryPeriod =
+  (typeof GetDashboardSummaryPeriod)[keyof typeof GetDashboardSummaryPeriod];
+
+export const GetDashboardSummaryPeriod = {
+  week: "week",
+  month: "month",
+  quarter: "quarter",
+  ytd: "ytd",
+} as const;
+
+export type ListAccountsParams = {
+  /**
+   * Filter by account type (e.g. "internal" or "client")
+   */
+  type?: string;
+};
 
 export type ListProjectsParams = {
   status?: string;

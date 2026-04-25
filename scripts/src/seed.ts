@@ -279,6 +279,16 @@ async function main() {
     .insert(schema.accountsTable)
     .values([
       {
+        name: "KSAP",
+        domain: "ksap.internal",
+        tier: "Internal",
+        region: "North America",
+        status: "Active",
+        accountType: "internal",
+        contractValue: "0",
+        billingAddress: "Internal — KSAP overhead, R&D, and unbillable initiatives",
+      },
+      {
         name: "FrostLine Cold Storage",
         domain: "frostline.com",
         tier: "Enterprise",

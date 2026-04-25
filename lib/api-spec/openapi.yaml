@@ -56,6 +56,14 @@ paths:
       operationId: getDashboardSummary
       tags: [dashboard]
       summary: Get dashboard KPIs and summary data
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Time window for billable hours and revenue (default month)
+          schema:
+            type: string
+            enum: [week, month, quarter, ytd]
       responses:
         "200":
           description: Dashboard summary
@@ -85,6 +93,13 @@ paths:
       operationId: listAccounts
       tags: [accounts]
       summary: List all client accounts
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Filter by account type (e.g. "internal" or "client")
+          schema:
+            type: string
       responses:
         "200":
           description: List of accounts
@@ -3563,6 +3578,9 @@ components:
           type: string
         status:
           type: string
+        accountType:
+          type: string
+          description: "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)"
         contractValue:
           type: number
         billingAddress:
@@ -3585,6 +3603,7 @@ components:
         - tier
         - region
         - status
+        - accountType
         - contractValue
         - createdAt
         - updatedAt
@@ -3601,6 +3620,8 @@ components:
         region:
           type: string
         status:
+          type: string
+        accountType:
           type: string
         contractValue:
           type: number
@@ -3629,6 +3650,8 @@ components:
         region:
           type: string
         status:
+          type: string
+        accountType:
           type: string
         contractValue:
           type: number

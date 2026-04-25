@@ -17,6 +17,13 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Get dashboard KPIs and summary data
  */
+export const GetDashboardSummaryQueryParams = zod.object({
+  period: zod
+    .enum(["week", "month", "quarter", "ytd"])
+    .optional()
+    .describe("Time window for billable hours and revenue (default month)"),
+});
+
 export const GetDashboardSummaryResponse = zod.object({
   totalProjects: zod.number(),
   activeProjects: zod.number(),
@@ -48,6 +55,13 @@ export const GetDashboardActivityResponse = zod.array(
 /**
  * @summary List all client accounts
  */
+export const ListAccountsQueryParams = zod.object({
+  type: zod.coerce
+    .string()
+    .optional()
+    .describe('Filter by account type (e.g. \"internal\" or \"client\")'),
+});
+
 export const ListAccountsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
@@ -55,6 +69,11 @@ export const ListAccountsResponseItem = zod.object({
   tier: zod.string(),
   region: zod.string(),
   status: zod.string(),
+  accountType: zod
+    .string()
+    .describe(
+      "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)",
+    ),
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -73,6 +92,7 @@ export const CreateAccountBody = zod.object({
   tier: zod.string(),
   region: zod.string(),
   status: zod.string().optional(),
+  accountType: zod.string().optional(),
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -92,6 +112,11 @@ export const GetAccountResponse = zod.object({
   tier: zod.string(),
   region: zod.string(),
   status: zod.string(),
+  accountType: zod
+    .string()
+    .describe(
+      "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)",
+    ),
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -113,6 +138,7 @@ export const UpdateAccountBody = zod.object({
   tier: zod.string().optional(),
   region: zod.string().optional(),
   status: zod.string().optional(),
+  accountType: zod.string().optional(),
   contractValue: zod.number().optional(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -125,6 +151,11 @@ export const UpdateAccountResponse = zod.object({
   tier: zod.string(),
   region: zod.string(),
   status: zod.string(),
+  accountType: zod
+    .string()
+    .describe(
+      "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)",
+    ),
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -3168,6 +3199,11 @@ export const ConvertProspectResponse = zod.object({
     tier: zod.string(),
     region: zod.string(),
     status: zod.string(),
+    accountType: zod
+      .string()
+      .describe(
+        "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)",
+      ),
     contractValue: zod.number(),
     billingAddress: zod.string().nullish(),
     logoUrl: zod.string().nullish(),

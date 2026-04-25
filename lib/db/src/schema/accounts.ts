@@ -9,6 +9,7 @@ export const accountsTable = pgTable("accounts", {
   tier: text("tier").notNull(),
   region: text("region").notNull(),
   status: text("status").notNull().default("Active"),
+  accountType: text("account_type").notNull().default("client"),
   contractValue: numeric("contract_value", { precision: 12, scale: 2 }).notNull().default("0"),
   billingAddress: text("billing_address"),
   logoUrl: text("logo_url"),

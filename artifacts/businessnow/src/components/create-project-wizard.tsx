@@ -166,7 +166,14 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
 
   const validateStep1 = async () => {
     const valid = await blankForm.trigger(["name", "description", "accountId"]);
-    if (valid) setStep(2);
+    if (!valid) return;
+    if (!blankForm.getValues("description")?.trim()) {
+      toast({
+        title: "Heads up — no description",
+        description: "Project will be created without a description. You can add one later from Edit Project.",
+      });
+    }
+    setStep(2);
   };
 
   const validateStep2 = async () => {
@@ -411,13 +418,24 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
                   <FormField
                     control={blankForm.control}
                     name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl><Textarea placeholder="Project description" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const empty = !field.value || !String(field.value).trim();
+                      return (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl><Textarea placeholder="Project description" {...field} /></FormControl>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            A short summary of the project's scope and goals. Helps teammates and stakeholders quickly understand what this project is about.
+                          </p>
+                          {empty && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1" data-testid="text-description-warning">
+                              Tip: adding a description makes this project much easier to find and understand later. You can still create it without one.
+                            </p>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={blankForm.control}
@@ -431,7 +449,16 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
                           </FormControl>
                           <SelectContent>
                             {accounts?.map(acc => (
-                              <SelectItem key={acc.id} value={acc.id.toString()}>{acc.name}</SelectItem>
+                              <SelectItem key={acc.id} value={acc.id.toString()} data-testid={`option-account-${acc.id}`}>
+                                <span className="flex items-center gap-2">
+                                  {acc.name}
+                                  {acc.accountType === "internal" && (
+                                    <Badge variant="outline" className="text-[10px] py-0 h-4 border-indigo-300 text-indigo-700 dark:text-indigo-300 dark:border-indigo-700">
+                                      Internal
+                                    </Badge>
+                                  )}
+                                </span>
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

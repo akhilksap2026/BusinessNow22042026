@@ -13,6 +13,8 @@ export interface Account {
   tier: string;
   region: string;
   status: string;
+  /** Account type: 'client' (default) or 'internal' (e.g. KSAP itself) */
+  accountType: string;
   contractValue: number;
   billingAddress?: string | null;
   logoUrl?: string | null;

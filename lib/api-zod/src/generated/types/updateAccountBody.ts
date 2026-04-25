@@ -12,6 +12,7 @@ export interface UpdateAccountBody {
   tier?: string;
   region?: string;
   status?: string;
+  accountType?: string;
   contractValue?: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
