@@ -72,3 +72,20 @@ export const revenueEntriesTable = pgTable("revenue_entries", {
 export const insertRevenueEntrySchema = createInsertSchema(revenueEntriesTable).omit({ id: true, createdAt: true });
 export type InsertRevenueEntry = z.infer<typeof insertRevenueEntrySchema>;
 export type RevenueEntry = typeof revenueEntriesTable.$inferSelect;
+
+export const budgetEntriesTable = pgTable("budget_entries", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  entryDate: text("entry_date").notNull(),
+  type: text("type").notNull(),
+  description: text("description").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull().default("0"),
+  hours: numeric("hours", { precision: 10, scale: 2 }).notNull().default("0"),
+  documentLink: text("document_link"),
+  changeOrderId: integer("change_order_id").unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertBudgetEntrySchema = createInsertSchema(budgetEntriesTable).omit({ id: true, createdAt: true });
+export type InsertBudgetEntry = z.infer<typeof insertBudgetEntrySchema>;
+export type BudgetEntry = typeof budgetEntriesTable.$inferSelect;

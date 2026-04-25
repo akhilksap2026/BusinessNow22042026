@@ -290,6 +290,50 @@ export const GetProjectSummaryResponse = zod.object({
 });
 
 /**
+ * @summary List budget entries for a project with running totals
+ */
+export const ListProjectBudgetEntriesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListProjectBudgetEntriesResponse = zod.object({
+  totalAmount: zod.number(),
+  totalHours: zod.number(),
+  entries: zod.array(
+    zod.object({
+      id: zod.number(),
+      projectId: zod.number(),
+      entryDate: zod.string(),
+      type: zod.string().describe("One of SOW, CO, Adjustment"),
+      description: zod.string(),
+      amount: zod.number(),
+      hours: zod.number(),
+      documentLink: zod.string().nullish(),
+      changeOrderId: zod.number().nullish(),
+      createdAt: zod.string(),
+      runningAmount: zod.number().optional(),
+      runningHours: zod.number().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+ */
+export const CreateProjectBudgetEntryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateProjectBudgetEntryBody = zod.object({
+  entryDate: zod.string(),
+  type: zod.string().describe("One of SOW, CO, Adjustment"),
+  description: zod.string(),
+  amount: zod.number().optional(),
+  hours: zod.number().optional(),
+  documentLink: zod.string().nullish(),
+});
+
+/**
  * @summary List tasks
  */
 export const ListTasksQueryParams = zod.object({

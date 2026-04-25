@@ -287,6 +287,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProjectSummary"
 
+  /projects/{id}/budget-entries:
+    get:
+      operationId: listProjectBudgetEntries
+      tags: [projects]
+      summary: List budget entries for a project with running totals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Budget entries with running totals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectBudgetEntries"
+    post:
+      operationId: createProjectBudgetEntry
+      tags: [projects]
+      summary: Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBudgetEntryBody"
+      responses:
+        "201":
+          description: Created budget entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetEntry"
+
   # ─── TASKS ────────────────────────────────────────────────────
   /tasks:
     get:
@@ -5807,6 +5849,84 @@ components:
       required:
         - content
         - userId
+
+    BudgetEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        entryDate:
+          type: string
+        type:
+          type: string
+          description: One of SOW, CO, Adjustment
+        description:
+          type: string
+        amount:
+          type: number
+        hours:
+          type: number
+        documentLink:
+          type: string
+          nullable: true
+        changeOrderId:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+        runningAmount:
+          type: number
+        runningHours:
+          type: number
+      required:
+        - id
+        - projectId
+        - entryDate
+        - type
+        - description
+        - amount
+        - hours
+        - createdAt
+
+    ProjectBudgetEntries:
+      type: object
+      properties:
+        totalAmount:
+          type: number
+        totalHours:
+          type: number
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/BudgetEntry"
+      required:
+        - totalAmount
+        - totalHours
+        - entries
+
+    CreateBudgetEntryBody:
+      type: object
+      properties:
+        entryDate:
+          type: string
+        type:
+          type: string
+          description: One of SOW, CO, Adjustment
+        description:
+          type: string
+        amount:
+          type: number
+        hours:
+          type: number
+        documentLink:
+          type: string
+          nullable: true
+      required:
+        - entryDate
+        - type
+        - description
 
     TaxCode:
       type: object

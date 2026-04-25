@@ -18,6 +18,7 @@ export const changeOrdersTable = pgTable("change_orders", {
   decisionDate: text("decision_date"),
   approvedDate: text("approved_date"),
   newResourceRole: text("new_resource_role"),
+  documentLink: text("document_link"),
   linkedTaskTitles: json("linked_task_titles").$type<string[]>().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

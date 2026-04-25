@@ -618,3 +618,33 @@ Fixes applied after architect code review:
 - **Notes POST identity binding**: `POST /tasks/:id/notes` now derives the author from the trusted `x-user-id` header (validated by `roleClaim` middleware) and ignores any `userId` in the request body, preventing impersonation. Returns 401 when missing.
 - **Log Time leaf-task filter**: `time.tsx` was filtering using `parentId` but the task schema field is `parentTaskId`. Fixed the filter and also added an `isPhase` exclusion so phases never appear in the time-entry Task selector.
 - **Stale task hours after time mutations**: `handleLogTime`, `handleSaveEntry`, and `handleDeleteEntry` in `time.tsx` now invalidate `["listTasks"]` (in addition to time-entry queries) so derived `actualHours/etc/eac` refresh in any open task views.
+
+### 2026-04-25 — Phase 3: Budget Tracking (Revised Budget + Budget History)
+
+**Database (lib/db/src/schema)**
+- New `budgetEntriesTable` in `financials.ts` (`id serial`, `project_id integer`, `entry_date text`, `type text` ['SOW'|'CO'|'Adjustment'], `description text`, `amount numeric(15,2)`, `hours numeric(10,2)`, `document_link text`, `change_order_id integer`, `created_at timestamptz`).
+- Added `documentLink text` column to `changeOrdersTable` for optional link to signed CR / SOW amendment.
+- Schema synced via `cd lib/db && pnpm run push --force`.
+- Backfill: one-time INSERT created an `'SOW'` row for every existing project with `budget > 0` (6 rows) using `start_date` and `budgeted_hours` so historical projects show correctly in Budget History.
+
+**Backend (artifacts/api-server)**
+- `routes/projects.ts`: new `GET /projects/:id/budget-entries` returns `{ totalAmount, totalHours, entries:[…] }` ordered by `entry_date, id` with cumulative `runningAmount` / `runningHours` per row. `POST /projects/:id/budget-entries` (requirePM) validates `entryDate / type / description`, stores with audit log entry. Negative amounts/hours allowed for Adjustments.
+- `routes/changeOrders.ts`: PATCH approval block now also auto-inserts a budget entry of `type:'CO'` linked via `change_order_id` on the same approval transaction (alongside the existing project budget update, task creation, and resource request). Skipped only when both amount and hours are zero. Also added `documentLink` to POST + PATCH pass-through.
+
+**API spec / codegen (lib/api-spec/openapi.yaml)**
+- New `BudgetEntry`, `ProjectBudgetEntries`, `CreateBudgetEntryBody` schemas.
+- New paths `/projects/{id}/budget-entries` (GET = `listProjectBudgetEntries`, POST = `createProjectBudgetEntry`).
+- Regenerated via `pnpm --filter @workspace/api-spec run codegen`.
+
+**Frontend (artifacts/businessnow/src/pages/project-detail.tsx)**
+- Header **Budget Used** card replaced with **Revised Budget**: shows total revised budget as the headline, with a sub-line `SOW $X +COs $Y +Adj $Z` and `% used · $invoiced` underneath.
+- New **Budget History** card in Financials tab — collapsible table of all entries with type badge (default/secondary/outline), date, description, signed amount, signed hours, running total, and document link. Footer row shows totals.
+- New **Add Budget Entry** dialog (PM/Admin/Super User only) — date / type / description / amount / hours / optional document link. Defaults type to "Adjustment" since SOW/CO entries are auto-recorded.
+- Change Request dialog gained an optional **Document Link** field (URL input, plumbed through `coForm` → payload → CO POST/PATCH). No "Project Name" or "Project ID" field existed to remove (project context is implicit from the URL).
+
+**Phase 3 Architect Remediation (same day)**
+- **Atomicity**: CO PATCH approval block now wraps project budget update + budget_entry insert + task creation + resource request creation in a single `db.transaction(...)` (drizzle-orm). All side-effects commit or roll back together.
+- **Concurrent-approval idempotency**: The CO row update inside the transaction is conditional — `UPDATE … WHERE id=:id AND status != 'Approved' RETURNING …`. Only the winning request's update returns a row; losers skip the side-effects entirely. Verified by 5 concurrent PATCHes producing exactly one budget entry and one project budget delta.
+- **Re-approval idempotency**: Added a unique constraint on `budget_entries.change_order_id` plus an explicit existence check at the top of the approval branch — if a budget entry already exists for this CO, all one-time side-effects (budget update, entry insert, task creation, resource request) are skipped. Crucially, the CO budget entry is now inserted **unconditionally** (even for zero amount/zero hours COs) so the row always exists to serve as the idempotency sentinel. Verified by both non-zero (`Approve → Submitted → Approve` leaves budget unchanged) and zero-value (`Approve → Submitted → Approve` produces exactly 1 budget entry, 1 task, 0 duplicate resource requests).
+- **Manual budget-entry semantics**: `POST /projects/:id/budget-entries` now rejects any `type !== 'Adjustment'` with HTTP 400 (SOW seeded via backfill, CO inserted only by the changeOrders.ts transaction). The Add Budget Entry dialog locks the type field to "Adjustment" with helper text.
+- **Frontend cache invalidation after CO mutations**: `handleSaveCR` and `handleUpdateCOStatus` in `project-detail.tsx` invalidate `getListProjectBudgetEntriesQueryKey`, `getGetProjectQueryKey`, and `getGetProjectSummaryQueryKey` so the Budget History card, Revised Budget header, and project summary refresh immediately when a CR is approved/edited. `handleUpdateCOStatus` also sends `approvedDate` when status flips to `Approved` so the budget entry's `entryDate` is correct.

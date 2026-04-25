@@ -1063,6 +1063,38 @@ export interface CreateTaskNoteBody {
   userId: number;
 }
 
+export interface BudgetEntry {
+  id: number;
+  projectId: number;
+  entryDate: string;
+  /** One of SOW, CO, Adjustment */
+  type: string;
+  description: string;
+  amount: number;
+  hours: number;
+  documentLink?: string | null;
+  changeOrderId?: number | null;
+  createdAt: string;
+  runningAmount?: number;
+  runningHours?: number;
+}
+
+export interface ProjectBudgetEntries {
+  totalAmount: number;
+  totalHours: number;
+  entries: BudgetEntry[];
+}
+
+export interface CreateBudgetEntryBody {
+  entryDate: string;
+  /** One of SOW, CO, Adjustment */
+  type: string;
+  description: string;
+  amount?: number;
+  hours?: number;
+  documentLink?: string | null;
+}
+
 export interface TaxCode {
   id: number;
   name: string;

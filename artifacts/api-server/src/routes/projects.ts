@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
-import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable } from "@workspace/db";
+import { eq, and, asc, isNull, isNotNull, inArray } from "drizzle-orm";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
@@ -322,6 +322,84 @@ router.get("/projects/:id/gantt", async (req, res): Promise<void> => {
   const projectEnd = project.dueDate || (allEnds.length ? allEnds.sort().at(-1)! : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
 
   res.json({ projectId: id, projectStart, projectEnd, rows, dependencies });
+});
+
+// ─── Budget entries ───────────────────────────────────────────────────────────
+function mapBudgetEntry(b: typeof budgetEntriesTable.$inferSelect) {
+  return {
+    id: b.id,
+    projectId: b.projectId,
+    entryDate: b.entryDate,
+    type: b.type,
+    description: b.description,
+    amount: Number(b.amount),
+    hours: Number(b.hours),
+    documentLink: b.documentLink,
+    changeOrderId: b.changeOrderId,
+    createdAt: b.createdAt instanceof Date ? b.createdAt.toISOString() : b.createdAt,
+  };
+}
+
+router.get("/projects/:id/budget-entries", async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+  const rows = await db
+    .select()
+    .from(budgetEntriesTable)
+    .where(eq(budgetEntriesTable.projectId, projectId))
+    .orderBy(asc(budgetEntriesTable.entryDate), asc(budgetEntriesTable.id));
+
+  let runningAmount = 0;
+  let runningHours = 0;
+  const entries = rows.map((r) => {
+    const m = mapBudgetEntry(r);
+    runningAmount += m.amount;
+    runningHours += m.hours;
+    return { ...m, runningAmount: Number(runningAmount.toFixed(2)), runningHours: Number(runningHours.toFixed(2)) };
+  });
+
+  res.json({
+    totalAmount: Number(runningAmount.toFixed(2)),
+    totalHours: Number(runningHours.toFixed(2)),
+    entries,
+  });
+});
+
+// Manual entries are restricted to "Adjustment". SOW rows are seeded once when
+// a project is created, and CO rows are inserted automatically by the
+// /change-orders approval flow — exposing those types here would let users
+// double-count the budget.
+router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+  const { entryDate, type, description, amount, hours, documentLink } = req.body ?? {};
+  if (!entryDate || typeof entryDate !== "string") { res.status(400).json({ error: "entryDate is required" }); return; }
+  if (type !== "Adjustment") { res.status(400).json({ error: "Manual entries must be type 'Adjustment'. SOW and CO entries are recorded automatically." }); return; }
+  const desc = typeof description === "string" ? description.trim() : "";
+  if (!desc) { res.status(400).json({ error: "description is required" }); return; }
+
+  const [row] = await db.insert(budgetEntriesTable).values({
+    projectId,
+    entryDate,
+    type,
+    description: desc,
+    amount: String(Number(amount) || 0),
+    hours: String(Number(hours) || 0),
+    documentLink: documentLink || null,
+  }).returning();
+
+  await logAudit({
+    entityType: "project",
+    entityId: projectId,
+    action: "budget_entry_added",
+    description: `Budget entry added (${type}): ${desc} — $${Number(row.amount).toFixed(2)}, ${Number(row.hours).toFixed(2)}h`,
+    newValue: { type, amount: Number(row.amount), hours: Number(row.hours) },
+  });
+
+  res.status(201).json(mapBudgetEntry(row));
 });
 
 export default router;

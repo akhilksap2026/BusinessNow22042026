@@ -26,6 +26,7 @@ import type {
   ApproveTimesheetBody,
   AuditLogEntry,
   BillingSchedule,
+  BudgetEntry,
   BudgetVsActualsReport,
   BurnDownReport,
   ConvertOpportunityBody,
@@ -35,6 +36,7 @@ import type {
   CreateAccountBody,
   CreateAllocationBody,
   CreateBillingScheduleBody,
+  CreateBudgetEntryBody,
   CreateCsatResponseBody,
   CreateCustomFieldDefinitionBody,
   CreateDocumentBody,
@@ -107,6 +109,7 @@ import type {
   Notification,
   Opportunity,
   Project,
+  ProjectBudgetEntries,
   ProjectDocument,
   ProjectForm,
   ProjectFormDetail,
@@ -1344,6 +1347,183 @@ export function useGetProjectSummary<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List budget entries for a project with running totals
+ */
+export const getListProjectBudgetEntriesUrl = (id: number) => {
+  return `/api/projects/${id}/budget-entries`;
+};
+
+export const listProjectBudgetEntries = async (
+  id: number,
+  options?: RequestInit,
+): Promise<ProjectBudgetEntries> => {
+  return customFetch<ProjectBudgetEntries>(getListProjectBudgetEntriesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProjectBudgetEntriesQueryKey = (id: number) => {
+  return [`/api/projects/${id}/budget-entries`] as const;
+};
+
+export const getListProjectBudgetEntriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProjectBudgetEntries>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProjectBudgetEntries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListProjectBudgetEntriesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listProjectBudgetEntries>>
+  > = ({ signal }) =>
+    listProjectBudgetEntries(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProjectBudgetEntries>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProjectBudgetEntriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProjectBudgetEntries>>
+>;
+export type ListProjectBudgetEntriesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List budget entries for a project with running totals
+ */
+
+export function useListProjectBudgetEntries<
+  TData = Awaited<ReturnType<typeof listProjectBudgetEntries>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProjectBudgetEntries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProjectBudgetEntriesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+ */
+export const getCreateProjectBudgetEntryUrl = (id: number) => {
+  return `/api/projects/${id}/budget-entries`;
+};
+
+export const createProjectBudgetEntry = async (
+  id: number,
+  createBudgetEntryBody: CreateBudgetEntryBody,
+  options?: RequestInit,
+): Promise<BudgetEntry> => {
+  return customFetch<BudgetEntry>(getCreateProjectBudgetEntryUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBudgetEntryBody),
+  });
+};
+
+export const getCreateProjectBudgetEntryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProjectBudgetEntry>>,
+    TError,
+    { id: number; data: BodyType<CreateBudgetEntryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProjectBudgetEntry>>,
+  TError,
+  { id: number; data: BodyType<CreateBudgetEntryBody> },
+  TContext
+> => {
+  const mutationKey = ["createProjectBudgetEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProjectBudgetEntry>>,
+    { id: number; data: BodyType<CreateBudgetEntryBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createProjectBudgetEntry(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateProjectBudgetEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createProjectBudgetEntry>>
+>;
+export type CreateProjectBudgetEntryMutationBody =
+  BodyType<CreateBudgetEntryBody>;
+export type CreateProjectBudgetEntryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+ */
+export const useCreateProjectBudgetEntry = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProjectBudgetEntry>>,
+    TError,
+    { id: number; data: BodyType<CreateBudgetEntryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createProjectBudgetEntry>>,
+  TError,
+  { id: number; data: BodyType<CreateBudgetEntryBody> },
+  TContext
+> => {
+  return useMutation(getCreateProjectBudgetEntryMutationOptions(options));
+};
 
 /**
  * @summary List tasks

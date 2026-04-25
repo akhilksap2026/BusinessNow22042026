@@ -1,7 +1,7 @@
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, useListSkills } from "@workspace/api-client-react";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, useListSkills, useListProjectBudgetEntries, useCreateProjectBudgetEntry, getListProjectBudgetEntriesQueryKey } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -83,11 +83,55 @@ export default function ProjectDetail() {
     title: "", description: "", amount: "", additionalHours: "",
     requestedDate: "", submittedDate: "", decisionDate: "",
     status: "Draft", submittedByUserId: "", approvedByUserId: "",
-    newResourceRole: "", linkedTaskTitlesRaw: "",
+    newResourceRole: "", documentLink: "", linkedTaskTitlesRaw: "",
   };
   const [coDialogOpen, setCoDialogOpen] = useState(false);
   const [editCrId, setEditCrId] = useState<number | null>(null);
   const [coForm, setCoForm] = useState(emptyCoForm);
+
+  // ── Budget entries ────────────────────────────────────────────────────────
+  const isPM = ["Admin", "PM", "Super User"].includes(viewerRole);
+  const { data: budgetEntries } = useListProjectBudgetEntries(projectId, {
+    query: { enabled: !!projectId },
+  });
+  const createBudgetEntry = useCreateProjectBudgetEntry();
+  const [budgetHistoryOpen, setBudgetHistoryOpen] = useState(false);
+  const [budgetEntryDialogOpen, setBudgetEntryDialogOpen] = useState(false);
+  const emptyBudgetEntryForm = {
+    entryDate: new Date().toISOString().slice(0, 10),
+    type: "Adjustment",
+    description: "",
+    amount: "",
+    hours: "",
+    documentLink: "",
+  };
+  const [budgetEntryForm, setBudgetEntryForm] = useState(emptyBudgetEntryForm);
+
+  async function handleSaveBudgetEntry() {
+    if (!budgetEntryForm.description.trim()) {
+      toast({ title: "Description is required", variant: "destructive" });
+      return;
+    }
+    try {
+      await createBudgetEntry.mutateAsync({
+        id: projectId,
+        data: {
+          entryDate: budgetEntryForm.entryDate,
+          type: budgetEntryForm.type,
+          description: budgetEntryForm.description.trim(),
+          amount: parseFloat(budgetEntryForm.amount) || 0,
+          hours: parseFloat(budgetEntryForm.hours) || 0,
+          documentLink: budgetEntryForm.documentLink || undefined,
+        },
+      });
+      await queryClient.invalidateQueries({ queryKey: getListProjectBudgetEntriesQueryKey(projectId) });
+      toast({ title: "Budget entry added" });
+      setBudgetEntryDialogOpen(false);
+      setBudgetEntryForm(emptyBudgetEntryForm);
+    } catch {
+      toast({ title: "Failed to add budget entry", variant: "destructive" });
+    }
+  }
 
   function openNewCR() {
     setEditCrId(null);
@@ -109,6 +153,7 @@ export default function ProjectDetail() {
       submittedByUserId: co.submittedByUserId ? String(co.submittedByUserId) : "",
       approvedByUserId: co.approvedByUserId ? String(co.approvedByUserId) : "",
       newResourceRole: co.newResourceRole ?? "",
+      documentLink: co.documentLink ?? "",
       linkedTaskTitlesRaw: (co.linkedTaskTitles ?? []).join(", "),
     });
     setCoDialogOpen(true);
@@ -130,6 +175,7 @@ export default function ProjectDetail() {
       submittedByUserId: coForm.submittedByUserId ? parseInt(coForm.submittedByUserId) : undefined,
       approvedByUserId: coForm.approvedByUserId ? parseInt(coForm.approvedByUserId) : undefined,
       newResourceRole: coForm.newResourceRole || undefined,
+      documentLink: coForm.documentLink || undefined,
       linkedTaskTitles,
     };
     try {
@@ -149,6 +195,13 @@ export default function ProjectDetail() {
         toast({ title: "Change request created" });
       }
       refetchChangeOrders();
+      // CO save may have approved one (creating budget entry + project budget update);
+      // refresh budget history, summary, and project so revised totals stay current.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListProjectBudgetEntriesQueryKey(projectId) }),
+        queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) }),
+        queryClient.invalidateQueries({ queryKey: getGetProjectSummaryQueryKey(projectId) }),
+      ]);
       setCoDialogOpen(false);
     } catch {
       toast({ title: "Failed to save change request", variant: "destructive" });
@@ -159,12 +212,19 @@ export default function ProjectDetail() {
     try {
       const decisionDate = ["Approved", "Rejected"].includes(status)
         ? new Date().toISOString().slice(0, 10) : undefined;
+      const approvedDate = status === "Approved"
+        ? new Date().toISOString().slice(0, 10) : undefined;
       await fetch(`/api/change-orders/${coId}`, {
         method: "PATCH",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ status, ...(decisionDate ? { decisionDate } : {}) }),
+        body: JSON.stringify({ status, ...(decisionDate ? { decisionDate } : {}), ...(approvedDate ? { approvedDate } : {}) }),
       });
       refetchChangeOrders();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListProjectBudgetEntriesQueryKey(projectId) }),
+        queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) }),
+        queryClient.invalidateQueries({ queryKey: getGetProjectSummaryQueryKey(projectId) }),
+      ]);
     } catch {
       toast({ title: "Failed to update change request", variant: "destructive" });
     }
@@ -708,15 +768,36 @@ export default function ProjectDetail() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Budget Used</CardTitle>
+              <CardTitle className="text-sm font-medium">Revised Budget</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold tracking-tight">{summary?.budgetUsedPercent}%</div>
-              <Progress value={summary?.budgetUsedPercent} className="h-2 mt-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                {formatCurrency(summary?.invoicedAmount ?? 0)} invoiced of {formatCurrency(project.budget)}
-              </p>
+              {(() => {
+                const sowAmount = (budgetEntries?.entries ?? [])
+                  .filter(e => e.type === "SOW")
+                  .reduce((s, e) => s + Number(e.amount), 0);
+                const coAmount = (budgetEntries?.entries ?? [])
+                  .filter(e => e.type === "CO")
+                  .reduce((s, e) => s + Number(e.amount), 0);
+                const adjAmount = (budgetEntries?.entries ?? [])
+                  .filter(e => e.type === "Adjustment")
+                  .reduce((s, e) => s + Number(e.amount), 0);
+                const revised = budgetEntries?.totalAmount ?? Number(project.budget);
+                return (
+                  <>
+                    <div className="text-2xl font-bold tracking-tight">{formatCurrency(revised)}</div>
+                    <Progress value={summary?.budgetUsedPercent} className="h-2 mt-2" />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      SOW {formatCurrency(sowAmount || Number(project.budget))}
+                      {coAmount !== 0 && <> + COs {formatCurrency(coAmount)}</>}
+                      {adjAmount !== 0 && <> + Adj {formatCurrency(adjAmount)}</>}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {summary?.budgetUsedPercent ?? 0}% used · {formatCurrency(summary?.invoicedAmount ?? 0)} invoiced
+                    </p>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
           <Card>
@@ -1177,6 +1258,78 @@ export default function ProjectDetail() {
               </Card>
             )}
 
+            {/* ── Budget History ─────────────────────────────────────────── */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle>Budget History</CardTitle>
+                  <CardDescription>
+                    Original SOW, approved change requests, and manual adjustments — running totals shown.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isPM && (
+                    <Button size="sm" variant="outline" onClick={() => { setBudgetEntryForm(emptyBudgetEntryForm); setBudgetEntryDialogOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-1" /> Add Budget Entry
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => setBudgetHistoryOpen(o => !o)}>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${budgetHistoryOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </div>
+              </CardHeader>
+              {budgetHistoryOpen && (
+                <CardContent>
+                  {(budgetEntries?.entries ?? []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No budget entries yet.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead className="text-right">Hours</TableHead>
+                          <TableHead className="text-right">Running Total</TableHead>
+                          <TableHead>Doc</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(budgetEntries?.entries ?? []).map((e: any) => (
+                          <TableRow key={e.id}>
+                            <TableCell className="whitespace-nowrap text-sm">{e.entryDate}</TableCell>
+                            <TableCell>
+                              <Badge variant={e.type === "SOW" ? "default" : e.type === "CO" ? "secondary" : "outline"}>{e.type}</Badge>
+                            </TableCell>
+                            <TableCell className="max-w-[280px] truncate" title={e.description}>{e.description}</TableCell>
+                            <TableCell className={`text-right font-mono ${Number(e.amount) < 0 ? "text-red-600" : ""}`}>
+                              {Number(e.amount) >= 0 ? "+" : ""}{formatCurrency(Number(e.amount))}
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {Number(e.hours) >= 0 ? "+" : ""}{Number(e.hours).toFixed(1)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">{formatCurrency(Number(e.runningAmount))}</TableCell>
+                            <TableCell>
+                              {e.documentLink ? (
+                                <a href={e.documentLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-sm">link</a>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="border-t-2">
+                          <TableCell colSpan={3} className="font-semibold">Total</TableCell>
+                          <TableCell className="text-right font-mono font-bold">{formatCurrency(budgetEntries?.totalAmount ?? 0)}</TableCell>
+                          <TableCell className="text-right font-mono font-bold">{(budgetEntries?.totalHours ?? 0).toFixed(1)}</TableCell>
+                          <TableCell colSpan={2} />
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+
             {/* Tracked Time — full editable table */}
             <TrackedTimeTab projectId={projectId} viewerRole={viewerRole} />
           </TabsContent>
@@ -1270,6 +1423,61 @@ export default function ProjectDetail() {
               </Card>
             )}
           </TabsContent>
+
+          {/* ── Add Budget Entry Dialog ─────────────────────────────────────── */}
+          <Dialog open={budgetEntryDialogOpen} onOpenChange={setBudgetEntryDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add Budget Entry</DialogTitle>
+                <DialogDescription>
+                  Manually adjust the project budget. Use Adjustment for corrections; SOWs and approved CRs are recorded automatically.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Date</Label>
+                    <Input type="date" value={budgetEntryForm.entryDate}
+                      onChange={e => setBudgetEntryForm(f => ({ ...f, entryDate: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Type</Label>
+                    <Input value="Adjustment" disabled />
+                    <p className="text-xs text-muted-foreground">SOW and CO entries are recorded automatically.</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Description *</Label>
+                  <Input placeholder="e.g. Scope correction — re-baseline" value={budgetEntryForm.description}
+                    onChange={e => setBudgetEntryForm(f => ({ ...f, description: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Amount ($)</Label>
+                    <Input type="number" placeholder="0 (negative for reductions)"
+                      value={budgetEntryForm.amount}
+                      onChange={e => setBudgetEntryForm(f => ({ ...f, amount: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Hours</Label>
+                    <Input type="number" placeholder="0"
+                      value={budgetEntryForm.hours}
+                      onChange={e => setBudgetEntryForm(f => ({ ...f, hours: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Document Link</Label>
+                  <Input type="url" placeholder="https://… (optional)"
+                    value={budgetEntryForm.documentLink}
+                    onChange={e => setBudgetEntryForm(f => ({ ...f, documentLink: e.target.value }))} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBudgetEntryDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveBudgetEntry} disabled={!budgetEntryForm.description.trim()}>Add Entry</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* ── Full CR Form Dialog ──────────────────────────────────────────── */}
           <Dialog open={coDialogOpen} onOpenChange={setCoDialogOpen}>
@@ -1374,6 +1582,18 @@ export default function ProjectDetail() {
                     onChange={e => setCoForm(f => ({ ...f, newResourceRole: e.target.value }))}
                   />
                   <p className="text-xs text-muted-foreground">A resource request for this role will be auto-created when the CR is Approved.</p>
+                </div>
+
+                {/* Document link */}
+                <div className="space-y-1.5">
+                  <Label>Document Link</Label>
+                  <Input
+                    type="url"
+                    placeholder="https://… (signed CR, SOW amendment, etc.)"
+                    value={coForm.documentLink}
+                    onChange={e => setCoForm(f => ({ ...f, documentLink: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">Optional URL to the signed change request or supporting document.</p>
                 </div>
               </div>
               <DialogFooter>
