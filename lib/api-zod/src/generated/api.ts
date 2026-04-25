@@ -170,6 +170,9 @@ export const ListProjectsResponseItem = zod.object({
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  companyName: zod.string().nullish(),
+  companyDomain: zod.string().nullish(),
+  ownerName: zod.string().nullish(),
 });
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
 

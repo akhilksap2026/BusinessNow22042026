@@ -92,6 +92,9 @@ export interface Project {
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  companyName?: string | null;
+  companyDomain?: string | null;
+  ownerName?: string | null;
 }
 
 export interface ProjectSummary {

@@ -1,0 +1,57 @@
+PHASE 0 — AUDIT (Do This First, Before Any Changes)
+Before making any changes, perform a full audit of the current codebase. For each area below, report what currently exists, what is missing, and what needs modification.
+0.1 Project Module
+
+How is a new project created? What fields exist?
+Is there a project template system? Can templates be selected on project creation?
+Is there an account/client field? What accounts currently exist?
+Is there a project type field?
+How is the project budget tracked? Is it a single static field or a table of line items?
+Is there a staffing/allocation tab on the project?
+How are project documents attached?
+
+0.2 Task Module
+
+What fields exist on a task? (status, hours, assignee, dates, etc.)
+What are the current task status options?
+How are hours labeled? (Est. Hours, Planned Hours, etc.)
+Is there a Planned / Estimate / Actual / ETC / EAC hour model?
+How does task predecessor/successor linking work in the UI vs. Gantt?
+Can tasks be nested (parent/child)? How many levels deep?
+Can tasks be drag-and-dropped or reordered?
+Is there an undo/save mechanism?
+
+0.3 Project Timeline / Gantt View
+
+What information is currently displayed inside each task's color bar?
+Are task bars clickable?
+What view opens when a task is clicked?
+Does the task bar or task detail show the assigned resource or the team?
+Is there a way to add a note to a task from the timeline view?
+
+0.4 Rate Cards
+
+Where can rate cards be created? (PMO Settings vs. Project level)
+Does the Rate Card link under PMO Settings work or throw an error?
+Is cost (internal cost) separated from sell rate at the resource level?
+
+0.5 Contract Manager
+
+Does the "New Contract" button function?
+
+0.6 Change Orders
+
+Is Project Name a dropdown of existing projects when creating a change order?
+Can a document be linked to a change order?
+
+0.7 Financials
+
+Does the project search in the Financials section work?
+
+0.8 PMO Settings
+
+Does the Timecodes section exist and is it functional?
+Does the Project Template section support multi-level nested tasks?
+Does the expand/collapse caret on project templates work?
+
+Output a clear summary table of: WORKS / BROKEN / MISSING for each item above before proceeding.

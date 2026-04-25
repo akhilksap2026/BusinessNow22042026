@@ -151,7 +151,7 @@ export default function Projects() {
     const header = ["Name", "Account", "Owner", "Status", "Health", "Type", "Tracked Hrs", "Allocated Hrs"];
     const rows = selected.map(p => [
       p.name,
-      (p as any).companyName ?? `Account #${p.accountId}`,
+      p.companyName ?? `Account #${p.accountId}`,
       users?.find(u => u.id === p.ownerId)?.name ?? "",
       p.status, p.health,
       (p as any).internalExternal ?? "",
@@ -311,7 +311,7 @@ export default function Projects() {
                     const trackedHrs = Math.round((project.trackedHours ?? 0) * 10) / 10;
                     const allocatedHrs = Math.round((project.allocatedHours ?? 0) * 10) / 10;
                     const owner = users?.find(u => u.id === project.ownerId)?.name ?? "—";
-                    const account = (project as any).companyName ?? `Account #${project.accountId}`;
+                    const account = project.companyName ?? `Account #${project.accountId}`;
                     return (
                       <li
                         key={project.id}
@@ -362,7 +362,7 @@ export default function Projects() {
                           {account} · {owner}
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                          <InternalExternalBadge value={(project as any).internalExternal} />
+                          <InternalExternalBadge value={project.internalExternal} />
                           <StatusBadge status={project.status} />
                           <StatusBadge status={project.health} />
                         </div>
@@ -427,10 +427,10 @@ export default function Projects() {
                           </Link>
                         </TableCell>
                         <TableCell className="text-muted-foreground whitespace-nowrap">
-                          {(project as any).companyName ?? `Account #${project.accountId}`}
+                          {project.companyName ?? `Account #${project.accountId}`}
                         </TableCell>
                         <TableCell className="text-muted-foreground whitespace-nowrap">{users?.find(u => u.id === project.ownerId)?.name ?? "—"}</TableCell>
-                        <TableCell><InternalExternalBadge value={(project as any).internalExternal} /></TableCell>
+                        <TableCell><InternalExternalBadge value={project.internalExternal} /></TableCell>
                         <TableCell><StatusBadge status={project.status} /></TableCell>
                         <TableCell><StatusBadge status={project.health} /></TableCell>
                         <TableCell className="text-right tabular-nums">{trackedHrs.toLocaleString()}h</TableCell>

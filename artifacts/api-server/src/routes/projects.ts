@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
-import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, tasksTable, taskDependenciesTable } from "@workspace/db";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
@@ -37,14 +37,16 @@ router.get("/projects", async (req, res): Promise<void> => {
   if (qp.success && qp.data.status) conditions.push(eq(projectsTable.status, qp.data.status));
   if (qp.success && qp.data.accountId) conditions.push(eq(projectsTable.accountId, qp.data.accountId));
   const rows = await db
-    .select({ project: projectsTable, accountName: accountsTable.name, accountDomain: accountsTable.domain })
+    .select({ project: projectsTable, accountName: accountsTable.name, accountDomain: accountsTable.domain, ownerName: usersTable.name })
     .from(projectsTable)
     .leftJoin(accountsTable, eq(projectsTable.accountId, accountsTable.id))
+    .leftJoin(usersTable, eq(projectsTable.ownerId, usersTable.id))
     .where(and(...conditions));
-  res.json(ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain }) => ({
+  res.json(ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain, ownerName }) => ({
     ...mapProject(project),
     companyName: accountName ?? undefined,
     companyDomain: accountDomain ?? undefined,
+    ownerName: ownerName ?? undefined,
   }))));
 });
 
