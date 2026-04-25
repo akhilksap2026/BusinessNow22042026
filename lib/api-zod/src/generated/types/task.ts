@@ -40,5 +40,7 @@ export interface Task {
   appliedTemplateId?: number | null;
   /** @nullable */
   parentTaskId?: number | null;
+  /** Sort order within siblings (lower = earlier). Defaults to 0. */
+  sortOrder: number;
   createdAt: string;
 }

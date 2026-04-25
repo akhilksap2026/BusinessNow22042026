@@ -165,6 +165,8 @@ export interface Task {
   appliedTemplateId?: number | null;
   /** @nullable */
   parentTaskId?: number | null;
+  /** Sort order within siblings (lower = earlier). Defaults to 0. */
+  sortOrder: number;
   createdAt: string;
 }
 
@@ -184,6 +186,7 @@ export interface CreateTaskBody {
   estimateHours?: number;
   billable: boolean;
   isMilestone?: boolean;
+  sortOrder?: number;
 }
 
 export interface UpdateTaskBody {
@@ -201,6 +204,22 @@ export interface UpdateTaskBody {
   estimateHours?: number;
   billable?: boolean;
   isMilestone?: boolean;
+  sortOrder?: number;
+}
+
+export type ReorderTasksBodyUpdatesItem = {
+  id: number;
+  sortOrder: number;
+  /** @nullable */
+  parentTaskId: number | null;
+};
+
+export interface ReorderTasksBody {
+  updates: ReorderTasksBodyUpdatesItem[];
+}
+
+export interface ReorderTasksResponse {
+  updated: number;
 }
 
 export interface User {

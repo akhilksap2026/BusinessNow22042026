@@ -21,4 +21,5 @@ export interface UpdateTaskBody {
   estimateHours?: number;
   billable?: boolean;
   isMilestone?: boolean;
+  sortOrder?: number;
 }

@@ -119,6 +119,8 @@ import type {
   Prospect,
   RateCard,
   RejectTimesheetBody,
+  ReorderTasksBody,
+  ReorderTasksResponse,
   ResourceRequest,
   RevenueByPeriodReport,
   RevenueEntry,
@@ -1703,6 +1705,92 @@ export const useCreateTask = <
   TContext
 > => {
   return useMutation(getCreateTaskMutationOptions(options));
+};
+
+/**
+ * @summary Bulk reorder tasks (sortOrder + parentTaskId) in a single transaction
+ */
+export const getReorderTasksUrl = () => {
+  return `/api/tasks/reorder`;
+};
+
+export const reorderTasks = async (
+  reorderTasksBody: ReorderTasksBody,
+  options?: RequestInit,
+): Promise<ReorderTasksResponse> => {
+  return customFetch<ReorderTasksResponse>(getReorderTasksUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reorderTasksBody),
+  });
+};
+
+export const getReorderTasksMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderTasks>>,
+    TError,
+    { data: BodyType<ReorderTasksBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderTasks>>,
+  TError,
+  { data: BodyType<ReorderTasksBody> },
+  TContext
+> => {
+  const mutationKey = ["reorderTasks"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderTasks>>,
+    { data: BodyType<ReorderTasksBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reorderTasks(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReorderTasksMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderTasks>>
+>;
+export type ReorderTasksMutationBody = BodyType<ReorderTasksBody>;
+export type ReorderTasksMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Bulk reorder tasks (sortOrder + parentTaskId) in a single transaction
+ */
+export const useReorderTasks = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderTasks>>,
+    TError,
+    { data: BodyType<ReorderTasksBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reorderTasks>>,
+  TError,
+  { data: BodyType<ReorderTasksBody> },
+  TContext
+> => {
+  return useMutation(getReorderTasksMutationOptions(options));
 };
 
 /**

@@ -375,6 +375,9 @@ export const ListTasksResponseItem = zod.object({
     .nullish()
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
+  sortOrder: zod
+    .number()
+    .describe("Sort order within siblings (lower = earlier). Defaults to 0."),
   createdAt: zod.string(),
 });
 export const ListTasksResponse = zod.array(ListTasksResponseItem);
@@ -397,6 +400,24 @@ export const CreateTaskBody = zod.object({
   estimateHours: zod.number().optional(),
   billable: zod.boolean(),
   isMilestone: zod.boolean().optional(),
+  sortOrder: zod.number().optional(),
+});
+
+/**
+ * @summary Bulk reorder tasks (sortOrder + parentTaskId) in a single transaction
+ */
+export const ReorderTasksBody = zod.object({
+  updates: zod.array(
+    zod.object({
+      id: zod.number(),
+      sortOrder: zod.number(),
+      parentTaskId: zod.number().nullable(),
+    }),
+  ),
+});
+
+export const ReorderTasksResponse = zod.object({
+  updated: zod.number(),
 });
 
 /**
@@ -439,6 +460,9 @@ export const GetTaskResponse = zod.object({
     .nullish()
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
+  sortOrder: zod
+    .number()
+    .describe("Sort order within siblings (lower = earlier). Defaults to 0."),
   createdAt: zod.string(),
 });
 
@@ -463,6 +487,7 @@ export const UpdateTaskBody = zod.object({
   estimateHours: zod.number().optional(),
   billable: zod.boolean().optional(),
   isMilestone: zod.boolean().optional(),
+  sortOrder: zod.number().optional(),
 });
 
 export const UpdateTaskResponse = zod.object({
@@ -498,6 +523,9 @@ export const UpdateTaskResponse = zod.object({
     .nullish()
     .describe("ID of the template that created this task"),
   parentTaskId: zod.number().nullish(),
+  sortOrder: zod
+    .number()
+    .describe("Sort order within siblings (lower = earlier). Defaults to 0."),
   createdAt: zod.string(),
 });
 

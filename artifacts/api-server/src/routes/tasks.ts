@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, asc } from "drizzle-orm";
 import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, csatSurveysTable, timeEntriesTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import { logAudit } from "../lib/audit";
@@ -132,8 +132,8 @@ router.get("/tasks", async (req, res): Promise<void> => {
   if (qp.success && qp.data.projectId) conditions.push(eq(tasksTable.projectId, qp.data.projectId));
   if (qp.success && qp.data.status) conditions.push(eq(tasksTable.status, qp.data.status));
   const rows = conditions.length
-    ? await db.select().from(tasksTable).where(and(...conditions))
-    : await db.select().from(tasksTable);
+    ? await db.select().from(tasksTable).where(and(...conditions)).orderBy(asc(tasksTable.sortOrder), asc(tasksTable.id))
+    : await db.select().from(tasksTable).orderBy(asc(tasksTable.sortOrder), asc(tasksTable.id));
   const actualMap = await getActualHoursMap(rows.map(r => r.id));
   const mapped = rows.map(t => {
     const task = mapTask(t, actualMap);
@@ -183,6 +183,108 @@ router.post("/tasks", requirePM, async (req, res): Promise<void> => {
   }
 
   res.status(201).json(GetTaskResponse.parse(mapTask(row)));
+});
+
+// Bulk reorder: update sortOrder + parentTaskId for many tasks atomically.
+// Used by the drag-and-drop reorder UI.
+router.patch("/tasks/reorder", requirePM, async (req, res): Promise<void> => {
+  const updates = (req.body?.updates ?? []) as Array<{ id: number; sortOrder: number; parentTaskId: number | null }>;
+  if (!Array.isArray(updates) || updates.length === 0) {
+    res.status(400).json({ error: "updates must be a non-empty array" });
+    return;
+  }
+  // Type-validate every entry up-front so an invalid payload aborts before any write.
+  for (const u of updates) {
+    if (typeof u?.id !== "number" || typeof u?.sortOrder !== "number") {
+      res.status(400).json({ error: "each update needs numeric id and sortOrder" });
+      return;
+    }
+    if (u.parentTaskId !== null && typeof u.parentTaskId !== "number") {
+      res.status(400).json({ error: "parentTaskId must be a number or null" });
+      return;
+    }
+  }
+
+  // ── Structural validation (Phase 4 hardening) ─────────────────────────────
+  // Fetch every task referenced by id OR parentTaskId so we can verify
+  // existence, single-project scope, and absence of cycles before mutating.
+  const ids = updates.map((u) => u.id);
+  const parentIds = updates
+    .map((u) => u.parentTaskId)
+    .filter((p): p is number => p != null);
+  const referencedIds = Array.from(new Set([...ids, ...parentIds]));
+
+  const referenced = await db
+    .select()
+    .from(tasksTable)
+    .where(inArray(tasksTable.id, referencedIds));
+  const refMap = new Map(referenced.map((t) => [t.id, t]));
+
+  for (const id of ids) {
+    if (!refMap.has(id)) {
+      res.status(400).json({ error: `Task ${id} not found` });
+      return;
+    }
+  }
+  for (const pid of parentIds) {
+    if (!refMap.has(pid)) {
+      res.status(400).json({ error: `Parent task ${pid} not found` });
+      return;
+    }
+  }
+
+  // All updated tasks (and any new parent) must live in exactly one project.
+  const projectIdSet = new Set(referenced.map((t) => t.projectId));
+  if (projectIdSet.size !== 1) {
+    res.status(400).json({ error: "All updated tasks and parents must belong to the same project" });
+    return;
+  }
+  const projectId = [...projectIdSet][0]!;
+
+  // Pull the full project task graph so cycle detection can walk through
+  // ancestors that aren't in the update set.
+  const projectTasks = await db
+    .select({ id: tasksTable.id, parentTaskId: tasksTable.parentTaskId })
+    .from(tasksTable)
+    .where(eq(tasksTable.projectId, projectId));
+  const newParentMap = new Map<number, number | null>(
+    projectTasks.map((t) => [t.id, t.parentTaskId ?? null])
+  );
+  for (const u of updates) newParentMap.set(u.id, u.parentTaskId);
+
+  // Cycle prevention: walk the would-be ancestor chain of every updated task.
+  for (const u of updates) {
+    let cur: number | null = u.parentTaskId;
+    const seen = new Set<number>();
+    while (cur != null) {
+      if (cur === u.id) {
+        res.status(400).json({ error: `Cycle detected: task ${u.id} cannot be its own ancestor` });
+        return;
+      }
+      if (seen.has(cur)) break; // unrelated pre-existing cycle, abort the walk
+      seen.add(cur);
+      cur = newParentMap.get(cur) ?? null;
+    }
+  }
+
+  const updated = await db.transaction(async (tx) => {
+    let count = 0;
+    for (const u of updates) {
+      const result = await tx.update(tasksTable)
+        .set({ sortOrder: u.sortOrder, parentTaskId: u.parentTaskId, updatedAt: new Date() })
+        .where(eq(tasksTable.id, u.id))
+        .returning({ id: tasksTable.id });
+      count += result.length;
+    }
+    return count;
+  });
+  await logAudit({
+    entityType: "task",
+    entityId: 0,
+    action: "reordered",
+    description: `Bulk reorder applied to ${updated} task(s) in project ${projectId}`,
+  });
+  res.json({ updated });
 });
 
 router.get("/tasks/:id", async (req, res): Promise<void> => {

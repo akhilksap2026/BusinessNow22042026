@@ -27,6 +27,7 @@ export const tasksTable = pgTable("tasks", {
   csatEnabled: boolean("csat_enabled").notNull().default(true),
   privateNotes: text("private_notes"),
   isPhase: boolean("is_phase").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

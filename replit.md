@@ -648,3 +648,25 @@ Fixes applied after architect code review:
 - **Re-approval idempotency**: Added a unique constraint on `budget_entries.change_order_id` plus an explicit existence check at the top of the approval branch — if a budget entry already exists for this CO, all one-time side-effects (budget update, entry insert, task creation, resource request) are skipped. Crucially, the CO budget entry is now inserted **unconditionally** (even for zero amount/zero hours COs) so the row always exists to serve as the idempotency sentinel. Verified by both non-zero (`Approve → Submitted → Approve` leaves budget unchanged) and zero-value (`Approve → Submitted → Approve` produces exactly 1 budget entry, 1 task, 0 duplicate resource requests).
 - **Manual budget-entry semantics**: `POST /projects/:id/budget-entries` now rejects any `type !== 'Adjustment'` with HTTP 400 (SOW seeded via backfill, CO inserted only by the changeOrders.ts transaction). The Add Budget Entry dialog locks the type field to "Adjustment" with helper text.
 - **Frontend cache invalidation after CO mutations**: `handleSaveCR` and `handleUpdateCOStatus` in `project-detail.tsx` invalidate `getListProjectBudgetEntriesQueryKey`, `getGetProjectQueryKey`, and `getGetProjectSummaryQueryKey` so the Budget History card, Revised Budget header, and project summary refresh immediately when a CR is approved/edited. `handleUpdateCOStatus` also sends `approvedDate` when status flips to `Approved` so the budget entry's `entryDate` is correct.
+
+### 2026-04-25 — Phase 4: Drag-and-Drop Task Reordering + Move-to Dialog
+
+**Database (lib/db/src/schema/tasks.ts)**
+- Added `sortOrder: integer("sort_order").notNull().default(0)` so siblings can have a deterministic ordering independent of insertion order. Pushed via `cd lib/db && pnpm run push --force`.
+
+**Backend (artifacts/api-server/src/routes/tasks.ts)**
+- `GET /tasks` now `.orderBy(asc(sortOrder), asc(id))` so the API returns tasks in user-controlled order.
+- New `PATCH /tasks/reorder` (requirePM): accepts `{ updates:[{id,sortOrder,parentTaskId}] }`, wraps every per-row UPDATE in a single `db.transaction(...)`, audit-logs the bulk operation, returns `{ updated: N }`. Returns 400 for empty/invalid payloads, 403 for non-PM roles. Smoke-tested for all four cases (200/200/400/403).
+
+**API spec / codegen (lib/api-spec/openapi.yaml)**
+- Added `sortOrder` to `Task` (required), `CreateTaskBody`, and `UpdateTaskBody`.
+- New `ReorderTasksBody` + `ReorderTasksResponse` schemas, new `/tasks/reorder` PATCH path with `reorderTasks` operationId.
+- Regenerated → `useReorderTasks` hook now available (used via direct `fetch` in the front-end so we can pair it with `authHeaders`).
+
+**Frontend (artifacts/businessnow/src/components/project-phases.tsx)**
+- Installed `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` in the businessnow workspace.
+- Each task row now has a leading ⠿ drag handle (lucide `GripVertical`) wired to `useSortable`. The visible flattened tree (respecting expand/collapse) is the `SortableContext` items list. A `DragOverlay` shows the row name as the drag preview.
+- **Optimistic pending state**: `pendingChanges: Map<id,{sortOrder,parentTaskId}>` overlays the server task list via `applyPending()` so the UI updates immediately without waiting for the network. `changeHistory: PendingMap[]` snapshots each operation for undo.
+- **Drop logic** (`computeReorderUpdates`): default new parent is the parent of the row above the drop position; if `delta.x ≥ 24` the dropped row becomes a child of the row above; if `delta.x ≤ -24` and the row above has a parent, the dropped row promotes to its grandparent. Cycle protection rejects any move that would make a task a descendant of itself. Both the new parent's sibling group and the old parent's sibling group are renumbered to sequential `sortOrder`s.
+- **Sticky unsaved-changes bar**: amber pill showing `● N unsaved changes · K steps can be undone (⌘Z)` with `[Undo] [Discard] [Save]`. `Save` calls `PATCH /tasks/reorder` then invalidates `getListTasksQueryKey({projectId})`. `Discard` clears pending state and re-fetches. **Cmd/Ctrl+Z** (when not focused on input/textarea) pops the last snapshot.
+- **"Move to…" context menu** (per-row dropdown): opens a Dialog with a `Command` palette (cmdk) for searchable parent picking. Per Step 5: query is invalidated before the dialog opens; "Top Level (no parent)" is the first option; the moving task and all its descendants are excluded. Per Step 6: remaining options are grouped under each ancestor `isPhase` task (or "Other"). Confirming queues a pending change that places the task at the end of the new parent group; the user then commits via the unsaved bar.
