@@ -447,12 +447,22 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     } catch { toast({ title: "Error withdrawing timesheet", variant: "destructive" }); }
   }
 
+  function serverErrorMessage(err: unknown): string | undefined {
+    const data = (err as any)?.data;
+    if (data && typeof data === "object" && typeof data.error === "string") return data.error;
+    if (typeof data === "string" && data.trim()) return data;
+    if (err instanceof Error && err.message) return err.message;
+    return undefined;
+  }
+
   const onApprove = async (id: number) => {
     try {
       await approveTimesheet.mutateAsync({ id, data: {} });
       queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
       toast({ title: "Timesheet approved" });
-    } catch { toast({ title: "Error approving", variant: "destructive" }); }
+    } catch (err) {
+      toast({ title: "Error approving", description: serverErrorMessage(err), variant: "destructive" });
+    }
   };
 
   const onReject = async () => {
@@ -462,7 +472,9 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
       queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
       setRejectTimesheetId(null); setRejectNote("");
       toast({ title: "Timesheet rejected" });
-    } catch { toast({ title: "Error rejecting", variant: "destructive" }); }
+    } catch (err) {
+      toast({ title: "Error rejecting", description: serverErrorMessage(err), variant: "destructive" });
+    }
   };
 
   const statusColors: Record<string, string> = {
@@ -737,18 +749,27 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {submittedTimesheets.map(ts => (
-                  <TableRow key={ts.id}>
-                    <TableCell className="font-medium">{users?.find(u => u.id === ts.userId)?.name}</TableCell>
-                    <TableCell>{ts.weekStart}</TableCell>
-                    <TableCell>{ts.totalHours}h <span className="text-muted-foreground text-xs">({ts.billableHours}h billable)</span></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{ts.submittedAt ? new Date(ts.submittedAt).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => setRejectTimesheetId(ts.id)}>Reject</Button>
-                      <Button size="sm" onClick={() => onApprove(ts.id)} disabled={approveTimesheet.isPending}>Approve</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {submittedTimesheets.map(ts => {
+                  const isOwn = ts.userId === userId;
+                  return (
+                    <TableRow key={ts.id}>
+                      <TableCell className="font-medium">{users?.find(u => u.id === ts.userId)?.name}</TableCell>
+                      <TableCell>{ts.weekStart}</TableCell>
+                      <TableCell>{ts.totalHours}h <span className="text-muted-foreground text-xs">({ts.billableHours}h billable)</span></TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{ts.submittedAt ? new Date(ts.submittedAt).toLocaleDateString() : "—"}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        {isOwn ? (
+                          <span className="text-xs text-muted-foreground italic" title="You can't approve or reject your own timesheet">Awaiting another approver</span>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => setRejectTimesheetId(ts.id)}>Reject</Button>
+                            <Button size="sm" onClick={() => onApprove(ts.id)} disabled={approveTimesheet.isPending}>Approve</Button>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
