@@ -161,6 +161,15 @@ async function main() {
     .insert(schema.usersTable)
     .values([
       {
+        name: "Admin User",
+        initials: "AU",
+        role: "account_admin",
+        email: "admin@ksap.tech",
+        capacity: 40,
+        department: "Management",
+        costRate: "0",
+      },
+      {
         name: "Marcus Webb",
         initials: "MW",
         role: "Project Manager",
