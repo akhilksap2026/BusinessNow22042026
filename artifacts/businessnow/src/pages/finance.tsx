@@ -8,7 +8,7 @@ import {
   useListRevenueEntries, useCreateRevenueEntry, useDeleteRevenueEntry, useGetRevenueByPeriodReport, getListRevenueEntriesQueryKey,
   useUpdateInvoice,
 } from "@workspace/api-client-react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus } from "lucide-react";
+import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus, FileText, ExternalLink } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,20 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
+
+type ContractRow = {
+  id: number;
+  projectId: number;
+  name: string;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  value: number | null;
+  documentUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 const createInvoiceSchema = z.object({
   projectId: z.coerce.number().min(1, "Project is required"),
@@ -51,7 +65,9 @@ export default function Finance() {
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isContractOpen, setIsContractOpen] = useState(false);
-  const [contractForm, setContractForm] = useState({ name: "", projectId: "", startDate: "", endDate: "", value: "", notes: "" });
+  const [editingContract, setEditingContract] = useState<ContractRow | null>(null);
+  const [deleteContractId, setDeleteContractId] = useState<number | null>(null);
+  const [contractForm, setContractForm] = useState({ name: "", projectId: "", status: "Draft", startDate: "", endDate: "", value: "", documentUrl: "", notes: "" });
   const [isSavingContract, setIsSavingContract] = useState(false);
   const [editInvoice, setEditInvoice] = useState<any>(null);
   const [invoiceEditForm, setInvoiceEditForm] = useState({ description: "", amount: "", dueDate: "", status: "" });
@@ -231,34 +247,95 @@ export default function Finance() {
     }
   }
 
+  const contractsQueryKey = ["/api/contracts"] as const;
+  const { data: contracts, isLoading: isLoadingContracts } = useQuery<ContractRow[]>({
+    queryKey: contractsQueryKey,
+    queryFn: async () => {
+      const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+      const r = await fetch(`${BASE}/api/contracts`, { headers: authHeaders() });
+      if (!r.ok) throw new Error("Failed to load contracts");
+      return r.json();
+    },
+  });
+
+  function resetContractForm() {
+    setContractForm({ name: "", projectId: "", status: "Draft", startDate: "", endDate: "", value: "", documentUrl: "", notes: "" });
+  }
+
   async function handleCreateContract() {
     if (!contractForm.name || !contractForm.projectId) return;
     setIsSavingContract(true);
     try {
       const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
-      const res = await fetch(`${BASE}/api/projects/${contractForm.projectId}/documents`, {
-        method: "POST",
+      const isEdit = editingContract !== null;
+      const url = isEdit ? `${BASE}/api/contracts/${editingContract!.id}` : `${BASE}/api/contracts`;
+      const body: Record<string, unknown> = {
+        projectId: parseInt(contractForm.projectId, 10),
+        name: contractForm.name,
+        status: contractForm.status || "Draft",
+        startDate: contractForm.startDate || null,
+        endDate: contractForm.endDate || null,
+        value: contractForm.value === "" ? null : parseFloat(contractForm.value),
+        documentUrl: contractForm.documentUrl || null,
+        notes: contractForm.notes || null,
+      };
+      const res = await fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          name: contractForm.name,
-          documentType: "Contract",
-          spaceType: "external",
-          content: [
-            contractForm.startDate ? `Start Date: ${contractForm.startDate}` : "",
-            contractForm.endDate ? `End Date: ${contractForm.endDate}` : "",
-            contractForm.value ? `Contract Value: $${contractForm.value}` : "",
-            contractForm.notes,
-          ].filter(Boolean).join("\n"),
-        }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("Failed to save contract");
-      toast({ title: "Contract saved" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to save contract");
+      }
+      queryClient.invalidateQueries({ queryKey: contractsQueryKey });
+      toast({ title: isEdit ? "Contract updated" : "Contract saved" });
       setIsContractOpen(false);
-      setContractForm({ name: "", projectId: "", startDate: "", endDate: "", value: "", notes: "" });
-    } catch {
-      toast({ title: "Failed to save contract", variant: "destructive" });
+      setEditingContract(null);
+      resetContractForm();
+    } catch (err) {
+      toast({
+        title: "Failed to save contract",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
     } finally {
       setIsSavingContract(false);
+    }
+  }
+
+  function openEditContract(c: ContractRow) {
+    setEditingContract(c);
+    setContractForm({
+      name: c.name,
+      projectId: c.projectId.toString(),
+      status: c.status,
+      startDate: c.startDate ?? "",
+      endDate: c.endDate ?? "",
+      value: c.value === null ? "" : String(c.value),
+      documentUrl: c.documentUrl ?? "",
+      notes: c.notes ?? "",
+    });
+    setIsContractOpen(true);
+  }
+
+  async function handleDeleteContract(id: number) {
+    try {
+      const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+      const r = await fetch(`${BASE}/api/contracts/${id}`, { method: "DELETE", headers: authHeaders() });
+      if (!r.ok && r.status !== 204) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to delete contract");
+      }
+      queryClient.invalidateQueries({ queryKey: contractsQueryKey });
+      toast({ title: "Contract deleted" });
+      setDeleteContractId(null);
+    } catch (err) {
+      toast({
+        title: "Failed to delete contract",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
     }
   }
 
@@ -331,6 +408,9 @@ export default function Finance() {
             </TabsTrigger>
             <TabsTrigger value="revenue" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" /> Revenue Recognition
+            </TabsTrigger>
+            <TabsTrigger value="contracts" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" /> Contracts
             </TabsTrigger>
           </TabsList>
 
@@ -607,6 +687,114 @@ export default function Finance() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="contracts" className="m-0">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Contracts</CardTitle>
+                  <CardDescription>Master agreements, SOWs, and other contract documents tied to projects.</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => { setEditingContract(null); resetContractForm(); setIsContractOpen(true); }}>
+                  <FilePlus className="h-4 w-4 mr-2" /> New Contract
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const search = searchQuery.toLowerCase();
+                  const allContracts = contracts ?? [];
+                  const filtered = allContracts.filter(c => {
+                    if (!search) return true;
+                    const pName = projects?.find(p => p.id === c.projectId)?.name?.toLowerCase() ?? "";
+                    return c.name.toLowerCase().includes(search) ||
+                      c.status.toLowerCase().includes(search) ||
+                      pName.includes(search) ||
+                      (c.notes ?? "").toLowerCase().includes(search);
+                  });
+                  if (isLoadingContracts) {
+                    return <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>;
+                  }
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-10 text-muted-foreground text-sm">
+                        {allContracts.length === 0
+                          ? "No contracts yet. Click \"New Contract\" to create one."
+                          : `No contracts match "${searchQuery}".`}
+                      </div>
+                    );
+                  }
+                  return (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Project</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Value</TableHead>
+                          <TableHead>Start</TableHead>
+                          <TableHead>End</TableHead>
+                          <TableHead>Document</TableHead>
+                          <TableHead className="w-[60px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filtered.map(c => {
+                          const project = projects?.find(p => p.id === c.projectId);
+                          return (
+                            <TableRow key={c.id}>
+                              <TableCell className="font-medium">{c.name}</TableCell>
+                              <TableCell>{project?.name ?? `#${c.projectId}`}</TableCell>
+                              <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {c.value === null ? "—" : `$${c.value.toLocaleString()}`}
+                              </TableCell>
+                              <TableCell>{c.startDate ?? "—"}</TableCell>
+                              <TableCell>{c.endDate ?? "—"}</TableCell>
+                              <TableCell>
+                                {c.documentUrl ? (
+                                  <a
+                                    href={c.documentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                                  >
+                                    Open <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openEditContract(c)}>
+                                      <Pencil className="h-4 w-4 mr-2" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => setDeleteContractId(c.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         <InvoiceDetail invoice={selectedInvoice} open={!!selectedInvoice} onOpenChange={(o) => !o && setSelectedInvoice(null)} />
@@ -788,11 +976,13 @@ export default function Finance() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
+        <Dialog open={isContractOpen} onOpenChange={(o) => { if (!o) { setEditingContract(null); resetContractForm(); } setIsContractOpen(o); }}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>New Contract</DialogTitle>
-              <DialogDescription>Save a contract document against a project.</DialogDescription>
+              <DialogTitle>{editingContract ? "Edit Contract" : "New Contract"}</DialogTitle>
+              <DialogDescription>
+                {editingContract ? "Update the contract details." : "Track a contract tied to a project."}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-1">
               <div className="space-y-1.5">
@@ -804,14 +994,29 @@ export default function Finance() {
                   onChange={e => setContractForm(f => ({ ...f, name: e.target.value }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label>Project *</Label>
-                <Select value={contractForm.projectId} onValueChange={v => setContractForm(f => ({ ...f, projectId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
-                  <SelectContent>
-                    {projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Project *</Label>
+                  <Select value={contractForm.projectId} onValueChange={v => setContractForm(f => ({ ...f, projectId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
+                    <SelectContent>
+                      {projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Status</Label>
+                  <Select value={contractForm.status} onValueChange={v => setContractForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Draft">Draft</SelectItem>
+                      <SelectItem value="Pending Signature">Pending Signature</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Expired">Expired</SelectItem>
+                      <SelectItem value="Terminated">Terminated</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -823,16 +1028,28 @@ export default function Finance() {
                   <input type="date" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={contractForm.endDate} onChange={e => setContractForm(f => ({ ...f, endDate: e.target.value }))} />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Contract Value ($)</Label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="0.00"
-                  value={contractForm.value}
-                  onChange={e => setContractForm(f => ({ ...f, value: e.target.value }))}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Contract Value ($)</Label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="0.00"
+                    value={contractForm.value}
+                    onChange={e => setContractForm(f => ({ ...f, value: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Document URL</Label>
+                  <input
+                    type="url"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="https://…"
+                    value={contractForm.documentUrl}
+                    onChange={e => setContractForm(f => ({ ...f, documentUrl: e.target.value }))}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label>Notes</Label>
@@ -845,12 +1062,12 @@ export default function Finance() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsContractOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setEditingContract(null); resetContractForm(); setIsContractOpen(false); }}>Cancel</Button>
               <Button
                 onClick={handleCreateContract}
                 disabled={!contractForm.name || !contractForm.projectId || isSavingContract}
               >
-                {isSavingContract ? "Saving…" : "Save Contract"}
+                {isSavingContract ? "Saving…" : (editingContract ? "Update Contract" : "Save Contract")}
               </Button>
             </DialogFooter>
           </DialogContent>

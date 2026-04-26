@@ -37,6 +37,7 @@ import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
 import { projectUpdatesRouter } from "./projectUpdates";
 import projectGroupsRouter from "./projectGroups";
+import contractsRouter from "./contracts";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
 
@@ -89,5 +90,6 @@ router.use(baselinesRouter);
 router.use(csatSurveysRouter);
 router.use(projectUpdatesRouter);
 router.use(projectGroupsRouter);
+router.use(contractsRouter);
 
 export default router;
