@@ -203,8 +203,31 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const submittedTimesheets = useListTimesheets({ status: "Submitted" }).data;
   const approvedTimesheets = useListTimesheets({ status: "Approved" }).data;
 
-  // Pending-prior-week guard intentionally removed: users may log time on any
-  // date regardless of whether earlier weeks are unsubmitted or awaiting approval.
+  // ─── Pending-prior-week guard ───────────────────────────────────────────────
+  // Rule: a user cannot log time on a date if any earlier week has a timesheet
+  // in a "pending" status with hours > 0. The earlier week must be cleared
+  // (submitted + approved) before later dates can receive new entries.
+  // Statuses considered pending: Draft (not yet submitted), Submitted (awaiting
+  // approval), Rejected (needs rework). Approved is the only terminal/cleared state.
+  const PENDING_STATUSES = new Set(["Draft", "Submitted", "Rejected"]);
+  function normalizeWeekStart(s: string): string {
+    // Accept either yyyy-MM-dd or full ISO; collapse to yyyy-MM-dd for safe lex compare.
+    try { return format(parseISO(s), "yyyy-MM-dd"); } catch { return s.slice(0, 10); }
+  }
+  function getBlockingPriorWeek(targetDate: string): { weekStart: string; status: string } | null {
+    const pending = (allUserTimesheets ?? []).filter(
+      (ts: any) => PENDING_STATUSES.has(ts.status) && (ts.totalHours ?? 0) > 0
+    );
+    if (!pending.length) return null;
+    const targetWeekStart = format(startOfWeek(parseISO(targetDate), { weekStartsOn: wsd }), "yyyy-MM-dd");
+    const blockers = pending
+      .map((ts: any) => ({ ...ts, weekStart: normalizeWeekStart(ts.weekStart) }))
+      .filter((ts: any) => ts.weekStart < targetWeekStart);
+    if (!blockers.length) return null;
+    blockers.sort((a: any, b: any) => a.weekStart.localeCompare(b.weekStart));
+    return { weekStart: blockers[0].weekStart, status: blockers[0].status };
+  }
+  const currentWeekBlocker = getBlockingPriorWeek(weekStartStr);
 
   const deleteRowMutation = useMutation({
     mutationFn: async (rowId: number) => { await fetch(`/api/timesheet-rows/${rowId}`, { method: "DELETE", headers: authHeaders() }); },
@@ -531,6 +554,18 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     const existingIds: number[] = row.entryIds[dayStr] || [];
     setEditingCell(null);
     if (newHours === currentHours) return;
+    // Pending-prior-week guard — only when adding NEW hours (not editing/removing existing)
+    if (existingIds.length === 0 && newHours > 0) {
+      const blocker = getBlockingPriorWeek(dayStr);
+      if (blocker) {
+        toast({
+          title: "Earlier timesheet pending",
+          description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time for later dates.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     try {
       if (existingIds.length === 1) {
         if (newHours <= 0) {
@@ -601,6 +636,19 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     const ids: number[] = row.entryIds[dayStr] || [];
     if (ids.length > 1) return;
     const hours = row.days[dayStr] || 0;
+    // Block opening editor for empty cells when an earlier week is pending.
+    // Allow edits to existing entries (so users can correct mistakes) and zero-outs.
+    if (ids.length === 0 && hours === 0) {
+      const blocker = getBlockingPriorWeek(dayStr);
+      if (blocker) {
+        toast({
+          title: "Earlier timesheet pending",
+          description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     setEditingCell({ rowKey: row.key, dayStr });
     setEditValue(hours > 0 ? String(hours) : "");
     setTimeout(() => editInputRef.current?.focus(), 0);
@@ -649,6 +697,15 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   }
 
   async function onLogTime(values: z.infer<typeof logTimeSchema>) {
+    const blocker = getBlockingPriorWeek(values.date);
+    if (blocker) {
+      toast({
+        title: "Earlier timesheet pending",
+        description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time for ${values.date}.`,
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const payload: any = {
         userId,
@@ -838,6 +895,22 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
           <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white shrink-0" onClick={onSubmitTimesheet} disabled={submitTimesheet.isPending || (minHours > 0 && hoursShort > 0)}>
             Submit now
           </Button>
+        </div>
+      )}
+
+      {/* Pending-prior-week banner */}
+      {currentWeekBlocker && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm">
+          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <div className="font-medium text-amber-900 dark:text-amber-200">
+              Earlier timesheet is pending — new entries blocked
+            </div>
+            <div className="text-amber-800 dark:text-amber-300/90 mt-0.5">
+              The week of <span className="font-mono">{currentWeekBlocker.weekStart}</span> is currently <span className="font-medium">{currentWeekBlocker.status}</span>.
+              Submit and have it approved before logging time on later dates.
+            </div>
+          </div>
         </div>
       )}
 
