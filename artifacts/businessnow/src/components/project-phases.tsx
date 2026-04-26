@@ -47,7 +47,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
+import { useUndoableMutation } from "@/hooks/use-undoable-mutation";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Plus,
@@ -410,6 +410,7 @@ function SortableTaskRow(props: SortableTaskRowProps) {
 export function ProjectPhases({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const undoable = useUndoableMutation();
 
   const { data: rawTasks, isLoading } = useListTasks(
     { projectId },
@@ -769,58 +770,59 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
     const current = task.status === "Blocked" ? "On Hold" : task.status;
     const idx = order.indexOf(current);
     const next = order[(idx === -1 ? 0 : idx + 1) % order.length];
-    try {
-      await updateTask.mutateAsync({ id: task.id, data: { status: next as any } });
-      queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-    } catch {
-      toast({ title: "Error updating status", variant: "destructive" });
-    }
+    const previous = task.status;
+    await undoable.run({
+      do: async () => {
+        await updateTask.mutateAsync({ id: task.id, data: { status: next as any } });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      },
+      undo: async () => {
+        await updateTask.mutateAsync({ id: task.id, data: { status: previous as any } });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      },
+      successTitle: `Status: ${next}`,
+      description: task.name,
+      errorTitle: "Error updating status",
+      undoSuccessTitle: `Status: ${previous}`,
+    });
   };
 
   const handleDelete = async (id: number) => {
     const original = (allTasks || []).find((t: any) => t.id === id);
-    try {
-      await deleteTask.mutateAsync({ id });
-      queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-      const restore = async () => {
-        if (!original) return;
-        try {
-          await createTask.mutateAsync({
-            data: {
-              projectId,
-              name: original.name,
-              status: original.status,
-              priority: original.priority,
-              assigneeIds: original.assigneeIds ?? [],
-              dueDate: original.dueDate ?? undefined,
-              startDate: original.startDate ?? undefined,
-              effort: Number(original.effort ?? 0),
-              plannedHours: Number(original.plannedHours ?? original.effort ?? 0),
-              estimateHours: Number(original.estimateHours ?? original.effort ?? 0),
-              billable: !!original.billable,
-              isMilestone: !!original.isMilestone,
-              isPhase: !!original.isPhase,
-              parentTaskId: original.parentTaskId ?? undefined,
-              sortOrder: typeof original.sortOrder === "number" ? original.sortOrder : undefined,
-            } as any,
-          });
-          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-          toast({ title: "Task restored", duration: 3000 });
-        } catch {
-          toast({ title: "Could not restore task", variant: "destructive" });
-        }
-      };
-      toast({
-        title: "Task deleted",
-        description: original?.name,
-        duration: 5000,
-        action: original ? (
-          <ToastAction altText="Undo delete" onClick={restore}>Undo</ToastAction>
-        ) : undefined,
-      });
-    } catch {
-      toast({ title: "Error deleting task", variant: "destructive" });
-    }
+    await undoable.run({
+      do: async () => {
+        await deleteTask.mutateAsync({ id });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      },
+      undo: async () => {
+        if (!original) throw new Error("No snapshot to restore");
+        await createTask.mutateAsync({
+          data: {
+            projectId,
+            name: original.name,
+            status: original.status,
+            priority: original.priority,
+            assigneeIds: original.assigneeIds ?? [],
+            dueDate: original.dueDate ?? undefined,
+            startDate: original.startDate ?? undefined,
+            effort: Number(original.effort ?? 0),
+            plannedHours: Number(original.plannedHours ?? original.effort ?? 0),
+            estimateHours: Number(original.estimateHours ?? original.effort ?? 0),
+            billable: !!original.billable,
+            isMilestone: !!original.isMilestone,
+            isPhase: !!original.isPhase,
+            parentTaskId: original.parentTaskId ?? undefined,
+            sortOrder: typeof original.sortOrder === "number" ? original.sortOrder : undefined,
+          } as any,
+        });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      },
+      successTitle: "Task deleted",
+      description: original?.name,
+      errorTitle: "Error deleting task",
+      undoSuccessTitle: "Task restored",
+      undoErrorTitle: "Could not restore task",
+    });
   };
 
   // ── Move-to dialog handlers ───────────────────────────────────────────────

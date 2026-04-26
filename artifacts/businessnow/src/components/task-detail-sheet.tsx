@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { useUndoableMutation } from "@/hooks/use-undoable-mutation";
 import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch, AlertTriangle, FileText } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -65,6 +66,7 @@ function priorityColor(p: string) {
 
 export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }: TaskDetailSheetProps) {
   const { toast } = useToast();
+  const undoable = useUndoableMutation();
   const queryClient = useQueryClient();
 
   const { data: users } = useListUsers();
@@ -206,13 +208,21 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
 
   async function handleUpdateField(field: string, value: any) {
     if (!taskId) return;
-    try {
-      await updateTask.mutateAsync({ id: taskId, data: { [field]: value } as any });
-      invalidate();
-      toast({ title: "Task updated" });
-    } catch {
-      toast({ title: "Failed to update task", variant: "destructive" });
-    }
+    // Snapshot the previous value so the user can undo single-field edits.
+    const previous = task ? (task as any)[field] : undefined;
+    await undoable.run({
+      do: async () => {
+        await updateTask.mutateAsync({ id: taskId, data: { [field]: value } as any });
+        invalidate();
+      },
+      undo: async () => {
+        await updateTask.mutateAsync({ id: taskId, data: { [field]: previous } as any });
+        invalidate();
+      },
+      successTitle: "Task updated",
+      description: field,
+      errorTitle: "Failed to update task",
+    });
   }
 
   const completedCount = checklist?.filter((i) => i.completed).length ?? 0;
