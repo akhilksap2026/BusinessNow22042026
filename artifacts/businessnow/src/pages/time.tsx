@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye } from "lucide-react";
+import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye, Sparkles } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimesheetGrid } from "@/components/timesheet-grid";
@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/contexts/current-user";
 import { useAccountPermissions } from "@/lib/permissions";
+import { TimeLogAssistant } from "@/components/time-log-assistant";
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 
@@ -66,6 +67,7 @@ export default function TimeTracking() {
   });
 
   const [requestOpen, setRequestOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [form, setForm] = useState({ userId: "1", type: "PTO", startDate: "", endDate: "", notes: "", durationType: "Full Day", customHours: "", notifyProjectOwners: false, additionalEmails: "" });
 
   const updateTimeEntry = useUpdateTimeEntry();
@@ -360,6 +362,9 @@ export default function TimeTracking() {
             <>
               <Button variant="outline" onClick={() => setRequestOpen(true)}>
                 <CalendarOff className="mr-2 h-4 w-4" /> Request Time Off
+              </Button>
+              <Button variant="outline" onClick={() => setAssistantOpen(true)} className="gap-2">
+                <Sparkles className="h-4 w-4 text-indigo-500" /> Log Time with Assistant
               </Button>
               <Button
                 variant={timerRunning ? "destructive" : "outline"}
@@ -1189,6 +1194,8 @@ export default function TimeTracking() {
           )}
         </SheetContent>
       </Sheet>
+
+      <TimeLogAssistant open={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </Layout>
   );
 }
