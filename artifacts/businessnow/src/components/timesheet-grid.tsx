@@ -249,16 +249,16 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   // Entry-derived rows from this week's time entries
   const entryRowMap: Record<string, TimesheetRow> = {};
   for (const entry of (timeEntries || [])) {
-    const k = rowKey(entry.projectId, entry.taskId, (entry as any).activityName, entry.description);
+    const k = rowKey(entry.projectId, entry.taskId, entry.activityName ?? undefined, entry.description);
     if (!entryRowMap[k]) {
       entryRowMap[k] = {
         key: k,
         projectId: entry.projectId ?? null,
         taskId: entry.taskId ?? null,
-        activityName: (entry as any).activityName ?? undefined,
+        activityName: entry.activityName ?? undefined,
         description: entry.description ?? undefined,
         billable: entry.billable,
-        categoryId: (entry as any).categoryId ?? null,
+        categoryId: entry.categoryId ?? null,
         isNonProject: !entry.projectId,
         days: {},
         entryIds: {},
@@ -968,7 +968,8 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                       <FormControl><SelectTrigger><SelectValue placeholder="Select task" /></SelectTrigger></FormControl>
                       <SelectContent>
                         {projectTasks
-                          ?.filter(t => !projectTasks.some(c => c.parentTaskId === t.id))
+                          ?.filter(t => !t.isPhase)
+                          .filter(t => !projectTasks.some(c => c.parentTaskId === t.id))
                           .map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -1049,6 +1050,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                     <SelectContent>
                       {allTasks
                         ?.filter(t => t.projectId === Number(activityForm.projectId))
+                        .filter(t => !t.isPhase)
                         .filter(t => !(allTasks ?? []).some(c => c.parentTaskId === t.id))
                         .map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
                     </SelectContent>

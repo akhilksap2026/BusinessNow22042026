@@ -4232,10 +4232,14 @@ components:
         id:
           type: integer
         projectId:
-          type: integer
+          type: ["integer", "null"]
         userId:
           type: integer
         taskId:
+          type: ["integer", "null"]
+        activityName:
+          type: ["string", "null"]
+        categoryId:
           type: ["integer", "null"]
         date:
           type: string
@@ -4251,7 +4255,6 @@ components:
           type: string
       required:
         - id
-        - projectId
         - userId
         - date
         - hours

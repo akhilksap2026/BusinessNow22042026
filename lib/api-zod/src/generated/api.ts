@@ -701,9 +701,11 @@ export const ListTimeEntriesQueryParams = zod.object({
 
 export const ListTimeEntriesResponseItem = zod.object({
   id: zod.number(),
-  projectId: zod.number(),
+  projectId: zod.number().nullish(),
   userId: zod.number(),
   taskId: zod.number().nullish(),
+  activityName: zod.string().nullish(),
+  categoryId: zod.number().nullish(),
   date: zod.string(),
   hours: zod.number(),
   description: zod.string(),
@@ -743,9 +745,11 @@ export const UpdateTimeEntryBody = zod.object({
 
 export const UpdateTimeEntryResponse = zod.object({
   id: zod.number(),
-  projectId: zod.number(),
+  projectId: zod.number().nullish(),
   userId: zod.number(),
   taskId: zod.number().nullish(),
+  activityName: zod.string().nullish(),
+  categoryId: zod.number().nullish(),
   date: zod.string(),
   hours: zod.number(),
   description: zod.string(),

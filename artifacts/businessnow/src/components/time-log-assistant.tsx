@@ -718,6 +718,7 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
               <p className="text-xs text-muted-foreground">Project: <span className="font-medium text-foreground">{selectedProjectName}</span></p>
               {selectedProjectId !== "INTERNAL" && (tasks ?? [])
                 .filter((t: any) => !t.isPhase)
+                .filter((t: any) => !(tasks ?? []).some((c: any) => c.parentTaskId === t.id))
                 .map((t: any) => (
                   <button
                     key={t.id}

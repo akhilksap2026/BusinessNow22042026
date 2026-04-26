@@ -8,10 +8,15 @@
 
 export interface TimeEntry {
   id: number;
-  projectId: number;
+  /** @nullable */
+  projectId?: number | null;
   userId: number;
   /** @nullable */
   taskId?: number | null;
+  /** @nullable */
+  activityName?: string | null;
+  /** @nullable */
+  categoryId?: number | null;
   date: string;
   hours: number;
   description: string;
