@@ -1,6 +1,6 @@
 # BusinessNow PSA — Full Codebase Snapshot
 
-> Generated: 2026-04-26 05:17:52 UTC
+> Generated: 2026-04-26 19:36:29 UTC
 
 ---
 
@@ -8,6 +8,10 @@
 
 ```
 .
+./.agents
+./.agents/agent_assets_metadata.toml
+./.gitattributes
+./.gitignore
 ./.npmrc
 ./.replit
 ./.replitignore
@@ -34,12 +38,16 @@
 ./artifacts/api-server/src/middleware/roleClaim.ts
 ./artifacts/api-server/src/routes
 ./artifacts/api-server/src/routes/accounts.ts
+./artifacts/api-server/src/routes/adminPortfolio.ts
 ./artifacts/api-server/src/routes/adminSettings.ts
+./artifacts/api-server/src/routes/aiTimeAssistant.ts
 ./artifacts/api-server/src/routes/allocations.ts
 ./artifacts/api-server/src/routes/auditLog.ts
+./artifacts/api-server/src/routes/authLogin.ts
 ./artifacts/api-server/src/routes/baselines.ts
 ./artifacts/api-server/src/routes/billingSchedules.ts
 ./artifacts/api-server/src/routes/changeOrders.ts
+./artifacts/api-server/src/routes/contracts.ts
 ./artifacts/api-server/src/routes/csat.ts
 ./artifacts/api-server/src/routes/csatSurveys.ts
 ./artifacts/api-server/src/routes/customFields.ts
@@ -108,7 +116,9 @@
 ./artifacts/businessnow/src/components/saved-views-bar.tsx
 ./artifacts/businessnow/src/components/skills-matrix.tsx
 ./artifacts/businessnow/src/components/task-detail-sheet.tsx
+./artifacts/businessnow/src/components/task-tree.tsx
 ./artifacts/businessnow/src/components/template-editor.tsx
+./artifacts/businessnow/src/components/time-log-assistant.tsx
 ./artifacts/businessnow/src/components/timesheet-grid.tsx
 ./artifacts/businessnow/src/components/tracked-time-tab.tsx
 ./artifacts/businessnow/src/components/ui
@@ -152,6 +162,7 @@
 ./artifacts/businessnow/src/hooks
 ./artifacts/businessnow/src/hooks/use-mobile.tsx
 ./artifacts/businessnow/src/hooks/use-toast.ts
+./artifacts/businessnow/src/hooks/use-undoable-mutation.tsx
 ./artifacts/businessnow/src/index.css
 ./artifacts/businessnow/src/lib
 ./artifacts/businessnow/src/lib/auth-headers.ts
@@ -166,9 +177,11 @@
 ./artifacts/businessnow/src/pages
 ./artifacts/businessnow/src/pages/accounts.tsx
 ./artifacts/businessnow/src/pages/admin.tsx
+./artifacts/businessnow/src/pages/command-center.tsx
 ./artifacts/businessnow/src/pages/dashboard.tsx
 ./artifacts/businessnow/src/pages/finance.tsx
 ./artifacts/businessnow/src/pages/forbidden.tsx
+./artifacts/businessnow/src/pages/login.tsx
 ./artifacts/businessnow/src/pages/not-found.tsx
 ./artifacts/businessnow/src/pages/notifications.tsx
 ./artifacts/businessnow/src/pages/opportunities.tsx
@@ -298,7 +311,6 @@
 ./lib/api-client-react/src/generated/api.ts
 ./lib/api-client-react/src/index.ts
 ./lib/api-client-react/tsconfig.json
-./lib/api-client-react/tsconfig.tsbuildinfo
 ./lib/api-spec
 ./lib/api-spec/openapi.yaml
 ./lib/api-spec/orval.config.ts
@@ -334,6 +346,7 @@
 ./lib/api-zod/src/generated/types/createAllocationBody.ts
 ./lib/api-zod/src/generated/types/createBillingScheduleBody.ts
 ./lib/api-zod/src/generated/types/createBudgetEntryBody.ts
+./lib/api-zod/src/generated/types/createBudgetEntryBodyType.ts
 ./lib/api-zod/src/generated/types/createCsatResponseBody.ts
 ./lib/api-zod/src/generated/types/createCustomFieldDefinitionBody.ts
 ./lib/api-zod/src/generated/types/createDocumentBody.ts
@@ -345,6 +358,7 @@
 ./lib/api-zod/src/generated/types/createInvoiceLineItemBody.ts
 ./lib/api-zod/src/generated/types/createOpportunityBody.ts
 ./lib/api-zod/src/generated/types/createProjectBody.ts
+./lib/api-zod/src/generated/types/createProjectBudgetEntry409.ts
 ./lib/api-zod/src/generated/types/createProjectFromTemplateBody.ts
 ./lib/api-zod/src/generated/types/createProjectGroupBody.ts
 ./lib/api-zod/src/generated/types/createProjectTemplateBody.ts
@@ -509,7 +523,6 @@
 ./lib/api-zod/src/generated/types/utilizationReportByUserItem.ts
 ./lib/api-zod/src/index.ts
 ./lib/api-zod/tsconfig.json
-./lib/api-zod/tsconfig.tsbuildinfo
 ./lib/db
 ./lib/db/drizzle.config.ts
 ./lib/db/package.json
@@ -521,6 +534,7 @@
 ./lib/db/src/schema/auditLog.ts
 ./lib/db/src/schema/changeOrders.ts
 ./lib/db/src/schema/companySettings.ts
+./lib/db/src/schema/contracts.ts
 ./lib/db/src/schema/csat.ts
 ./lib/db/src/schema/customFields.ts
 ./lib/db/src/schema/documents.ts
@@ -550,7 +564,6 @@
 ./lib/db/src/schema/timesheets.ts
 ./lib/db/src/schema/users.ts
 ./lib/db/tsconfig.json
-./lib/db/tsconfig.tsbuildinfo
 ./package.json
 ./pnpm-lock.yaml
 ./pnpm-workspace.yaml
@@ -661,26 +674,6 @@ npm_config_prefix
 ---
 
 ## 3. package.json Files
-
-### `package.json`
-```json
-{
-  "name": "workspace",
-  "version": "0.0.0",
-  "license": "MIT",
-  "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
-  },
-  "private": true,
-  "devDependencies": {
-    "typescript": "~5.9.2",
-    "prettier": "^3.8.1"
-  }
-}
-```
 
 ### `artifacts/api-server/package.json`
 ```json
@@ -965,6 +958,26 @@ npm_config_prefix
 }
 ```
 
+### `package.json`
+```json
+{
+  "name": "workspace",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+  },
+  "private": true,
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "prettier": "^3.8.1"
+  }
+}
+```
+
 ### `scripts/package.json`
 ```json
 {
@@ -1106,10 +1119,13 @@ export type AuditLog = typeof auditLogTable.$inferSelect;
 import { pgTable, serial, text, integer, numeric, json, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { projectsTable } from "./projects";
 
 export const changeOrdersTable = pgTable("change_orders", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "cascade" }),
   crNumber: text("cr_number"),
   title: text("title").notNull(),
   description: text("description"),
@@ -1156,6 +1172,38 @@ export const companySettingsTable = pgTable("company_settings", {
 export const insertCompanySettingsSchema = createInsertSchema(companySettingsTable).omit({ id: true, updatedAt: true });
 export type InsertCompanySettings = z.infer<typeof insertCompanySettingsSchema>;
 export type CompanySettings = typeof companySettingsTable.$inferSelect;
+```
+
+### `lib/db/src/schema/contracts.ts`
+```typescript
+import { pgTable, serial, integer, text, numeric, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+import { projectsTable } from "./projects";
+
+export const contractsTable = pgTable("contracts", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  status: text("status").notNull().default("Draft"),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  value: numeric("value", { precision: 12, scale: 2 }),
+  documentUrl: text("document_url"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertContractSchema = createInsertSchema(contractsTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertContract = z.infer<typeof insertContractSchema>;
+export type Contract = typeof contractsTable.$inferSelect;
 ```
 
 ### `lib/db/src/schema/csat.ts`
@@ -1301,7 +1349,8 @@ export type DocumentVersion = typeof documentVersionsTable.$inferSelect;
 
 ### `lib/db/src/schema/financials.ts`
 ```typescript
-import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, boolean, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -1376,18 +1425,31 @@ export const insertRevenueEntrySchema = createInsertSchema(revenueEntriesTable).
 export type InsertRevenueEntry = z.infer<typeof insertRevenueEntrySchema>;
 export type RevenueEntry = typeof revenueEntriesTable.$inferSelect;
 
-export const budgetEntriesTable = pgTable("budget_entries", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  entryDate: text("entry_date").notNull(),
-  type: text("type").notNull(),
-  description: text("description").notNull(),
-  amount: numeric("amount", { precision: 15, scale: 2 }).notNull().default("0"),
-  hours: numeric("hours", { precision: 10, scale: 2 }).notNull().default("0"),
-  documentLink: text("document_link"),
-  changeOrderId: integer("change_order_id").unique(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const budgetEntriesTable = pgTable(
+  "budget_entries",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id").notNull(),
+    entryDate: text("entry_date").notNull(),
+    type: text("type").notNull(),
+    description: text("description").notNull(),
+    amount: numeric("amount", { precision: 15, scale: 2 }).notNull().default("0"),
+    hours: numeric("hours", { precision: 10, scale: 2 }).notNull().default("0"),
+    documentLink: text("document_link"),
+    changeOrderId: integer("change_order_id").unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // At most one SOW row per project — partial unique index is the
+    // race-safe backstop for the application-level guard in
+    // POST /projects/:id/budget-entries.  CO and Adjustment rows are
+    // unrestricted (CO uniqueness is handled by the change_order_id unique
+    // constraint above; Adjustments can repeat freely).
+    sowOncePerProject: uniqueIndex("budget_entries_sow_per_project_uq")
+      .on(table.projectId)
+      .where(sql`${table.type} = 'SOW'`),
+  }),
+);
 
 export const insertBudgetEntrySchema = createInsertSchema(budgetEntriesTable).omit({ id: true, createdAt: true });
 export type InsertBudgetEntry = z.infer<typeof insertBudgetEntrySchema>;
@@ -1480,6 +1542,7 @@ export * from "./intervalIq";
 export * from "./savedViews";
 export * from "./taskStatusDefinitions";
 export * from "./projectGroups";
+export * from "./contracts";
 ```
 
 ### `lib/db/src/schema/intervalIq.ts`
@@ -1714,6 +1777,46 @@ export type InsertProjectMember = z.infer<typeof insertProjectMemberSchema>;
 export type ProjectMember = typeof projectMembersTable.$inferSelect;
 ```
 
+### `lib/db/src/schema/projects.ts`
+```typescript
+import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const projectsTable = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  accountId: integer("account_id").notNull(),
+  name: text("name").notNull(),
+  status: text("status").notNull().default("Not Started"),
+  ownerId: integer("owner_id").notNull(),
+  startDate: text("start_date").notNull(),
+  dueDate: text("due_date").notNull(),
+  billingType: text("billing_type").notNull().default("Fixed Fee"),
+  budget: numeric("budget", { precision: 12, scale: 2 }).notNull().default("0"),
+  trackedHours: numeric("tracked_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  allocatedHours: numeric("allocated_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  budgetedHours: numeric("budgeted_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  completion: integer("completion").notNull().default(0),
+  health: text("health").notNull().default("On Track"),
+  description: text("description"),
+  rateCardId: integer("rate_card_id"),
+  customerChampion: text("customer_champion"),
+  templateId: integer("template_id"),
+  internalExternal: text("internal_external").notNull().default("External"),
+  isAdminProject: integer("is_admin_project").notNull().default(0),
+  autoAllocate: boolean("auto_allocate").notNull().default(false),
+  opportunityId: integer("opportunity_id"),
+  projectGroupId: integer("project_group_id"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertProjectSchema = createInsertSchema(projectsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projectsTable.$inferSelect;
+```
+
 ### `lib/db/src/schema/projectTemplates.ts`
 ```typescript
 import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
@@ -1825,46 +1928,6 @@ export const updateRecipientsTable = pgTable("update_recipients", {
 
 export type ProjectUpdate = typeof projectUpdatesTable.$inferSelect;
 export type UpdateRecipient = typeof updateRecipientsTable.$inferSelect;
-```
-
-### `lib/db/src/schema/projects.ts`
-```typescript
-import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
-
-export const projectsTable = pgTable("projects", {
-  id: serial("id").primaryKey(),
-  accountId: integer("account_id").notNull(),
-  name: text("name").notNull(),
-  status: text("status").notNull().default("Not Started"),
-  ownerId: integer("owner_id").notNull(),
-  startDate: text("start_date").notNull(),
-  dueDate: text("due_date").notNull(),
-  billingType: text("billing_type").notNull().default("Fixed Fee"),
-  budget: numeric("budget", { precision: 12, scale: 2 }).notNull().default("0"),
-  trackedHours: numeric("tracked_hours", { precision: 8, scale: 2 }).notNull().default("0"),
-  allocatedHours: numeric("allocated_hours", { precision: 8, scale: 2 }).notNull().default("0"),
-  budgetedHours: numeric("budgeted_hours", { precision: 8, scale: 2 }).notNull().default("0"),
-  completion: integer("completion").notNull().default(0),
-  health: text("health").notNull().default("On Track"),
-  description: text("description"),
-  rateCardId: integer("rate_card_id"),
-  customerChampion: text("customer_champion"),
-  templateId: integer("template_id"),
-  internalExternal: text("internal_external").notNull().default("External"),
-  isAdminProject: integer("is_admin_project").notNull().default(0),
-  autoAllocate: boolean("auto_allocate").notNull().default(false),
-  opportunityId: integer("opportunity_id"),
-  projectGroupId: integer("project_group_id"),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const insertProjectSchema = createInsertSchema(projectsTable).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertProject = z.infer<typeof insertProjectSchema>;
-export type Project = typeof projectsTable.$inferSelect;
 ```
 
 ### `lib/db/src/schema/prospects.ts`
@@ -2169,30 +2232,6 @@ export type InsertTaskAttachment = z.infer<typeof insertTaskAttachmentSchema>;
 export type TaskAttachment = typeof taskAttachmentsTable.$inferSelect;
 ```
 
-### `lib/db/src/schema/taskStatusDefinitions.ts`
-```typescript
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
-
-export const taskStatusDefinitionsTable = pgTable("task_status_definitions", {
-  id: serial("id").primaryKey(),
-  label: text("label").notNull().unique(),
-  position: integer("position").notNull().default(0),
-  isTerminal: boolean("is_terminal").notNull().default(false),
-  isDefault: boolean("is_default").notNull().default(false),
-  color: text("color"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const insertTaskStatusDefinitionSchema = createInsertSchema(
-  taskStatusDefinitionsTable,
-).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertTaskStatusDefinition = z.infer<typeof insertTaskStatusDefinitionSchema>;
-export type TaskStatusDefinition = typeof taskStatusDefinitionsTable.$inferSelect;
-```
-
 ### `lib/db/src/schema/tasks.ts`
 ```typescript
 import { pgTable, serial, text, integer, numeric, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
@@ -2245,6 +2284,30 @@ export const taskNotesTable = pgTable("task_notes", {
 export const insertTaskNoteSchema = createInsertSchema(taskNotesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertTaskNote = z.infer<typeof insertTaskNoteSchema>;
 export type TaskNote = typeof taskNotesTable.$inferSelect;
+```
+
+### `lib/db/src/schema/taskStatusDefinitions.ts`
+```typescript
+import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const taskStatusDefinitionsTable = pgTable("task_status_definitions", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull().unique(),
+  position: integer("position").notNull().default(0),
+  isTerminal: boolean("is_terminal").notNull().default(false),
+  isDefault: boolean("is_default").notNull().default(false),
+  color: text("color"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTaskStatusDefinitionSchema = createInsertSchema(
+  taskStatusDefinitionsTable,
+).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTaskStatusDefinition = z.infer<typeof insertTaskStatusDefinitionSchema>;
+export type TaskStatusDefinition = typeof taskStatusDefinitionsTable.$inferSelect;
 ```
 
 ### `lib/db/src/schema/timeEntries.ts`
@@ -3507,7 +3570,11 @@ import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { resolveRole, type RoleValue } from "../constants/roles";
 
-const BOOTSTRAP_PATHS = new Set<string>(["/me", "/healthz"]);
+const BOOTSTRAP_PATHS = new Set<string>([
+  "/me",
+  "/healthz",
+  "/auth/users-for-login",
+]);
 
 export interface AuthenticatedRequest extends Request {
   authUserId?: number;
@@ -3662,6 +3729,323 @@ router.delete("/accounts/:id", requirePM, async (req, res): Promise<void> => {
   await db.delete(accountsTable).where(eq(accountsTable.id, params.data.id));
   res.sendStatus(204);
 });
+
+export default router;
+```
+
+### `artifacts/api-server/src/routes/adminPortfolio.ts`
+```typescript
+import { Router, type IRouter } from "express";
+import { eq, inArray } from "drizzle-orm";
+import {
+  db,
+  projectsTable,
+  accountsTable,
+  usersTable,
+  allocationsTable,
+  invoicesTable,
+  changeOrdersTable,
+  resourceRequestsTable,
+  tasksTable,
+} from "@workspace/db";
+import { requirePM } from "../middleware/rbac";
+
+const router: IRouter = Router();
+
+type HealthBucket = "Green" | "Amber" | "Red";
+
+function healthToBucket(h: string | null | undefined): HealthBucket {
+  if (h === "On Track") return "Green";
+  if (h === "At Risk") return "Amber";
+  if (h === "Off Track") return "Red";
+  // Unknown / null health surfaces as Amber so it does not silently
+  // disappear from the at-risk count on the Command Center dashboard.
+  return "Amber";
+}
+
+function isAllocationActive(a: { startDate: string; endDate: string }, today: string): boolean {
+  return a.startDate <= today && a.endDate >= today;
+}
+
+function daysBetween(fromIso: string | Date, toIso: string | Date): number {
+  const f = typeof fromIso === "string" ? new Date(fromIso) : fromIso;
+  const t = typeof toIso === "string" ? new Date(toIso) : toIso;
+  return Math.max(0, Math.floor((t.getTime() - f.getTime()) / 86400000));
+}
+
+router.get("/admin/portfolio-summary", requirePM, async (_req, res): Promise<void> => {
+  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+
+  // ── Pull base data in parallel ────────────────────────────────────────────
+  const [projects, accounts, users, allocations, invoices, changeOrders, resourceRequests, tasks] =
+    await Promise.all([
+      db.select().from(projectsTable),
+      db.select().from(accountsTable),
+      db.select().from(usersTable),
+      db.select().from(allocationsTable),
+      db.select().from(invoicesTable),
+      db.select().from(changeOrdersTable),
+      db.select().from(resourceRequestsTable),
+      db.select().from(tasksTable),
+    ]);
+
+  // Exclude soft-deleted projects from the portfolio view.
+  const activeProjects = projects.filter((p) => !p.deletedAt);
+
+  const accountsById = new Map(accounts.map((a) => [a.id, a]));
+  const usersById = new Map(users.map((u) => [u.id, u]));
+
+  // Approved change-order amounts and additional hours per project.
+  const approvedCoByProject = new Map<number, { amount: number; hours: number }>();
+  for (const co of changeOrders) {
+    if (co.status !== "Approved") continue;
+    const cur = approvedCoByProject.get(co.projectId) ?? { amount: 0, hours: 0 };
+    cur.amount += Number(co.amount);
+    cur.hours += Number(co.additionalHours);
+    approvedCoByProject.set(co.projectId, cur);
+  }
+
+  // Invoiced (Paid + Approved) and pending (Draft + In Review) per project.
+  const invoicedByProject = new Map<number, { invoiced: number; pending: number }>();
+  for (const inv of invoices) {
+    const cur = invoicedByProject.get(inv.projectId) ?? { invoiced: 0, pending: 0 };
+    if (inv.status === "Paid" || inv.status === "Approved") {
+      cur.invoiced += Number(inv.total);
+    } else if (inv.status === "Draft" || inv.status === "In Review") {
+      cur.pending += Number(inv.total);
+    }
+    invoicedByProject.set(inv.projectId, cur);
+  }
+
+  // Planned hours per project: prefer task rollup, fall back to project.budgetedHours.
+  const taskPlannedByProject = new Map<number, number>();
+  for (const t of tasks) {
+    if (t.isMilestone) continue;
+    const planned = Number((t as any).plannedHours ?? 0) || 0;
+    if (planned <= 0) continue;
+    taskPlannedByProject.set(t.projectId, (taskPlannedByProject.get(t.projectId) ?? 0) + planned);
+  }
+
+  // ── Section 2: Project rows ───────────────────────────────────────────────
+  const projectRows = activeProjects.map((p) => {
+    const account = accountsById.get(p.accountId);
+    const owner = usersById.get(p.ownerId);
+    const co = approvedCoByProject.get(p.id) ?? { amount: 0, hours: 0 };
+    const inv = invoicedByProject.get(p.id) ?? { invoiced: 0, pending: 0 };
+
+    const sowBudget = Number(p.budget) || 0;
+    const totalBudget = sowBudget + co.amount;
+    const actuals = inv.invoiced;
+    const percentUsed = totalBudget > 0 ? Math.round((actuals / totalBudget) * 100) : 0;
+
+    const plannedHoursTask = taskPlannedByProject.get(p.id) ?? 0;
+    const plannedHoursProject = (Number(p.budgetedHours) || 0) + co.hours;
+    const plannedHours = plannedHoursTask > 0 ? plannedHoursTask : plannedHoursProject;
+    const actualHours = Number(p.trackedHours) || 0;
+    const completion = Number(p.completion) || 0;
+
+    // ETC / EAC: prefer completion %; fall back to (planned - actual).
+    let etc = Math.max(0, plannedHours - actualHours);
+    let eac = plannedHours > 0 ? plannedHours : actualHours;
+    if (completion > 0 && completion < 100 && actualHours > 0) {
+      eac = Math.round((actualHours / completion) * 100);
+      etc = Math.max(0, eac - actualHours);
+    } else if (completion >= 100) {
+      eac = actualHours;
+      etc = 0;
+    }
+
+    const dueDate = new Date(p.dueDate);
+    const daysRemaining = Math.max(0, Math.ceil((dueDate.getTime() - now.getTime()) / 86400000));
+
+    // Reason hint for the health tooltip.
+    const healthReasons: string[] = [];
+    if (percentUsed >= 90) healthReasons.push(`Budget ${percentUsed}% spent`);
+    if (plannedHours > 0 && actualHours > plannedHours) {
+      healthReasons.push(`Hours over plan (${actualHours.toFixed(1)} / ${plannedHours.toFixed(1)})`);
+    }
+    if (eac > totalBudget && totalBudget > 0) healthReasons.push(`EAC > Budget`);
+    if (totalBudget === 0) healthReasons.push(`No budget recorded`);
+
+    return {
+      projectId: p.id,
+      projectName: p.name,
+      accountId: p.accountId,
+      accountName: account?.name ?? null,
+      ownerId: p.ownerId,
+      ownerName: owner?.name ?? null,
+      status: p.status,
+      health: p.health,
+      healthBucket: healthToBucket(p.health),
+      healthReason: healthReasons.length > 0 ? healthReasons.join("; ") : "Within thresholds",
+      billingType: p.billingType,
+      sowBudget,
+      changeOrderAmount: co.amount,
+      totalBudget,
+      actuals,
+      pendingInvoiced: inv.pending,
+      percentUsed,
+      plannedHours,
+      actualHours,
+      etc,
+      eac,
+      completion,
+      startDate: p.startDate,
+      dueDate: p.dueDate,
+      daysRemaining,
+    };
+  });
+
+  // ── Section 1: Portfolio KPIs ─────────────────────────────────────────────
+  const totalBudget = projectRows.reduce((s, p) => s + p.totalBudget, 0);
+  const totalPlannedHours = projectRows.reduce((s, p) => s + p.plannedHours, 0);
+  const totalActualHours = projectRows.reduce((s, p) => s + p.actualHours, 0);
+  const burnPercent = totalPlannedHours > 0
+    ? Math.round((totalActualHours / totalPlannedHours) * 100)
+    : 0;
+  const totalBilled = projectRows.reduce((s, p) => s + p.actuals, 0);
+  const totalPending = projectRows.reduce((s, p) => s + p.pendingInvoiced, 0);
+  const atRiskCount = projectRows.filter(
+    (p) => (p.health === "At Risk" || p.health === "Off Track") && p.status !== "Completed",
+  ).length;
+
+  // ── Section 3: Over-allocated employees ───────────────────────────────────
+  const activeUsers = users.filter((u) => (u as any).isActive !== 0);
+  const overAllocatedEmployees: Array<{
+    userId: number;
+    userName: string;
+    role: string;
+    department: string;
+    capacity: number;
+    allocatedHours: number;
+    utilizationPercent: number;
+    projects: Array<{ projectId: number; projectName: string; hoursPerWeek: number }>;
+  }> = [];
+
+  for (const u of activeUsers) {
+    const userAllocs = allocations.filter(
+      (a) => a.userId === u.id && isAllocationActive(a, today),
+    );
+    if (userAllocs.length === 0) continue;
+    const allocatedHours = userAllocs.reduce((s, a) => s + Number(a.hoursPerWeek), 0);
+    const capacity = Number((u as any).capacity ?? 40) || 40;
+    const utilizationPercent = capacity > 0 ? Math.round((allocatedHours / capacity) * 100) : 0;
+    if (utilizationPercent <= 100) continue;
+
+    const projectsForUser = userAllocs.map((a) => {
+      const proj = activeProjects.find((p) => p.id === a.projectId);
+      return {
+        projectId: a.projectId,
+        projectName: proj?.name ?? `Project #${a.projectId}`,
+        hoursPerWeek: Number(a.hoursPerWeek),
+      };
+    });
+
+    overAllocatedEmployees.push({
+      userId: u.id,
+      userName: u.name,
+      role: u.role,
+      department: u.department,
+      capacity,
+      allocatedHours,
+      utilizationPercent,
+      projects: projectsForUser,
+    });
+  }
+  overAllocatedEmployees.sort((a, b) => b.utilizationPercent - a.utilizationPercent);
+
+  // ── Section 4: Open / pending resource requests ───────────────────────────
+  const openStatuses = new Set(["Pending", "Open", "Approved"]);
+  const openResourceRequests = resourceRequests
+    .filter((r) => openStatuses.has(r.status) && r.status !== "Fulfilled")
+    .map((r) => {
+      const proj = activeProjects.find((p) => p.id === r.projectId);
+      return {
+        id: r.id,
+        projectId: r.projectId,
+        projectName: proj?.name ?? `Project #${r.projectId}`,
+        role: r.role,
+        requiredSkills: r.requiredSkills ?? [],
+        hoursPerWeek: Number(r.hoursPerWeek),
+        startDate: r.startDate,
+        endDate: r.endDate,
+        status: r.status,
+        priority: r.priority,
+        createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
+        daysSinceRaised: daysBetween(r.createdAt as any, now),
+      };
+    });
+
+  // ── Section 5: Budget alerts ──────────────────────────────────────────────
+  const budgetAlerts: Array<{
+    projectId: number;
+    projectName: string;
+    type: "spend_over_90" | "hours_over_plan" | "eac_over_budget" | "no_budget";
+    message: string;
+  }> = [];
+
+  for (const p of projectRows) {
+    if (p.status === "Completed") continue;
+    if (p.totalBudget === 0) {
+      budgetAlerts.push({
+        projectId: p.projectId,
+        projectName: p.projectName,
+        type: "no_budget",
+        message: "No budget entry recorded",
+      });
+      continue;
+    }
+    if (p.percentUsed >= 90) {
+      budgetAlerts.push({
+        projectId: p.projectId,
+        projectName: p.projectName,
+        type: "spend_over_90",
+        message: `Budget ${p.percentUsed}% spent`,
+      });
+    }
+    if (p.plannedHours > 0 && p.actualHours > p.plannedHours) {
+      budgetAlerts.push({
+        projectId: p.projectId,
+        projectName: p.projectName,
+        type: "hours_over_plan",
+        message: `Actual ${p.actualHours.toFixed(1)}h > planned ${p.plannedHours.toFixed(1)}h`,
+      });
+    }
+    if (p.eac > p.totalBudget) {
+      budgetAlerts.push({
+        projectId: p.projectId,
+        projectName: p.projectName,
+        type: "eac_over_budget",
+        message: `EAC $${p.eac.toLocaleString()} exceeds budget $${p.totalBudget.toLocaleString()}`,
+      });
+    }
+  }
+
+  res.json({
+    refreshedAt: now.toISOString(),
+    kpis: {
+      totalBudget,
+      totalPlannedHours,
+      totalActualHours,
+      burnPercent,
+      totalBilled,
+      totalPending,
+      atRiskCount,
+      overAllocatedCount: overAllocatedEmployees.length,
+      openRequestsCount: openResourceRequests.length,
+      projectCount: projectRows.length,
+    },
+    projects: projectRows,
+    overAllocatedEmployees,
+    openResourceRequests,
+    budgetAlerts,
+  });
+});
+
+// Suppress unused-import warning if `inArray`/`eq` are not referenced above.
+void inArray;
+void eq;
 
 export default router;
 ```
@@ -3925,6 +4309,344 @@ router.put("/time-settings", requireAdmin, async (req, res): Promise<void> => {
     [row] = await db.update(timeSettingsTable).set(updates as any).where(eq(timeSettingsTable.id, existing[0].id)).returning();
   }
   res.json(mapTimeSettings(row));
+});
+
+export default router;
+```
+
+### `artifacts/api-server/src/routes/aiTimeAssistant.ts`
+```typescript
+import { Router, type IRouter } from "express";
+import { eq, and, gte, lte } from "drizzle-orm";
+import {
+  db, timeEntriesTable, allocationsTable, projectsTable, tasksTable,
+  timeSettingsTable, usersTable,
+} from "@workspace/db";
+
+const router: IRouter = Router();
+
+// ─── Shared AI caller ─────────────────────────────────────────────────────────
+
+async function callClaude(prompt: string, maxTokens = 200, jsonMode = false): Promise<string | null> {
+  const baseUrl = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  if (!baseUrl || !apiKey) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`${baseUrl}/v1/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5",
+        max_tokens: maxTokens,
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!response.ok) return null;
+    const data = await response.json() as any;
+    return data?.content?.[0]?.text?.trim() ?? null;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
+
+// ─── POST /api/ai/time-comment-suggestion ─────────────────────────────────────
+// Original comment-suggestion endpoint (kept for backwards compatibility)
+router.post("/ai/time-comment-suggestion", async (req, res): Promise<void> => {
+  const { projectName, taskName, categoryName } = req.body ?? {};
+  const contextParts = [
+    projectName ? `Project: ${projectName}` : null,
+    taskName ? `Task: ${taskName}` : null,
+    categoryName ? `Category: ${categoryName}` : null,
+  ].filter(Boolean).join(", ");
+  const prompt = `You are a professional services timesheet assistant. Based on this work context — ${contextParts} — write a single concise sentence (maximum 12 words) that describes what work was done. Reply with only the sentence, no quotes, no punctuation other than necessary.`;
+  const suggestion = await callClaude(prompt, 60);
+  res.json({ suggestion });
+});
+
+// ─── POST /api/ai/timesheet-assist ────────────────────────────────────────────
+// Natural language → structured time entry suggestion.
+// Body: { userId, message, weekStart, context? }
+// Returns: { entries: [...], guardrails: [...], reply }
+router.post("/ai/timesheet-assist", async (req, res): Promise<void> => {
+  const { userId, message, weekStart } = req.body ?? {};
+  if (!userId || !message) {
+    res.status(400).json({ error: "userId and message are required" });
+    return;
+  }
+
+  // Fetch user's active allocations + project names for context
+  const allocs = await db
+    .select({
+      projectId: allocationsTable.projectId,
+      hoursPerWeek: allocationsTable.hoursPerWeek,
+      totalHours: allocationsTable.totalHours,
+      startDate: allocationsTable.startDate,
+      endDate: allocationsTable.endDate,
+      projectName: projectsTable.name,
+      projectStatus: projectsTable.status,
+    })
+    .from(allocationsTable)
+    .innerJoin(projectsTable, eq(projectsTable.id, allocationsTable.projectId))
+    .where(eq(allocationsTable.userId, Number(userId)));
+
+  // Fetch logged hours this week per project for guardrail awareness
+  const wStart = weekStart ?? new Date().toISOString().slice(0, 10);
+  const wEnd = (() => {
+    const d = new Date(wStart + "T00:00:00");
+    d.setDate(d.getDate() + 6);
+    return d.toISOString().slice(0, 10);
+  })();
+  const weekEntries = await db
+    .select()
+    .from(timeEntriesTable)
+    .where(
+      and(
+        eq(timeEntriesTable.userId, Number(userId)),
+        gte(timeEntriesTable.date, wStart),
+        lte(timeEntriesTable.date, wEnd),
+      ),
+    );
+  const weekHoursMap = new Map<number, number>();
+  for (const e of weekEntries) {
+    if (e.projectId) weekHoursMap.set(e.projectId, (weekHoursMap.get(e.projectId) ?? 0) + Number(e.hours));
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const projectContext = allocs.map((a) => {
+    const logged = weekHoursMap.get(a.projectId ?? 0) ?? 0;
+    const remaining = a.hoursPerWeek ? Math.max(0, Number(a.hoursPerWeek) - logged) : null;
+    const expired = a.endDate && a.endDate < today;
+    return `- "${a.projectName}" (ID:${a.projectId}, ${logged}h logged this week of ${a.hoursPerWeek ?? "?"}h allocated${expired ? ", EXPIRED" : ""})`;
+  }).join("\n");
+
+  const prompt = `You are a professional services timesheet AI assistant. A team member wrote: "${message}"
+
+Their active project allocations this week (${wStart} to ${wEnd}):
+${projectContext || "No project allocations found."}
+
+Today is ${today}.
+
+Parse their message and respond with a JSON object (no markdown, no code block) in this exact format:
+{
+  "reply": "A brief friendly confirmation message (1-2 sentences)",
+  "entries": [
+    {
+      "date": "YYYY-MM-DD",
+      "projectId": <number or null for internal>,
+      "projectName": "<name>",
+      "hours": <number>,
+      "description": "<12-word work description>",
+      "billable": <true or false>
+    }
+  ],
+  "warnings": ["<any guardrail concern>"]
+}
+
+Rules:
+- Only suggest projects from the user's allocation list (match by name).
+- If the project is expired, include a warning.
+- If hours exceed weekly allocation, include a warning.
+- Set billable=false for internal/admin time.
+- If the message is ambiguous, ask for clarification in "reply" and return empty entries.
+- Date defaults to today unless specified.
+- Return valid JSON only, nothing else.`;
+
+  const raw = await callClaude(prompt, 600, true);
+  if (!raw) {
+    res.json({ reply: "I couldn't process that request right now. Please try again or use the manual entry.", entries: [], warnings: [] });
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    res.json({
+      reply: parsed.reply ?? "Here's what I found:",
+      entries: Array.isArray(parsed.entries) ? parsed.entries : [],
+      warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
+    });
+  } catch {
+    // AI returned prose instead of JSON — extract the reply at least
+    res.json({ reply: raw.slice(0, 300), entries: [], warnings: [] });
+  }
+});
+
+// ─── GET /api/ai/timesheet-suggestions ────────────────────────────────────────
+// Auto-suggest entries for a user based on their allocations and logged hours.
+// Query: { userId, weekStart }
+// Returns: { suggestions: [...] }
+router.get("/ai/timesheet-suggestions", async (req, res): Promise<void> => {
+  const userId = req.query.userId ? Number(req.query.userId) : null;
+  const weekStart = req.query.weekStart ? String(req.query.weekStart) : null;
+  if (!userId || !weekStart) {
+    res.status(400).json({ error: "userId and weekStart are required" });
+    return;
+  }
+
+  const wEnd = (() => {
+    const d = new Date(weekStart + "T00:00:00");
+    d.setDate(d.getDate() + 6);
+    return d.toISOString().slice(0, 10);
+  })();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const allocs = await db
+    .select({
+      projectId: allocationsTable.projectId,
+      hoursPerWeek: allocationsTable.hoursPerWeek,
+      endDate: allocationsTable.endDate,
+      projectName: projectsTable.name,
+    })
+    .from(allocationsTable)
+    .innerJoin(projectsTable, eq(projectsTable.id, allocationsTable.projectId))
+    .where(eq(allocationsTable.userId, userId));
+
+  const weekEntries = await db
+    .select()
+    .from(timeEntriesTable)
+    .where(
+      and(
+        eq(timeEntriesTable.userId, userId),
+        gte(timeEntriesTable.date, weekStart),
+        lte(timeEntriesTable.date, wEnd),
+      ),
+    );
+  const weekHoursMap = new Map<number, number>();
+  for (const e of weekEntries) {
+    if (e.projectId) weekHoursMap.set(e.projectId, (weekHoursMap.get(e.projectId) ?? 0) + Number(e.hours));
+  }
+
+  const [settings] = await db.select().from(timeSettingsTable).limit(1);
+  const weeklyCapacity = settings?.weeklyCapacityHours ?? 40;
+  const workDays = (settings?.workingDays ?? "Mon,Tue,Wed,Thu,Fri").split(",").filter(Boolean);
+  const dailyHours = Math.round(weeklyCapacity / workDays.length);
+
+  // Build suggestions: for each working day that has gaps, suggest allocation-based entries
+  const workDayMap: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+  const workDowSet = new Set(workDays.map((d) => workDayMap[d] ?? -1));
+
+  const dayEntries = new Map<string, number>();
+  for (const e of weekEntries) {
+    dayEntries.set(e.date, (dayEntries.get(e.date) ?? 0) + Number(e.hours));
+  }
+
+  // Generate Mon–Fri dates for the week
+  const weekDates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart + "T00:00:00");
+    d.setDate(d.getDate() + i);
+    const dow = d.getDay();
+    if (workDowSet.has(dow)) {
+      weekDates.push(d.toISOString().slice(0, 10));
+    }
+  }
+
+  // For each active allocation, distribute remaining weekly hours across days
+  const suggestions: any[] = [];
+  for (const alloc of allocs) {
+    if (!alloc.projectId) continue;
+    if (alloc.endDate && alloc.endDate < weekStart) continue; // expired
+    const allocHPW = Number(alloc.hoursPerWeek);
+    const logged = weekHoursMap.get(alloc.projectId) ?? 0;
+    const remaining = allocHPW > 0 ? Math.max(0, allocHPW - logged) : 0;
+    if (remaining <= 0) continue;
+
+    // Spread remaining hours across days that still have capacity
+    const perDay = Math.min(remaining, dailyHours);
+    for (const date of weekDates) {
+      if (date > today) continue; // don't suggest future dates
+      const dayTotal = dayEntries.get(date) ?? 0;
+      const projectDayLogged = weekEntries
+        .filter((e) => e.date === date && e.projectId === alloc.projectId)
+        .reduce((s, e) => s + Number(e.hours), 0);
+      if (projectDayLogged > 0) continue; // already has entry for this project/day
+      const dayCapacity = Math.max(0, dailyHours - dayTotal);
+      if (dayCapacity <= 0) continue;
+      const suggestedHours = Math.min(perDay, dayCapacity);
+      if (suggestedHours <= 0) continue;
+      suggestions.push({
+        date,
+        projectId: alloc.projectId,
+        projectName: alloc.projectName,
+        hours: suggestedHours,
+        description: "",
+        billable: true,
+      });
+    }
+  }
+
+  // Use AI to enhance descriptions if AI is available
+  if (suggestions.length > 0 && process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL) {
+    const projectNames = [...new Set(suggestions.map((s) => s.projectName))].join(", ");
+    const descPrompt = `You are a professional timesheet assistant. For each of these projects: ${projectNames}, write a single natural 8-12 word description of typical daily work. Reply with a JSON object mapping project names to descriptions, nothing else. Example: {"Project Alpha": "Backend API development and code review with team"}`;
+    const raw = await callClaude(descPrompt, 300, true);
+    if (raw) {
+      try {
+        const descMap = JSON.parse(raw);
+        for (const s of suggestions) {
+          if (descMap[s.projectName]) s.description = descMap[s.projectName];
+        }
+      } catch {}
+    }
+  }
+
+  res.json({ suggestions, weekDates, dailyCapacity: dailyHours });
+});
+
+// ─── POST /api/ai/billable-anomaly-check ──────────────────────────────────────
+// Rule 10 — Billable Hours Ratio Anomaly detector.
+// Body: { userId, weekStart }
+// Returns: { anomaly: boolean, message?: string, billablePct: number }
+router.post("/ai/billable-anomaly-check", async (req, res): Promise<void> => {
+  const { userId, weekStart } = req.body ?? {};
+  if (!userId || !weekStart) { res.status(400).json({ error: "userId and weekStart required" }); return; }
+
+  const wEnd = (() => {
+    const d = new Date(weekStart + "T00:00:00");
+    d.setDate(d.getDate() + 6);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  const entries = await db
+    .select({ hours: timeEntriesTable.hours, billable: timeEntriesTable.billable })
+    .from(timeEntriesTable)
+    .where(
+      and(
+        eq(timeEntriesTable.userId, Number(userId)),
+        gte(timeEntriesTable.date, weekStart),
+        lte(timeEntriesTable.date, wEnd),
+      ),
+    );
+
+  const total = entries.reduce((s, e) => s + Number(e.hours), 0);
+  const billable = entries.filter((e) => e.billable).reduce((s, e) => s + Number(e.hours), 0);
+  const billablePct = total > 0 ? Math.round((billable / total) * 100) : 0;
+
+  // Check against org average: fetch all users' billable % for this week
+  const allWeekEntries = await db
+    .select({ hours: timeEntriesTable.hours, billable: timeEntriesTable.billable })
+    .from(timeEntriesTable)
+    .where(and(gte(timeEntriesTable.date, weekStart), lte(timeEntriesTable.date, wEnd)));
+  const orgTotal = allWeekEntries.reduce((s, e) => s + Number(e.hours), 0);
+  const orgBillable = allWeekEntries.filter((e) => e.billable).reduce((s, e) => s + Number(e.hours), 0);
+  const orgBillablePct = orgTotal > 0 ? Math.round((orgBillable / orgTotal) * 100) : 0;
+
+  const anomaly = orgBillablePct > 20 && billablePct < orgBillablePct - 30;
+  const message = anomaly
+    ? `Your billable hours are ${billablePct}% this week, which is significantly below the team average of ${orgBillablePct}%. Please review your entries to ensure billable work is coded correctly.`
+    : undefined;
+
+  res.json({ anomaly, billablePct, orgBillablePct, message });
 });
 
 export default router;
@@ -4351,6 +5073,58 @@ router.get("/audit-log", requireAdmin, async (req, res): Promise<void> => {
 export default router;
 ```
 
+### `artifacts/api-server/src/routes/authLogin.ts`
+```typescript
+import { Router, type IRouter } from "express";
+import { db, usersTable } from "@workspace/db";
+
+const router: IRouter = Router();
+
+/**
+ * GET /api/auth/users-for-login
+ *
+ * Public endpoint (bootstrap-exempt in roleClaim middleware) that returns
+ * the minimal set of fields required by the /login picker UI. No sensitive
+ * fields (costRate, email, etc.) are exposed beyond what's already public
+ * in the avatar/name surface throughout the app.
+ *
+ * This is the only auth-free read of the users table — it intentionally
+ * does NOT proxy /api/users (which carries cost rates and other
+ * RBAC-protected data).
+ */
+router.get("/auth/users-for-login", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: usersTable.id,
+      name: usersTable.name,
+      initials: usersTable.initials,
+      role: usersTable.role,
+      secondaryRoles: usersTable.secondaryRoles,
+      department: usersTable.department,
+      avatarUrl: usersTable.avatarUrl,
+      activeStatus: usersTable.activeStatus,
+    })
+    .from(usersTable)
+    .orderBy(usersTable.name);
+
+  const visible = rows
+    .filter((r) => r.activeStatus === "active")
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      initials: r.initials,
+      role: r.role,
+      secondaryRoles: r.secondaryRoles ?? [],
+      department: r.department,
+      avatarUrl: r.avatarUrl,
+    }));
+
+  res.json(visible);
+});
+
+export default router;
+```
+
 ### `artifacts/api-server/src/routes/baselines.ts`
 ```typescript
 import { Router, type IRouter } from "express";
@@ -4576,6 +5350,16 @@ async function generateCRNumber(projectId: number): Promise<string> {
 router.get("/projects/:id/change-orders", async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.id, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  const [project] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(eq(projectsTable.id, projectId));
+  if (!project) {
+    res.status(404).json({ error: `Project ${projectId} does not exist` });
+    return;
+  }
+
   const rows = await db.select().from(changeOrdersTable).where(eq(changeOrdersTable.projectId, projectId));
   res.json(rows.map(mapCO));
 });
@@ -4583,6 +5367,17 @@ router.get("/projects/:id/change-orders", async (req, res): Promise<void> => {
 router.post("/projects/:id/change-orders", requirePM, async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.id, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  // Confirm project exists so callers get a clean 404 rather than a Postgres FK violation.
+  const [project] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(eq(projectsTable.id, projectId));
+  if (!project) {
+    res.status(404).json({ error: `Project ${projectId} does not exist` });
+    return;
+  }
+
   const {
     title, description, amount, additionalHours, status,
     requestedDate, submittedDate, submittedByUserId,
@@ -4799,6 +5594,136 @@ router.delete("/change-orders/:id", requirePM, async (req, res): Promise<void> =
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(changeOrdersTable).where(eq(changeOrdersTable.id, id));
   res.sendStatus(204);
+});
+
+export default router;
+```
+
+### `artifacts/api-server/src/routes/contracts.ts`
+```typescript
+import { Router, type IRouter } from "express";
+import { db, contractsTable, projectsTable } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
+import { z } from "zod/v4";
+import { requireFinance, requirePM } from "../middleware/rbac";
+
+const router: IRouter = Router();
+
+function mapContract(r: typeof contractsTable.$inferSelect) {
+  return {
+    ...r,
+    value: r.value === null || r.value === undefined ? null : Number(r.value),
+    createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
+    updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt,
+  };
+}
+
+const CreateBody = z.object({
+  projectId: z.number().int().positive(),
+  name: z.string().min(1).max(200),
+  status: z.string().min(1).max(40).optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  value: z.union([z.number(), z.string()]).nullable().optional(),
+  documentUrl: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+const UpdateBody = z.object({
+  projectId: z.number().int().positive().optional(),
+  name: z.string().min(1).max(200).optional(),
+  status: z.string().min(1).max(40).optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  value: z.union([z.number(), z.string()]).nullable().optional(),
+  documentUrl: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+router.get("/contracts", requireFinance, async (_req, res): Promise<void> => {
+  const rows = await db.select().from(contractsTable).orderBy(desc(contractsTable.createdAt));
+  res.json(rows.map(mapContract));
+});
+
+router.post("/contracts", requireFinance, async (req, res): Promise<void> => {
+  const parsed = CreateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [project] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(eq(projectsTable.id, parsed.data.projectId));
+  if (!project) {
+    res.status(400).json({ error: `Project ${parsed.data.projectId} does not exist` });
+    return;
+  }
+  const valueStr = parsed.data.value === null || parsed.data.value === undefined
+    ? null
+    : String(parsed.data.value);
+  const [row] = await db
+    .insert(contractsTable)
+    .values({
+      projectId: parsed.data.projectId,
+      name: parsed.data.name,
+      status: parsed.data.status ?? "Draft",
+      startDate: parsed.data.startDate ?? null,
+      endDate: parsed.data.endDate ?? null,
+      value: valueStr,
+      documentUrl: parsed.data.documentUrl ?? null,
+      notes: parsed.data.notes ?? null,
+    })
+    .returning();
+  res.status(201).json(mapContract(row));
+});
+
+router.patch("/contracts/:id", requireFinance, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = UpdateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const updates: Partial<typeof contractsTable.$inferInsert> = { updatedAt: new Date() };
+  if (parsed.data.projectId !== undefined) updates.projectId = parsed.data.projectId;
+  if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+  if (parsed.data.status !== undefined) updates.status = parsed.data.status;
+  if (parsed.data.startDate !== undefined) updates.startDate = parsed.data.startDate;
+  if (parsed.data.endDate !== undefined) updates.endDate = parsed.data.endDate;
+  if (parsed.data.value !== undefined) {
+    updates.value = parsed.data.value === null ? null : String(parsed.data.value);
+  }
+  if (parsed.data.documentUrl !== undefined) updates.documentUrl = parsed.data.documentUrl;
+  if (parsed.data.notes !== undefined) updates.notes = parsed.data.notes;
+  const [row] = await db
+    .update(contractsTable)
+    .set(updates)
+    .where(eq(contractsTable.id, id))
+    .returning();
+  if (!row) {
+    res.status(404).json({ error: "Contract not found" });
+    return;
+  }
+  res.json(mapContract(row));
+});
+
+router.delete("/contracts/:id", requirePM, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const [row] = await db.delete(contractsTable).where(eq(contractsTable.id, id)).returning();
+  if (!row) {
+    res.status(404).json({ error: "Contract not found" });
+    return;
+  }
+  res.status(204).end();
 });
 
 export default router;
@@ -5597,6 +6522,10 @@ import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
 import { projectUpdatesRouter } from "./projectUpdates";
 import projectGroupsRouter from "./projectGroups";
+import contractsRouter from "./contracts";
+import aiTimeAssistantRouter from "./aiTimeAssistant";
+import adminPortfolioRouter from "./adminPortfolio";
+import authLoginRouter from "./authLogin";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
 
@@ -5604,6 +6533,9 @@ const router: IRouter = Router();
 
 // Health check is public — no auth required.
 router.use(healthRouter);
+
+// Login picker is public — no auth required (bootstrap-exempt in roleClaim).
+router.use(authLoginRouter);
 
 // Customer role has no UI surface and no internal-API access.
 router.use(denyCustomerRole);
@@ -5649,6 +6581,9 @@ router.use(baselinesRouter);
 router.use(csatSurveysRouter);
 router.use(projectUpdatesRouter);
 router.use(projectGroupsRouter);
+router.use(contractsRouter);
+router.use(aiTimeAssistantRouter);
+router.use(adminPortfolioRouter);
 
 export default router;
 ```
@@ -6350,7 +7285,7 @@ router.post("/project-groups", requireAdmin, async (req, res): Promise<void> => 
 });
 
 router.patch("/project-groups/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
@@ -6378,7 +7313,7 @@ router.patch("/project-groups/:id", requireAdmin, async (req, res): Promise<void
 });
 
 router.delete("/project-groups/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
@@ -7905,10 +8840,10 @@ router.get("/projects/:id/budget-entries", async (req, res): Promise<void> => {
   });
 });
 
-// Manual entries are restricted to "Adjustment". SOW rows are seeded once when
-// a project is created, and CO rows are inserted automatically by the
-// /change-orders approval flow — exposing those types here would let users
-// double-count the budget.
+// Manual entries are restricted to "SOW" (one per project, the original
+// statement-of-work baseline) or "Adjustment" (corrections). CO rows are
+// inserted automatically by the /change-orders approval flow — exposing that
+// type here would let users double-count the budget.
 router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.id, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
@@ -7917,19 +8852,59 @@ router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise
 
   const { entryDate, type, description, amount, hours, documentLink } = req.body ?? {};
   if (!entryDate || typeof entryDate !== "string") { res.status(400).json({ error: "entryDate is required" }); return; }
-  if (type !== "Adjustment") { res.status(400).json({ error: "Manual entries must be type 'Adjustment'. SOW and CO entries are recorded automatically." }); return; }
+  if (type !== "Adjustment" && type !== "SOW") {
+    res.status(400).json({ error: "Manual entries must be type 'SOW' or 'Adjustment'. CO entries are recorded automatically." });
+    return;
+  }
+  // Only one SOW row per project — it's the baseline.  We do an upfront check
+  // for a friendly 409 in the common (single-request) case, and the partial
+  // unique index `budget_entries_sow_per_project_uq` is the race-safe
+  // backstop for concurrent POSTs (caught below as a 23505 unique violation).
+  if (type === "SOW") {
+    const [existingSow] = await db
+      .select({ id: budgetEntriesTable.id })
+      .from(budgetEntriesTable)
+      .where(and(eq(budgetEntriesTable.projectId, projectId), eq(budgetEntriesTable.type, "SOW")));
+    if (existingSow) {
+      res.status(409).json({ error: "An SOW entry already exists for this project. Use 'Adjustment' for further changes." });
+      return;
+    }
+  }
   const desc = typeof description === "string" ? description.trim() : "";
   if (!desc) { res.status(400).json({ error: "description is required" }); return; }
 
-  const [row] = await db.insert(budgetEntriesTable).values({
-    projectId,
-    entryDate,
-    type,
-    description: desc,
-    amount: String(Number(amount) || 0),
-    hours: String(Number(hours) || 0),
-    documentLink: documentLink || null,
-  }).returning();
+  let row;
+  try {
+    [row] = await db.insert(budgetEntriesTable).values({
+      projectId,
+      entryDate,
+      type,
+      description: desc,
+      amount: String(Number(amount) || 0),
+      hours: String(Number(hours) || 0),
+      documentLink: documentLink || null,
+    }).returning();
+  } catch (err: any) {
+    // Race-safety backstop: the partial unique index
+    // `budget_entries_sow_per_project_uq` fires when a concurrent request
+    // beat us to inserting the SOW row.  Drizzle wraps the pg error, so
+    // pull the code/constraint from either `err` or `err.cause`, and
+    // narrow strictly to *our* SOW index — any other 23505 (a real bug)
+    // should re-throw and surface as 500 rather than be silently masked
+    // as "SOW already exists".
+    const pgCode = err?.code ?? err?.cause?.code;
+    const constraint: string | undefined = err?.constraint ?? err?.cause?.constraint;
+    const message: string = typeof err?.message === "string" ? err.message : "";
+    const isSowDuplicate =
+      pgCode === "23505" &&
+      (constraint === "budget_entries_sow_per_project_uq" ||
+        message.includes("budget_entries_sow_per_project_uq"));
+    if (isSowDuplicate) {
+      res.status(409).json({ error: "An SOW entry already exists for this project. Use 'Adjustment' for further changes." });
+      return;
+    }
+    throw err;
+  }
 
   await logAudit({
     entityType: "project",
@@ -10545,9 +11520,16 @@ export default router;
 ```typescript
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { db, timeEntriesTable, projectsTable, usersTable, tasksTable, activityDefaultsTable, timeSettingsTable, timeCategoriesTable } from "@workspace/db";
+import {
+  db, timeEntriesTable, projectsTable, usersTable, tasksTable,
+  activityDefaultsTable, timeSettingsTable, timeCategoriesTable,
+  allocationsTable, holidayDatesTable,
+} from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
-import { getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable, checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry } from "../lib/governance";
+import {
+  getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable,
+  checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry,
+} from "../lib/governance";
 import {
   ListTimeEntriesResponse,
   ListTimeEntriesQueryParams,
@@ -10560,6 +11542,290 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+// ─── Guardrail Engine ─────────────────────────────────────────────────────────
+
+type GuardrailItem =
+  | { type: "hard_block"; code: string; message: string }
+  | { type: "soft_block"; code: string; message: string };
+
+function getWeekStart(date: string): string {
+  const d = new Date(date + "T00:00:00");
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function getWeekEnd(weekStart: string): string {
+  const d = new Date(weekStart + "T00:00:00");
+  d.setDate(d.getDate() + 6);
+  return d.toISOString().slice(0, 10);
+}
+
+async function runGuardrails(data: {
+  userId: number;
+  date: string;
+  hours: number;
+  projectId?: number | null;
+  taskId?: number | null;
+}): Promise<GuardrailItem[]> {
+  const results: GuardrailItem[] = [];
+
+  // Rule 9 — Time Entry on Inactive / Ended Project allocation
+  if (data.projectId) {
+    const [alloc] = await db
+      .select()
+      .from(allocationsTable)
+      .where(
+        and(
+          eq(allocationsTable.projectId, data.projectId),
+          eq(allocationsTable.userId, data.userId),
+        ),
+      )
+      .limit(1);
+    if (alloc && alloc.endDate < data.date) {
+      results.push({
+        type: "hard_block",
+        code: "INACTIVE_PROJECT",
+        message: `Your allocation on this project ended on ${alloc.endDate}. You cannot log time to this project. Contact your PM to extend your allocation if needed.`,
+      });
+    }
+  }
+
+  // Rule 5 — Weekend / Non-Working Day Guard
+  const dateObj = new Date(data.date + "T00:00:00");
+  const dow = dateObj.getDay(); // 0=Sun, 6=Sat
+  if (dow === 0 || dow === 6) {
+    results.push({
+      type: "soft_block",
+      code: "NON_WORKING_DAY",
+      message: `${data.date} is a weekend. Are you sure you want to log time here?`,
+    });
+  } else {
+    // Check user's holiday calendar
+    const [user] = await db
+      .select({ holidayCalendarId: usersTable.holidayCalendarId } as any)
+      .from(usersTable)
+      .where(eq(usersTable.id, data.userId))
+      .limit(1);
+    const calId = (user as any)?.holidayCalendarId;
+    if (calId) {
+      const [holiday] = await db
+        .select({ id: holidayDatesTable.id })
+        .from(holidayDatesTable)
+        .where(
+          and(
+            eq(holidayDatesTable.calendarId, calId),
+            eq(holidayDatesTable.date, data.date),
+          ),
+        )
+        .limit(1);
+      if (holiday) {
+        results.push({
+          type: "soft_block",
+          code: "PUBLIC_HOLIDAY",
+          message: `${data.date} is a public holiday in your calendar. Are you sure you want to log time here?`,
+        });
+      }
+    }
+  }
+
+  // Rule 1 — Daily Hour Cap
+  const [settings] = await db.select().from(timeSettingsTable).limit(1);
+  const weeklyCapacity = settings?.weeklyCapacityHours ?? 40;
+  const workingDays = (settings?.workingDays ?? "Mon,Tue,Wed,Thu,Fri").split(",").filter(Boolean).length || 5;
+  const dailyCapacity = Math.round(weeklyCapacity / workingDays);
+
+  const dayEntries = await db
+    .select({ hours: timeEntriesTable.hours })
+    .from(timeEntriesTable)
+    .where(
+      and(
+        eq(timeEntriesTable.userId, data.userId),
+        eq(timeEntriesTable.date, data.date),
+      ),
+    );
+  const existingDayHours = dayEntries.reduce((s, e) => s + Number(e.hours), 0);
+  const newDayTotal = existingDayHours + data.hours;
+
+  if (newDayTotal > dailyCapacity) {
+    results.push({
+      type: "soft_block",
+      code: "DAILY_CAP",
+      message: `You will log ${newDayTotal.toFixed(1)} hours on ${data.date}, which exceeds your daily capacity of ${dailyCapacity} hours. Please review before saving.`,
+    });
+  }
+
+  // Rule 4 — Duplicate Entry Detection
+  if (data.projectId && data.taskId) {
+    const [dup] = await db
+      .select({ id: timeEntriesTable.id })
+      .from(timeEntriesTable)
+      .where(
+        and(
+          eq(timeEntriesTable.userId, data.userId),
+          eq(timeEntriesTable.projectId, data.projectId),
+          eq(timeEntriesTable.taskId, data.taskId),
+          eq(timeEntriesTable.date, data.date),
+        ),
+      )
+      .limit(1);
+    if (dup) {
+      results.push({
+        type: "soft_block",
+        code: "DUPLICATE_ENTRY",
+        message: `A time entry already exists for this task on ${data.date}. Adding this will combine with the existing entry.`,
+      });
+    }
+  }
+
+  // Rules 2 & 3 — Allocation overrun checks
+  if (data.projectId) {
+    const [alloc] = await db
+      .select()
+      .from(allocationsTable)
+      .where(
+        and(
+          eq(allocationsTable.projectId, data.projectId),
+          eq(allocationsTable.userId, data.userId),
+        ),
+      )
+      .limit(1);
+
+    if (alloc) {
+      // Rule 2 — Weekly Allocation Overrun
+      const allocHPW = Number(alloc.hoursPerWeek);
+      if (allocHPW > 0) {
+        const wStart = getWeekStart(data.date);
+        const wEnd = getWeekEnd(wStart);
+        const weekEntries = await db
+          .select({ hours: timeEntriesTable.hours })
+          .from(timeEntriesTable)
+          .where(
+            and(
+              eq(timeEntriesTable.userId, data.userId),
+              eq(timeEntriesTable.projectId, data.projectId),
+              gte(timeEntriesTable.date, wStart),
+              lte(timeEntriesTable.date, wEnd),
+            ),
+          );
+        const weekHours = weekEntries.reduce((s, e) => s + Number(e.hours), 0);
+        if (weekHours + data.hours > allocHPW) {
+          results.push({
+            type: "soft_block",
+            code: "WEEKLY_OVERRUN",
+            message: `You will log ${(weekHours + data.hours).toFixed(1)} hours on this project this week, which exceeds your weekly allocation of ${allocHPW}h. Billed hours are more than planned — please recheck before submitting.`,
+          });
+        }
+      }
+
+      // Rule 3 — Cumulative Budget Overrun
+      const allocTotal = Number(alloc.totalHours);
+      if (allocTotal > 0) {
+        const cumEntries = await db
+          .select({ hours: timeEntriesTable.hours })
+          .from(timeEntriesTable)
+          .where(
+            and(
+              eq(timeEntriesTable.userId, data.userId),
+              eq(timeEntriesTable.projectId, data.projectId),
+            ),
+          );
+        const cumHours = cumEntries.reduce((s, e) => s + Number(e.hours), 0);
+        const newTotal = cumHours + data.hours;
+        const pct = (newTotal / allocTotal) * 100;
+        if (pct >= 100) {
+          results.push({
+            type: "hard_block",
+            code: "BUDGET_OVERRUN",
+            message: `Your total logged hours on this project have reached ${newTotal.toFixed(1)} of your ${allocTotal}h allocated hours. Contact your Project Manager before logging additional hours.`,
+          });
+        } else if (pct >= 90) {
+          results.push({
+            type: "soft_block",
+            code: "BUDGET_WARNING",
+            message: `Your total logged hours on this project will reach ${newTotal.toFixed(1)} of your ${allocTotal}h allocated (${pct.toFixed(0)}%). Contact your PM if you need more time.`,
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+// ─── Guardrail context endpoint ───────────────────────────────────────────────
+// GET /api/time-entries/guardrail-context?userId=X&weekStart=Y
+// Returns allocation vs actuals context for the timesheet grid.
+router.get("/time-entries/guardrail-context", async (req, res): Promise<void> => {
+  const userId = req.query.userId ? Number(req.query.userId) : null;
+  const weekStart = req.query.weekStart ? String(req.query.weekStart) : null;
+  if (!userId || !weekStart) {
+    res.status(400).json({ error: "userId and weekStart required" });
+    return;
+  }
+  const weekEnd = getWeekEnd(weekStart);
+
+  const allocs = await db
+    .select()
+    .from(allocationsTable)
+    .where(eq(allocationsTable.userId, userId));
+
+  const weekEntries = await db
+    .select()
+    .from(timeEntriesTable)
+    .where(
+      and(
+        eq(timeEntriesTable.userId, userId),
+        gte(timeEntriesTable.date, weekStart),
+        lte(timeEntriesTable.date, weekEnd),
+      ),
+    );
+
+  const allEntries = await db
+    .select({ projectId: timeEntriesTable.projectId, hours: timeEntriesTable.hours })
+    .from(timeEntriesTable)
+    .where(eq(timeEntriesTable.userId, userId));
+
+  const context = allocs.map((a) => {
+    const weekLoggedHours = weekEntries
+      .filter((e) => e.projectId === a.projectId)
+      .reduce((s, e) => s + Number(e.hours), 0);
+    const totalLoggedHours = allEntries
+      .filter((e) => e.projectId === a.projectId)
+      .reduce((s, e) => s + Number(e.hours), 0);
+    const allocTotal = Number(a.totalHours);
+    const allocPerWeek = Number(a.hoursPerWeek);
+    return {
+      projectId: a.projectId,
+      allocatedPerWeek: allocPerWeek,
+      allocatedTotal: allocTotal,
+      weekLoggedHours,
+      totalLoggedHours,
+      remainingTotal: allocTotal > 0 ? Math.max(0, allocTotal - totalLoggedHours) : null,
+      weekOverrun: allocPerWeek > 0 && weekLoggedHours > allocPerWeek,
+      budgetPct: allocTotal > 0 ? Math.round((totalLoggedHours / allocTotal) * 100) : null,
+      allocationEndDate: a.endDate,
+      isExpired: a.endDate < weekStart,
+    };
+  });
+
+  // Also compute daily totals for the week for Rule 1 (daily cap) display
+  const [settings] = await db.select().from(timeSettingsTable).limit(1);
+  const weeklyCapacity = settings?.weeklyCapacityHours ?? 40;
+  const workingDays = (settings?.workingDays ?? "Mon,Tue,Wed,Thu,Fri").split(",").filter(Boolean).length || 5;
+  const dailyCapacity = Math.round(weeklyCapacity / workingDays);
+
+  const dailyTotals: Record<string, number> = {};
+  for (const e of weekEntries) {
+    dailyTotals[e.date] = (dailyTotals[e.date] ?? 0) + Number(e.hours);
+  }
+
+  res.json({ allocations: context, dailyCapacity, weeklyCapacity, dailyTotals });
+});
+
+// ─── Core helpers ─────────────────────────────────────────────────────────────
 
 async function isParentOrPhaseTask(taskId: number): Promise<boolean> {
   const [self] = await db
@@ -10588,6 +11854,8 @@ function mapEntry(e: typeof timeEntriesTable.$inferSelect) {
   };
 }
 
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
 router.get("/time-entries", async (req, res): Promise<void> => {
   const qp = ListTimeEntriesQueryParams.safeParse(req.query);
   const conditions = [];
@@ -10601,12 +11869,12 @@ router.get("/time-entries", async (req, res): Promise<void> => {
   res.json(ListTimeEntriesResponse.parse(rows.map(mapEntry)));
 });
 
-router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
+router.post("/time-entries", async (req, res): Promise<void> => {
   const parsed = CreateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const data: any = { ...parsed.data, hours: String(parsed.data.hours) };
-  // Pass-through fields not in generated schema
   const body = req.body ?? {};
+
   if (body.categoryId !== undefined && data.categoryId === undefined) {
     data.categoryId = body.categoryId === null ? null : Number(body.categoryId);
   }
@@ -10619,8 +11887,10 @@ router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
       return;
     }
   }
+
   // Enforce: non-project activities must be non-billable
   if (!data.projectId) { data.projectId = null; data.billable = false; }
+
   // Default cascade: task → activity-default → time-settings.defaultBillable / time-category.defaultBillable
   const billableMissing = data.billable === undefined || data.billable === null;
   const categoryMissing = data.categoryId === undefined || data.categoryId === null;
@@ -10646,11 +11916,44 @@ router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
     const [cat] = await db.select().from(timeCategoriesTable).where(eq(timeCategoriesTable.id, Number(data.categoryId)));
     if (cat && data.projectId) data.billable = cat.defaultBillable !== false;
   }
+
+  // ─── Run guardrails ────────────────────────────────────────────────────────
+  const force = body.force === true;
+  const guardrailResults = await runGuardrails({
+    userId: Number(data.userId),
+    date: String(data.date),
+    hours: Number(data.hours),
+    projectId: data.projectId ?? null,
+    taskId: data.taskId ?? null,
+  });
+
+  const hardBlocks = guardrailResults.filter((r) => r.type === "hard_block") as { type: "hard_block"; code: string; message: string }[];
+  const softBlocks = guardrailResults.filter((r) => r.type === "soft_block") as { type: "soft_block"; code: string; message: string }[];
+
+  if (hardBlocks.length > 0) {
+    res.status(422).json({
+      error: hardBlocks[0].message,
+      guardrailCode: hardBlocks[0].code,
+      guardrails: guardrailResults,
+    });
+    return;
+  }
+
+  if (softBlocks.length > 0 && !force) {
+    res.status(409).json({
+      warning: softBlocks[0].message,
+      guardrailCode: softBlocks[0].code,
+      guardrails: guardrailResults,
+      requiresConfirmation: true,
+    });
+    return;
+  }
+
   const [row] = await db.insert(timeEntriesTable).values(data).returning();
-  res.status(201).json(mapEntry(row));
+  res.status(201).json({ ...mapEntry(row), guardrails: softBlocks.length > 0 ? guardrailResults : undefined });
 });
 
-router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
+router.patch("/time-entries/:id", async (req, res): Promise<void> => {
   const params = UpdateTimeEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateTimeEntryBody.safeParse(req.body);
@@ -10659,21 +11962,17 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Time entry not found" }); return; }
   const settings = await getGovernanceSettings();
-  // Date-based lock: edit details
   const dateErr = checkEntryEditable(existing, role, settings);
   if (dateErr) { res.status(dateErr.status).json({ error: dateErr.error }); return; }
-  // Lock-on-Approval: parent timesheet
   const ts = await getTimesheetForEntry(existing);
   if (ts) {
     const tsErr = checkTimesheetEditable(ts, role, settings);
     if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
   }
-  // Invoice protection: block project move if entry is invoiced
   const invErr = await checkInvoicedMove(existing, (parsed.data as any).projectId);
   if (invErr) { res.status(invErr.status).json({ error: invErr.error }); return; }
   const teUpdates: any = { ...parsed.data };
   if (teUpdates.hours !== undefined) teUpdates.hours = String(teUpdates.hours);
-  // Pass-through fields not in generated UpdateTimeEntryBody Zod schema
   const body = req.body ?? {};
   if (body.categoryId !== undefined) teUpdates.categoryId = body.categoryId === null ? null : Number(body.categoryId);
   if (body.taskId !== undefined) teUpdates.taskId = body.taskId === null ? null : Number(body.taskId);
@@ -10686,7 +11985,6 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   if (typeof body.role === "string") teUpdates.role = body.role.trim() || null;
   if (typeof body.rejected === "boolean") teUpdates.rejected = body.rejected;
   if (typeof body.rejectionNote === "string") teUpdates.rejectionNote = body.rejectionNote.trim() || null;
-  // Status changes (approved / rejected) require status-change permission
   if (body.approved !== undefined || body.rejected !== undefined) {
     const statusErr = checkEntryStatusChangeable(existing, role, settings);
     if (statusErr) { res.status(statusErr.status).json({ error: statusErr.error }); return; }
@@ -10699,7 +11997,6 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   res.json(UpdateTimeEntryResponse.parse(mapEntry(row)));
 });
 
-// Per-entry reject (used by Approvals → detail review with selected entries)
 router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
@@ -10714,7 +12011,6 @@ router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<voi
     .set({ rejected: true, approved: false, rejectionNote: reason || null })
     .where(eq(timeEntriesTable.id, id))
     .returning();
-  // Notify submitter
   try {
     await db.insert((await import("@workspace/db")).notificationsTable).values({
       type: "timesheet_entry_rejected",
@@ -10728,7 +12024,6 @@ router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<voi
   res.json(mapEntry(row));
 });
 
-// Bulk per-entry reject: { ids: number[], reason: string }
 router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<void> => {
   const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
   const reason = String(req.body?.rejectionNote ?? req.body?.reason ?? "").trim();
@@ -10764,7 +12059,6 @@ router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<vo
   res.json({ rejected: ids.length });
 });
 
-// Bulk approve: { ids: number[] }
 router.post("/time-entries/bulk-approve", requirePM, async (req, res): Promise<void> => {
   const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
@@ -10782,7 +12076,6 @@ router.post("/time-entries/bulk-approve", requirePM, async (req, res): Promise<v
   res.json({ approved: ids.length });
 });
 
-// Bulk delete: { ids: number[] }
 router.post("/time-entries/bulk-delete", requirePM, async (req, res): Promise<void> => {
   const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
@@ -10806,7 +12099,7 @@ router.post("/time-entries/bulk-delete", requirePM, async (req, res): Promise<vo
   res.json({ deleted: ids.length });
 });
 
-router.delete("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
+router.delete("/time-entries/:id", async (req, res): Promise<void> => {
   const params = DeleteTimeEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
@@ -10820,7 +12113,6 @@ router.delete("/time-entries/:id", requirePM, async (req, res): Promise<void> =>
     const tsErr = checkTimesheetEditable(ts, role, settings);
     if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
   }
-  // Invoiced entries cannot be deleted
   const { getInvoicedLink } = await import("../lib/governance");
   const link = await getInvoicedLink(existing.id);
   if (link) { res.status(409).json({ error: `Cannot delete: this entry is on invoice ${link.invoiceId} (${link.invoiceStatus}). Void or delete the invoice first.` }); return; }
@@ -10851,7 +12143,7 @@ router.get("/time-entries/summary", async (_req, res): Promise<void> => {
 
   const byProject = Array.from(byProjectMap.entries()).map(([projectId, hours]) => ({
     projectId,
-    projectName: projects.find(p => p.id === projectId)?.name ?? 'Unknown',
+    projectName: projects.find(p => p.id === projectId)?.name ?? "Unknown",
     hours,
   }));
 
@@ -10860,7 +12152,7 @@ router.get("/time-entries/summary", async (_req, res): Promise<void> => {
 
   const byUser = Array.from(byUserMap.entries()).map(([userId, hours]) => ({
     userId,
-    userName: users.find(u => u.id === userId)?.name ?? 'Unknown',
+    userName: users.find(u => u.id === userId)?.name ?? "Unknown",
     hours,
   }));
 
@@ -11203,11 +12495,17 @@ router.post("/timesheets/:id/submit", async (req, res): Promise<void> => {
     const stErr = checkTimesheetStatusChangeable(existing, role, settings);
     if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
   }
-  // Check minimum hours requirement
+  // Check minimum and maximum hours requirements
   const settingsRows = await db.select().from(timeSettingsTable).limit(1);
   const minHours = settingsRows[0]?.minSubmitHours ?? 0;
-  if (minHours > 0 && Number(existing.totalHours) < minHours) {
-    res.status(400).json({ error: `Minimum ${minHours} hours required before submission. Current: ${Number(existing.totalHours)}h` });
+  const maxHours = settingsRows[0]?.maxSubmitHours ?? null;
+  const currentHours = Number(existing.totalHours);
+  if (minHours > 0 && currentHours < minHours) {
+    res.status(400).json({ error: `You have only logged ${currentHours}h this week. The minimum required for submission is ${minHours} hours.` });
+    return;
+  }
+  if (maxHours != null && currentHours > maxHours) {
+    res.status(400).json({ error: `Your total logged hours of ${currentHours}h exceed the maximum allowed of ${maxHours} hours per week. Please review.` });
     return;
   }
   const submittedByUserId = (req.body as any)?.submittedByUserId ?? existing.userId;
@@ -11299,6 +12597,12 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Submitted") { res.status(400).json({ error: "Only Submitted timesheets can be rejected" }); return; }
+  // Rule 12 — Rejection note is mandatory
+  const rejectionNote = (parsed.data.rejectionNote ?? "").trim();
+  if (!rejectionNote) {
+    res.status(400).json({ error: "A rejection note is required. Please explain why this timesheet is being returned so the employee can correct it." });
+    return;
+  }
   {
     const role = String(req.headers["x-user-role"] ?? "");
     const settings = await getGovernanceSettings();
@@ -11676,8 +12980,8 @@ export default router;
 ```
 
 ### `artifacts/businessnow/src/App.tsx`
-```tsx
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+```typescript
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11686,7 +12990,7 @@ import { DensityProvider } from "@/contexts/density";
 import { ThemeProvider } from "@/contexts/theme";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { queryClient } from "@/lib/queryClient";
-import React from "react";
+import React, { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
@@ -11697,22 +13001,39 @@ import Resources from "@/pages/resources";
 import Finance from "@/pages/finance";
 import Reports from "@/pages/reports";
 import Admin from "@/pages/admin";
+import CommandCenter from "@/pages/command-center";
 import Notifications from "@/pages/notifications";
 import Prospects from "@/pages/prospects";
 import Opportunities from "@/pages/opportunities";
+import Login from "@/pages/login";
 import Forbidden from "@/pages/forbidden";
 import { RequirePermission } from "@/components/require-permission";
 import { RoleSelectorModal } from "@/components/role-selector-modal";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useCurrentUser();
+  const { isLoading, isAuthenticated } = useCurrentUser();
+  const [location, navigate] = useLocation();
+  const onLogin = location === "/login";
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated && !onLogin) {
+      navigate("/login");
+    }
+  }, [isLoading, isAuthenticated, onLogin, navigate]);
+
   if (isLoading) return null;
+  // /login is rendered by the Router below so it can mount even when
+  // unauthenticated. For everything else, hold rendering until the user
+  // is authenticated (the effect above will have started the redirect).
+  if (!isAuthenticated && !onLogin) return null;
   return <>{children}</>;
 }
 
 function Router() {
   return (
     <Switch>
+      <Route path="/login" component={Login} />
       <Route path="/" component={Dashboard} />
       <Route path="/projects" component={Projects} />
       <Route path="/projects/:id" component={ProjectDetail} />
@@ -11737,6 +13058,14 @@ function Router() {
           <Admin />
         </RequirePermission>
       </Route>
+      <Route path="/command-center">
+        <RequirePermission permission="settings.manageTeam">
+          <CommandCenter />
+        </RequirePermission>
+      </Route>
+      <Route path="/admin/portfolio"><Redirect to="/command-center" /></Route>
+      <Route path="/rate-cards"><Redirect to="/admin?tab=ratecards" /></Route>
+      <Route path="/admin/rate-cards"><Redirect to="/admin?tab=ratecards" /></Route>
       <Route path="/notifications" component={Notifications} />
       <Route path="/forbidden"><Forbidden /></Route>
       <Route component={NotFound} />
@@ -11757,8 +13086,8 @@ function App() {
                     <ErrorBoundary>
                       <Router />
                     </ErrorBoundary>
+                    <RoleSelectorModal />
                   </AuthGate>
-                  <RoleSelectorModal />
                 </WouterRouter>
                 <Toaster />
               </TooltipProvider>
@@ -11774,7 +13103,7 @@ export default App;
 ```
 
 ### `artifacts/businessnow/src/components/apply-template-modal.tsx`
-```tsx
+```typescript
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -11974,7 +13303,7 @@ export function ApplyTemplateModal({ open, onOpenChange, projectId, projectStart
 ```
 
 ### `artifacts/businessnow/src/components/create-project-wizard.tsx`
-```tsx
+```typescript
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12783,7 +14112,7 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
 ```
 
 ### `artifacts/businessnow/src/components/error-boundary.tsx`
-```tsx
+```typescript
 import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12875,7 +14204,7 @@ export class ErrorBoundary extends Component<Props, State> {
 ```
 
 ### `artifacts/businessnow/src/components/invoice-detail.tsx`
-```tsx
+```typescript
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
@@ -13137,7 +14466,7 @@ export function InvoiceDetail({ invoice, open, onOpenChange }: { invoice: any, o
 ```
 
 ### `artifacts/businessnow/src/components/layout.tsx`
-```tsx
+```typescript
 import { ReactNode, useState } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { Link, useLocation } from "wouter";
@@ -13170,6 +14499,7 @@ import {
   BarChart3,
   Settings,
   Bell,
+  Gauge,
   Menu,
   UserSearch,
   TrendingUp,
@@ -13183,6 +14513,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  FileText,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13205,17 +14537,44 @@ type NavItemDef = {
   requires?: AccountPermission;
 };
 
-const WORKSPACE_NAV: NavItemDef[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, requires: "dashboards.view" },
-  { href: "/projects", label: "Projects", icon: Briefcase },
-  { href: "/accounts", label: "Accounts", icon: Users },
-  { href: "/prospects", label: "Prospects", icon: UserSearch },
-  { href: "/opportunities", label: "Opportunities", icon: TrendingUp },
-  { href: "/time", label: "Time Tracking", icon: Clock },
-  { href: "/resources", label: "Resources", icon: CalendarDays },
+/**
+ * Sidebar groups (F4 from product feedback): related entries are nested under
+ * a labeled subhead so PMO admins can find Templates / Rate Cards beside the
+ * Projects entry instead of digging into Admin tabs.
+ */
+type NavSection = { title?: string; items: NavItemDef[] };
+
+const WORKSPACE_SECTIONS: NavSection[] = [
+  {
+    title: "Dashboard",
+    items: [
+      { href: "/", label: "Overview", icon: LayoutDashboard, requires: "dashboards.view" },
+    ],
+  },
+  {
+    title: "Projects",
+    items: [
+      { href: "/projects", label: "Projects", icon: Briefcase },
+      { href: "/admin?tab=templates", label: "Templates", icon: FileText },
+      { href: "/admin?tab=ratecards", label: "Rate Cards", icon: Tag },
+    ],
+  },
+  {
+    title: "Workspace",
+    items: [
+      { href: "/accounts", label: "Accounts", icon: Users },
+      { href: "/prospects", label: "Prospects", icon: UserSearch },
+      { href: "/opportunities", label: "Opportunities", icon: TrendingUp },
+      { href: "/time", label: "Time Tracking", icon: Clock },
+      { href: "/resources", label: "Resources", icon: CalendarDays },
+    ],
+  },
 ];
 
+const WORKSPACE_NAV: NavItemDef[] = WORKSPACE_SECTIONS.flatMap(s => s.items);
+
 const ADMIN_NAV: NavItemDef[] = [
+  { href: "/command-center", label: "Command Center", icon: Gauge, requires: "settings.manageTeam" },
   { href: "/finance", label: "Finance", icon: DollarSign },
   { href: "/reports", label: "Reports", icon: BarChart3, requires: "reports.viewStandard" },
   { href: "/admin", label: "Admin", icon: Settings, requires: "settings.manageTeam" },
@@ -13609,28 +14968,40 @@ export function Layout({ children }: { children: ReactNode }) {
   const MobileNavLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
       <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Workspace</p>
-      {WORKSPACE_NAV.map(item => {
-        const Icon = item.icon;
-        const active = isActive(item.href);
+      {WORKSPACE_SECTIONS.map((section, idx) => {
+        const items = section.items.filter(item => !item.requires || checkPerm(item.requires));
+        if (items.length === 0) return null;
         return (
-          <SheetClose asChild key={item.href}>
-            <Link href={item.href}>
-              <div
-                role="link"
-                aria-current={active ? "page" : undefined}
-                onClick={onNavigate}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
-                  "focus-visible:ring-2 focus-visible:ring-ring",
-                  active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-                data-testid={`nav-mobile-${item.label.toLowerCase().replace(/ /g, "-")}`}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </div>
-            </Link>
-          </SheetClose>
+          <div key={section.title ?? `m-ws-${idx}`} className={cn(idx > 0 && "mt-1")}>
+            {section.title && (
+              <p className="px-2 pt-1 pb-0.5 text-[10px] font-medium tracking-wide text-muted-foreground/70">{section.title}</p>
+            )}
+            {items.map(item => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <SheetClose asChild key={item.href}>
+                  <Link href={item.href}>
+                    <div
+                      role="link"
+                      aria-current={active ? "page" : undefined}
+                      onClick={onNavigate}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
+                        "focus-visible:ring-2 focus-visible:ring-ring",
+                        section.title && "ml-2",
+                        active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                      data-testid={`nav-mobile-${item.label.toLowerCase().replace(/ /g, "-")}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </div>
+                  </Link>
+                </SheetClose>
+              );
+            })}
+          </div>
         );
       })}
       <div className="my-1 border-t border-border" />
@@ -13714,7 +15085,22 @@ export function Layout({ children }: { children: ReactNode }) {
           {!collapsed && (
             <p className="px-2 pt-1 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Workspace</p>
           )}
-          {visibleWorkspaceNav.map(item => <NavItem key={item.href} item={item} />)}
+          {WORKSPACE_SECTIONS.map((section, idx) => {
+            const items = section.items.filter(item => !item.requires || checkPerm(item.requires));
+            if (items.length === 0) return null;
+            return (
+              <div key={section.title ?? `ws-${idx}`} className={cn(idx > 0 && "mt-1")}>
+                {!collapsed && section.title && (
+                  <p className="px-2 pt-1 pb-0.5 text-[10px] font-medium tracking-wide text-muted-foreground/70">{section.title}</p>
+                )}
+                {items.map(item => (
+                  <div key={item.href} className={!collapsed && section.title ? "ml-2" : undefined}>
+                    <NavItem item={item} />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
 
           {visibleAdminNav.length > 0 && (
             <>
@@ -13816,7 +15202,7 @@ export const NAV_ITEMS = ALL_NAV;
 ```
 
 ### `artifacts/businessnow/src/components/page-header.tsx`
-```tsx
+```typescript
 import { ReactNode, Fragment } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronRight, Home } from "lucide-react";
@@ -13946,7 +15332,7 @@ export function PageHeader({
 ```
 
 ### `artifacts/businessnow/src/components/project-documents.tsx`
-```tsx
+```typescript
 import { useState } from "react";
 import {
   useListDocuments, useCreateDocument, useUpdateDocument, useDeleteDocument, useListDocumentVersions,
@@ -14264,7 +15650,7 @@ export function ProjectDocuments({ projectId }: Props) {
 ```
 
 ### `artifacts/businessnow/src/components/project-forms.tsx`
-```tsx
+```typescript
 import { useState } from "react";
 import {
   useListForms, useCreateForm, useDeleteForm,
@@ -14822,7 +16208,7 @@ function FormDetailView({
 ```
 
 ### `artifacts/businessnow/src/components/project-gantt.tsx`
-```tsx
+```typescript
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProjectGantt } from "@workspace/api-client-react";
@@ -14885,6 +16271,7 @@ const ZOOM_LABELS: Record<Zoom, string> = { quarter: "Quarter", month: "Month", 
 const STATUS_BAR: Record<string, string> = {
   Completed: "#10b981",
   "In Progress": "#3b82f6",
+  "Started": "#3b82f6",
   "Not Started": "#94a3b8",
   "On Hold": "#f59e0b",
   Blocked: "#f59e0b",
@@ -15248,7 +16635,7 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
         {/* ── Legend bar ── */}
         <div className="flex items-center gap-4 px-3 py-1.5 text-[11px] text-slate-500 border-b bg-white flex-wrap shrink-0">
           {/* Status legend */}
-          {[["Completed", "#10b981"], ["In Progress", "#3b82f6"], ["Not Started", "#94a3b8"], ["On Hold", "#f59e0b"], ["Canceled", "#cbd5e1"]].map(([s, c]) => (
+          {[["Completed", "#10b981"], ["Started", "#3b82f6"], ["Not Started", "#94a3b8"], ["On Hold", "#f59e0b"], ["Canceled", "#cbd5e1"]].map(([s, c]) => (
             <span key={s} className="flex items-center gap-1">
               <span className="h-2.5 w-4 rounded-sm inline-block" style={{ background: c }} />{s}
             </span>
@@ -15593,7 +16980,7 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
 ```
 
 ### `artifacts/businessnow/src/components/project-groups-nav.tsx`
-```tsx
+```typescript
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -16088,7 +17475,7 @@ export function ProjectGroupsNav({ isAdmin, onNavigate, variant = "desktop" }: P
 ```
 
 ### `artifacts/businessnow/src/components/project-phases.tsx`
-```tsx
+```typescript
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16125,7 +17512,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
-import { useTaskStatuses, TASK_STATUS_CYCLE } from "@/lib/task-status";
+import { TreeToggle } from "@/components/task-tree";
+import { useTaskStatuses, TASK_STATUS_CYCLE, taskStatusLabel } from "@/lib/task-status";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16138,13 +17526,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
+import { useUndoableMutation } from "@/hooks/use-undoable-mutation";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Plus,
   MoreVertical,
-  ChevronDown,
-  ChevronRight,
   Calendar,
   Milestone,
   ChevronsDown,
@@ -16273,7 +17659,7 @@ function applyPending(tasks: any[], pending: PendingMap): any[] {
 
 const taskSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  status: z.enum(["Not Started", "In Progress", "On Hold", "Completed", "Canceled"]),
+  status: z.enum(["Not Started", "Started", "In Progress", "On Hold", "Completed", "Canceled"]),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]),
   assigneeIds: z.array(z.number()),
   dueDate: z.string().optional(),
@@ -16351,23 +17737,15 @@ function SortableTaskRow(props: SortableTaskRowProps) {
         <GripVertical className="h-4 w-4" />
       </button>
 
-      {/* Expand / collapse toggle */}
-      <div className="w-5 shrink-0 flex items-center justify-center">
-        {hasChildren ? (
-          <button
-            onClick={() => onToggleExpand(task.id)}
-            className="rounded p-0.5 hover:bg-muted text-muted-foreground transition-colors"
-            aria-label={isExpanded ? "Collapse" : "Expand"}
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5" />
-            )}
-          </button>
-        ) : (
-          <span className="w-3.5 h-3.5 block" />
-        )}
+      {/* Expand / collapse toggle (shared component for cross-surface consistency) */}
+      <div className="w-6 shrink-0 flex items-center justify-center">
+        <TreeToggle
+          expanded={isExpanded}
+          hasChildren={hasChildren}
+          onToggle={() => onToggleExpand(task.id)}
+          label={task.name}
+          size="sm"
+        />
       </div>
 
       {/* Task name */}
@@ -16501,6 +17879,7 @@ function SortableTaskRow(props: SortableTaskRowProps) {
 export function ProjectPhases({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const undoable = useUndoableMutation();
 
   const { data: rawTasks, isLoading } = useListTasks(
     { projectId },
@@ -16535,7 +17914,12 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
 
   // ── State ──────────────────────────────────────────────────────────────────
 
+  // Default tree state: Phase nodes expanded (so their direct child tasks are
+  // visible), but all non-phase Tasks collapsed (so deep subtask trees don't
+  // overwhelm the user on page load). Recomputed once when the task list
+  // first loads — user toggles thereafter are preserved.
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [didInitExpanded, setDidInitExpanded] = useState(false);
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [addingParentId, setAddingParentId] = useState<number | null>(null);
   const [addingParentName, setAddingParentName] = useState<string>("");
@@ -16583,6 +17967,17 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const visibleNodes = useMemo(() => flattenVisible(tree, expandedIds), [tree, expandedIds]);
   const visibleIds = useMemo(() => visibleNodes.map((n) => n.task.id), [visibleNodes]);
   const allExpanded = allIds.length > 0 && allIds.every((id) => expandedIds.has(id));
+
+  // Initial expand: open all Phase nodes (top-level isPhase tasks) once tasks
+  // load. Runs only the first time we receive a non-empty task list so that
+  // subsequent refetches don't clobber the user's manual expand/collapse.
+  useEffect(() => {
+    if (didInitExpanded) return;
+    if (serverTasks.length === 0) return;
+    const phaseIds = serverTasks.filter((t: any) => t.isPhase).map((t: any) => t.id as number);
+    setExpandedIds(new Set(phaseIds));
+    setDidInitExpanded(true);
+  }, [serverTasks, didInitExpanded]);
 
   function expandAll() { setExpandedIds(new Set(allIds)); }
   function collapseAll() { setExpandedIds(new Set()); }
@@ -16856,62 +18251,63 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
       taskStatusDefs && taskStatusDefs.length > 0
         ? taskStatusDefs.filter((s) => !s.isTerminal).map((s) => s.label)
         : (TASK_STATUS_CYCLE as readonly string[]).slice();
-    const order = dynamicCycle.length > 0 ? dynamicCycle : ["Not Started", "In Progress", "On Hold"];
-    const current = task.status === "Blocked" ? "On Hold" : task.status;
+    const order = dynamicCycle.length > 0 ? dynamicCycle.map((s) => taskStatusLabel(s)) : ["Not Started", "Started", "On Hold"];
+    const current = taskStatusLabel(task.status);
     const idx = order.indexOf(current);
     const next = order[(idx === -1 ? 0 : idx + 1) % order.length];
-    try {
-      await updateTask.mutateAsync({ id: task.id, data: { status: next as any } });
-      queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-    } catch {
-      toast({ title: "Error updating status", variant: "destructive" });
-    }
+    const previous = task.status;
+    await undoable.run({
+      do: async () => {
+        await updateTask.mutateAsync({ id: task.id, data: { status: next as any } });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      },
+      undo: async () => {
+        await updateTask.mutateAsync({ id: task.id, data: { status: previous as any } });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      },
+      successTitle: `Status: ${next}`,
+      description: task.name,
+      errorTitle: "Error updating status",
+      undoSuccessTitle: `Status: ${previous}`,
+    });
   };
 
   const handleDelete = async (id: number) => {
     const original = (allTasks || []).find((t: any) => t.id === id);
-    try {
-      await deleteTask.mutateAsync({ id });
-      queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-      const restore = async () => {
-        if (!original) return;
-        try {
-          await createTask.mutateAsync({
-            data: {
-              projectId,
-              name: original.name,
-              status: original.status,
-              priority: original.priority,
-              assigneeIds: original.assigneeIds ?? [],
-              dueDate: original.dueDate ?? undefined,
-              startDate: original.startDate ?? undefined,
-              effort: Number(original.effort ?? 0),
-              plannedHours: Number(original.plannedHours ?? original.effort ?? 0),
-              estimateHours: Number(original.estimateHours ?? original.effort ?? 0),
-              billable: !!original.billable,
-              isMilestone: !!original.isMilestone,
-              isPhase: !!original.isPhase,
-              parentTaskId: original.parentTaskId ?? undefined,
-              sortOrder: typeof original.sortOrder === "number" ? original.sortOrder : undefined,
-            } as any,
-          });
-          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-          toast({ title: "Task restored", duration: 3000 });
-        } catch {
-          toast({ title: "Could not restore task", variant: "destructive" });
-        }
-      };
-      toast({
-        title: "Task deleted",
-        description: original?.name,
-        duration: 5000,
-        action: original ? (
-          <ToastAction altText="Undo delete" onClick={restore}>Undo</ToastAction>
-        ) : undefined,
-      });
-    } catch {
-      toast({ title: "Error deleting task", variant: "destructive" });
-    }
+    await undoable.run({
+      do: async () => {
+        await deleteTask.mutateAsync({ id });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      },
+      undo: async () => {
+        if (!original) throw new Error("No snapshot to restore");
+        await createTask.mutateAsync({
+          data: {
+            projectId,
+            name: original.name,
+            status: original.status,
+            priority: original.priority,
+            assigneeIds: original.assigneeIds ?? [],
+            dueDate: original.dueDate ?? undefined,
+            startDate: original.startDate ?? undefined,
+            effort: Number(original.effort ?? 0),
+            plannedHours: Number(original.plannedHours ?? original.effort ?? 0),
+            estimateHours: Number(original.estimateHours ?? original.effort ?? 0),
+            billable: !!original.billable,
+            isMilestone: !!original.isMilestone,
+            isPhase: !!original.isPhase,
+            parentTaskId: original.parentTaskId ?? undefined,
+            sortOrder: typeof original.sortOrder === "number" ? original.sortOrder : undefined,
+          } as any,
+        });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      },
+      successTitle: "Task deleted",
+      description: original?.name,
+      errorTitle: "Error deleting task",
+      undoSuccessTitle: "Task restored",
+      undoErrorTitle: "Could not restore task",
+    });
   };
 
   // ── Move-to dialog handlers ───────────────────────────────────────────────
@@ -17299,7 +18695,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {["Not Started", "In Progress", "On Hold", "Completed", "Canceled"].map((s) => (
+                          {["Not Started", "Started", "On Hold", "Completed", "Canceled"].map((s) => (
                             <SelectItem key={s} value={s}>{s}</SelectItem>
                           ))}
                         </SelectContent>
@@ -17482,7 +18878,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
 ```
 
 ### `artifacts/businessnow/src/components/require-permission.tsx`
-```tsx
+```typescript
 import { ReactNode } from "react";
 import { useCurrentUser } from "@/contexts/current-user";
 import { can, type AccountPermission } from "@/lib/permissions";
@@ -17513,7 +18909,7 @@ export function RequirePermission({ permission, children }: RequirePermissionPro
 ```
 
 ### `artifacts/businessnow/src/components/resource-kpi-bar.tsx`
-```tsx
+```typescript
 import { useMemo } from "react";
 import { useListAllocations, useListUsers } from "@workspace/api-client-react";
 import { AlertTriangle, Gauge, Clock, Users } from "lucide-react";
@@ -17724,7 +19120,7 @@ export default ResourceKpiBar;
 ```
 
 ### `artifacts/businessnow/src/components/resource-timeline.tsx`
-```tsx
+```typescript
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18721,7 +20117,7 @@ export default function ResourceTimeline({ mode }: Props) {
 ```
 
 ### `artifacts/businessnow/src/components/role-selector-modal.tsx`
-```tsx
+```typescript
 import { useEffect, useState } from "react";
 import { ShieldCheck, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -18845,7 +20241,7 @@ export function RoleSelectorModal() {
 ```
 
 ### `artifacts/businessnow/src/components/saved-views-bar.tsx`
-```tsx
+```typescript
 import { useMemo, useState } from "react";
 import {
   useListSavedViews,
@@ -19264,7 +20660,7 @@ function ValueInput({ field, value, onChange, testId }: { field: FieldDef; value
 ```
 
 ### `artifacts/businessnow/src/components/skills-matrix.tsx`
-```tsx
+```typescript
 import { useState, useEffect } from "react";
 import { useListSkills, useListUsers } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -19603,12 +20999,12 @@ export default function SkillsMatrix() {
 ```
 
 ### `artifacts/businessnow/src/components/task-detail-sheet.tsx`
-```tsx
+```typescript
 import { useState } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/contexts/current-user";
-import { useTaskStatuses } from "@/lib/task-status";
+import { useTaskStatuses, taskStatusLabel } from "@/lib/task-status";
 import {
   useListTaskComments,
   useCreateTaskComment,
@@ -19638,6 +21034,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { useUndoableMutation } from "@/hooks/use-undoable-mutation";
 import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch, AlertTriangle, FileText } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -19650,7 +21047,7 @@ interface TaskDetailSheetProps {
 
 // Section D: STATIC fallback only — actual status options are pulled from the
 // backend at render time via useTaskStatuses() so admins can customize them.
-const STATUS_OPTIONS_FALLBACK = ["Not Started", "In Progress", "On Hold", "Canceled", "Completed"];
+const STATUS_OPTIONS_FALLBACK = ["Not Started", "Started", "On Hold", "Canceled", "Completed"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 const APPROVAL_OPTIONS = ["none", "pending", "approved", "rejected"];
 
@@ -19671,6 +21068,7 @@ function priorityColor(p: string) {
 
 export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }: TaskDetailSheetProps) {
   const { toast } = useToast();
+  const undoable = useUndoableMutation();
   const queryClient = useQueryClient();
 
   const { data: users } = useListUsers();
@@ -19812,13 +21210,21 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
 
   async function handleUpdateField(field: string, value: any) {
     if (!taskId) return;
-    try {
-      await updateTask.mutateAsync({ id: taskId, data: { [field]: value } as any });
-      invalidate();
-      toast({ title: "Task updated" });
-    } catch {
-      toast({ title: "Failed to update task", variant: "destructive" });
-    }
+    // Snapshot the previous value so the user can undo single-field edits.
+    const previous = task ? (task as any)[field] : undefined;
+    await undoable.run({
+      do: async () => {
+        await updateTask.mutateAsync({ id: taskId, data: { [field]: value } as any });
+        invalidate();
+      },
+      undo: async () => {
+        await updateTask.mutateAsync({ id: taskId, data: { [field]: previous } as any });
+        invalidate();
+      },
+      successTitle: "Task updated",
+      description: field,
+      errorTitle: "Failed to update task",
+    });
   }
 
   const completedCount = checklist?.filter((i) => i.completed).length ?? 0;
@@ -19867,18 +21273,24 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</label>
-                  <Select defaultValue={task?.status ?? "Not Started"} onValueChange={(v) => handleUpdateField("status", v)}>
-                    <SelectTrigger className="h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(s)}`}>{s}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {(() => {
+                    const canonical = taskStatusLabel(task?.status);
+                    const opts = STATUS_OPTIONS.includes(canonical) ? STATUS_OPTIONS : [...STATUS_OPTIONS, canonical];
+                    return (
+                      <Select value={canonical} onValueChange={(v) => handleUpdateField("status", v)}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {opts.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(s)}`}>{s}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Priority</label>
@@ -20365,8 +21777,144 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
 }
 ```
 
+### `artifacts/businessnow/src/components/task-tree.tsx`
+```typescript
+import { useState, useCallback } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export interface TreeNode<T> {
+  id: number;
+  data: T;
+  children: TreeNode<T>[];
+  depth: number;
+  hasChildren: boolean;
+  descendantCount: number;
+}
+
+export function buildTreeFromFlat<T extends { id: number; parentId?: number | null }>(
+  items: T[],
+  rootParentId: number | null = null,
+  depth = 0,
+  sortFn?: (a: T, b: T) => number,
+): TreeNode<T>[] {
+  const filtered = items.filter((i) => (i.parentId ?? null) === rootParentId);
+  const sorted = sortFn ? [...filtered].sort(sortFn) : filtered;
+  return sorted.map((item) => {
+    const children = buildTreeFromFlat(items, item.id, depth + 1, sortFn);
+    const descendantCount = children.reduce((s, c) => s + 1 + c.descendantCount, 0);
+    return {
+      id: item.id,
+      data: item,
+      children,
+      depth,
+      hasChildren: children.length > 0,
+      descendantCount,
+    };
+  });
+}
+
+export function flattenVisibleNodes<T>(
+  nodes: TreeNode<T>[],
+  expandedIds: Set<number>,
+): TreeNode<T>[] {
+  const out: TreeNode<T>[] = [];
+  for (const n of nodes) {
+    out.push(n);
+    if (expandedIds.has(n.id))
+      out.push(...flattenVisibleNodes(n.children, expandedIds));
+  }
+  return out;
+}
+
+export function collectAllNodeIds<T>(nodes: TreeNode<T>[]): number[] {
+  return nodes.flatMap((n) => [n.id, ...collectAllNodeIds(n.children)]);
+}
+
+export function useExpandedIds(
+  initial: Set<number> | (() => Set<number>) = () => new Set<number>(),
+) {
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(initial);
+  const toggle = useCallback((id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const expand = useCallback((id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+  const collapse = useCallback((id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+  return { expandedIds, setExpandedIds, toggle, expand, collapse };
+}
+
+/**
+ * Standardised expand / collapse toggle used across the project task list,
+ * timesheet grid, and template editor. Renders a 24×24 hit area with chevron
+ * icon when the node has children; renders an invisible spacer of the same
+ * width otherwise so indentation stays aligned.
+ *
+ * Keyboard accessible (Enter / Space) and announces state via aria-expanded.
+ */
+export function TreeToggle({
+  expanded,
+  hasChildren,
+  onToggle,
+  label,
+  size = "md",
+}: {
+  expanded: boolean;
+  hasChildren: boolean;
+  onToggle: () => void;
+  label?: string;
+  size?: "sm" | "md";
+}) {
+  const iconCls = size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
+  const btnCls = size === "sm" ? "h-5 w-5" : "h-6 w-6";
+  if (!hasChildren) {
+    return <span className={cn("inline-block shrink-0", btnCls)} aria-hidden="true" />;
+  }
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle();
+        }
+      }}
+      aria-label={`${expanded ? "Collapse" : "Expand"} ${label ?? "node"}`}
+      aria-expanded={expanded}
+      className={cn(
+        "inline-flex items-center justify-center rounded p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer",
+        btnCls,
+      )}
+    >
+      {expanded ? <ChevronDown className={iconCls} /> : <ChevronRight className={iconCls} />}
+    </button>
+  );
+}
+```
+
 ### `artifacts/businessnow/src/components/template-editor.tsx`
-```tsx
+```typescript
 import { useState, useEffect } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -20412,6 +21960,7 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { TreeToggle } from "@/components/task-tree";
 
 const BILLING_TYPES = ["Fixed Fee", "Time & Materials", "Retainer", "Milestone-Based"];
 const PRIORITIES = ["Low", "Medium", "High", "Critical"];
@@ -20475,6 +22024,7 @@ function TaskRow({
   expandedIds,
   toggleExpanded,
   depth,
+  descendantCount,
   onDelete,
   onUpdate,
 }: {
@@ -20484,6 +22034,7 @@ function TaskRow({
   expandedIds: Set<number>;
   toggleExpanded: (id: number) => void;
   depth: number;
+  descendantCount: number;
   onDelete: () => Promise<void>;
   onUpdate: (data: Partial<TemplateTask>) => Promise<void>;
 }) {
@@ -20508,14 +22059,13 @@ function TaskRow({
     <div className="border rounded-md bg-background">
       <div className="flex items-center gap-2 px-3 py-2" style={{ paddingLeft: 12 + depth * 20 }}>
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-        <button
-          type="button"
-          aria-label={expanded ? "Collapse" : "Expand"}
-          className={`mr-0.5 text-muted-foreground hover:text-foreground ${!hasChildren ? "" : ""}`}
-          onClick={() => toggleExpanded(task.id)}
-        >
-          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        </button>
+        <TreeToggle
+          expanded={expanded}
+          hasChildren={hasChildren}
+          onToggle={() => toggleExpanded(task.id)}
+          label={task.name}
+          size="sm"
+        />
         <div className="flex-1 min-w-0">
           <InlineEdit
             value={task.name}
@@ -20524,7 +22074,12 @@ function TaskRow({
             onSave={v => onUpdate({ name: v })}
           />
         </div>
-        {hasChildren && (
+        {hasChildren && !expanded && (
+          <Badge variant="outline" className="text-xs shrink-0 text-muted-foreground" title={`${descendantCount} descendant task(s)`}>
+            ({descendantCount})
+          </Badge>
+        )}
+        {hasChildren && expanded && (
           <Badge variant="outline" className="text-xs shrink-0 text-muted-foreground">
             {children.length} sub
           </Badge>
@@ -20676,6 +22231,13 @@ function TaskTree({
       {rows.map(task => {
         const children = allTasks.filter(t => t.parentTaskId === task.id);
         const expanded = expandedIds.has(task.id);
+        // Count all transitive descendants (sub, sub-sub, …) for the badge
+        // shown when the row is collapsed.
+        const countDescendants = (id: number): number => {
+          const direct = allTasks.filter(t => t.parentTaskId === id);
+          return direct.reduce((s, c) => s + 1 + countDescendants(c.id), 0);
+        };
+        const descendantCount = countDescendants(task.id);
         return (
           <div key={task.id}>
             <TaskRow
@@ -20685,6 +22247,7 @@ function TaskTree({
               expandedIds={expandedIds}
               toggleExpanded={toggleExpanded}
               depth={depth}
+              descendantCount={descendantCount}
               onDelete={() => onDeleteTask(task.id)}
               onUpdate={data => onUpdateTask(task.id, data)}
             />
@@ -21649,9 +23212,1166 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
 }
 ```
 
+### `artifacts/businessnow/src/components/time-log-assistant.tsx`
+```typescript
+import { useState, useEffect, useMemo } from "react";
+import { format, startOfWeek, addDays } from "date-fns";
+import { authHeaders } from "@/lib/auth-headers";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import {
+  useListTimeEntries, useListAllocations, useListTasks, useListTimeCategories,
+  useCreateTimeEntry, useSubmitTimesheet, useListTimesheets, useListProjects,
+  getListTimeEntriesQueryKey, getListTimesheetsQueryKey, getListTasksQueryKey,
+} from "@workspace/api-client-react";
+import { useCurrentUser } from "@/contexts/current-user";
+import {
+  CheckCircle2, AlertTriangle, Circle, ChevronRight, ChevronLeft,
+  Sparkles, Pencil, SkipForward, Loader2, Clock, Briefcase, Calendar,
+  MessageSquare, Zap, Trash2, Edit2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface PendingEntry {
+  uid: string;
+  date: string;
+  projectId: number | null;
+  projectName: string;
+  taskId: number | null;
+  taskName: string;
+  categoryId: number | null;
+  categoryName: string;
+  hours: number;
+  comment: string;
+}
+
+const HOUR_CHIPS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8];
+const DAILY_TARGET = 8;
+const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+function weekDates(ref: Date): string[] {
+  const mon = startOfWeek(ref, { weekStartsOn: 1 });
+  return [0, 1, 2, 3, 4].map(i => format(addDays(mon, i), "yyyy-MM-dd"));
+}
+
+function todayStr(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}
+
+function hoursForDay(entries: any[], date: string): number {
+  return entries.filter(e => e.date === date).reduce((s: number, e: any) => s + Number(e.hours), 0);
+}
+
+function totalHoursForProject(entries: any[], pending: PendingEntry[], projectId: number | null, week: string[]): number {
+  const existing = entries
+    .filter(e => e.projectId === projectId && week.includes(e.date))
+    .reduce((s: number, e: any) => s + Number(e.hours), 0);
+  const pendingH = pending
+    .filter(p => p.projectId === projectId && week.includes(p.date))
+    .reduce((s, p) => s + p.hours, 0);
+  return existing + pendingH;
+}
+
+function uid(): string {
+  return Math.random().toString(36).slice(2);
+}
+
+interface TimeLogAssistantProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const STEPS = {
+  MODE: 0, DAY_SELECT: 1, PROJECT: 2, TASK: 3, HOURS: 4,
+  OVERRUN: 45, CATEGORY: 5, COMMENT: 6, DAY_SUMMARY: 7, REVIEW: 8,
+  NL: 9,      // Natural language input
+  SUGGEST: 10, // Auto-suggest review
+};
+
+export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
+  const { currentUser } = useCurrentUser();
+  const userId = currentUser?.id ?? 1;
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const today = todayStr();
+  const weekDays = weekDates(new Date());
+
+  const [step, setStep] = useState(STEPS.MODE);
+  const [mode, setMode] = useState<"today" | "week">("today");
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [currentDayIdx, setCurrentDayIdx] = useState(0);
+
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null | "INTERNAL">("INTERNAL");
+  const [selectedProjectName, setSelectedProjectName] = useState<string>("");
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [selectedTaskName, setSelectedTaskName] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>("");
+  const [hours, setHours] = useState<number | null>(null);
+  const [customHours, setCustomHours] = useState<string>("");
+  const [comment, setComment] = useState<string>("");
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [editingUid, setEditingUid] = useState<string | null>(null);
+
+  // ── Natural Language mode state ───────────────────────────────────────────
+  const [nlMessage, setNlMessage] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlReply, setNlReply] = useState<string | null>(null);
+  const [nlWarnings, setNlWarnings] = useState<string[]>([]);
+  const [nlSuggested, setNlSuggested] = useState<PendingEntry[]>([]);
+
+  // ── Auto-suggest mode state ────────────────────────────────────────────────
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestEntries, setSuggestEntries] = useState<PendingEntry[]>([]);
+
+  const currentDay = selectedDays[currentDayIdx] ?? today;
+
+  const { data: allocations } = useListAllocations({ userId }, { query: { enabled: !!userId } });
+  const { data: projects } = useListProjects();
+  const { data: weekEntries } = useListTimeEntries(
+    { userId, startDate: weekDays[0], endDate: weekDays[4] },
+    { query: { queryKey: [...getListTimeEntriesQueryKey(), "assistant-week", userId, weekDays[0]] } },
+  );
+  const { data: tasks } = useListTasks(
+    selectedProjectId && selectedProjectId !== "INTERNAL"
+      ? { projectId: selectedProjectId as number, assigneeId: userId }
+      : undefined,
+    { query: { enabled: !!selectedProjectId && selectedProjectId !== "INTERNAL" } },
+  );
+  const { data: categories } = useListTimeCategories();
+  const { data: timeSettings } = useQuery({
+    queryKey: ["time-settings"],
+    queryFn: async () => {
+      const r = await fetch("/api/time-settings", { headers: authHeaders() });
+      return r.json();
+    },
+  });
+
+  const createTimeEntry = useCreateTimeEntry();
+  const submitTimesheet = useSubmitTimesheet();
+
+  const allEntries = weekEntries ?? [];
+  const showCategoryStep = (timeSettings?.trackTimeAgainst === "categories") && (categories?.length ?? 0) > 0;
+
+  const allocatedProjectIds = useMemo(
+    () => new Set((allocations ?? []).map((a: any) => a.projectId)),
+    [allocations],
+  );
+
+  const allocatedProjects = useMemo(
+    () => (projects ?? []).filter((p: any) => allocatedProjectIds.has(p.id)),
+    [projects, allocatedProjectIds],
+  );
+
+  const activeAllocationForProject = (projectId: number) =>
+    (allocations ?? []).find((a: any) => a.projectId === projectId && a.userId === userId);
+
+  const weekTotalForProject = (projectId: number | null) =>
+    totalHoursForProject(allEntries, pendingEntries, projectId, weekDays);
+
+  function reset() {
+    setStep(STEPS.MODE);
+    setMode("today");
+    setSelectedDays([]);
+    setCurrentDayIdx(0);
+    clearEntryState();
+    setPendingEntries([]);
+    setEditingUid(null);
+  }
+
+  function clearEntryState() {
+    setSelectedProjectId("INTERNAL");
+    setSelectedProjectName("");
+    setSelectedTaskId(null);
+    setSelectedTaskName("");
+    setSelectedCategoryId(null);
+    setSelectedCategoryName("");
+    setHours(null);
+    setCustomHours("");
+    setComment("");
+    setAiSuggestion(null);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    reset();
+  }, [open]);
+
+  function handleSelectMode(m: "today" | "week") {
+    setMode(m);
+    if (m === "today") {
+      setSelectedDays([today]);
+      setCurrentDayIdx(0);
+      setStep(STEPS.PROJECT);
+    } else {
+      setStep(STEPS.DAY_SELECT);
+    }
+  }
+
+  function handleToggleDay(d: string) {
+    setSelectedDays(prev =>
+      prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort(),
+    );
+  }
+
+  function handleSelectAllMissing() {
+    const missing = weekDays.filter(d => {
+      const logged = hoursForDay(allEntries, d) + pendingEntries.filter(p => p.date === d).reduce((s, p) => s + p.hours, 0);
+      return logged < DAILY_TARGET;
+    });
+    setSelectedDays(missing);
+  }
+
+  function handleDaySelectNext() {
+    if (selectedDays.length === 0) return;
+    setCurrentDayIdx(0);
+    setStep(STEPS.PROJECT);
+  }
+
+  function handleSelectProject(id: number | "INTERNAL", name: string) {
+    setSelectedProjectId(id);
+    setSelectedProjectName(name);
+    setSelectedTaskId(null);
+    setSelectedTaskName("");
+    setStep(STEPS.TASK);
+  }
+
+  function handleSelectTask(id: number | null, name: string) {
+    setSelectedTaskId(id);
+    setSelectedTaskName(name);
+    setStep(STEPS.HOURS);
+  }
+
+  function handleSelectHours(h: number) {
+    setHours(h);
+    setCustomHours(String(h));
+  }
+
+  function handleHoursNext() {
+    const h = hours ?? parseFloat(customHours || "0");
+    if (!h || h <= 0) return;
+    setHours(h);
+
+    if (selectedProjectId !== "INTERNAL") {
+      const alloc = activeAllocationForProject(selectedProjectId as number);
+      if (alloc) {
+        const weekTotal = weekTotalForProject(selectedProjectId as number);
+        if (weekTotal + h > Number(alloc.hoursPerWeek)) {
+          setStep(STEPS.OVERRUN);
+          return;
+        }
+      }
+    }
+    proceedAfterHours(h);
+  }
+
+  function proceedAfterHours(h: number) {
+    if (showCategoryStep) {
+      setStep(STEPS.CATEGORY);
+    } else {
+      fetchAiSuggestion();
+      setStep(STEPS.COMMENT);
+    }
+  }
+
+  function handleOverrunYes() {
+    proceedAfterHours(hours ?? 0);
+  }
+
+  function handleSelectCategory(id: number | null, name: string) {
+    setSelectedCategoryId(id);
+    setSelectedCategoryName(name);
+    fetchAiSuggestion();
+    setStep(STEPS.COMMENT);
+  }
+
+  async function fetchAiSuggestion() {
+    setAiLoading(true);
+    setAiSuggestion(null);
+    try {
+      const resp = await fetch("/api/ai/time-comment-suggestion", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          projectName: selectedProjectName,
+          taskName: selectedTaskName || undefined,
+          categoryName: selectedCategoryName || undefined,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      const data = await resp.json();
+      setAiSuggestion(data.suggestion ?? null);
+    } catch {
+      setAiSuggestion(null);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function addCurrentEntry(finalComment: string) {
+    const h = hours ?? 0;
+    const entry: PendingEntry = {
+      uid: editingUid ?? uid(),
+      date: currentDay,
+      projectId: selectedProjectId === "INTERNAL" ? null : selectedProjectId as number,
+      projectName: selectedProjectName || "Internal / Non-project",
+      taskId: selectedTaskId,
+      taskName: selectedTaskName || "General project work",
+      categoryId: selectedCategoryId,
+      categoryName: selectedCategoryName,
+      hours: h,
+      comment: finalComment,
+    };
+    if (editingUid) {
+      setPendingEntries(prev => prev.map(e => e.uid === editingUid ? entry : e));
+      setEditingUid(null);
+      setStep(STEPS.REVIEW);
+    } else {
+      setPendingEntries(prev => [...prev, entry]);
+      setStep(STEPS.DAY_SUMMARY);
+    }
+    clearEntryState();
+  }
+
+  function handleCommentUse() { addCurrentEntry(aiSuggestion ?? ""); }
+  function handleCommentSkip() { addCurrentEntry(""); }
+  function handleCommentEdit(val: string) { addCurrentEntry(val); }
+
+  function handleAddAnother() {
+    clearEntryState();
+    setStep(STEPS.PROJECT);
+  }
+
+  function handleNextDay() {
+    if (currentDayIdx < selectedDays.length - 1) {
+      setCurrentDayIdx(i => i + 1);
+      clearEntryState();
+      setStep(STEPS.PROJECT);
+    } else {
+      setStep(STEPS.REVIEW);
+    }
+  }
+
+  function handleEditEntry(entry: PendingEntry) {
+    const dayIdx = selectedDays.indexOf(entry.date);
+    if (dayIdx !== -1) setCurrentDayIdx(dayIdx);
+    setEditingUid(entry.uid);
+    setSelectedProjectId(entry.projectId ?? "INTERNAL");
+    setSelectedProjectName(entry.projectName);
+    setSelectedTaskId(entry.taskId);
+    setSelectedTaskName(entry.taskName);
+    setSelectedCategoryId(entry.categoryId);
+    setSelectedCategoryName(entry.categoryName);
+    setHours(entry.hours);
+    setCustomHours(String(entry.hours));
+    setComment(entry.comment);
+    setStep(STEPS.PROJECT);
+  }
+
+  function handleDeleteEntry(uid: string) {
+    setPendingEntries(prev => prev.filter(e => e.uid !== uid));
+  }
+
+  async function handleSave(andSubmit: boolean) {
+    if (pendingEntries.length === 0) return;
+    setSaving(true);
+    let saved = 0;
+    try {
+      for (const entry of pendingEntries) {
+        await createTimeEntry.mutateAsync({
+          data: {
+            userId,
+            projectId: entry.projectId ?? undefined,
+            taskId: entry.taskId ?? undefined,
+            date: entry.date,
+            hours: entry.hours,
+            description: entry.comment,
+            billable: entry.projectId !== null,
+            categoryId: entry.categoryId ?? undefined,
+          } as any,
+        });
+        saved++;
+      }
+
+      if (andSubmit) {
+        const uniqueWeeks = [...new Set(pendingEntries.map(e => {
+          const mon = startOfWeek(new Date(e.date + "T00:00:00"), { weekStartsOn: 1 });
+          return format(mon, "yyyy-MM-dd");
+        }))];
+        for (const weekStart of uniqueWeeks) {
+          const tsList = await fetch(
+            `/api/timesheets?userId=${userId}&weekStart=${weekStart}`,
+            { headers: authHeaders() },
+          ).then(r => r.json()).catch(() => []);
+          const ts = Array.isArray(tsList) ? tsList.find((t: any) => t.status === "Draft" || t.status === "Open") : null;
+          if (ts?.id) {
+            await submitTimesheet.mutateAsync({ id: ts.id });
+          }
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["listTasks"] });
+
+      const uniqueDays = [...new Set(pendingEntries.map(e => e.date))];
+      toast({
+        title: `${saved} ${saved === 1 ? "entry" : "entries"} logged across ${uniqueDays.length} ${uniqueDays.length === 1 ? "day" : "days"}`,
+        description: andSubmit ? "Timesheet submitted for approval." : "Saved as draft.",
+      });
+      onClose();
+      reset();
+    } catch (err: any) {
+      toast({
+        title: `Failed after ${saved} entries`,
+        description: err?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Natural Language handlers ─────────────────────────────────────────────
+
+  async function handleNlSubmit() {
+    if (!nlMessage.trim()) return;
+    setNlLoading(true);
+    setNlReply(null);
+    setNlWarnings([]);
+    setNlSuggested([]);
+    try {
+      const resp = await fetch("/api/ai/timesheet-assist", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ userId, message: nlMessage.trim(), weekStart: weekDays[0] }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await resp.json();
+      setNlReply(data.reply ?? null);
+      setNlWarnings(data.warnings ?? []);
+      const mapped: PendingEntry[] = (data.entries ?? []).map((e: any) => ({
+        uid: uid(),
+        date: e.date ?? today,
+        projectId: e.projectId ?? null,
+        projectName: e.projectName ?? "Unknown",
+        taskId: null,
+        taskName: "",
+        categoryId: null,
+        categoryName: "",
+        hours: Number(e.hours) || 0,
+        comment: e.description ?? "",
+      }));
+      setNlSuggested(mapped);
+    } catch {
+      setNlReply("I couldn't process that request right now. Please try again.");
+    } finally {
+      setNlLoading(false);
+    }
+  }
+
+  function acceptNlSuggestions() {
+    setPendingEntries(prev => [...prev, ...nlSuggested]);
+    setNlSuggested([]);
+    setNlReply(null);
+    setNlWarnings([]);
+    setNlMessage("");
+    setStep(STEPS.REVIEW);
+  }
+
+  // ── Auto-suggest handlers ─────────────────────────────────────────────────
+
+  async function handleAutoSuggest() {
+    setSuggestLoading(true);
+    setSuggestEntries([]);
+    setStep(STEPS.SUGGEST);
+    try {
+      const resp = await fetch(`/api/ai/timesheet-suggestions?userId=${userId}&weekStart=${weekDays[0]}`, {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(15000),
+      });
+      const data = await resp.json();
+      const mapped: PendingEntry[] = (data.suggestions ?? []).map((s: any) => ({
+        uid: uid(),
+        date: s.date,
+        projectId: s.projectId,
+        projectName: s.projectName,
+        taskId: null,
+        taskName: "",
+        categoryId: null,
+        categoryName: "",
+        hours: s.hours,
+        comment: s.description ?? "",
+      }));
+      setSuggestEntries(mapped);
+    } catch {
+      setSuggestEntries([]);
+    } finally {
+      setSuggestLoading(false);
+    }
+  }
+
+  function acceptSuggestions(selected: PendingEntry[]) {
+    setPendingEntries(prev => [...prev, ...selected]);
+    setSuggestEntries([]);
+    setStep(STEPS.REVIEW);
+  }
+
+  function dayLabel(date: string) {
+    return format(new Date(date + "T00:00:00"), "EEE d MMM");
+  }
+
+  function dayHoursStatus(date: string) {
+    const existing = hoursForDay(allEntries, date);
+    const pendingH = pendingEntries.filter(p => p.date === date).reduce((s, p) => s + p.hours, 0);
+    return { logged: existing + pendingH, existing };
+  }
+
+  const currentDayEntriesDisplay = pendingEntries.filter(p => p.date === currentDay);
+
+  const stepLabels: Record<number, string> = {
+    [STEPS.MODE]: "Mode",
+    [STEPS.DAY_SELECT]: "Select Days",
+    [STEPS.PROJECT]: "Project",
+    [STEPS.TASK]: "Task",
+    [STEPS.HOURS]: "Hours",
+    [STEPS.OVERRUN]: "Hours",
+    [STEPS.CATEGORY]: "Category",
+    [STEPS.COMMENT]: "Comment",
+    [STEPS.DAY_SUMMARY]: "Day Summary",
+    [STEPS.REVIEW]: "Review",
+  };
+
+  const totalSteps = showCategoryStep ? 7 : 6;
+  const stepNum: Record<number, number> = {
+    [STEPS.MODE]: 0,
+    [STEPS.DAY_SELECT]: 1,
+    [STEPS.PROJECT]: 2,
+    [STEPS.TASK]: 3,
+    [STEPS.HOURS]: 4,
+    [STEPS.OVERRUN]: 4,
+    [STEPS.CATEGORY]: 5,
+    [STEPS.COMMENT]: showCategoryStep ? 6 : 5,
+    [STEPS.DAY_SUMMARY]: showCategoryStep ? 7 : 6,
+    [STEPS.REVIEW]: showCategoryStep ? 8 : 7,
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <SheetContent className="w-full sm:max-w-lg flex flex-col gap-0 p-0" side="right">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-indigo-500" />
+            <SheetTitle className="text-base font-semibold">Log Time with Assistant</SheetTitle>
+          </div>
+          {step !== STEPS.MODE && step !== STEPS.REVIEW && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                <span>{stepLabels[step]}</span>
+                {mode === "week" && selectedDays.length > 0 && step >= STEPS.PROJECT && step !== STEPS.REVIEW && (
+                  <span className="font-medium text-foreground">{dayLabel(currentDay)}</span>
+                )}
+              </div>
+              <Progress value={Math.round((stepNum[step] / totalSteps) * 100)} className="h-1.5" />
+            </div>
+          )}
+          <SheetDescription className="sr-only">Multi-step time logging wizard</SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+          {/* STEP 0: MODE */}
+          {step === STEPS.MODE && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">How would you like to log time?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleSelectMode("today")}
+                  className="rounded-xl border-2 border-muted hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 p-5 text-left transition-colors group"
+                >
+                  <Clock className="h-7 w-7 text-indigo-500 mb-2" />
+                  <div className="font-semibold text-sm">Today only</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{format(new Date(), "EEE, MMM d")}</div>
+                </button>
+                <button
+                  onClick={() => handleSelectMode("week")}
+                  className="rounded-xl border-2 border-muted hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 p-5 text-left transition-colors group"
+                >
+                  <Calendar className="h-7 w-7 text-indigo-500 mb-2" />
+                  <div className="font-semibold text-sm">This week</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {format(new Date(weekDays[0] + "T00:00:00"), "MMM d")} – {format(new Date(weekDays[4] + "T00:00:00"), "MMM d")}
+                  </div>
+                </button>
+                <button
+                  onClick={() => setStep(STEPS.NL)}
+                  className="rounded-xl border-2 border-muted hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 p-5 text-left transition-colors group"
+                >
+                  <MessageSquare className="h-7 w-7 text-violet-500 mb-2" />
+                  <div className="font-semibold text-sm">Describe your day</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">AI parses plain text</div>
+                </button>
+                <button
+                  onClick={handleAutoSuggest}
+                  className="rounded-xl border-2 border-muted hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 p-5 text-left transition-colors group"
+                >
+                  <Zap className="h-7 w-7 text-emerald-500 mb-2" />
+                  <div className="font-semibold text-sm">Auto-suggest</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Fill from allocations</div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 1: DAY SELECT */}
+          {step === STEPS.DAY_SELECT && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Select days to log</p>
+                <button
+                  onClick={handleSelectAllMissing}
+                  className="text-xs text-indigo-500 hover:underline"
+                >
+                  Select all missing
+                </button>
+              </div>
+              <div className="space-y-2">
+                {weekDays.map((d, i) => {
+                  const { logged } = dayHoursStatus(d);
+                  const isSelected = selectedDays.includes(d);
+                  const complete = logged >= DAILY_TARGET;
+                  const partial = logged > 0 && !complete;
+                  const missing = DAILY_TARGET - logged;
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => handleToggleDay(d)}
+                      className={cn(
+                        "w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
+                        isSelected
+                          ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-950/30"
+                          : "border-muted hover:border-muted-foreground",
+                      )}
+                    >
+                      {complete ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                      ) : partial ? (
+                        <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">{WEEK_DAYS[i]} — {format(new Date(d + "T00:00:00"), "MMM d")}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {complete
+                            ? `${logged}h logged`
+                            : partial
+                            ? `${logged}h logged · ${missing.toFixed(1)}h missing`
+                            : "No hours logged"}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <Button
+                className="w-full"
+                disabled={selectedDays.length === 0}
+                onClick={handleDaySelectNext}
+              >
+                Continue with {selectedDays.length} {selectedDays.length === 1 ? "day" : "days"} <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* STEP 2: PROJECT SELECT */}
+          {step === STEPS.PROJECT && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Which project did you work on?</p>
+              {allocatedProjects.length === 0 && (
+                <p className="text-xs text-muted-foreground">No allocated projects found. Ask your PM to assign you to a project.</p>
+              )}
+              {allocatedProjects.map((p: any) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleSelectProject(p.id, p.name)}
+                  className="w-full flex items-center gap-3 rounded-lg border border-muted hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 p-3 text-left transition-colors"
+                >
+                  <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{p.name}</div>
+                    {p.status && <div className="text-xs text-muted-foreground capitalize">{p.status}</div>}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))}
+              <button
+                onClick={() => handleSelectProject("INTERNAL", "Internal / Non-project")}
+                className="w-full flex items-center gap-3 rounded-lg border border-dashed border-muted hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 p-3 text-left transition-colors"
+              >
+                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="text-sm text-muted-foreground">Internal / Non-project time</div>
+                <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
+              </button>
+            </div>
+          )}
+
+          {/* STEP 3: TASK SELECT */}
+          {step === STEPS.TASK && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">What were you working on?</p>
+              <p className="text-xs text-muted-foreground">Project: <span className="font-medium text-foreground">{selectedProjectName}</span></p>
+              {selectedProjectId !== "INTERNAL" && (tasks ?? [])
+                .filter((t: any) => !t.isPhase)
+                .filter((t: any) => !(tasks ?? []).some((c: any) => c.parentTaskId === t.id))
+                .map((t: any) => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleSelectTask(t.id, t.name)}
+                    className="w-full rounded-lg border border-muted hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 p-3 text-left transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium flex-1 truncate">{t.name}</span>
+                      {t.status && <Badge variant="outline" className="text-xs shrink-0">{t.status}</Badge>}
+                    </div>
+                    {t.dueDate && (
+                      <div className="text-xs text-muted-foreground mt-0.5">Due {format(new Date(t.dueDate + "T00:00:00"), "MMM d")}</div>
+                    )}
+                  </button>
+                ))
+              }
+              <button
+                onClick={() => handleSelectTask(null, "")}
+                className="w-full rounded-lg border border-dashed border-muted hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 p-3 text-left transition-colors"
+              >
+                <div className="text-sm text-muted-foreground">+ General project work (no specific task)</div>
+              </button>
+            </div>
+          )}
+
+          {/* STEP 4: HOURS */}
+          {step === STEPS.HOURS && (
+            <div className="space-y-4">
+              <p className="text-sm font-medium">How many hours?</p>
+              <div className="flex flex-wrap gap-2">
+                {HOUR_CHIPS.map(h => (
+                  <button
+                    key={h}
+                    onClick={() => handleSelectHours(h)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                      hours === h
+                        ? "border-indigo-500 bg-indigo-500 text-white"
+                        : "border-muted hover:border-indigo-400",
+                    )}
+                  >
+                    {h}h
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Custom amount</label>
+                <Input
+                  type="number"
+                  min="0.25"
+                  step="0.25"
+                  placeholder="e.g. 2.75"
+                  value={customHours}
+                  onChange={e => {
+                    setCustomHours(e.target.value);
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v) && v > 0) setHours(v);
+                  }}
+                />
+              </div>
+              {selectedProjectId !== "INTERNAL" && (() => {
+                const alloc = activeAllocationForProject(selectedProjectId as number);
+                if (!alloc) return null;
+                const weekTotal = weekTotalForProject(selectedProjectId as number);
+                return (
+                  <p className="text-xs text-muted-foreground">
+                    Allocation: {Number(alloc.hoursPerWeek)}h/week · Logged this week: {weekTotal.toFixed(1)}h
+                  </p>
+                );
+              })()}
+              <Button className="w-full" disabled={!hours && !customHours} onClick={handleHoursNext}>
+                Continue <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* STEP 4a: OVERRUN WARNING */}
+          {step === STEPS.OVERRUN && selectedProjectId !== "INTERNAL" && (() => {
+            const alloc = activeAllocationForProject(selectedProjectId as number);
+            const weekTotal = weekTotalForProject(selectedProjectId as number);
+            const newTotal = weekTotal + (hours ?? 0);
+            const allocated = Number(alloc?.hoursPerWeek ?? 0);
+            return (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-2">
+                  <div className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    Allocation overrun
+                  </div>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Logging {hours}h would bring your total for <strong>{selectedProjectName}</strong> this week to <strong>{newTotal.toFixed(1)}h</strong>, which exceeds your weekly allocation of <strong>{allocated}h</strong>.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" onClick={() => setStep(STEPS.HOURS)}>
+                    No, adjust
+                  </Button>
+                  <Button onClick={handleOverrunYes}>
+                    Yes, log it
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* STEP 5: CATEGORY */}
+          {step === STEPS.CATEGORY && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Activity category</p>
+              {(categories ?? []).map((c: any) => (
+                <button
+                  key={c.id}
+                  onClick={() => handleSelectCategory(c.id, c.name)}
+                  className={cn(
+                    "w-full rounded-lg border px-4 py-2.5 text-left text-sm font-medium transition-colors",
+                    selectedCategoryId === c.id
+                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
+                      : "border-muted hover:border-indigo-400",
+                  )}
+                >
+                  {c.name}
+                </button>
+              ))}
+              <button
+                onClick={() => handleSelectCategory(null, "")}
+                className="w-full rounded-lg border border-dashed border-muted hover:border-muted-foreground px-4 py-2.5 text-left text-sm text-muted-foreground"
+              >
+                Skip category
+              </button>
+            </div>
+          )}
+
+          {/* STEP 6: COMMENT */}
+          {step === STEPS.COMMENT && (
+            <div className="space-y-4">
+              <p className="text-sm font-medium">Add a comment</p>
+              {aiLoading && (
+                <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Getting AI suggestion…
+                </div>
+              )}
+              {!aiLoading && aiSuggestion && (
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 p-3 space-y-3">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                    <Sparkles className="h-3.5 w-3.5" /> AI suggestion
+                  </div>
+                  <p className="text-sm italic text-foreground">&ldquo;{aiSuggestion}&rdquo;</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleCommentUse} className="gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Use this
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => {
+                      setComment(aiSuggestion ?? "");
+                      setAiSuggestion(null);
+                    }}>
+                      <Pencil className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button size="sm" variant="ghost" className="gap-1.5 ml-auto" onClick={handleCommentSkip}>
+                      <SkipForward className="h-3.5 w-3.5" /> Skip
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {!aiLoading && (!aiSuggestion || comment !== "") && (
+                <div className="space-y-1.5">
+                  {aiSuggestion === null && !aiLoading && (
+                    <p className="text-xs text-muted-foreground">Describe the work done (optional)</p>
+                  )}
+                  <Input
+                    placeholder="e.g. Reviewed sprint backlog and updated task priorities"
+                    value={comment}
+                    onChange={e => setComment(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") addCurrentEntry(comment); }}
+                  />
+                  <div className="flex gap-2 pt-1">
+                    <Button className="flex-1" onClick={() => addCurrentEntry(comment)}>
+                      Save entry <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" onClick={handleCommentSkip}>Skip</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 7: DAY SUMMARY */}
+          {step === STEPS.DAY_SUMMARY && (
+            <div className="space-y-4">
+              <p className="text-sm font-medium">{dayLabel(currentDay)}</p>
+              {currentDayEntriesDisplay.length > 0 && (
+                <div className="space-y-2">
+                  {currentDayEntriesDisplay.map(e => (
+                    <div key={e.uid} className="rounded-lg border p-3 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium truncate">{e.projectName}</span>
+                        <span className="text-sm font-bold text-indigo-600 shrink-0 ml-2">{e.hours}h</span>
+                      </div>
+                      {e.taskName && <div className="text-xs text-muted-foreground">{e.taskName}</div>}
+                      {e.comment && <div className="text-xs text-muted-foreground italic">&ldquo;{e.comment}&rdquo;</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(() => {
+                const { logged } = dayHoursStatus(currentDay);
+                const pct = Math.min(100, (logged / DAILY_TARGET) * 100);
+                return (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{logged.toFixed(1)}h logged</span>
+                      <span>{DAILY_TARGET}h target</span>
+                    </div>
+                    <Progress value={pct} className="h-2" />
+                  </div>
+                );
+              })()}
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={handleAddAnother} className="text-sm">
+                  + Add another project
+                </Button>
+                <Button onClick={handleNextDay} className="text-sm">
+                  {currentDayIdx < selectedDays.length - 1
+                    ? <>Next day <ChevronRight className="ml-1 h-4 w-4" /></>
+                    : <>Review <ChevronRight className="ml-1 h-4 w-4" /></>
+                  }
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 8: REVIEW */}
+          {step === STEPS.REVIEW && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Review entries</p>
+                <p className="text-xs text-muted-foreground">
+                  Total: <span className="font-semibold text-foreground">
+                    {pendingEntries.reduce((s, e) => s + e.hours, 0).toFixed(1)}h
+                  </span>
+                </p>
+              </div>
+              {pendingEntries.length === 0 && (
+                <p className="text-sm text-muted-foreground">No entries captured yet.</p>
+              )}
+              {[...new Set(pendingEntries.map(e => e.date))].sort().map(date => (
+                <div key={date} className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {dayLabel(date)}
+                  </p>
+                  {pendingEntries.filter(e => e.date === date).map(entry => (
+                    <div key={entry.uid} className="rounded-lg border p-3 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium truncate">{entry.projectName}</span>
+                            <span className="text-sm font-bold text-indigo-600 shrink-0">{entry.hours}h</span>
+                          </div>
+                          {entry.taskName && <div className="text-xs text-muted-foreground">{entry.taskName}</div>}
+                          {entry.categoryName && <div className="text-xs text-muted-foreground">{entry.categoryName}</div>}
+                          {entry.comment && <div className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{entry.comment}&rdquo;</div>}
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button onClick={() => handleEditEntry(entry)} className="text-xs text-indigo-500 hover:underline">Edit</button>
+                          <span className="text-muted-foreground">·</span>
+                          <button onClick={() => handleDeleteEntry(entry.uid)} className="text-xs text-red-500 hover:underline">Del</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {pendingEntries.length > 0 && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <Button variant="outline" disabled={saving} onClick={() => handleSave(false)}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Save as draft
+                  </Button>
+                  <Button disabled={saving} onClick={() => handleSave(true)}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Save &amp; Submit
+                  </Button>
+                </div>
+              )}
+              {pendingEntries.length === 0 && (
+                <Button variant="outline" className="w-full" onClick={() => setStep(STEPS.PROJECT)}>
+                  Add an entry
+                </Button>
+              )}
+            </div>
+          )}
+          {/* STEP 9: NATURAL LANGUAGE */}
+          {step === STEPS.NL && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium">Describe your work in plain language</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Example: "I spent 3 hours on Acme CRM today and 2 hours on internal training"</p>
+              </div>
+              <textarea
+                className="w-full min-h-[100px] rounded-lg border border-muted bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                placeholder="What did you work on? Include hours and project names..."
+                value={nlMessage}
+                onChange={e => setNlMessage(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && e.metaKey) handleNlSubmit(); }}
+              />
+              <Button className="w-full" onClick={handleNlSubmit} disabled={nlLoading || !nlMessage.trim()}>
+                {nlLoading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Parsing…</> : <><Sparkles className="h-4 w-4 mr-2" />Parse with AI</>}
+              </Button>
+
+              {nlReply && (
+                <div className="rounded-lg border border-violet-200 bg-violet-50 dark:bg-violet-950/20 p-3 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-violet-600">
+                    <Sparkles className="h-3.5 w-3.5" /> AI Response
+                  </div>
+                  <p className="text-sm text-foreground">{nlReply}</p>
+                  {nlWarnings.length > 0 && (
+                    <div className="space-y-1 mt-1">
+                      {nlWarnings.map((w, i) => (
+                        <div key={i} className="flex items-start gap-1.5 text-xs text-amber-600">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /> {w}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {nlSuggested.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Suggested entries</p>
+                  {nlSuggested.map(e => (
+                    <div key={e.uid} className="rounded-lg border p-3 flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium truncate">{e.projectName}</span>
+                          <span className="text-sm font-bold text-indigo-600 shrink-0">{e.hours}h</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{e.date}</div>
+                        {e.comment && <div className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{e.comment}&rdquo;</div>}
+                      </div>
+                      <button onClick={() => setNlSuggested(prev => prev.filter(s => s.uid !== e.uid))} className="text-red-400 hover:text-red-600 p-1 rounded">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <Button className="w-full" onClick={acceptNlSuggestions} disabled={nlSuggested.length === 0}>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Accept {nlSuggested.length} {nlSuggested.length === 1 ? "entry" : "entries"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 10: AUTO-SUGGEST */}
+          {step === STEPS.SUGGEST && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium">Auto-suggested entries</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Based on your project allocations and missing hours this week.</p>
+              </div>
+              {suggestLoading && (
+                <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground text-sm">
+                  <Loader2 className="h-5 w-5 animate-spin" /> Generating suggestions…
+                </div>
+              )}
+              {!suggestLoading && suggestEntries.length === 0 && (
+                <p className="text-sm text-muted-foreground py-6 text-center">No suggestions — your timesheet looks complete for this week.</p>
+              )}
+              {!suggestLoading && suggestEntries.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    {[...new Set(suggestEntries.map(e => e.date))].sort().map(date => (
+                      <div key={date} className="space-y-1.5">
+                        <p className="text-xs font-semibold text-muted-foreground">{dayLabel(date)}</p>
+                        {suggestEntries.filter(e => e.date === date).map(e => (
+                          <div key={e.uid} className="rounded-lg border p-3 flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium truncate">{e.projectName}</span>
+                                <span className="text-sm font-bold text-emerald-600 shrink-0">{e.hours}h</span>
+                              </div>
+                              {e.comment && <div className="text-xs text-muted-foreground italic">&ldquo;{e.comment}&rdquo;</div>}
+                            </div>
+                            <button onClick={() => setSuggestEntries(prev => prev.filter(s => s.uid !== e.uid))} className="text-red-400 hover:text-red-600 p-1 rounded">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => acceptSuggestions(suggestEntries)}>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Accept all {suggestEntries.length} suggestions
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+
+        </div>
+
+        {/* Back button */}
+        {step !== STEPS.MODE && step !== STEPS.REVIEW && (
+          <div className="border-t px-6 py-3 flex items-center">
+            <button
+              onClick={() => {
+                const backMap: Record<number, number> = {
+                  [STEPS.DAY_SELECT]: STEPS.MODE,
+                  [STEPS.PROJECT]: mode === "week" && selectedDays.length > 1 ? STEPS.DAY_SELECT : STEPS.MODE,
+                  [STEPS.TASK]: STEPS.PROJECT,
+                  [STEPS.HOURS]: STEPS.TASK,
+                  [STEPS.OVERRUN]: STEPS.HOURS,
+                  [STEPS.CATEGORY]: STEPS.HOURS,
+                  [STEPS.COMMENT]: showCategoryStep ? STEPS.CATEGORY : STEPS.HOURS,
+                  [STEPS.DAY_SUMMARY]: STEPS.COMMENT,
+                  [STEPS.NL]: STEPS.MODE,
+                  [STEPS.SUGGEST]: STEPS.MODE,
+                };
+                setStep(backMap[step] ?? STEPS.MODE);
+              }}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" /> Back
+            </button>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+```
+
 ### `artifacts/businessnow/src/components/timesheet-grid.tsx`
-```tsx
-import { useState, useEffect, useRef, useCallback } from "react";
+```typescript
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -21685,7 +24405,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star, TrendingUp, AlertTriangle, CheckCircle2, Zap, Bell, FolderOpen } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { TreeToggle } from "@/components/task-tree";
 import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21755,6 +24477,15 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const [rejectTimesheetId, setRejectTimesheetId] = useState<number | null>(null);
   const [rejectNote, setRejectNote] = useState("");
 
+  // Guardrail confirmation dialog (for 409 soft-block responses)
+  const [guardrailConfirm, setGuardrailConfirm] = useState<{
+    row: TimesheetRow;
+    dayStr: string;
+    newHours: number;
+    warning: string;
+    code: string;
+  } | null>(null);
+
   const weekStartsOnChanged = wsd;
   const currentWeekEnd = endOfWeek(currentWeekStart, { weekStartsOn: wsd });
   const weekStartStr = format(currentWeekStart, "yyyy-MM-dd");
@@ -21796,6 +24527,22 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     queryFn: async () => { const r = await fetch("/api/time-settings", { headers: authHeaders() }); return r.json(); },
   });
 
+  // Guardrail context: allocation vs actuals per project for this week
+  const { data: guardrailCtx } = useQuery({
+    queryKey: ["guardrail-context", userId, weekStartStr],
+    queryFn: async () => {
+      const r = await fetch(`/api/time-entries/guardrail-context?userId=${userId}&weekStart=${weekStartStr}`, { headers: authHeaders() });
+      return r.json() as Promise<{
+        allocations: { projectId: number; allocatedPerWeek: number; allocatedTotal: number; weekLoggedHours: number; totalLoggedHours: number; remainingTotal: number | null; weekOverrun: boolean; budgetPct: number | null; allocationEndDate: string; isExpired: boolean }[];
+        dailyCapacity: number;
+        weeklyCapacity: number;
+        dailyTotals: Record<string, number>;
+      }>;
+    },
+    enabled: !!userId,
+    staleTime: 30000,
+  });
+
   // Time-off and holiday indicators
   const { data: userTimeOffs } = useListTimeOffRequests({ userId, status: "Approved" as any });
   const { data: holidayCalendars } = useListHolidayCalendars();
@@ -21828,6 +24575,32 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const rejectTimesheetMutation = useRejectTimesheet();
   const submittedTimesheets = useListTimesheets({ status: "Submitted" }).data;
   const approvedTimesheets = useListTimesheets({ status: "Approved" }).data;
+
+  // ─── Pending-prior-week guard ───────────────────────────────────────────────
+  // Rule: a user cannot log time on a date if any earlier week has a timesheet
+  // in a "pending" status with hours > 0. The earlier week must be cleared
+  // (submitted + approved) before later dates can receive new entries.
+  // Statuses considered pending: Draft (not yet submitted), Submitted (awaiting
+  // approval), Rejected (needs rework). Approved is the only terminal/cleared state.
+  const PENDING_STATUSES = new Set(["Draft", "Submitted", "Rejected"]);
+  function normalizeWeekStart(s: string): string {
+    // Accept either yyyy-MM-dd or full ISO; collapse to yyyy-MM-dd for safe lex compare.
+    try { return format(parseISO(s), "yyyy-MM-dd"); } catch { return s.slice(0, 10); }
+  }
+  function getBlockingPriorWeek(targetDate: string): { weekStart: string; status: string } | null {
+    const pending = (allUserTimesheets ?? []).filter(
+      (ts: any) => PENDING_STATUSES.has(ts.status) && (ts.totalHours ?? 0) > 0
+    );
+    if (!pending.length) return null;
+    const targetWeekStart = format(startOfWeek(parseISO(targetDate), { weekStartsOn: wsd }), "yyyy-MM-dd");
+    const blockers = pending
+      .map((ts: any) => ({ ...ts, weekStart: normalizeWeekStart(ts.weekStart) }))
+      .filter((ts: any) => ts.weekStart < targetWeekStart);
+    if (!blockers.length) return null;
+    blockers.sort((a: any, b: any) => a.weekStart.localeCompare(b.weekStart));
+    return { weekStart: blockers[0].weekStart, status: blockers[0].status };
+  }
+  const currentWeekBlocker = getBlockingPriorWeek(weekStartStr);
 
   const deleteRowMutation = useMutation({
     mutationFn: async (rowId: number) => { await fetch(`/api/timesheet-rows/${rowId}`, { method: "DELETE", headers: authHeaders() }); },
@@ -21877,16 +24650,16 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   // Entry-derived rows from this week's time entries
   const entryRowMap: Record<string, TimesheetRow> = {};
   for (const entry of (timeEntries || [])) {
-    const k = rowKey(entry.projectId, entry.taskId, (entry as any).activityName, entry.description);
+    const k = rowKey(entry.projectId, entry.taskId, entry.activityName ?? undefined, entry.description);
     if (!entryRowMap[k]) {
       entryRowMap[k] = {
         key: k,
         projectId: entry.projectId ?? null,
         taskId: entry.taskId ?? null,
-        activityName: (entry as any).activityName ?? undefined,
+        activityName: entry.activityName ?? undefined,
         description: entry.description ?? undefined,
         billable: entry.billable,
-        categoryId: (entry as any).categoryId ?? null,
+        categoryId: entry.categoryId ?? null,
         isNonProject: !entry.projectId,
         days: {},
         entryIds: {},
@@ -21922,6 +24695,211 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   for (const pr of Object.values(persistedRowMap)) { rows.push(pr); seenKeys.add(pr.key); }
   for (const er of Object.values(entryRowMap)) { if (!seenKeys.has(er.key)) rows.push(er); }
 
+  // ─── Lookup helpers (declared before any hierarchy build that needs them) ──
+  // Defined as `const` arrow fns; must precede `displayRows` useMemo below
+  // because closure capture happens at first render before later declarations.
+  const getProjectName = (id?: number | null) => projects?.find(p => p.id === id)?.name;
+  const getTaskName = (id?: number | null) => allTasks?.find(t => t.id === id)?.name;
+  const getCategoryName = (id?: number | null) => timeCategories?.find(c => c.id === id)?.name;
+  // A task that has children (or is itself a phase) should accumulate its
+  // time from its leaves, not be logged against directly. Used to disable
+  // hour cells / log buttons on summary rows (H1 from product feedback).
+  const taskHasChildren = (taskId?: number | null) =>
+    taskId != null && (allTasks?.some(t => t.parentTaskId === taskId) ?? false);
+  const isParentTaskRow = (row: { taskId?: number | null; isNonProject?: boolean }) =>
+    !row.isNonProject && taskHasChildren(row.taskId);
+
+  // ─── Hierarchical view (Project → Phase → Task → Subtask) ────────────────────
+  // The flat `rows` list is reorganised into a tree view: each project becomes
+  // a collapsible header; underneath, leaf rows are nested under synthesised
+  // task summary nodes that follow the parentTaskId chain in `allTasks`.
+  // Hour cells stay editable on leaf rows only; summary/project rows show
+  // aggregated daily totals (read-only) so users can scan timesheets at a
+  // higher level. Default state: everything expanded so leaves are visible.
+
+  // Collapsed-state Sets (presence == collapsed). Defaulting to "absent ==
+  // expanded" means new tasks/projects appear opened automatically.
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+  const [collapsedTasks, setCollapsedTasks] = useState<Set<number>>(new Set());
+  const toggleProject = useCallback((key: string) => {
+    setCollapsedProjects(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+  const toggleTaskSummary = useCallback((id: number) => {
+    setCollapsedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  type LeafEntry = { row: TimesheetRow; chain: number[] };
+  type DisplayEntry =
+    | { kind: "project"; projectKey: string; projectName: string; isNonProject: boolean; dailyTotals: Record<string, number>; total: number; leafCount: number; collapsed: boolean }
+    | { kind: "task"; taskId: number; taskName: string; isPhase: boolean; depth: number; dailyTotals: Record<string, number>; total: number; descendantLeafCount: number; collapsed: boolean }
+    | { kind: "leaf"; row: TimesheetRow; depth: number };
+
+  const displayRows: DisplayEntry[] = useMemo(() => {
+    const out: DisplayEntry[] = [];
+    const tasks = (allTasks ?? []) as any[];
+    const taskById = new Map<number, any>();
+    for (const t of tasks) taskById.set(t.id, t);
+
+    // 1) Group rows by project (or "non-project" bucket).
+    const groups = new Map<string, TimesheetRow[]>();
+    for (const r of rows) {
+      const key = r.isNonProject || r.projectId == null ? "__nonproject__" : `p${r.projectId}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+
+    // Stable project ordering: by project name (non-project bucket last).
+    const sortedKeys = [...groups.keys()].sort((a, b) => {
+      if (a === "__nonproject__") return 1;
+      if (b === "__nonproject__") return -1;
+      const an = getProjectName(parseInt(a.slice(1), 10)) ?? "";
+      const bn = getProjectName(parseInt(b.slice(1), 10)) ?? "";
+      return an.localeCompare(bn);
+    });
+
+    // 2) Helpers
+    const sumDays = (entries: { days: Record<string, number> }[]) => {
+      const totals: Record<string, number> = {};
+      for (const e of entries) {
+        for (const [d, h] of Object.entries(e.days)) {
+          totals[d] = (totals[d] ?? 0) + h;
+        }
+      }
+      return totals;
+    };
+    const sumTotal = (totals: Record<string, number>) =>
+      Object.values(totals).reduce((s, v) => s + v, 0);
+
+    // 3) For each project group, build the task hierarchy and walk it.
+    for (const projectKey of sortedKeys) {
+      const projectRows = groups.get(projectKey)!;
+      const isNonProject = projectKey === "__nonproject__";
+      const projectName = isNonProject
+        ? "Non-project Activities"
+        : (getProjectName(parseInt(projectKey.slice(1), 10)) ?? "Unknown project");
+
+      // Build ancestor chains (root → ... → leaf task) for each leaf row.
+      const leaves: LeafEntry[] = projectRows.map(row => {
+        if (row.taskId == null || isNonProject) return { row, chain: [] };
+        const chain: number[] = [];
+        let cur = taskById.get(row.taskId);
+        const guard = new Set<number>(); // guard against accidental cycles
+        while (cur && !guard.has(cur.id)) {
+          guard.add(cur.id);
+          chain.unshift(cur.id);
+          cur = cur.parentTaskId != null ? taskById.get(cur.parentTaskId) : null;
+        }
+        return { row, chain };
+      });
+
+      // Project header totals (aggregate every leaf in the group).
+      const projectDaily = sumDays(projectRows);
+      const projectTotal = sumTotal(projectDaily);
+      const projectCollapsed = collapsedProjects.has(projectKey);
+
+      out.push({
+        kind: "project",
+        projectKey,
+        projectName,
+        isNonProject,
+        dailyTotals: projectDaily,
+        total: projectTotal,
+        leafCount: projectRows.length,
+        collapsed: projectCollapsed,
+      });
+
+      if (projectCollapsed) continue;
+
+      // Recurse: at each level, partition leaves by chain[depth].
+      const walk = (subset: LeafEntry[], depth: number) => {
+        // Group by chain[depth]; "self" leaves (chain.length === depth) render as leaves at this depth.
+        const groupsAtDepth = new Map<number, LeafEntry[]>();
+        const selfLeaves: LeafEntry[] = [];
+        for (const l of subset) {
+          if (l.chain.length <= depth) {
+            selfLeaves.push(l);
+          } else {
+            const k = l.chain[depth];
+            if (!groupsAtDepth.has(k)) groupsAtDepth.set(k, []);
+            groupsAtDepth.get(k)!.push(l);
+          }
+        }
+
+        // Sort task groups by task name for stability.
+        const orderedGroupKeys = [...groupsAtDepth.keys()].sort((a, b) => {
+          const an = taskById.get(a)?.name ?? "";
+          const bn = taskById.get(b)?.name ?? "";
+          return an.localeCompare(bn);
+        });
+
+        for (const taskId of orderedGroupKeys) {
+          const groupLeaves = groupsAtDepth.get(taskId)!;
+          const task = taskById.get(taskId);
+          // All direct leaves whose chain ends at this task (the row IS this
+          // task). There can be many — same task, multiple activities or
+          // descriptions — and they must all be rendered, not just the first.
+          const directLeaves = groupLeaves.filter(
+            l => l.chain.length === depth + 1 && l.chain[depth] === taskId,
+          );
+          const deeper = groupLeaves.filter(
+            l => !(l.chain.length === depth + 1 && l.chain[depth] === taskId),
+          );
+
+          if (deeper.length === 0) {
+            // No nested children — render all direct leaves at this depth.
+            // (When there is exactly one and no deeper rows, this collapses to
+            // the simple flat case the user sees today.)
+            for (const dl of directLeaves) {
+              out.push({ kind: "leaf", row: dl.row, depth });
+            }
+          } else {
+            // Synthesise a task summary header that groups the direct leaves
+            // (if any) plus all deeper rows. The summary's daily totals
+            // include both buckets so the parent reflects everything beneath.
+            const allInGroup = groupLeaves.map(l => l.row);
+            const taskDaily = sumDays(allInGroup);
+            const taskTotal = sumTotal(taskDaily);
+            const collapsed = collapsedTasks.has(taskId);
+            out.push({
+              kind: "task",
+              taskId,
+              taskName: task?.name ?? `Task #${taskId}`,
+              isPhase: !!task?.isPhase,
+              depth,
+              dailyTotals: taskDaily,
+              total: taskTotal,
+              descendantLeafCount: groupLeaves.length,
+              collapsed,
+            });
+            if (!collapsed) {
+              // Render every direct leaf at depth+1 so they sit alongside their
+              // sibling subtasks beneath the synthesised parent.
+              for (const dl of directLeaves) {
+                out.push({ kind: "leaf", row: dl.row, depth: depth + 1 });
+              }
+              walk(deeper, depth + 1);
+            }
+          }
+        }
+
+        // Orphan leaves (no taskId at all) at this depth, rendered last.
+        for (const l of selfLeaves) {
+          out.push({ kind: "leaf", row: l.row, depth });
+        }
+      };
+      walk(leaves, 0);
+    }
+    return out;
+  }, [rows, allTasks, collapsedProjects, collapsedTasks, projects]);
+
   // ─── Totals ──────────────────────────────────────────────────────────────────
 
   const dailyTotals = allWeekDays.map(day => {
@@ -21931,10 +24909,8 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const grandTotal = dailyTotals.reduce((s, v) => s + v, 0);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-  const getProjectName = (id?: number | null) => projects?.find(p => p.id === id)?.name;
-  const getTaskName = (id?: number | null) => allTasks?.find(t => t.id === id)?.name;
-  const getCategoryName = (id?: number | null) => timeCategories?.find(c => c.id === id)?.name;
+  // (Lookup helpers `getProjectName` / `getTaskName` / `getCategoryName` are
+  // declared above the displayRows builder; do not redeclare here.)
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
@@ -21944,13 +24920,25 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
 
   // ─── Cell editing ─────────────────────────────────────────────────────────────
 
-  async function handleCellSave(row: TimesheetRow, dayStr: string, rawValue: string) {
+  async function handleCellSave(row: TimesheetRow, dayStr: string, rawValue: string, force = false) {
     const parsed = parseFloat(rawValue) || 0;
     const newHours = Math.min(24, Math.max(0, parsed));
     const currentHours = row.days[dayStr] || 0;
     const existingIds: number[] = row.entryIds[dayStr] || [];
     setEditingCell(null);
     if (newHours === currentHours) return;
+    // Pending-prior-week guard — only when adding NEW hours (not editing/removing existing)
+    if (existingIds.length === 0 && newHours > 0) {
+      const blocker = getBlockingPriorWeek(dayStr);
+      if (blocker) {
+        toast({
+          title: "Earlier timesheet pending",
+          description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time for later dates.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     try {
       if (existingIds.length === 1) {
         if (newHours <= 0) {
@@ -21966,16 +24954,54 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
           description: row.description ?? "",
           billable: row.isNonProject ? false : (row.billable ?? true),
           categoryId: row.categoryId ?? undefined,
+          force,
         };
         if (row.projectId) payload.projectId = row.projectId;
         if (row.taskId) payload.taskId = row.taskId;
         if (row.activityName) payload.activityName = row.activityName;
-        await createTimeEntry.mutateAsync({ data: payload });
+
+        // Use raw fetch so we can handle 409 guardrail warnings
+        const resp = await fetch("/api/time-entries", {
+          method: "POST",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify(payload),
+        });
+
+        if (resp.status === 409) {
+          const body = await resp.json();
+          setGuardrailConfirm({
+            row,
+            dayStr,
+            newHours,
+            warning: body.warning ?? "Guardrail check triggered. Do you want to proceed?",
+            code: body.guardrailCode ?? "UNKNOWN",
+          });
+          return;
+        }
+
+        if (resp.status === 422) {
+          const body = await resp.json();
+          toast({ title: "Entry blocked", description: body.error, variant: "destructive" });
+          return;
+        }
+
+        if (!resp.ok) {
+          toast({ title: "Failed to save hours", variant: "destructive" });
+          return;
+        }
       }
       invalidate();
+      queryClient.invalidateQueries({ queryKey: ["guardrail-context", userId, weekStartStr] });
     } catch {
       toast({ title: "Failed to update hours", variant: "destructive" });
     }
+  }
+
+  async function handleGuardrailForce() {
+    if (!guardrailConfirm) return;
+    const { row, dayStr, newHours } = guardrailConfirm;
+    setGuardrailConfirm(null);
+    await handleCellSave(row, dayStr, String(newHours), true);
   }
 
   function startEdit(row: TimesheetRow, dayStr: string) {
@@ -21983,6 +25009,19 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     const ids: number[] = row.entryIds[dayStr] || [];
     if (ids.length > 1) return;
     const hours = row.days[dayStr] || 0;
+    // Block opening editor for empty cells when an earlier week is pending.
+    // Allow edits to existing entries (so users can correct mistakes) and zero-outs.
+    if (ids.length === 0 && hours === 0) {
+      const blocker = getBlockingPriorWeek(dayStr);
+      if (blocker) {
+        toast({
+          title: "Earlier timesheet pending",
+          description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     setEditingCell({ rowKey: row.key, dayStr });
     setEditValue(hours > 0 ? String(hours) : "");
     setTimeout(() => editInputRef.current?.focus(), 0);
@@ -22031,6 +25070,15 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   }
 
   async function onLogTime(values: z.infer<typeof logTimeSchema>) {
+    const blocker = getBlockingPriorWeek(values.date);
+    if (blocker) {
+      toast({
+        title: "Earlier timesheet pending",
+        description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time for ${values.date}.`,
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const payload: any = {
         userId,
@@ -22077,7 +25125,26 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   // ─── Submit ──────────────────────────────────────────────────────────────────
 
   const minHours = timeSettings?.minSubmitHours ?? 0;
+  const maxHours = timeSettings?.maxSubmitHours ?? null;
   const hoursShort = minHours > 0 ? Math.max(0, minHours - grandTotal) : 0;
+
+  // Rule 6 — Unsubmitted reminder banner: check if today is past the due day for the current week
+  const isSubmissionLate = useMemo(() => {
+    if (!timeSettings) return false;
+    if (timesheet?.status === "Submitted" || timesheet?.status === "Approved") return false;
+    const dueDay = timeSettings.timesheetDueDay ?? "Monday";
+    const dueDayMap: Record<string, number> = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+    const dueDow = dueDayMap[dueDay] ?? 1;
+    const todayDow = new Date().getDay();
+    const isCurrentWeek = weekStartStr === format(startOfWeek(new Date(), { weekStartsOn: wsd }), "yyyy-MM-dd");
+    return isCurrentWeek && todayDow > dueDow && grandTotal > 0;
+  }, [timeSettings, timesheet, weekStartStr, grandTotal, wsd]);
+
+  // Helper: get allocation context for a project
+  const getAllocContext = useCallback((projectId: number | null | undefined) => {
+    if (!projectId || !guardrailCtx?.allocations) return null;
+    return guardrailCtx.allocations.find((a) => a.projectId === projectId) ?? null;
+  }, [guardrailCtx]);
 
   async function onSubmitTimesheet() {
     if (!timesheet?.id) return;
@@ -22100,12 +25167,22 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     } catch { toast({ title: "Error withdrawing timesheet", variant: "destructive" }); }
   }
 
+  function serverErrorMessage(err: unknown): string | undefined {
+    const data = (err as any)?.data;
+    if (data && typeof data === "object" && typeof data.error === "string") return data.error;
+    if (typeof data === "string" && data.trim()) return data;
+    if (err instanceof Error && err.message) return err.message;
+    return undefined;
+  }
+
   const onApprove = async (id: number) => {
     try {
       await approveTimesheet.mutateAsync({ id, data: {} });
       queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
       toast({ title: "Timesheet approved" });
-    } catch { toast({ title: "Error approving", variant: "destructive" }); }
+    } catch (err) {
+      toast({ title: "Error approving", description: serverErrorMessage(err), variant: "destructive" });
+    }
   };
 
   const onReject = async () => {
@@ -22115,7 +25192,9 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
       queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey() });
       setRejectTimesheetId(null); setRejectNote("");
       toast({ title: "Timesheet rejected" });
-    } catch { toast({ title: "Error rejecting", variant: "destructive" }); }
+    } catch (err) {
+      toast({ title: "Error rejecting", description: serverErrorMessage(err), variant: "destructive" });
+    }
   };
 
   const statusColors: Record<string, string> = {
@@ -22176,6 +25255,38 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
         </div>
       </div>
 
+      {/* Rule 6 — Submission Reminder Banner */}
+      {isSubmissionLate && (
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 text-sm">
+          <Bell className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <span className="font-medium text-amber-800 dark:text-amber-300">Timesheet due: </span>
+            <span className="text-amber-700 dark:text-amber-400">
+              Your timesheet for this week is past the {timeSettings?.timesheetDueDay} deadline and hasn't been submitted yet.
+            </span>
+          </div>
+          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white shrink-0" onClick={onSubmitTimesheet} disabled={submitTimesheet.isPending || (minHours > 0 && hoursShort > 0)}>
+            Submit now
+          </Button>
+        </div>
+      )}
+
+      {/* Pending-prior-week banner */}
+      {currentWeekBlocker && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm">
+          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <div className="font-medium text-amber-900 dark:text-amber-200">
+              Earlier timesheet is pending — new entries blocked
+            </div>
+            <div className="text-amber-800 dark:text-amber-300/90 mt-0.5">
+              The week of <span className="font-mono">{currentWeekBlocker.weekStart}</span> is currently <span className="font-medium">{currentWeekBlocker.status}</span>.
+              Submit and have it approved before logging time on later dates.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Grid */}
       <div className="border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -22209,35 +25320,123 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.length === 0 ? (
+              {displayRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={11} className="text-center text-muted-foreground py-10">
                     No rows yet. Click "Add Activity" to add a task or non-project activity.
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => {
+                displayRows.map((entry, idx) => {
+                  // ── Project header row ──────────────────────────────────────
+                  if (entry.kind === "project") {
+                    return (
+                      <TableRow key={`proj-${entry.projectKey}`} className="bg-muted/40 hover:bg-muted/50 border-t-2 border-b">
+                        <TableCell className="py-2">
+                          <div className="flex items-center gap-1.5">
+                            <TreeToggle
+                              expanded={!entry.collapsed}
+                              hasChildren={entry.leafCount > 0}
+                              onToggle={() => toggleProject(entry.projectKey)}
+                              label={entry.projectName}
+                              size="sm"
+                            />
+                            <FolderOpen className={cn("h-3.5 w-3.5 shrink-0", entry.isNonProject ? "text-slate-400" : "text-indigo-500")} />
+                            <span className="font-semibold text-sm truncate" title={entry.projectName}>{entry.projectName}</span>
+                            <span className="text-[10px] text-muted-foreground shrink-0">
+                              ({entry.leafCount} {entry.leafCount === 1 ? "row" : "rows"})
+                            </span>
+                          </div>
+                        </TableCell>
+                        {allWeekDays.map(day => {
+                          const dayStr = format(day, "yyyy-MM-dd");
+                          const v = entry.dailyTotals[dayStr] ?? 0;
+                          return (
+                            <TableCell key={dayStr} className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
+                              {v > 0 ? v : <span className="text-muted-foreground/30">·</span>}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right font-bold text-sm">{entry.total > 0 ? entry.total : "—"}</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    );
+                  }
+
+                  // ── Task summary row (synthesised parent) ──────────────────
+                  if (entry.kind === "task") {
+                    return (
+                      <TableRow key={`task-${entry.taskId}-${idx}`} className="bg-muted/15 hover:bg-muted/25">
+                        <TableCell className="py-1.5">
+                          <div className="flex items-center gap-1.5" style={{ paddingLeft: 8 + (entry.depth + 1) * 16 }}>
+                            <TreeToggle
+                              expanded={!entry.collapsed}
+                              hasChildren={entry.descendantLeafCount > 0}
+                              onToggle={() => toggleTaskSummary(entry.taskId)}
+                              label={entry.taskName}
+                              size="sm"
+                            />
+                            <span className="text-sm font-medium truncate text-foreground/90" title={entry.taskName}>
+                              {entry.taskName}
+                            </span>
+                            {entry.isPhase && (
+                              <span className="text-[9px] px-1 py-0 h-3.5 inline-flex items-center rounded border border-indigo-300 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30">
+                                Phase
+                              </span>
+                            )}
+                            {entry.collapsed && entry.descendantLeafCount > 0 && (
+                              <span className="text-[10px] text-muted-foreground shrink-0">({entry.descendantLeafCount})</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        {allWeekDays.map(day => {
+                          const dayStr = format(day, "yyyy-MM-dd");
+                          const v = entry.dailyTotals[dayStr] ?? 0;
+                          return (
+                            <TableCell key={dayStr} className="text-center text-xs tabular-nums text-muted-foreground/80">
+                              {v > 0 ? <span className="opacity-70">{v}</span> : <span className="text-muted-foreground/20">·</span>}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right text-sm font-medium text-muted-foreground">{entry.total > 0 ? entry.total : "—"}</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    );
+                  }
+
+                  // ── Leaf row (real, editable) ──────────────────────────────
+                  const row = entry.row;
+                  const leafDepth = entry.depth;
                   const rowTotal = allWeekDays.reduce((sum, day) => {
                     const dayStr = format(day, "yyyy-MM-dd");
                     return sum + (row.days[dayStr] || 0);
                   }, 0);
                   const taskName = row.taskId ? getTaskName(row.taskId) : null;
                   const categoryName = row.categoryId ? getCategoryName(row.categoryId) : null;
+                  // H1: time cannot be logged against a parent task — those
+                  // accumulate from their children. Show the row read-only with
+                  // a tooltip pointing to the leaf-only rule.
+                  const isParentLeaf = isParentTaskRow(row);
+                  // Indent leaf to align under its task summary parent (or
+                  // directly under the project header if no task ancestor).
+                  const leafIndent = 8 + (leafDepth + 1) * 16;
                   return (
                     <TableRow key={row.key} className="hover:bg-muted/10 group">
                       <TableCell className="py-2 align-middle">
-                        <div className="flex items-start gap-1.5">
+                        <div className="flex items-start gap-1.5" style={{ paddingLeft: leafIndent }}>
+                          {/* Spacer to align with TreeToggle in summary rows */}
+                          <span className="inline-block w-5 shrink-0" aria-hidden="true" />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm truncate max-w-[180px]">
                               {row.isNonProject
                                 ? <span className="text-slate-500 italic">{row.activityName || "Non-project activity"}</span>
-                                : getProjectName(row.projectId) ?? <span className="text-muted-foreground">Unknown project</span>
+                                : taskName ?? <span className="text-muted-foreground italic">No task</span>
                               }
                             </div>
-                            {!row.isNonProject && taskName && (
-                              <div className="text-xs text-muted-foreground truncate max-w-[180px] mt-0.5">{taskName}</div>
+                            {row.activityName && taskName && row.activityName !== taskName && !row.isNonProject && (
+                              <div className="text-xs text-muted-foreground truncate max-w-[180px] mt-0.5">{row.activityName}</div>
                             )}
-                            {row.description && !taskName && !row.isNonProject && (
+                            {row.description && !row.isNonProject && (
                               <div className="text-xs text-muted-foreground truncate max-w-[180px] mt-0.5">{row.description}</div>
                             )}
                             <div className="flex gap-1 mt-1 flex-wrap">
@@ -22254,9 +25453,43 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-50 text-violet-700 border border-violet-200">{categoryName}</span>
                               )}
                             </div>
+                            {/* Allocation context bar */}
+                            {!row.isNonProject && (() => {
+                              const ctx = getAllocContext(row.projectId);
+                              if (!ctx || (!ctx.allocatedPerWeek && !ctx.allocatedTotal)) return null;
+                              const weekPct = ctx.allocatedPerWeek > 0 ? Math.min(100, Math.round((ctx.weekLoggedHours / ctx.allocatedPerWeek) * 100)) : 0;
+                              const overrun = ctx.weekOverrun;
+                              const expired = ctx.isExpired;
+                              return (
+                                <div className="mt-1.5 space-y-0.5">
+                                  {ctx.allocatedPerWeek > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                        <div className={cn("h-full rounded-full transition-all", overrun ? "bg-amber-500" : "bg-indigo-400")} style={{ width: `${weekPct}%` }} />
+                                      </div>
+                                      <span className={cn("text-[10px] font-medium whitespace-nowrap", overrun ? "text-amber-600" : "text-muted-foreground")}>
+                                        {ctx.weekLoggedHours}h / {ctx.allocatedPerWeek}h wk
+                                        {overrun && <span className="ml-0.5 text-amber-600">⚠</span>}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {ctx.allocatedTotal > 0 && ctx.budgetPct !== null && (
+                                    <div className="text-[10px] text-muted-foreground">
+                                      {ctx.totalLoggedHours}h of {ctx.allocatedTotal}h total
+                                      {ctx.budgetPct >= 90 && <span className="ml-1 text-orange-500 font-medium">({ctx.budgetPct}% used)</span>}
+                                    </div>
+                                  )}
+                                  {expired && (
+                                    <div className="text-[10px] text-red-500 font-medium flex items-center gap-0.5">
+                                      <AlertTriangle className="h-2.5 w-2.5" /> Allocation expired {ctx.allocationEndDate}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                           {/* Per-row clock icon */}
-                          {!isLocked && (
+                          {!isLocked && !isParentLeaf && (
                             <button
                               title="Log time for this row"
                               onClick={() => openLogForRow(row)}
@@ -22265,6 +25498,14 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                               <Clock className="h-3.5 w-3.5" />
                             </button>
                           )}
+                          {isParentLeaf && (
+                            <span
+                              title="Time accumulates from child tasks. Log on a leaf task instead."
+                              className="text-[10px] text-muted-foreground italic shrink-0 px-1.5 py-0.5 rounded bg-muted/40 border border-muted"
+                            >
+                              roll-up
+                            </span>
+                          )}
                         </div>
                       </TableCell>
 
@@ -22272,8 +25513,8 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                         const dayStr = format(day, "yyyy-MM-dd");
                         const hours = row.days[dayStr] || 0;
                         const multiEntry = (row.entryIds[dayStr]?.length ?? 0) > 1;
-                        const isEditing = editingCell?.rowKey === row.key && editingCell?.dayStr === dayStr;
-                        const canClick = !isLocked && !multiEntry;
+                        const isEditing = editingCell?.rowKey === row.key && editingCell?.dayStr === dayStr && !isParentLeaf;
+                        const canClick = !isLocked && !multiEntry && !isParentLeaf;
                         return (
                           <TableCell key={dayStr} className="text-center p-1">
                             {isEditing ? (
@@ -22295,13 +25536,15 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                               />
                             ) : (
                               <button
-                                onClick={() => startEdit(row, dayStr)}
-                                title={multiEntry ? "Multiple entries — use clock icon to add more" : isLocked ? "Timesheet is locked" : "Click to edit · Tab to advance"}
+                                onClick={() => canClick && startEdit(row, dayStr)}
+                                disabled={isParentLeaf}
+                                title={isParentLeaf ? "Time accumulates from child tasks — log on a leaf task instead" : multiEntry ? "Multiple entries — use clock icon to add more" : isLocked ? "Timesheet is locked" : "Click to edit · Tab to advance"}
                                 className={cn(
                                   "w-full min-h-[32px] px-1 rounded text-sm font-medium transition-colors",
                                   canClick && "hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer dark:hover:bg-indigo-900/20",
                                   !canClick && "cursor-default",
-                                  hours > 0 && "text-foreground",
+                                  isParentLeaf && "text-muted-foreground/60 italic cursor-not-allowed",
+                                  hours > 0 && !isParentLeaf && "text-foreground",
                                 )}
                               >
                                 {hours > 0 ? hours : <span className="text-muted-foreground/30 text-lg">·</span>}
@@ -22390,51 +25633,74 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {submittedTimesheets.map(ts => (
-                  <TableRow key={ts.id}>
-                    <TableCell className="font-medium">{users?.find(u => u.id === ts.userId)?.name}</TableCell>
-                    <TableCell>{ts.weekStart}</TableCell>
-                    <TableCell>{ts.totalHours}h <span className="text-muted-foreground text-xs">({ts.billableHours}h billable)</span></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{ts.submittedAt ? new Date(ts.submittedAt).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => setRejectTimesheetId(ts.id)}>Reject</Button>
-                      <Button size="sm" onClick={() => onApprove(ts.id)} disabled={approveTimesheet.isPending}>Approve</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {submittedTimesheets.map(ts => {
+                  const isOwn = ts.userId === userId;
+                  return (
+                    <TableRow key={ts.id}>
+                      <TableCell className="font-medium">{users?.find(u => u.id === ts.userId)?.name}</TableCell>
+                      <TableCell>{ts.weekStart}</TableCell>
+                      <TableCell>{ts.totalHours}h <span className="text-muted-foreground text-xs">({ts.billableHours}h billable)</span></TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{ts.submittedAt ? new Date(ts.submittedAt).toLocaleDateString() : "—"}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        {isOwn ? (
+                          <span className="text-xs text-muted-foreground italic" title="You can't approve or reject your own timesheet">Awaiting another approver</span>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => setRejectTimesheetId(ts.id)}>Reject</Button>
+                            <Button size="sm" onClick={() => onApprove(ts.id)} disabled={approveTimesheet.isPending}>Approve</Button>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         </div>
       )}
 
-      {/* Approved Timesheets Section */}
+      {/* Approved Timesheets Section (collapsible, closed by default) */}
       {approvedTimesheets && approvedTimesheets.length > 0 && (
-        <div className="mt-4 space-y-3">
-          <h3 className="text-base font-semibold">Approved Timesheets</h3>
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Team Member</TableHead>
-                  <TableHead>Week</TableHead>
-                  <TableHead>Billable / Total</TableHead>
-                  <TableHead>Approved</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {approvedTimesheets.map(ts => (
-                  <TableRow key={ts.id}>
-                    <TableCell className="font-medium">{users?.find(u => u.id === ts.userId)?.name}</TableCell>
-                    <TableCell>{ts.weekStart}</TableCell>
-                    <TableCell>{ts.billableHours}h billable / {ts.totalHours}h total</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{ts.approvedAt ? new Date(ts.approvedAt).toLocaleDateString() : "—"}</TableCell>
+        <Collapsible className="mt-4">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="group flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-muted/40 transition-colors"
+              data-testid="approved-timesheets-toggle"
+            >
+              <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
+              <h3 className="text-base font-semibold">Approved Timesheets</h3>
+              <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                {approvedTimesheets.length}
+              </span>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Team Member</TableHead>
+                    <TableHead>Week</TableHead>
+                    <TableHead>Billable / Total</TableHead>
+                    <TableHead>Approved</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {approvedTimesheets.map(ts => (
+                    <TableRow key={ts.id}>
+                      <TableCell className="font-medium">{users?.find(u => u.id === ts.userId)?.name}</TableCell>
+                      <TableCell>{ts.weekStart}</TableCell>
+                      <TableCell>{ts.billableHours}h billable / {ts.totalHours}h total</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{ts.approvedAt ? new Date(ts.approvedAt).toLocaleDateString() : "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       {/* ─── Log Time Dialog ─────────────────────────────────────────────────── */}
@@ -22468,7 +25734,8 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                       <FormControl><SelectTrigger><SelectValue placeholder="Select task" /></SelectTrigger></FormControl>
                       <SelectContent>
                         {projectTasks
-                          ?.filter(t => !projectTasks.some(c => c.parentTaskId === t.id))
+                          ?.filter(t => !t.isPhase)
+                          .filter(t => !projectTasks.some(c => c.parentTaskId === t.id))
                           .map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -22549,6 +25816,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                     <SelectContent>
                       {allTasks
                         ?.filter(t => t.projectId === Number(activityForm.projectId))
+                        .filter(t => !t.isPhase)
                         .filter(t => !(allTasks ?? []).some(c => c.parentTaskId === t.id))
                         .map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
                     </SelectContent>
@@ -22589,17 +25857,52 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
         </DialogContent>
       </Dialog>
 
-      {/* Reject Dialog */}
+      {/* Reject Dialog — Rule 12: rejection note is mandatory */}
       <Dialog open={!!rejectTimesheetId} onOpenChange={(o) => !o && setRejectTimesheetId(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reject Timesheet</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Reject Timesheet</DialogTitle>
+            <DialogDescription>A rejection reason is required so the employee knows what to correct.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-2">
-            <Label>Rejection Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
-            <Input value={rejectNote} onChange={e => setRejectNote(e.target.value)} placeholder="Please explain why this timesheet was rejected..." />
+            <Label>Rejection Reason <span className="text-red-500">*</span></Label>
+            <Input value={rejectNote} onChange={e => setRejectNote(e.target.value)} placeholder="Please explain why this timesheet is being returned..." />
+            {rejectNote.trim().length === 0 && <p className="text-xs text-muted-foreground">Required — employees will see this message and must correct their timesheet.</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectTimesheetId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={onReject} disabled={rejectTimesheetMutation.isPending}>Reject Timesheet</Button>
+            <Button
+              variant="destructive"
+              onClick={onReject}
+              disabled={rejectTimesheetMutation.isPending || rejectNote.trim().length === 0}
+            >
+              Reject Timesheet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Guardrail Confirmation Dialog — soft-block overrides */}
+      <Dialog open={!!guardrailConfirm} onOpenChange={(o) => !o && setGuardrailConfirm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Timesheet Guardrail
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-foreground">{guardrailConfirm?.warning}</p>
+            <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 p-3 text-xs text-amber-700 dark:text-amber-400">
+              Code: <span className="font-mono font-medium">{guardrailConfirm?.code}</span>
+              <span className="ml-2 text-muted-foreground">· Override will be noted in the audit log.</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGuardrailConfirm(null)}>Cancel</Button>
+            <Button variant="default" onClick={handleGuardrailForce} className="bg-amber-600 hover:bg-amber-700 text-white">
+              Save Anyway
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -22609,7 +25912,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
 ```
 
 ### `artifacts/businessnow/src/components/tracked-time-tab.tsx`
-```tsx
+```typescript
 import { useMemo, useState } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23620,7 +26923,7 @@ function AddOnBehalfDialog({
 ```
 
 ### `artifacts/businessnow/src/components/ui/alert-dialog.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
@@ -23763,7 +27066,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/alert.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -23826,7 +27129,7 @@ export { Alert, AlertTitle, AlertDescription }
 ```
 
 ### `artifacts/businessnow/src/components/ui/avatar.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -23880,7 +27183,7 @@ export { Avatar, AvatarImage, AvatarFallback }
 ```
 
 ### `artifacts/businessnow/src/components/ui/badge.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -23927,7 +27230,7 @@ export { Badge, badgeVariants }
 ```
 
 ### `artifacts/businessnow/src/components/ui/breadcrumb.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { ChevronRight, MoreHorizontal } from "lucide-react"
@@ -24046,7 +27349,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/button.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -24117,7 +27420,7 @@ export { Button, buttonVariants }
 ```
 
 ### `artifacts/businessnow/src/components/ui/card.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -24197,7 +27500,7 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
 ```
 
 ### `artifacts/businessnow/src/components/ui/checkbox.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
 import { Check } from "lucide-react"
@@ -24229,7 +27532,7 @@ export { Checkbox }
 ```
 
 ### `artifacts/businessnow/src/components/ui/collapsible.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
@@ -24244,7 +27547,7 @@ export { Collapsible, CollapsibleTrigger, CollapsibleContent }
 ```
 
 ### `artifacts/businessnow/src/components/ui/command.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -24401,7 +27704,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/dialog.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -24525,7 +27828,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/dropdown-menu.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -24730,7 +28033,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/form.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -24910,7 +28213,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/input.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -24936,7 +28239,7 @@ export { Input }
 ```
 
 ### `artifacts/businessnow/src/components/ui/label.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -24966,7 +28269,7 @@ export { Label }
 ```
 
 ### `artifacts/businessnow/src/components/ui/popover.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 
@@ -25001,7 +28304,7 @@ export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor }
 ```
 
 ### `artifacts/businessnow/src/components/ui/progress.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -25033,7 +28336,7 @@ export { Progress }
 ```
 
 ### `artifacts/businessnow/src/components/ui/scroll-area.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 
@@ -25083,7 +28386,7 @@ export { ScrollArea, ScrollBar }
 ```
 
 ### `artifacts/businessnow/src/components/ui/select.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -25246,7 +28549,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/separator.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as SeparatorPrimitive from "@radix-ui/react-separator"
 
@@ -25279,7 +28582,7 @@ export { Separator }
 ```
 
 ### `artifacts/businessnow/src/components/ui/sheet.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -25423,7 +28726,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/skeleton.tsx`
-```tsx
+```typescript
 import { cn } from "@/lib/utils"
 
 function Skeleton({
@@ -25442,7 +28745,7 @@ export { Skeleton }
 ```
 
 ### `artifacts/businessnow/src/components/ui/status-badge.tsx`
-```tsx
+```typescript
 import { cn } from "@/lib/utils";
 import { type ReactNode } from "react";
 
@@ -25475,6 +28778,7 @@ export const VARIANT_CLASSES: Record<StatusVariant, string> = {
 export const PROJECT_STATUS_VARIANT: Record<string, StatusVariant> = {
   "Not Started": "neutral",
   "In Progress": "info",
+  "Started": "info",
   "At Risk":     "warning",
   "Completed":   "success",
   "On Hold":     "neutral",
@@ -25512,6 +28816,7 @@ export const OPPORTUNITY_STAGE_VARIANT: Record<string, StatusVariant> = {
 const STATUS_CLASSES: Record<string, string> = {
   "Not Started":     "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
   "In Progress":     "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  "Started":         "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   "At Risk":         "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
   "Completed":       "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
   "On Hold":         "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
@@ -25598,7 +28903,7 @@ export function VariantBadge({ children, variant = "neutral", className }: Varia
 ```
 
 ### `artifacts/businessnow/src/components/ui/switch.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as SwitchPrimitives from "@radix-ui/react-switch"
 
@@ -25629,7 +28934,7 @@ export { Switch }
 ```
 
 ### `artifacts/businessnow/src/components/ui/table.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -25753,7 +29058,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/tabs.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 
@@ -25810,7 +29115,7 @@ export { Tabs, TabsList, TabsTrigger, TabsContent }
 ```
 
 ### `artifacts/businessnow/src/components/ui/textarea.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -25836,7 +29141,7 @@ export { Textarea }
 ```
 
 ### `artifacts/businessnow/src/components/ui/toast.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -25967,7 +29272,7 @@ export {
 ```
 
 ### `artifacts/businessnow/src/components/ui/toaster.tsx`
-```tsx
+```typescript
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -26004,7 +29309,7 @@ export function Toaster() {
 ```
 
 ### `artifacts/businessnow/src/components/ui/toggle.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as TogglePrimitive from "@radix-ui/react-toggle"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -26051,7 +29356,7 @@ export { Toggle, toggleVariants }
 ```
 
 ### `artifacts/businessnow/src/components/ui/tooltip-cell.tsx`
-```tsx
+```typescript
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 interface TooltipCellProps {
@@ -26084,7 +29389,7 @@ export function TooltipCell({ value, maxWidth = "max-w-[14rem]", className }: To
 ```
 
 ### `artifacts/businessnow/src/components/ui/tooltip.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -26120,7 +29425,7 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
 ```
 
 ### `artifacts/businessnow/src/components/utilisation-heatmap.tsx`
-```tsx
+```typescript
 import { useListUsers } from "@workspace/api-client-react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQuery } from "@tanstack/react-query";
@@ -26323,7 +29628,7 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
 ```
 
 ### `artifacts/businessnow/src/contexts/current-user.tsx`
-```tsx
+```typescript
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { setDefaultHeaders } from "@workspace/api-client-react";
 import { toast } from "@/hooks/use-toast";
@@ -26346,18 +29651,22 @@ export interface CurrentUser {
 interface CurrentUserCtx {
   currentUser: CurrentUser | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
   activeRole: string;
   availableRoles: string[];
   switchRole: (role: string) => void;
+  loginAs: (userId: number, role: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const CurrentUserContext = createContext<CurrentUserCtx>({
   currentUser: null,
   isLoading: true,
+  isAuthenticated: false,
   activeRole: "Admin",
   availableRoles: ["Admin"],
   switchRole: () => {},
+  loginAs: async () => {},
   logout: async () => {},
 });
 
@@ -26368,6 +29677,13 @@ function applyRoleHeaders(role: string, userId?: number) {
     localStorage.setItem("activeUserId", String(userId));
   }
   setDefaultHeaders(headers);
+}
+
+function clearRoleHeaders() {
+  // Clear both client-side default headers so subsequent fetches go out
+  // unauthenticated and the server returns 401 (instead of accidentally
+  // reusing stale credentials).
+  setDefaultHeaders({});
 }
 
 async function logRoleSwitch(from: string, to: string, userId?: number) {
@@ -26395,9 +29711,11 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     activeRoleRef.current = activeRole;
   }, [activeRole]);
 
-  const fetchMe = useCallback(async (): Promise<CurrentUser | null> => {
+  const fetchMe = useCallback(async (userId: number, role: string): Promise<CurrentUser | null> => {
     try {
-      const r = await fetch(`${BASE}/api/me`, { headers: { "x-user-role": "Admin" } });
+      const r = await fetch(`${BASE}/api/me`, {
+        headers: { "x-user-id": String(userId), "x-user-role": role },
+      });
       if (!r.ok) return null;
       return (await r.json()) as CurrentUser;
     } catch {
@@ -26405,29 +29723,44 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Initial bootstrap.
+  // Initial bootstrap. Only attempts to rehydrate a session if BOTH
+  // activeUserId and activeRole are present in localStorage; otherwise the
+  // app is considered logged-out and the AuthGate will redirect to /login.
   useEffect(() => {
-    fetchMe()
+    const storedUserId = localStorage.getItem("activeUserId");
+    const storedRole = localStorage.getItem("activeRole");
+    if (!storedUserId || !storedRole) {
+      setIsLoading(false);
+      return;
+    }
+    const userId = Number(storedUserId);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      localStorage.removeItem("activeUserId");
+      localStorage.removeItem("activeRole");
+      setIsLoading(false);
+      return;
+    }
+    applyRoleHeaders(storedRole, userId);
+    fetchMe(userId, storedRole)
       .then((data) => {
         if (data) {
           setCurrentUser(data);
-          const stored = localStorage.getItem("activeRole");
           const available = [data.role, ...(data.secondaryRoles ?? [])];
-          // Auto-pick when the user has only one role.
-          if (available.length === 1) {
-            const only = data.role;
-            setActiveRole(only);
-            localStorage.setItem("activeRole", only);
-            applyRoleHeaders(only, data.id);
-          } else if (stored && available.includes(stored)) {
-            setActiveRole(stored);
-            applyRoleHeaders(stored, data.id);
-          } else {
-            // Multi-role first-visit: leave activeRole as default header but DO NOT
-            // persist to localStorage — the RoleSelectorModal will open and the
-            // user's pick will write the value.
+          // Self-heal: if the stored role is no longer assigned, fall back
+          // to the user's primary role.
+          if (!available.includes(storedRole)) {
+            setActiveRole(data.role);
+            localStorage.setItem("activeRole", data.role);
             applyRoleHeaders(data.role, data.id);
+          } else {
+            setActiveRole(storedRole);
           }
+        } else {
+          // Stored credentials are stale (user deleted, deactivated, etc.).
+          // Clear and force a fresh login.
+          localStorage.removeItem("activeUserId");
+          localStorage.removeItem("activeRole");
+          clearRoleHeaders();
         }
       })
       .finally(() => setIsLoading(false));
@@ -26438,9 +29771,26 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!currentUser) return;
     const interval = setInterval(async () => {
-      const fresh = await fetchMe();
-      if (!fresh) return;
-      // Account deactivated → clear local state and redirect to root.
+      const fresh = await fetchMe(currentUser.id, activeRoleRef.current);
+      // /api/me returns non-2xx (and fetchMe → null) when the user has been
+      // deleted, deactivated, or had their assigned roles changed in a way
+      // that makes the current role-claim invalid. Treat any of those as a
+      // forced sign-out so the UI doesn't keep firing failing requests under
+      // a stale identity.
+      if (!fresh) {
+        toast({
+          title: "Your session has ended",
+          description: "Please sign in again.",
+          variant: "destructive",
+        });
+        localStorage.removeItem("activeRole");
+        localStorage.removeItem("activeUserId");
+        setCurrentUser(null);
+        clearRoleHeaders();
+        window.location.href = `${BASE}/login`;
+        return;
+      }
+      // Account deactivated → clear local state and bounce to login.
       if (fresh.activeStatus && fresh.activeStatus !== "active") {
         toast({
           title: "Your account was deactivated",
@@ -26448,9 +29798,10 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
         localStorage.removeItem("activeRole");
+        localStorage.removeItem("activeUserId");
         setCurrentUser(null);
-        applyRoleHeaders("Admin");
-        window.location.href = BASE || "/";
+        clearRoleHeaders();
+        window.location.href = `${BASE}/login`;
         return;
       }
       setCurrentUser(fresh);
@@ -26478,6 +29829,23 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function loginAs(userId: number, role: string): Promise<void> {
+    setIsLoading(true);
+    applyRoleHeaders(role, userId);
+    const data = await fetchMe(userId, role);
+    if (!data) {
+      clearRoleHeaders();
+      localStorage.removeItem("activeUserId");
+      localStorage.removeItem("activeRole");
+      setIsLoading(false);
+      throw new Error("Login failed: user not found or inactive.");
+    }
+    setCurrentUser(data);
+    setActiveRole(role);
+    localStorage.setItem("activeRole", role);
+    setIsLoading(false);
+  }
+
   async function logout() {
     try {
       await fetch(`${BASE}/api/auth/logout`, {
@@ -26491,7 +29859,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("activeUserId");
     setCurrentUser(null);
     setActiveRole("Admin");
-    applyRoleHeaders("Admin");
+    clearRoleHeaders();
   }
 
   const availableRoles = currentUser
@@ -26502,7 +29870,18 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     : [activeRole];
 
   return (
-    <CurrentUserContext.Provider value={{ currentUser, isLoading, activeRole, availableRoles, switchRole, logout }}>
+    <CurrentUserContext.Provider
+      value={{
+        currentUser,
+        isLoading,
+        isAuthenticated: currentUser !== null,
+        activeRole,
+        availableRoles,
+        switchRole,
+        loginAs,
+        logout,
+      }}
+    >
       {children}
     </CurrentUserContext.Provider>
   );
@@ -26514,7 +29893,7 @@ export function useCurrentUser() {
 ```
 
 ### `artifacts/businessnow/src/contexts/density.tsx`
-```tsx
+```typescript
 import { createContext, useContext, useState, useLayoutEffect, ReactNode } from "react";
 
 export type Density = "compact" | "comfortable";
@@ -26563,7 +29942,7 @@ export function useDensity() {
 ```
 
 ### `artifacts/businessnow/src/contexts/theme.tsx`
-```tsx
+```typescript
 import { createContext, useContext, useState, useLayoutEffect, useEffect, ReactNode } from "react";
 
 export type Theme = "light" | "dark" | "system";
@@ -26646,7 +30025,7 @@ export function useTheme() {
 ```
 
 ### `artifacts/businessnow/src/hooks/use-mobile.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
@@ -26861,6 +30240,112 @@ function useToast() {
 }
 
 export { useToast, toast }
+```
+
+### `artifacts/businessnow/src/hooks/use-undoable-mutation.tsx`
+```typescript
+import { useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+
+export interface UndoableMutationOptions {
+  /** The forward action. Throw to signal failure. */
+  do: () => Promise<unknown> | unknown;
+  /** The inverse action that restores previous state. Throw to signal failure. */
+  undo: () => Promise<unknown> | unknown;
+  /** Toast title on successful forward action. */
+  successTitle: string;
+  /** Optional toast description (e.g. the affected entity's name). */
+  description?: string;
+  /** Toast title on forward-action failure. Defaults to "Action failed". */
+  errorTitle?: string;
+  /** Toast title shown after a successful undo. Defaults to "Reverted". */
+  undoSuccessTitle?: string;
+  /** Toast title shown when undo itself fails. Defaults to "Could not undo". */
+  undoErrorTitle?: string;
+  /** Label for the action button. Defaults to "Undo". */
+  actionLabel?: string;
+  /** How long the success toast (with the Undo button) stays visible. */
+  duration?: number;
+}
+
+export interface UseUndoableMutationResult {
+  run: (opts: UndoableMutationOptions) => Promise<boolean>;
+}
+
+/**
+ * Generic helper for "do something, but offer an Undo for a few seconds".
+ *
+ * Pattern:
+ *   const { run } = useUndoableMutation();
+ *   await run({
+ *     do: () => deleteTask.mutateAsync({ id }),
+ *     undo: () => createTask.mutateAsync({ data: snapshot }),
+ *     successTitle: "Task deleted",
+ *     description: task.name,
+ *   });
+ *
+ * The forward action runs immediately. On success, a toast appears with an
+ * "Undo" button that fires the inverse action when clicked. On failure of
+ * either step, a destructive toast is shown.
+ *
+ * Returns `true` if the forward action succeeded (regardless of whether the
+ * user later clicks Undo), `false` if it threw.
+ */
+export function useUndoableMutation(): UseUndoableMutationResult {
+  const { toast } = useToast();
+
+  const run = useCallback(
+    async (opts: UndoableMutationOptions): Promise<boolean> => {
+      const {
+        do: doFn,
+        undo: undoFn,
+        successTitle,
+        description,
+        errorTitle = "Action failed",
+        undoSuccessTitle = "Reverted",
+        undoErrorTitle = "Could not undo",
+        actionLabel = "Undo",
+        duration = 5000,
+      } = opts;
+
+      try {
+        await doFn();
+      } catch {
+        toast({ title: errorTitle, variant: "destructive" });
+        return false;
+      }
+
+      let undone = false;
+      const handleUndo = async () => {
+        if (undone) return;
+        undone = true;
+        try {
+          await undoFn();
+          toast({ title: undoSuccessTitle, duration: 3000 });
+        } catch {
+          toast({ title: undoErrorTitle, variant: "destructive" });
+        }
+      };
+
+      toast({
+        title: successTitle,
+        description,
+        duration,
+        action: (
+          <ToastAction altText={actionLabel} onClick={handleUndo}>
+            {actionLabel}
+          </ToastAction>
+        ),
+      });
+
+      return true;
+    },
+    [toast],
+  );
+
+  return { run };
+}
 ```
 
 ### `artifacts/businessnow/src/index.css`
@@ -27863,11 +31348,11 @@ export function usePermissions(activeRole: string) {
 
 ### `artifacts/businessnow/src/lib/task-status.ts`
 ```typescript
-import { useListTaskStatusDefinitions } from "@workspace/api-client-react";
+import { useListTaskStatusDefinitions, type TaskStatusDefinition } from "@workspace/api-client-react";
 
 export const TASK_STATUS_VALUES = [
   "Not Started",
-  "In Progress",
+  "Started",
   "On Hold",
   "Completed",
   "Canceled",
@@ -27875,11 +31360,15 @@ export const TASK_STATUS_VALUES = [
 
 export type TaskStatus = (typeof TASK_STATUS_VALUES)[number];
 
+// C2 from product feedback (Sedore 4/24/26): default label switched from
+// "In Progress" → "Started". Legacy DB rows that still hold "In Progress"
+// (and other historical values) display through the canonical label.
 const LEGACY_STATUS_MAP: Record<string, TaskStatus> = {
+  "In Progress": "Started",
   "Blocked": "On Hold",
   "Todo": "Not Started",
   "Done": "Completed",
-  "In Review": "In Progress",
+  "In Review": "Started",
   "Cancelled": "Canceled",
 };
 
@@ -27895,7 +31384,7 @@ export function normalizeTaskStatus(raw: string | null | undefined): TaskStatus 
 
 export const TASK_STATUS_CYCLE: TaskStatus[] = [
   "Not Started",
-  "In Progress",
+  "Started",
   "Completed",
   "On Hold",
 ];
@@ -27911,16 +31400,21 @@ export const TASK_STATUS_CYCLE: TaskStatus[] = [
 export function useTaskStatuses(): {
   statuses: string[];
   isLoading: boolean;
-  raw: ReturnType<typeof useListTaskStatusDefinitions>["data"];
+  raw: TaskStatusDefinition[] | undefined;
 } {
   const q = useListTaskStatusDefinitions({
     query: {
+      queryKey: ["task-status-definitions"],
       staleTime: 60_000,
     },
   });
-  const fromApi = q.data?.map((s) => s.label).filter(Boolean);
-  const statuses = fromApi && fromApi.length > 0 ? fromApi : (TASK_STATUS_VALUES as readonly string[]).slice();
-  return { statuses, isLoading: q.isLoading, raw: q.data };
+  const data = q.data as TaskStatusDefinition[] | undefined;
+  const fromApi = data
+    ?.map((s) => taskStatusLabel(s.label))
+    .filter((v): v is string => !!v);
+  const deduped = fromApi ? Array.from(new Set(fromApi)) : undefined;
+  const statuses = deduped && deduped.length > 0 ? deduped : (TASK_STATUS_VALUES as readonly string[]).slice();
+  return { statuses, isLoading: q.isLoading, raw: data };
 }
 ```
 
@@ -27935,7 +31429,7 @@ export function cn(...inputs: ClassValue[]) {
 ```
 
 ### `artifacts/businessnow/src/main.tsx`
-```tsx
+```typescript
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
@@ -27944,7 +31438,7 @@ createRoot(document.getElementById("root")!).render(<App />);
 ```
 
 ### `artifacts/businessnow/src/pages/accounts.tsx`
-```tsx
+```typescript
 import { useState, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
@@ -28082,7 +31576,7 @@ export default function Accounts() {
 
   function openEdit(account: Account) {
     setEditTarget(account);
-    setEditForm({ name: account.name, domain: account.domain, tier: account.tier, region: account.region, status: account.status, contractValue: String(account.contractValue ?? "") });
+    setEditForm({ name: account.name, domain: account.domain, tier: account.tier, region: account.region, status: account.status, contractValue: String(account.contractValue ?? ""), isInternal: account.isInternal ?? account.accountType === "internal" });
     setShowEdit(true);
   }
 
@@ -28092,7 +31586,7 @@ export default function Accounts() {
   }
 
   function resetForm() {
-    setForm({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
+    setForm({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
   }
 
   const filtered = accounts.filter(a => {
@@ -28632,7 +32126,7 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
 ```
 
 ### `artifacts/businessnow/src/pages/admin.tsx`
-```tsx
+```typescript
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
 import { useSearch } from "wouter";
@@ -29957,7 +33451,7 @@ export default function Admin() {
                                 {user.activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
                                   : user.activeStatus === "inactive" ? <Badge variant="secondary" className="text-xs text-muted-foreground">Inactive</Badge>
                                   : <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border">Active</Badge>}
-                                {user.isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
+                                {(user as any).isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
                               </TableCell>
                               <TableCell className="text-right">${user.costRate}/hr</TableCell>
                               <TableCell>
@@ -32076,8 +35570,872 @@ function PlaceholdersCatalog({ base }: { base: string }) {
 }
 ```
 
+### `artifacts/businessnow/src/pages/command-center.tsx`
+```typescript
+import { Fragment, useMemo, useState } from "react";
+import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import {
+  RefreshCw,
+  AlertTriangle,
+  Users,
+  TrendingUp,
+  DollarSign,
+  Clock,
+  Briefcase,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  ExternalLink,
+} from "lucide-react";
+import { authHeaders } from "@/lib/auth-headers";
+import { Layout } from "@/components/layout";
+import { PageHeader } from "@/components/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type HealthBucket = "Green" | "Amber" | "Red";
+
+interface PortfolioProject {
+  projectId: number;
+  projectName: string;
+  accountId: number;
+  accountName: string | null;
+  ownerId: number;
+  ownerName: string | null;
+  status: string;
+  health: string;
+  healthBucket: HealthBucket;
+  healthReason: string;
+  billingType: string;
+  sowBudget: number;
+  changeOrderAmount: number;
+  totalBudget: number;
+  actuals: number;
+  pendingInvoiced: number;
+  percentUsed: number;
+  plannedHours: number;
+  actualHours: number;
+  etc: number;
+  eac: number;
+  completion: number;
+  startDate: string;
+  dueDate: string;
+  daysRemaining: number;
+}
+
+interface OverAllocatedEmployee {
+  userId: number;
+  userName: string;
+  role: string;
+  department: string;
+  capacity: number;
+  allocatedHours: number;
+  utilizationPercent: number;
+  projects: Array<{ projectId: number; projectName: string; hoursPerWeek: number }>;
+}
+
+interface OpenResourceRequest {
+  id: number;
+  projectId: number;
+  projectName: string;
+  role: string;
+  requiredSkills: string[];
+  hoursPerWeek: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  daysSinceRaised: number;
+}
+
+interface BudgetAlert {
+  projectId: number;
+  projectName: string;
+  type: "spend_over_90" | "hours_over_plan" | "eac_over_budget" | "no_budget";
+  message: string;
+}
+
+interface PortfolioPayload {
+  refreshedAt: string;
+  kpis: {
+    totalBudget: number;
+    totalPlannedHours: number;
+    totalActualHours: number;
+    burnPercent: number;
+    totalBilled: number;
+    totalPending: number;
+    atRiskCount: number;
+    overAllocatedCount: number;
+    openRequestsCount: number;
+    projectCount: number;
+  };
+  projects: PortfolioProject[];
+  overAllocatedEmployees: OverAllocatedEmployee[];
+  openResourceRequests: OpenResourceRequest[];
+  budgetAlerts: BudgetAlert[];
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function fmtCurrency(n: number): string {
+  return n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
+function fmtHours(n: number): string {
+  return `${n.toFixed(1)}h`;
+}
+
+function healthDot(b: HealthBucket): string {
+  if (b === "Green") return "bg-emerald-500";
+  if (b === "Amber") return "bg-amber-500";
+  return "bg-red-500";
+}
+
+function csvEscape(v: any): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadCsv(filename: string, rows: Record<string, any>[]) {
+  if (rows.length === 0) return;
+  const headers = Object.keys(rows[0]);
+  const lines = [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => csvEscape(r[h])).join(",")),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── Section Components ─────────────────────────────────────────────────────
+
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  emphasis,
+  onClick,
+}: {
+  icon: typeof DollarSign;
+  label: string;
+  value: string | number;
+  sub?: string;
+  emphasis?: "default" | "warn" | "danger";
+  onClick?: () => void;
+}) {
+  const tone =
+    emphasis === "danger"
+      ? "text-red-600"
+      : emphasis === "warn"
+        ? "text-amber-600"
+        : "text-foreground";
+  return (
+    <Card
+      className={onClick ? "cursor-pointer hover:border-primary transition-colors" : undefined}
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {label}
+            </div>
+            <div className={`text-2xl font-semibold mt-1 ${tone}`}>{value}</div>
+            {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+          </div>
+          <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function HealthBadge({ bucket, reason }: { bucket: HealthBucket; reason: string }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center gap-1.5">
+            <span className={`h-2.5 w-2.5 rounded-full ${healthDot(bucket)}`} />
+            <span className="text-xs">{bucket}</span>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <p className="text-xs">{reason}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const cls =
+    priority === "High" || priority === "Critical"
+      ? "bg-red-100 text-red-700 border-red-200"
+      : priority === "Medium"
+        ? "bg-amber-100 text-amber-700 border-amber-200"
+        : "bg-slate-100 text-slate-700 border-slate-200";
+  return <Badge variant="outline" className={cls}>{priority}</Badge>;
+}
+
+// ─── Page ───────────────────────────────────────────────────────────────────
+
+export default function CommandCenter() {
+  const { data, isLoading, isFetching, refetch, dataUpdatedAt } = useQuery<PortfolioPayload>({
+    queryKey: ["admin-portfolio-summary"],
+    queryFn: async () => {
+      const r = await fetch("/api/admin/portfolio-summary", { headers: authHeaders() });
+      if (!r.ok) throw new Error(`Failed to load portfolio summary (${r.status})`);
+      return r.json();
+    },
+    refetchInterval: 5 * 60 * 1000, // auto-refresh every 5 minutes
+    staleTime: 60 * 1000,
+  });
+
+  // ── Filters / grouping for the projects table ──────────────────────────────
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [healthFilter, setHealthFilter] = useState<string>("all");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [pmFilter, setPmFilter] = useState<string>("all");
+  const [groupBy, setGroupBy] = useState<"none" | "account" | "pm">("none");
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<keyof PortfolioProject>("projectName");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // Section 5/3/4 collapsible state
+  const [overAllocOpen, setOverAllocOpen] = useState(true);
+  const [requestsOpen, setRequestsOpen] = useState(true);
+  const [alertsOpen, setAlertsOpen] = useState(true);
+
+  const filteredProjects = useMemo(() => {
+    if (!data) return [];
+    let rows = data.projects;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      rows = rows.filter((p) => p.projectName.toLowerCase().includes(q));
+    }
+    if (statusFilter !== "all") rows = rows.filter((p) => p.status === statusFilter);
+    if (healthFilter !== "all") rows = rows.filter((p) => p.healthBucket === healthFilter);
+    if (accountFilter !== "all")
+      rows = rows.filter((p) => String(p.accountId) === accountFilter);
+    if (pmFilter !== "all") rows = rows.filter((p) => String(p.ownerId) === pmFilter);
+
+    rows = [...rows].sort((a, b) => {
+      const av = a[sortKey] as any;
+      const bv = b[sortKey] as any;
+      if (typeof av === "number" && typeof bv === "number") {
+        return sortDir === "asc" ? av - bv : bv - av;
+      }
+      return sortDir === "asc"
+        ? String(av ?? "").localeCompare(String(bv ?? ""))
+        : String(bv ?? "").localeCompare(String(av ?? ""));
+    });
+    return rows;
+  }, [data, search, statusFilter, healthFilter, accountFilter, pmFilter, sortKey, sortDir]);
+
+  const groupedProjects = useMemo(() => {
+    if (groupBy === "none") return [{ key: "All projects", rows: filteredProjects }];
+    const map = new Map<string, PortfolioProject[]>();
+    for (const p of filteredProjects) {
+      const k =
+        groupBy === "account"
+          ? p.accountName ?? "(no account)"
+          : p.ownerName ?? "(no PM)";
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(p);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, rows]) => ({ key, rows }));
+  }, [filteredProjects, groupBy]);
+
+  const distinctAccounts = useMemo(() => {
+    const m = new Map<number, string>();
+    (data?.projects ?? []).forEach((p) =>
+      p.accountName && m.set(p.accountId, p.accountName),
+    );
+    return Array.from(m.entries()).sort(([, a], [, b]) => a.localeCompare(b));
+  }, [data]);
+
+  const distinctPMs = useMemo(() => {
+    const m = new Map<number, string>();
+    (data?.projects ?? []).forEach((p) => p.ownerName && m.set(p.ownerId, p.ownerName));
+    return Array.from(m.entries()).sort(([, a], [, b]) => a.localeCompare(b));
+  }, [data]);
+
+  const requestsByProject = useMemo(() => {
+    const m = new Map<number, { projectName: string; rows: OpenResourceRequest[] }>();
+    (data?.openResourceRequests ?? []).forEach((r) => {
+      if (!m.has(r.projectId)) m.set(r.projectId, { projectName: r.projectName, rows: [] });
+      m.get(r.projectId)!.rows.push(r);
+    });
+    return Array.from(m.values()).sort((a, b) => a.projectName.localeCompare(b.projectName));
+  }, [data]);
+
+  function toggleSort(key: keyof PortfolioProject) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  function exportCsv() {
+    const rows = filteredProjects.map((p) => ({
+      Project: p.projectName,
+      Account: p.accountName ?? "",
+      PM: p.ownerName ?? "",
+      Status: p.status,
+      Health: p.healthBucket,
+      "Health Reason": p.healthReason,
+      "Billing Type": p.billingType,
+      "Total Budget": p.totalBudget,
+      "Actuals": p.actuals,
+      "% Used": p.percentUsed,
+      "Planned Hours": p.plannedHours,
+      "Actual Hours": p.actualHours,
+      ETC: p.etc,
+      EAC: p.eac,
+      "Days Remaining": p.daysRemaining,
+      "Start Date": p.startDate,
+      "Due Date": p.dueDate,
+    }));
+    downloadCsv(`portfolio-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  }
+
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (isLoading || !data) {
+    return (
+      <Layout>
+        <PageHeader title="Command Center" description="Cross-project portfolio view" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </Layout>
+    );
+  }
+
+  const k = data.kpis;
+  const refreshedLabel = dataUpdatedAt
+    ? format(new Date(dataUpdatedAt), "MMM d, h:mm a")
+    : format(new Date(data.refreshedAt), "MMM d, h:mm a");
+
+  return (
+    <Layout>
+      <PageHeader
+        title="Command Center"
+        description="Portfolio-wide health, capacity, and budget — refreshed every 5 minutes."
+        actions={
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden md:inline">
+              Last refreshed {refreshedLabel}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              data-testid="button-refresh-portfolio"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        }
+      />
+
+      {/* ── Section 1: KPI bar ───────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <KpiCard
+          icon={DollarSign}
+          label="Portfolio Budget"
+          value={fmtCurrency(k.totalBudget)}
+          sub={`${k.projectCount} projects`}
+        />
+        <KpiCard
+          icon={Clock}
+          label="Hours Burn"
+          value={`${k.burnPercent}%`}
+          sub={`${fmtHours(k.totalActualHours)} / ${fmtHours(k.totalPlannedHours)}`}
+          emphasis={k.burnPercent >= 100 ? "danger" : k.burnPercent >= 80 ? "warn" : "default"}
+        />
+        <KpiCard
+          icon={TrendingUp}
+          label="Billed to Date"
+          value={fmtCurrency(k.totalBilled)}
+          sub={`${fmtCurrency(k.totalPending)} pending`}
+        />
+        <KpiCard
+          icon={AlertTriangle}
+          label="At Risk / Red"
+          value={k.atRiskCount}
+          sub="Click to filter table"
+          emphasis={k.atRiskCount > 0 ? "danger" : "default"}
+          onClick={() => setHealthFilter(k.atRiskCount > 0 ? "Red" : "all")}
+        />
+        <KpiCard
+          icon={Users}
+          label="Over-allocated"
+          value={k.overAllocatedCount}
+          sub="Employees > 100%"
+          emphasis={k.overAllocatedCount > 0 ? "warn" : "default"}
+          onClick={() => {
+            setOverAllocOpen(true);
+            document.getElementById("over-allocated-section")?.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
+        <KpiCard
+          icon={Briefcase}
+          label="Open Resource Reqs"
+          value={k.openRequestsCount}
+          sub="Pending / Approved"
+          emphasis={k.openRequestsCount > 0 ? "warn" : "default"}
+          onClick={() => {
+            setRequestsOpen(true);
+            document.getElementById("resource-requests-section")?.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
+      </div>
+
+      {/* ── Section 2: Consolidated project table ──────────────────────── */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-base">Consolidated Projects</CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={exportCsv}
+              data-testid="button-export-csv"
+            >
+              <Download className="h-4 w-4 mr-1.5" /> Export CSV
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <Input
+              placeholder="Search project…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-48 h-8"
+              data-testid="input-project-search"
+            />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {[...new Set(data.projects.map((p) => p.status))].sort().map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={healthFilter} onValueChange={setHealthFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Health" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All health</SelectItem>
+                <SelectItem value="Green">🟢 Green</SelectItem>
+                <SelectItem value="Amber">🟡 Amber</SelectItem>
+                <SelectItem value="Red">🔴 Red</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={accountFilter} onValueChange={setAccountFilter}>
+              <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="Account" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All accounts</SelectItem>
+                {distinctAccounts.map(([id, name]) => (
+                  <SelectItem key={id} value={String(id)}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={pmFilter} onValueChange={setPmFilter}>
+              <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="PM" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All PMs</SelectItem>
+                {distinctPMs.map(([id, name]) => (
+                  <SelectItem key={id} value={String(id)}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={groupBy} onValueChange={(v: any) => setGroupBy(v)}>
+              <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="Group by" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No grouping</SelectItem>
+                <SelectItem value="account">Group by Account</SelectItem>
+                <SelectItem value="pm">Group by PM</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="cursor-pointer" onClick={() => toggleSort("projectName")}>
+                    Project {sortKey === "projectName" && (sortDir === "asc" ? "▲" : "▼")}
+                  </TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead>PM</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Health</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("totalBudget")}>
+                    Total Budget {sortKey === "totalBudget" && (sortDir === "asc" ? "▲" : "▼")}
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => toggleSort("percentUsed")}>
+                    Spent {sortKey === "percentUsed" && (sortDir === "asc" ? "▲" : "▼")}
+                  </TableHead>
+                  <TableHead className="text-right">Planned h</TableHead>
+                  <TableHead className="text-right">Actual h</TableHead>
+                  <TableHead className="text-right">ETC</TableHead>
+                  <TableHead className="text-right">EAC</TableHead>
+                  <TableHead>Billing</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProjects.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
+                      No projects match the current filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  groupedProjects.map((group) => (
+                    <Fragment key={`group-${group.key}`}>
+                      {groupBy !== "none" && (
+                        <TableRow className="bg-muted/40">
+                          <TableCell colSpan={12} className="text-xs font-semibold text-muted-foreground">
+                            {group.key} · {group.rows.length}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {group.rows.map((p) => (
+                        <TableRow key={p.projectId} data-testid={`row-project-${p.projectId}`}>
+                          <TableCell className="font-medium">
+                            <Link href={`/projects/${p.projectId}`} className="hover:underline text-primary">
+                              {p.projectName}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {p.accountName ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {p.ownerName ?? "—"}
+                          </TableCell>
+                          <TableCell><Badge variant="outline" className="text-xs">{p.status}</Badge></TableCell>
+                          <TableCell><HealthBadge bucket={p.healthBucket} reason={p.healthReason} /></TableCell>
+                          <TableCell className="text-right font-mono text-sm">{fmtCurrency(p.totalBudget)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2 min-w-[120px]">
+                              <Progress
+                                value={Math.min(100, p.percentUsed)}
+                                className={`h-2 flex-1 ${p.percentUsed >= 90 ? "[&>*]:bg-red-500" : ""}`}
+                              />
+                              <span
+                                className={`text-xs font-mono w-10 text-right ${
+                                  p.percentUsed >= 90 ? "text-red-600 font-semibold" : ""
+                                }`}
+                              >
+                                {p.percentUsed}%
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">{p.plannedHours.toFixed(1)}</TableCell>
+                          <TableCell className="text-right font-mono text-sm">{p.actualHours.toFixed(1)}</TableCell>
+                          <TableCell className="text-right font-mono text-sm">{p.etc.toFixed(1)}</TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {p.billingType === "Fixed Fee" ? fmtCurrency(p.eac) : `${p.eac.toFixed(1)}h`}
+                          </TableCell>
+                          <TableCell className="text-xs">{p.billingType}</TableCell>
+                        </TableRow>
+                      ))}
+                    </Fragment>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Section 3: Over-allocated employees ────────────────────────── */}
+      <div id="over-allocated-section" />
+      <Collapsible open={overAllocOpen} onOpenChange={setOverAllocOpen} className="mb-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger className="flex items-center justify-between w-full">
+              <CardTitle className="text-base flex items-center gap-2">
+                {overAllocOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                Over-allocated Employees
+                <Badge variant="outline" className="text-xs">
+                  {data.overAllocatedEmployees.length}
+                </Badge>
+              </CardTitle>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {data.overAllocatedEmployees.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No employees are currently over-allocated. Capacity looks healthy.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {data.overAllocatedEmployees.map((emp) => (
+                    <div
+                      key={emp.userId}
+                      className="border rounded-lg p-3"
+                      data-testid={`row-overalloc-${emp.userId}`}
+                    >
+                      <div className="flex items-start justify-between flex-wrap gap-3">
+                        <div className="min-w-0">
+                          <div className="font-medium">
+                            {emp.userName}
+                            <Badge variant="outline" className="ml-2 text-xs">{emp.role}</Badge>
+                            <span className="text-xs text-muted-foreground ml-2">{emp.department}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {emp.allocatedHours.toFixed(1)}h / {emp.capacity}h capacity ·{" "}
+                            <span className="text-red-600 font-semibold">{emp.utilizationPercent}%</span>
+                          </div>
+                          <div className="text-xs mt-2">
+                            <span className="text-muted-foreground">On: </span>
+                            {emp.projects.map((pj, i) => (
+                              <span key={pj.projectId}>
+                                <Link href={`/projects/${pj.projectId}`} className="text-primary hover:underline">
+                                  {pj.projectName}
+                                </Link>{" "}
+                                <span className="text-muted-foreground">({pj.hoursPerWeek}h/wk)</span>
+                                {i < emp.projects.length - 1 ? ", " : ""}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/resources?userId=${emp.userId}`}>
+                            <Button size="sm" variant="outline" data-testid={`button-view-allocs-${emp.userId}`}>
+                              <ExternalLink className="h-3 w-3 mr-1" /> View Allocations
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <UtilisationHeatmap userId={emp.userId} weekCount={4} compact />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* ── Section 4: Open resource requests ──────────────────────────── */}
+      <div id="resource-requests-section" />
+      <Collapsible open={requestsOpen} onOpenChange={setRequestsOpen} className="mb-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger className="flex items-center justify-between w-full">
+              <CardTitle className="text-base flex items-center gap-2">
+                {requestsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                Resource Requirements Needing Attention
+                <Badge variant="outline" className="text-xs">{data.openResourceRequests.length}</Badge>
+              </CardTitle>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {requestsByProject.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No open resource requests.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {requestsByProject.map((grp) => (
+                    <div key={grp.rows[0].projectId}>
+                      <div className="text-sm font-semibold mb-2">
+                        <Link
+                          href={`/projects/${grp.rows[0].projectId}`}
+                          className="hover:underline text-primary"
+                        >
+                          {grp.projectName}
+                        </Link>
+                      </div>
+                      <div className="border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Role</TableHead>
+                              <TableHead>Skills</TableHead>
+                              <TableHead className="text-right">Hrs/wk</TableHead>
+                              <TableHead>Start</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Priority</TableHead>
+                              <TableHead className="text-right">Days open</TableHead>
+                              <TableHead></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {grp.rows.map((r) => (
+                              <TableRow key={r.id} data-testid={`row-request-${r.id}`}>
+                                <TableCell className="font-medium">{r.role}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">
+                                  {(r.requiredSkills ?? []).join(", ") || "—"}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-sm">
+                                  {r.hoursPerWeek}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {format(new Date(r.startDate), "MMM d, yyyy")}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-xs">{r.status}</Badge>
+                                </TableCell>
+                                <TableCell><PriorityBadge priority={r.priority} /></TableCell>
+                                <TableCell className="text-right">
+                                  <span
+                                    className={
+                                      r.daysSinceRaised > 7
+                                        ? "text-red-600 font-semibold"
+                                        : "text-muted-foreground text-sm"
+                                    }
+                                  >
+                                    {r.daysSinceRaised}d
+                                    {r.daysSinceRaised > 7 && " ⚠"}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <Link
+                                    href={`/projects/${r.projectId}?tab=resources&request=${r.id}`}
+                                  >
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      data-testid={`button-assign-${r.id}`}
+                                    >
+                                      Assign
+                                    </Button>
+                                  </Link>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* ── Section 5: Budget alerts ───────────────────────────────────── */}
+      <Collapsible open={alertsOpen} onOpenChange={setAlertsOpen}>
+        <Card>
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger className="flex items-center justify-between w-full">
+              <CardTitle className="text-base flex items-center gap-2">
+                {alertsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                Budget Alerts
+                <Badge variant="outline" className="text-xs">{data.budgetAlerts.length}</Badge>
+              </CardTitle>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {data.budgetAlerts.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No active budget alerts. All projects are within thresholds.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Alert Type</TableHead>
+                      <TableHead>Detail</TableHead>
+                      <TableHead className="text-right"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.budgetAlerts.map((a, i) => {
+                      const typeLabel =
+                        a.type === "spend_over_90"
+                          ? "Spend ≥ 90%"
+                          : a.type === "hours_over_plan"
+                            ? "Hours over plan"
+                            : a.type === "eac_over_budget"
+                              ? "EAC > Budget"
+                              : "No budget";
+                      const typeCls =
+                        a.type === "no_budget"
+                          ? "bg-slate-100 text-slate-700 border-slate-200"
+                          : "bg-red-100 text-red-700 border-red-200";
+                      return (
+                        <TableRow key={`${a.projectId}-${a.type}-${i}`} data-testid={`row-alert-${a.projectId}-${a.type}`}>
+                          <TableCell className="font-medium">
+                            <Link href={`/projects/${a.projectId}`} className="hover:underline text-primary">
+                              {a.projectName}
+                            </Link>
+                          </TableCell>
+                          <TableCell><Badge variant="outline" className={typeCls}>{typeLabel}</Badge></TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{a.message}</TableCell>
+                          <TableCell className="text-right">
+                            <Link href={`/projects/${a.projectId}?tab=budget`}>
+                              <Button size="sm" variant="ghost">
+                                <ExternalLink className="h-3 w-3 mr-1" /> Open Budget
+                              </Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+    </Layout>
+  );
+}
+```
+
 ### `artifacts/businessnow/src/pages/dashboard.tsx`
-```tsx
+```typescript
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
@@ -32616,7 +36974,7 @@ function HealthRow({
 ```
 
 ### `artifacts/businessnow/src/pages/finance.tsx`
-```tsx
+```typescript
 import { authHeaders } from "@/lib/auth-headers";
 import { useState } from "react";
 import { Layout } from "@/components/layout";
@@ -32627,7 +36985,7 @@ import {
   useListRevenueEntries, useCreateRevenueEntry, useDeleteRevenueEntry, useGetRevenueByPeriodReport, getListRevenueEntriesQueryKey,
   useUpdateInvoice,
 } from "@workspace/api-client-react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32642,7 +37000,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus } from "lucide-react";
+import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus, FileText, ExternalLink } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -32652,6 +37010,20 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
+
+type ContractRow = {
+  id: number;
+  projectId: number;
+  name: string;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  value: number | null;
+  documentUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 const createInvoiceSchema = z.object({
   projectId: z.coerce.number().min(1, "Project is required"),
@@ -32670,7 +37042,9 @@ export default function Finance() {
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isContractOpen, setIsContractOpen] = useState(false);
-  const [contractForm, setContractForm] = useState({ name: "", projectId: "", startDate: "", endDate: "", value: "", notes: "" });
+  const [editingContract, setEditingContract] = useState<ContractRow | null>(null);
+  const [deleteContractId, setDeleteContractId] = useState<number | null>(null);
+  const [contractForm, setContractForm] = useState({ name: "", projectId: "", status: "Draft", startDate: "", endDate: "", value: "", documentUrl: "", notes: "" });
   const [isSavingContract, setIsSavingContract] = useState(false);
   const [editInvoice, setEditInvoice] = useState<any>(null);
   const [invoiceEditForm, setInvoiceEditForm] = useState({ description: "", amount: "", dueDate: "", status: "" });
@@ -32850,34 +37224,95 @@ export default function Finance() {
     }
   }
 
+  const contractsQueryKey = ["/api/contracts"] as const;
+  const { data: contracts, isLoading: isLoadingContracts } = useQuery<ContractRow[]>({
+    queryKey: contractsQueryKey,
+    queryFn: async () => {
+      const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+      const r = await fetch(`${BASE}/api/contracts`, { headers: authHeaders() });
+      if (!r.ok) throw new Error("Failed to load contracts");
+      return r.json();
+    },
+  });
+
+  function resetContractForm() {
+    setContractForm({ name: "", projectId: "", status: "Draft", startDate: "", endDate: "", value: "", documentUrl: "", notes: "" });
+  }
+
   async function handleCreateContract() {
     if (!contractForm.name || !contractForm.projectId) return;
     setIsSavingContract(true);
     try {
       const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
-      const res = await fetch(`${BASE}/api/projects/${contractForm.projectId}/documents`, {
-        method: "POST",
+      const isEdit = editingContract !== null;
+      const url = isEdit ? `${BASE}/api/contracts/${editingContract!.id}` : `${BASE}/api/contracts`;
+      const body: Record<string, unknown> = {
+        projectId: parseInt(contractForm.projectId, 10),
+        name: contractForm.name,
+        status: contractForm.status || "Draft",
+        startDate: contractForm.startDate || null,
+        endDate: contractForm.endDate || null,
+        value: contractForm.value === "" ? null : parseFloat(contractForm.value),
+        documentUrl: contractForm.documentUrl || null,
+        notes: contractForm.notes || null,
+      };
+      const res = await fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          name: contractForm.name,
-          documentType: "Contract",
-          spaceType: "external",
-          content: [
-            contractForm.startDate ? `Start Date: ${contractForm.startDate}` : "",
-            contractForm.endDate ? `End Date: ${contractForm.endDate}` : "",
-            contractForm.value ? `Contract Value: $${contractForm.value}` : "",
-            contractForm.notes,
-          ].filter(Boolean).join("\n"),
-        }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("Failed to save contract");
-      toast({ title: "Contract saved" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to save contract");
+      }
+      queryClient.invalidateQueries({ queryKey: contractsQueryKey });
+      toast({ title: isEdit ? "Contract updated" : "Contract saved" });
       setIsContractOpen(false);
-      setContractForm({ name: "", projectId: "", startDate: "", endDate: "", value: "", notes: "" });
-    } catch {
-      toast({ title: "Failed to save contract", variant: "destructive" });
+      setEditingContract(null);
+      resetContractForm();
+    } catch (err) {
+      toast({
+        title: "Failed to save contract",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
     } finally {
       setIsSavingContract(false);
+    }
+  }
+
+  function openEditContract(c: ContractRow) {
+    setEditingContract(c);
+    setContractForm({
+      name: c.name,
+      projectId: c.projectId.toString(),
+      status: c.status,
+      startDate: c.startDate ?? "",
+      endDate: c.endDate ?? "",
+      value: c.value === null ? "" : String(c.value),
+      documentUrl: c.documentUrl ?? "",
+      notes: c.notes ?? "",
+    });
+    setIsContractOpen(true);
+  }
+
+  async function handleDeleteContract(id: number) {
+    try {
+      const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+      const r = await fetch(`${BASE}/api/contracts/${id}`, { method: "DELETE", headers: authHeaders() });
+      if (!r.ok && r.status !== 204) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to delete contract");
+      }
+      queryClient.invalidateQueries({ queryKey: contractsQueryKey });
+      toast({ title: "Contract deleted" });
+      setDeleteContractId(null);
+    } catch (err) {
+      toast({
+        title: "Failed to delete contract",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
     }
   }
 
@@ -32950,6 +37385,9 @@ export default function Finance() {
             </TabsTrigger>
             <TabsTrigger value="revenue" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" /> Revenue Recognition
+            </TabsTrigger>
+            <TabsTrigger value="contracts" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" /> Contracts
             </TabsTrigger>
           </TabsList>
 
@@ -33226,6 +37664,114 @@ export default function Finance() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="contracts" className="m-0">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Contracts</CardTitle>
+                  <CardDescription>Master agreements, SOWs, and other contract documents tied to projects.</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => { setEditingContract(null); resetContractForm(); setIsContractOpen(true); }}>
+                  <FilePlus className="h-4 w-4 mr-2" /> New Contract
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const search = searchQuery.toLowerCase();
+                  const allContracts = contracts ?? [];
+                  const filtered = allContracts.filter(c => {
+                    if (!search) return true;
+                    const pName = projects?.find(p => p.id === c.projectId)?.name?.toLowerCase() ?? "";
+                    return c.name.toLowerCase().includes(search) ||
+                      c.status.toLowerCase().includes(search) ||
+                      pName.includes(search) ||
+                      (c.notes ?? "").toLowerCase().includes(search);
+                  });
+                  if (isLoadingContracts) {
+                    return <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>;
+                  }
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-10 text-muted-foreground text-sm">
+                        {allContracts.length === 0
+                          ? "No contracts yet. Click \"New Contract\" to create one."
+                          : `No contracts match "${searchQuery}".`}
+                      </div>
+                    );
+                  }
+                  return (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Project</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Value</TableHead>
+                          <TableHead>Start</TableHead>
+                          <TableHead>End</TableHead>
+                          <TableHead>Document</TableHead>
+                          <TableHead className="w-[60px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filtered.map(c => {
+                          const project = projects?.find(p => p.id === c.projectId);
+                          return (
+                            <TableRow key={c.id}>
+                              <TableCell className="font-medium">{c.name}</TableCell>
+                              <TableCell>{project?.name ?? `#${c.projectId}`}</TableCell>
+                              <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {c.value === null ? "—" : `$${c.value.toLocaleString()}`}
+                              </TableCell>
+                              <TableCell>{c.startDate ?? "—"}</TableCell>
+                              <TableCell>{c.endDate ?? "—"}</TableCell>
+                              <TableCell>
+                                {c.documentUrl ? (
+                                  <a
+                                    href={c.documentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                                  >
+                                    Open <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openEditContract(c)}>
+                                      <Pencil className="h-4 w-4 mr-2" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => setDeleteContractId(c.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         <InvoiceDetail invoice={selectedInvoice} open={!!selectedInvoice} onOpenChange={(o) => !o && setSelectedInvoice(null)} />
@@ -33407,11 +37953,13 @@ export default function Finance() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
+        <Dialog open={isContractOpen} onOpenChange={(o) => { if (!o) { setEditingContract(null); resetContractForm(); } setIsContractOpen(o); }}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>New Contract</DialogTitle>
-              <DialogDescription>Save a contract document against a project.</DialogDescription>
+              <DialogTitle>{editingContract ? "Edit Contract" : "New Contract"}</DialogTitle>
+              <DialogDescription>
+                {editingContract ? "Update the contract details." : "Track a contract tied to a project."}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-1">
               <div className="space-y-1.5">
@@ -33423,14 +37971,29 @@ export default function Finance() {
                   onChange={e => setContractForm(f => ({ ...f, name: e.target.value }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label>Project *</Label>
-                <Select value={contractForm.projectId} onValueChange={v => setContractForm(f => ({ ...f, projectId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
-                  <SelectContent>
-                    {projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Project *</Label>
+                  <Select value={contractForm.projectId} onValueChange={v => setContractForm(f => ({ ...f, projectId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
+                    <SelectContent>
+                      {projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Status</Label>
+                  <Select value={contractForm.status} onValueChange={v => setContractForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Draft">Draft</SelectItem>
+                      <SelectItem value="Pending Signature">Pending Signature</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Expired">Expired</SelectItem>
+                      <SelectItem value="Terminated">Terminated</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -33442,16 +38005,28 @@ export default function Finance() {
                   <input type="date" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={contractForm.endDate} onChange={e => setContractForm(f => ({ ...f, endDate: e.target.value }))} />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Contract Value ($)</Label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="0.00"
-                  value={contractForm.value}
-                  onChange={e => setContractForm(f => ({ ...f, value: e.target.value }))}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Contract Value ($)</Label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="0.00"
+                    value={contractForm.value}
+                    onChange={e => setContractForm(f => ({ ...f, value: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Document URL</Label>
+                  <input
+                    type="url"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="https://…"
+                    value={contractForm.documentUrl}
+                    onChange={e => setContractForm(f => ({ ...f, documentUrl: e.target.value }))}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label>Notes</Label>
@@ -33464,12 +38039,12 @@ export default function Finance() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsContractOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setEditingContract(null); resetContractForm(); setIsContractOpen(false); }}>Cancel</Button>
               <Button
                 onClick={handleCreateContract}
                 disabled={!contractForm.name || !contractForm.projectId || isSavingContract}
               >
-                {isSavingContract ? "Saving…" : "Save Contract"}
+                {isSavingContract ? "Saving…" : (editingContract ? "Update Contract" : "Save Contract")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -33529,7 +38104,7 @@ export default function Finance() {
 ```
 
 ### `artifacts/businessnow/src/pages/forbidden.tsx`
-```tsx
+```typescript
 import { Link } from "wouter";
 import { ShieldAlert, ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33576,8 +38151,294 @@ export default function Forbidden({ permission }: ForbiddenProps) {
 }
 ```
 
+### `artifacts/businessnow/src/pages/login.tsx`
+```typescript
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, ShieldCheck, Loader2, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/contexts/current-user";
+import { toast } from "@/hooks/use-toast";
+
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+
+interface LoginUser {
+  id: number;
+  name: string;
+  initials: string;
+  role: string;
+  secondaryRoles: string[];
+  department: string;
+  avatarUrl?: string | null;
+}
+
+export default function Login() {
+  const [, navigate] = useLocation();
+  const { isAuthenticated, isLoading: authLoading, loginAs } = useCurrentUser();
+  const [users, setUsers] = useState<LoginUser[] | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [pendingUser, setPendingUser] = useState<LoginUser | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Already signed in? Bounce straight to the dashboard.
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) navigate("/");
+  }, [authLoading, isAuthenticated, navigate]);
+
+  // Load the public user list (no auth headers needed).
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${BASE}/api/auth/users-for-login`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return (await r.json()) as LoginUser[];
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setUsers(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setFetchError(err?.message ?? "Failed to load users.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q) ||
+        u.department.toLowerCase().includes(q) ||
+        (u.secondaryRoles ?? []).some((r) => r.toLowerCase().includes(q)),
+    );
+  }, [users, search]);
+
+  function rolesFor(u: LoginUser): string[] {
+    return [u.role, ...(u.secondaryRoles ?? []).filter((r) => r !== u.role)];
+  }
+
+  async function doLogin(user: LoginUser, role: string) {
+    setSubmitting(true);
+    try {
+      await loginAs(user.id, role);
+      toast({
+        title: `Welcome back, ${user.name.split(" ")[0]}`,
+        description: `Signed in as ${role}.`,
+      });
+      navigate("/");
+    } catch (err: any) {
+      toast({
+        title: "Sign-in failed",
+        description: err?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function handleUserClick(u: LoginUser) {
+    const roles = rolesFor(u);
+    if (roles.length <= 1) {
+      void doLogin(u, roles[0]);
+    } else {
+      setPendingUser(u);
+    }
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-6">
+      <div className="w-full max-w-5xl">
+        {/* Brand header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
+              B
+            </div>
+            <span className="text-2xl font-bold tracking-tight">BusinessNow</span>
+          </div>
+          <h1 className="text-3xl font-semibold mb-2">Sign in to your workspace</h1>
+          <p className="text-muted-foreground text-sm">
+            Pick a user below to continue. All roles are pre-configured for this demo workspace.
+          </p>
+        </div>
+
+        {/* Role-pick step */}
+        {pendingUser ? (
+          <Card className="max-w-md mx-auto" data-testid="login-role-picker">
+            <CardContent className="pt-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mb-4 -ml-2"
+                onClick={() => setPendingUser(null)}
+                disabled={submitting}
+                data-testid="button-back-to-users"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back to users
+              </Button>
+              <div className="flex items-center gap-3 mb-6">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={pendingUser.avatarUrl ?? ""} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    {pendingUser.initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-semibold">{pendingUser.name}</div>
+                  <div className="text-xs text-muted-foreground">{pendingUser.department}</div>
+                </div>
+              </div>
+              <div className="text-sm font-medium mb-3 flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                This account has multiple roles — pick one to continue
+              </div>
+              <div className="space-y-2">
+                {rolesFor(pendingUser).map((role) => (
+                  <Button
+                    key={role}
+                    variant="outline"
+                    className="w-full justify-between h-auto py-3"
+                    disabled={submitting}
+                    onClick={() => doLogin(pendingUser, role)}
+                    data-testid={`button-pick-role-${role.replace(/\s+/g, "-").toLowerCase()}`}
+                  >
+                    <span className="font-medium">{role}</span>
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Search */}
+            {users && users.length > 6 && (
+              <div className="max-w-md mx-auto mb-6 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, role, or department"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-user-search"
+                />
+              </div>
+            )}
+
+            {/* Loading / error states */}
+            {!users && !fetchError && (
+              <div className="flex items-center justify-center py-16 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Loading users…
+              </div>
+            )}
+            {fetchError && (
+              <Card className="max-w-md mx-auto border-destructive/50">
+                <CardContent className="pt-6 text-center">
+                  <p className="text-sm text-destructive font-medium mb-1">
+                    Could not load the user list.
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    The API server may be starting up. Try refreshing in a few seconds.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                    Retry
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* User grid */}
+            {users && (
+              <div
+                className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                data-testid="login-user-grid"
+              >
+                {filteredUsers.map((u) => {
+                  const roles = rolesFor(u);
+                  const multi = roles.length > 1;
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => handleUserClick(u)}
+                      disabled={submitting}
+                      className={cn(
+                        "group text-left rounded-lg border bg-card p-4 transition-all",
+                        "hover:border-primary hover:shadow-md hover:-translate-y-0.5",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0",
+                      )}
+                      data-testid={`button-login-user-${u.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-12 w-12 flex-shrink-0">
+                          <AvatarImage src={u.avatarUrl ?? ""} />
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                            {u.initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold truncate">{u.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {u.department}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            <Badge variant="secondary" className="text-[10px] font-medium">
+                              {u.role}
+                            </Badge>
+                            {multi &&
+                              roles.slice(1).map((r) => (
+                                <Badge key={r} variant="outline" className="text-[10px]">
+                                  {r}
+                                </Badge>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                      {multi && (
+                        <div className="mt-3 text-[11px] text-muted-foreground flex items-center gap-1">
+                          <ShieldCheck className="h-3 w-3" />
+                          {roles.length} roles available
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+                {filteredUsers.length === 0 && (
+                  <div className="col-span-full text-center py-12 text-sm text-muted-foreground">
+                    No users match "{search}".
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        <p className="text-center text-xs text-muted-foreground mt-8">
+          Demo workspace — no password required. Sessions are kept locally in your browser.
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
 ### `artifacts/businessnow/src/pages/not-found.tsx`
-```tsx
+```typescript
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -33608,7 +38469,7 @@ export default function NotFound() {
 ```
 
 ### `artifacts/businessnow/src/pages/notifications.tsx`
-```tsx
+```typescript
 import { Layout } from "@/components/layout";
 import { authHeaders } from "@/lib/auth-headers";
 import { PageHeader } from "@/components/page-header";
@@ -33809,7 +38670,7 @@ export default function Notifications() {
 ```
 
 ### `artifacts/businessnow/src/pages/opportunities.tsx`
-```tsx
+```typescript
 import { authHeaders } from "@/lib/auth-headers";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -34436,7 +39297,7 @@ function OpportunityTable({
 ```
 
 ### `artifacts/businessnow/src/pages/project-detail.tsx`
-```tsx
+```typescript
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
@@ -34481,7 +39342,7 @@ export default function ProjectDetail() {
   const { statuses: dynamicStatuses } = useTaskStatuses();
   const kanbanStatuses = dynamicStatuses.length > 0
     ? dynamicStatuses
-    : ["Not Started", "In Progress", "On Hold", "Completed", "Canceled"];
+    : ["Not Started", "Started", "On Hold", "Completed", "Canceled"];
 
   const { data: project, isLoading: isLoadingProject } = useGetProject(projectId, {
     query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) }
@@ -34553,6 +39414,20 @@ export default function ProjectDetail() {
     documentLink: "",
   };
   const [budgetEntryForm, setBudgetEntryForm] = useState(emptyBudgetEntryForm);
+
+  // Pre-fill the dialog as the project's original SOW baseline. Used by both
+  // the empty-state prompt and (potentially) any "Set initial SOW" CTA.
+  function openSowEntry() {
+    setBudgetEntryForm({
+      entryDate: new Date().toISOString().slice(0, 10),
+      type: "SOW",
+      description: "Original SOW",
+      amount: project ? String(Number(project.budget) || 0) : "",
+      hours: project ? String(Number(project.budgetedHours) || 0) : "",
+      documentLink: "",
+    });
+    setBudgetEntryDialogOpen(true);
+  }
 
   async function handleSaveBudgetEntry() {
     if (!budgetEntryForm.description.trim()) {
@@ -35228,16 +40103,15 @@ export default function ProjectDetail() {
             </CardHeader>
             <CardContent>
               {(() => {
-                const sowAmount = (budgetEntries?.entries ?? [])
-                  .filter(e => e.type === "SOW")
-                  .reduce((s, e) => s + Number(e.amount), 0);
-                const coAmount = (budgetEntries?.entries ?? [])
-                  .filter(e => e.type === "CO")
-                  .reduce((s, e) => s + Number(e.amount), 0);
-                const adjAmount = (budgetEntries?.entries ?? [])
-                  .filter(e => e.type === "Adjustment")
-                  .reduce((s, e) => s + Number(e.amount), 0);
-                const revised = budgetEntries?.totalAmount ?? Number(project.budget);
+                const entries = budgetEntries?.entries ?? [];
+                const sowAmount = entries.filter(e => e.type === "SOW").reduce((s, e) => s + Number(e.amount), 0);
+                const coAmount = entries.filter(e => e.type === "CO").reduce((s, e) => s + Number(e.amount), 0);
+                const adjAmount = entries.filter(e => e.type === "Adjustment").reduce((s, e) => s + Number(e.amount), 0);
+                // Prefer the ledger sum once any entries exist (canonical source of truth);
+                // fall back to project.budget only when no ledger has been started yet.
+                const revised = entries.length > 0
+                  ? (budgetEntries?.totalAmount ?? 0)
+                  : Number(project.budget);
                 return (
                   <>
                     <div className="text-2xl font-bold tracking-tight">{formatCurrency(revised)}</div>
@@ -35448,7 +40322,7 @@ export default function ProjectDetail() {
                         if (taskFilter === "overdue") return t.dueDate && t.dueDate < today && t.status !== "Completed" && !t.isMilestone;
                         if (taskFilter === "blocked") return t.status === "On Hold" || t.status === "Blocked";
                         if (taskFilter === "at_risk") return t.isMilestone && t.dueDate && t.dueDate > today && t.status !== "Completed" && new Date(t.dueDate).getTime() - Date.now() < 7 * 86400000;
-                        if (taskFilter === "on_track") return t.status === "In Progress" && (!t.dueDate || t.dueDate >= today) && !t.isMilestone;
+                        if (taskFilter === "on_track") return (t.status === "Started" || t.status === "In Progress") && (!t.dueDate || t.dueDate >= today) && !t.isMilestone;
                         return false;
                       });
                       if (filtered.length === 0) return <p className="text-sm text-muted-foreground py-2">No tasks match this filter.</p>;
@@ -35478,15 +40352,17 @@ export default function ProjectDetail() {
                         });
                         const colors: Record<string, string> = {
                           "Not Started": "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
+                          "Started": "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
                           "In Progress": "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
                           "On Hold": "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
                           "Completed": "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
                           "Canceled": "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
                         };
                         const nextStatus: Record<string, string> = {
-                          "Not Started": "In Progress",
+                          "Not Started": "Started",
+                          "Started": "Completed",
                           "In Progress": "Completed",
-                          "On Hold": "In Progress",
+                          "On Hold": "Started",
                           "Completed": "Not Started",
                           "Canceled": "Not Started",
                         };
@@ -35761,7 +40637,16 @@ export default function ProjectDetail() {
               {budgetHistoryOpen && (
                 <CardContent>
                   {(budgetEntries?.entries ?? []).length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No budget entries yet.</p>
+                    <div className="py-6 text-center space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        No budget entries yet. Add the original SOW to start tracking.
+                      </p>
+                      {isPM && (
+                        <Button size="sm" variant="outline" onClick={openSowEntry}>
+                          <Plus className="h-4 w-4 mr-1" /> Add SOW Entry
+                        </Button>
+                      )}
+                    </div>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -35908,9 +40793,13 @@ export default function ProjectDetail() {
           <Dialog open={budgetEntryDialogOpen} onOpenChange={setBudgetEntryDialogOpen}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Add Budget Entry</DialogTitle>
+                <DialogTitle>
+                  {budgetEntryForm.type === "SOW" ? "Add SOW Entry" : "Add Budget Entry"}
+                </DialogTitle>
                 <DialogDescription>
-                  Manually adjust the project budget. Use Adjustment for corrections; SOWs and approved CRs are recorded automatically.
+                  {budgetEntryForm.type === "SOW"
+                    ? "Record the project's original Statement of Work as the baseline budget. You can only add one SOW per project."
+                    : "Adjustments are free-form corrections to the budget ledger. Approved Change Requests are recorded automatically; the original SOW can be added from the Budget History card."}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -35922,8 +40811,12 @@ export default function ProjectDetail() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Type</Label>
-                    <Input value="Adjustment" disabled />
-                    <p className="text-xs text-muted-foreground">SOW and CO entries are recorded automatically.</p>
+                    <Input value={budgetEntryForm.type} disabled />
+                    <p className="text-xs text-muted-foreground">
+                      {budgetEntryForm.type === "SOW"
+                        ? "Baseline budget — only one allowed per project."
+                        : "SOW and CO entries are recorded automatically."}
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -36546,7 +41439,7 @@ export default function ProjectDetail() {
                 <Select value={editProjectForm.status} onValueChange={v => setEditProjectForm(f => ({ ...f, status: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {["Not Started", "In Progress", "At Risk", "Completed", "On Hold"].map(s => (
+                    {["Not Started", "Started", "At Risk", "Completed", "On Hold"].map(s => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                   </SelectContent>
@@ -37190,7 +42083,7 @@ function CsatTab({ projectId, csatSummary, csatSurveys, refetchSurveys }: {
 ```
 
 ### `artifacts/businessnow/src/pages/projects.tsx`
-```tsx
+```typescript
 import { authHeaders } from "@/lib/auth-headers";
 import { useState } from "react";
 import { Layout } from "@/components/layout";
@@ -37747,7 +42640,7 @@ export default function Projects() {
 ```
 
 ### `artifacts/businessnow/src/pages/prospects.tsx`
-```tsx
+```typescript
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -38309,7 +43202,7 @@ export default function ProspectsPage() {
 ```
 
 ### `artifacts/businessnow/src/pages/reports.tsx`
-```tsx
+```typescript
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
@@ -38363,7 +43256,7 @@ const HEALTH_COLORS: Record<string, string> = {
   "On Track": "#10b981", "At Risk": "#f59e0b", "Off Track": "#ef4444",
 };
 const STATUS_COLORS: Record<string, string> = {
-  "In Progress": "#7c3aed", "Completed": "#10b981", "Not Started": "#94a3b8", "On Hold": "#f59e0b",
+  "In Progress": "#7c3aed", "Started": "#7c3aed", "Completed": "#10b981", "Not Started": "#94a3b8", "On Hold": "#f59e0b",
 };
 
 function StarRating({ rating }: { rating: number | null }) {
@@ -38593,7 +43486,7 @@ function ProjectPerformanceReport() {
             <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              {["Not Started","In Progress","Completed","On Hold"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {["Not Started","Started","Completed","On Hold"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={healthFilter} onValueChange={setHealthFilter}>
@@ -39698,7 +44591,7 @@ export default function Reports() {
 ```
 
 ### `artifacts/businessnow/src/pages/resources.tsx`
-```tsx
+```typescript
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
@@ -40684,7 +45577,7 @@ export default function Resources() {
 ```
 
 ### `artifacts/businessnow/src/pages/time.tsx`
-```tsx
+```typescript
 import { useState, useEffect, useRef } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { Layout } from "@/components/layout";
@@ -40705,7 +45598,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye } from "lucide-react";
+import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye, Sparkles } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimesheetGrid } from "@/components/timesheet-grid";
@@ -40718,6 +45611,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/contexts/current-user";
 import { useAccountPermissions } from "@/lib/permissions";
+import { TimeLogAssistant } from "@/components/time-log-assistant";
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 
@@ -40753,6 +45647,7 @@ export default function TimeTracking() {
   });
 
   const [requestOpen, setRequestOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [form, setForm] = useState({ userId: "1", type: "PTO", startDate: "", endDate: "", notes: "", durationType: "Full Day", customHours: "", notifyProjectOwners: false, additionalEmails: "" });
 
   const updateTimeEntry = useUpdateTimeEntry();
@@ -41047,6 +45942,9 @@ export default function TimeTracking() {
             <>
               <Button variant="outline" onClick={() => setRequestOpen(true)}>
                 <CalendarOff className="mr-2 h-4 w-4" /> Request Time Off
+              </Button>
+              <Button variant="outline" onClick={() => setAssistantOpen(true)} className="gap-2">
+                <Sparkles className="h-4 w-4 text-indigo-500" /> Log Time with Assistant
               </Button>
               <Button
                 variant={timerRunning ? "destructive" : "outline"}
@@ -41876,6 +46774,8 @@ export default function TimeTracking() {
           )}
         </SheetContent>
       </Sheet>
+
+      <TimeLogAssistant open={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </Layout>
   );
 }
@@ -41891,7 +46791,7 @@ export const modules: ModuleMap = {
 ```
 
 ### `artifacts/mockup-sandbox/src/App.tsx`
-```tsx
+```typescript
 import { useEffect, useState, type ComponentType } from "react";
 
 import { modules as discoveredModules } from "./.generated/mockup-components";
@@ -42041,7 +46941,7 @@ export default App;
 ```
 
 ### `artifacts/mockup-sandbox/src/components/mockups/erd/BusinessNowERD.tsx`
-```tsx
+```typescript
 import { useEffect, useRef, useState } from "react";
 
 const MERMAID_CDN = "https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs";
@@ -42369,7 +47269,7 @@ export function BusinessNowERD() {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/accordion.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { ChevronDown } from "lucide-react"
@@ -42428,7 +47328,7 @@ export { Accordion, AccordionItem, AccordionTrigger, AccordionContent }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/alert-dialog.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
@@ -42571,7 +47471,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/alert.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -42634,7 +47534,7 @@ export { Alert, AlertTitle, AlertDescription }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/aspect-ratio.tsx`
-```tsx
+```typescript
 import * as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio"
 
 const AspectRatio = AspectRatioPrimitive.Root
@@ -42643,7 +47543,7 @@ export { AspectRatio }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/avatar.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -42697,7 +47597,7 @@ export { Avatar, AvatarImage, AvatarFallback }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/badge.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -42738,7 +47638,7 @@ export { Badge, badgeVariants }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/breadcrumb.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { ChevronRight, MoreHorizontal } from "lucide-react"
@@ -42857,7 +47757,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/button-group.tsx`
-```tsx
+```typescript
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -42944,7 +47844,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/button.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -43006,7 +47906,7 @@ export { Button, buttonVariants }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/calendar.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -43223,7 +48123,7 @@ export { Calendar, CalendarDayButton }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/card.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -43303,7 +48203,7 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/carousel.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
@@ -43567,7 +48467,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/chart.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
@@ -43936,7 +48836,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/checkbox.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
 import { Check } from "lucide-react"
@@ -43968,7 +48868,7 @@ export { Checkbox }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/collapsible.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
@@ -43983,7 +48883,7 @@ export { Collapsible, CollapsibleTrigger, CollapsibleContent }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/command.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -44140,7 +49040,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/context-menu.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"
@@ -44342,7 +49242,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/dialog.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -44466,7 +49366,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/drawer.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
@@ -44586,7 +49486,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/dropdown-menu.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -44791,7 +49691,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/empty.tsx`
-```tsx
+```typescript
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
@@ -44899,7 +49799,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/field.tsx`
-```tsx
+```typescript
 "use client"
 
 import { useMemo } from "react"
@@ -45147,7 +50047,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/form.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -45327,7 +50227,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/hover-card.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card"
 
@@ -45358,7 +50258,7 @@ export { HoverCard, HoverCardTrigger, HoverCardContent }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/input-group.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -45527,7 +50427,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/input-otp.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { OTPInput, OTPInputContext } from "input-otp"
 import { Minus } from "lucide-react"
@@ -45600,7 +50500,7 @@ export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/input.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -45626,7 +50526,7 @@ export { Input }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/item.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -45823,7 +50723,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/kbd.tsx`
-```tsx
+```typescript
 import { cn } from "@/lib/utils"
 
 function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
@@ -45855,7 +50755,7 @@ export { Kbd, KbdGroup }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/label.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -45885,7 +50785,7 @@ export { Label }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/menubar.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as MenubarPrimitive from "@radix-ui/react-menubar"
 import { Check, ChevronRight, Circle } from "lucide-react"
@@ -46143,7 +51043,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/navigation-menu.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu"
 import { cva } from "class-variance-authority"
@@ -46275,7 +51175,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/pagination.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 
@@ -46396,7 +51296,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/popover.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 
@@ -46431,7 +51331,7 @@ export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/progress.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -46463,7 +51363,7 @@ export { Progress }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/radio-group.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
 import { Circle } from "lucide-react"
@@ -46509,7 +51409,7 @@ export { RadioGroup, RadioGroupItem }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/resizable.tsx`
-```tsx
+```typescript
 "use client"
 
 import { GripVertical } from "lucide-react"
@@ -46558,7 +51458,7 @@ export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/scroll-area.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 
@@ -46608,7 +51508,7 @@ export { ScrollArea, ScrollBar }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/select.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -46771,7 +51671,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/separator.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as SeparatorPrimitive from "@radix-ui/react-separator"
 
@@ -46804,7 +51704,7 @@ export { Separator }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/sheet.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -46948,7 +51848,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/sidebar.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -47666,7 +52566,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/skeleton.tsx`
-```tsx
+```typescript
 import { cn } from "@/lib/utils"
 
 function Skeleton({
@@ -47685,7 +52585,7 @@ export { Skeleton }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/slider.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as SliderPrimitive from "@radix-ui/react-slider"
 
@@ -47715,7 +52615,7 @@ export { Slider }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/sonner.tsx`
-```tsx
+```typescript
 "use client"
 
 import { useTheme } from "next-themes"
@@ -47750,7 +52650,7 @@ export { Toaster }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/spinner.tsx`
-```tsx
+```typescript
 import { Loader2Icon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -47770,7 +52670,7 @@ export { Spinner }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/switch.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as SwitchPrimitives from "@radix-ui/react-switch"
 
@@ -47801,7 +52701,7 @@ export { Switch }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/table.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -47925,7 +52825,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/tabs.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 
@@ -47982,7 +52882,7 @@ export { Tabs, TabsList, TabsTrigger, TabsContent }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/textarea.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -48008,7 +52908,7 @@ export { Textarea }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/toast.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -48139,7 +53039,7 @@ export {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/toaster.tsx`
-```tsx
+```typescript
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -48176,7 +53076,7 @@ export function Toaster() {
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/toggle-group.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -48241,7 +53141,7 @@ export { ToggleGroup, ToggleGroupItem }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/toggle.tsx`
-```tsx
+```typescript
 import * as React from "react"
 import * as TogglePrimitive from "@radix-ui/react-toggle"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -48288,7 +53188,7 @@ export { Toggle, toggleVariants }
 ```
 
 ### `artifacts/mockup-sandbox/src/components/ui/tooltip.tsx`
-```tsx
+```typescript
 "use client"
 
 import * as React from "react"
@@ -48324,7 +53224,7 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
 ```
 
 ### `artifacts/mockup-sandbox/src/hooks/use-mobile.tsx`
-```tsx
+```typescript
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
@@ -48712,7 +53612,7 @@ export function cn(...inputs: ClassValue[]) {
 ```
 
 ### `artifacts/mockup-sandbox/src/main.tsx`
-```tsx
+```typescript
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
@@ -49449,7 +54349,14 @@ paths:
     post:
       operationId: createProjectBudgetEntry
       tags: [projects]
-      summary: Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+      summary: Create a manual SOW or Adjustment budget entry for a project. CO entries are auto-recorded by the change-order approval flow.
+      description: |
+        Accepts `type: "SOW"` or `type: "Adjustment"`. SOW entries seed the
+        project's baseline and are limited to one per project — a partial
+        unique index `budget_entries_sow_per_project_uq` enforces this at
+        the DB level, so a duplicate SOW (including concurrent requests)
+        returns `409 Conflict`. CO entries are inserted automatically by
+        the change-order approval flow and cannot be created here.
       parameters:
         - name: id
           in: path
@@ -49469,6 +54376,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BudgetEntry"
+        "409":
+          description: An SOW entry already exists for this project.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
   # ─── TASKS ────────────────────────────────────────────────────
   /tasks:
@@ -53026,6 +57942,8 @@ components:
           type: number
         description:
           type: string
+        internalExternal:
+          type: string
       required:
         - accountId
         - name
@@ -53340,10 +58258,14 @@ components:
         id:
           type: integer
         projectId:
-          type: integer
+          type: ["integer", "null"]
         userId:
           type: integer
         taskId:
+          type: ["integer", "null"]
+        activityName:
+          type: ["string", "null"]
+        categoryId:
           type: ["integer", "null"]
         date:
           type: string
@@ -53359,7 +58281,6 @@ components:
           type: string
       required:
         - id
-        - projectId
         - userId
         - date
         - hours
@@ -55373,7 +60294,12 @@ components:
           type: string
         type:
           type: string
-          description: One of SOW, CO, Adjustment
+          enum: [SOW, Adjustment]
+          description: |
+            Manual budget entries support `SOW` (project baseline, one per
+            project) or `Adjustment` (free-form correction).  `CO` entries
+            are inserted automatically by the change-order approval flow
+            and are not accepted here.
         description:
           type: string
         amount:
@@ -56551,6 +61477,22 @@ async function main() {
     ])
     .returning();
 
+  // ─── Job roles (B3 — seed defaults so allocation Role dropdown is never empty) ──
+  await db
+    .insert(schema.jobRolesTable)
+    .values([
+      { name: "Project Manager" },
+      { name: "Senior Consultant" },
+      { name: "Consultant" },
+      { name: "Business Analyst" },
+      { name: "Developer" },
+      { name: "QA / Test Engineer" },
+      { name: "Solution Architect" },
+      { name: "Change Manager" },
+      { name: "Trainer" },
+    ])
+    .onConflictDoNothing();
+
   const skillRows = await db
     .insert(schema.skillsTable)
     .values([
@@ -56586,6 +61528,15 @@ async function main() {
   const users = await db
     .insert(schema.usersTable)
     .values([
+      {
+        name: "Admin User",
+        initials: "AU",
+        role: "account_admin",
+        email: "admin@ksap.tech",
+        capacity: 40,
+        department: "Management",
+        costRate: "0",
+      },
       {
         name: "Marcus Webb",
         initials: "MW",
@@ -57630,9 +62581,9 @@ main().catch((err) => {
 
 _The following files are auto-generated from `lib/api-spec/openapi.yaml` via `pnpm --filter @workspace/api-spec run codegen` and are not edited by hand:_
 
-- `lib/api-client-react/src/generated/api.schemas.ts` (1775 lines)
-- `lib/api-client-react/src/generated/api.ts` (16174 lines)
-- `lib/api-zod/src/generated/api.ts` (3942 lines)
+- `lib/api-client-react/src/generated/api.schemas.ts` (1804 lines)
+- `lib/api-client-react/src/generated/api.ts` (16183 lines)
+- `lib/api-zod/src/generated/api.ts` (3958 lines)
 - `lib/api-zod/src/generated/types/account.ts` (27 lines)
 - `lib/api-zod/src/generated/types/activityItem.ts` (20 lines)
 - `lib/api-zod/src/generated/types/addUserSkillBody.ts` (13 lines)
@@ -57657,7 +62608,8 @@ _The following files are auto-generated from `lib/api-spec/openapi.yaml` via `pn
 - `lib/api-zod/src/generated/types/createAccountBody.ts` (21 lines)
 - `lib/api-zod/src/generated/types/createAllocationBody.ts` (17 lines)
 - `lib/api-zod/src/generated/types/createBillingScheduleBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/createBudgetEntryBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/createBudgetEntryBody.ts` (23 lines)
+- `lib/api-zod/src/generated/types/createBudgetEntryBodyType.ts` (23 lines)
 - `lib/api-zod/src/generated/types/createCsatResponseBody.ts` (16 lines)
 - `lib/api-zod/src/generated/types/createCustomFieldDefinitionBody.ts` (18 lines)
 - `lib/api-zod/src/generated/types/createDocumentBody.ts` (17 lines)
@@ -57668,7 +62620,8 @@ _The following files are auto-generated from `lib/api-spec/openapi.yaml` via `pn
 - `lib/api-zod/src/generated/types/createInvoiceBody.ts` (18 lines)
 - `lib/api-zod/src/generated/types/createInvoiceLineItemBody.ts` (21 lines)
 - `lib/api-zod/src/generated/types/createOpportunityBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/createProjectBody.ts` (21 lines)
+- `lib/api-zod/src/generated/types/createProjectBody.ts` (22 lines)
+- `lib/api-zod/src/generated/types/createProjectBudgetEntry409.ts` (12 lines)
 - `lib/api-zod/src/generated/types/createProjectFromTemplateBody.ts` (17 lines)
 - `lib/api-zod/src/generated/types/createProjectGroupBody.ts` (15 lines)
 - `lib/api-zod/src/generated/types/createProjectTemplateBody.ts` (18 lines)
@@ -57715,7 +62668,7 @@ _The following files are auto-generated from `lib/api-spec/openapi.yaml` via `pn
 - `lib/api-zod/src/generated/types/healthStatus.ts` (12 lines)
 - `lib/api-zod/src/generated/types/holidayCalendar.ts` (17 lines)
 - `lib/api-zod/src/generated/types/holidayDate.ts` (16 lines)
-- `lib/api-zod/src/generated/types/index.ts` (206 lines)
+- `lib/api-zod/src/generated/types/index.ts` (208 lines)
 - `lib/api-zod/src/generated/types/invoice.ts` (22 lines)
 - `lib/api-zod/src/generated/types/invoiceLineItem.ts` (27 lines)
 - `lib/api-zod/src/generated/types/listAccountsParams.ts` (15 lines)
@@ -57792,7 +62745,7 @@ _The following files are auto-generated from `lib/api-spec/openapi.yaml` via `pn
 - `lib/api-zod/src/generated/types/templateTask.ts` (28 lines)
 - `lib/api-zod/src/generated/types/templateTaskPriority.ts` (18 lines)
 - `lib/api-zod/src/generated/types/timeCategory.ts` (16 lines)
-- `lib/api-zod/src/generated/types/timeEntry.ts` (22 lines)
+- `lib/api-zod/src/generated/types/timeEntry.ts` (27 lines)
 - `lib/api-zod/src/generated/types/timeOffRequest.ts` (21 lines)
 - `lib/api-zod/src/generated/types/timeSummary.ts` (18 lines)
 - `lib/api-zod/src/generated/types/timeSummaryByProjectItem.ts` (14 lines)

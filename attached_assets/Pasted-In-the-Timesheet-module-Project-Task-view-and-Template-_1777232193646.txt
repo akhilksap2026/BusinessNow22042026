@@ -1,0 +1,61 @@
+In the Timesheet module, Project Task view, and Template Editor, wherever Project Tasks and Subtasks are displayed, implement a fully functional collapsible tree structure using expand (+) and collapse (−) controls at every level of the hierarchy — including deeply nested subtasks. This applies consistently across the task list, timesheet grid, and template editor.
+
+🌲 Hierarchy Structure to Support
+The tree must render and navigate the full task hierarchy as it exists in the data model:
+▼ Phase (Level 0)
+  ▼ Task (Level 1)              [−] to collapse
+      ▼ Subtask (Level 2)       [−] to collapse
+          ► Sub-subtask (L3)    [+] to expand
+          ► Sub-subtask (L3)
+      ► Subtask (Level 2)       [+] to expand
+  ► Task (Level 1)              [+] to expand
+Every node that has children must display the toggle. Leaf nodes (no children) display no toggle icon — just a blank indent placeholder to maintain visual alignment.
+
+✅ Functional Requirements
+1. Toggle Control Design
+Use clearly distinguishable icons:
+
+− (minus / ChevronDown) — node is expanded; clicking it collapses children
++ (plus / ChevronRight) — node is collapsed; clicking it reveals children
+
+The toggle must be a tappable/clickable button element, not just a visual indicator, with a minimum hit area of 24×24px for usability on touch devices.
+2. Recursive Rendering
+The component must recursively render children at every depth level. There is no maximum depth limit — the tree must support Phase → Task → Subtask → Sub-subtask and beyond, as the parentTaskId data model already allows unlimited nesting.
+3. Indentation
+Each level must be visually indented by a consistent offset (e.g., 20px per depth level) so the hierarchy is immediately legible at a glance. Depth-based color tinting or muted borders between levels is recommended for further clarity.
+4. Expand / Collapse State
+Expand/collapse state must be maintained per node in local component state (expandedIds Set). Default state on page load: Phases expanded, Tasks collapsed — so the user sees the top-level structure without being overwhelmed by all subtasks at once.
+5. Fix the Broken Chevron in Template Editor
+The expand/collapse chevron in the Template Editor is currently confirmed non-functional (user feedback). This must be fixed as part of this work. The handler onToggleExpand(task.id) must correctly update the expandedIds state and trigger a re-render of the subtree.
+6. Multi-Level Nesting in Template Editor
+The Template Editor currently does not support grandchild task levels (i.e., a task whose parent is itself a child task). This restriction must be removed. The rendering logic must recursively handle parentTaskId chains of any depth, consistent with the live project task view.
+7. Child Count Badge
+When a node is collapsed, display the total descendant count in a muted badge next to the task name, e.g., Requirements (4). This already exists in the live task view and must be applied consistently in the timesheet grid and template editor as well.
+8. Timesheet Grid Integration
+In the timesheet entry grid, when a project row is expanded, tasks must render in the same collapsible tree structure. The employee should be able to:
+
+Expand a Phase to see its Tasks
+Expand a Task to see its Subtasks
+Log hours directly against the lowest-level node they are assigned to
+
+The + / − control in the timesheet grid should feel identical to the task list view — consistent UX across the product.
+9. Keyboard Accessibility
+The expand/collapse toggle must be operable via keyboard (Enter / Space) and must carry an appropriate aria-label (e.g., aria-label="Expand Requirements" or aria-label="Collapse Requirements").
+10. Performance — Large Trees
+For projects with large task trees (50+ tasks), the component must not re-render the entire tree on each toggle. Use React's useMemo or virtualisation where appropriate to keep interactions snappy.
+
+❌ Out of Scope for This Prompt
+
+Drag-and-drop reordering (tracked separately as HU-09)
+Moving tasks to a different parent (tracked separately)
+Adding / deleting tasks from within the tree (existing dialogs handle this)
+
+
+🔗 Consistency Requirement
+This expand/collapse tree behaviour must be identical across:
+
+Project → Tasks tab (live task list)
+Timesheet grid (project/task rows)
+Template Editor (phase/task/subtask authoring)
+
+Any shared rendering logic should be extracted into a single reusable <TaskTreeNode /> component to avoid divergent implementations.
