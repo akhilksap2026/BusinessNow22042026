@@ -18,4 +18,5 @@ export interface UpdateProjectBody {
   completion?: number;
   health?: string;
   description?: string;
+  projectGroupId?: number | null;
 }

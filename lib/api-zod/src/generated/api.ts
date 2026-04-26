@@ -215,6 +215,7 @@ export const ListProjectsResponseItem = zod.object({
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
   opportunityId: zod.number().nullish(),
+  projectGroupId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -266,6 +267,7 @@ export const GetProjectResponse = zod.object({
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
   opportunityId: zod.number().nullish(),
+  projectGroupId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -293,6 +295,7 @@ export const UpdateProjectBody = zod.object({
   completion: zod.number().optional(),
   health: zod.string().optional(),
   description: zod.string().optional(),
+  projectGroupId: zod.number().nullish(),
 });
 
 export const UpdateProjectResponse = zod.object({
@@ -314,6 +317,7 @@ export const UpdateProjectResponse = zod.object({
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
   opportunityId: zod.number().nullish(),
+  projectGroupId: zod.number().nullish(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -2715,6 +2719,59 @@ export const ReorderTaskStatusDefinitionsResponseItem = zod.object({
 export const ReorderTaskStatusDefinitionsResponse = zod.array(
   ReorderTaskStatusDefinitionsResponseItem,
 );
+
+/**
+ * @summary List project groups (ordered by sortOrder)
+ */
+export const ListProjectGroupsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  color: zod.string().nullish(),
+  sortOrder: zod.number(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListProjectGroupsResponse = zod.array(
+  ListProjectGroupsResponseItem,
+);
+
+/**
+ * @summary Create a project group
+ */
+export const CreateProjectGroupBody = zod.object({
+  name: zod.string(),
+  color: zod.string().nullish(),
+  sortOrder: zod.number().optional(),
+});
+
+/**
+ * @summary Update (rename / reorder / recolor) a project group
+ */
+export const UpdateProjectGroupParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateProjectGroupBody = zod.object({
+  name: zod.string().optional(),
+  color: zod.string().nullish(),
+  sortOrder: zod.number().optional(),
+});
+
+export const UpdateProjectGroupResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  color: zod.string().nullish(),
+  sortOrder: zod.number(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a project group (sets projectGroupId=null on affected projects)
+ */
+export const DeleteProjectGroupParams = zod.object({
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List skills

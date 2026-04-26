@@ -29,3 +29,4 @@ export * from "./projectUpdates";
 export * from "./intervalIq";
 export * from "./savedViews";
 export * from "./taskStatusDefinitions";
+export * from "./projectGroups";

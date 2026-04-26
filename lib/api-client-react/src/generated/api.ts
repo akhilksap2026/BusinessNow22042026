@@ -51,6 +51,7 @@ import type {
   CreateOpportunityBody,
   CreateProjectBody,
   CreateProjectFromTemplateBody,
+  CreateProjectGroupBody,
   CreateProjectTemplateBody,
   CreateProspectBody,
   CreateRateCardBody,
@@ -117,6 +118,7 @@ import type {
   ProjectDocument,
   ProjectForm,
   ProjectFormDetail,
+  ProjectGroup,
   ProjectHealthReport,
   ProjectSummary,
   ProjectTemplate,
@@ -158,6 +160,7 @@ import type {
   UpdateInvoiceLineItemBody,
   UpdateOpportunityBody,
   UpdateProjectBody,
+  UpdateProjectGroupBody,
   UpdateProjectTemplateBody,
   UpdateProspectBody,
   UpdateRateCardBody,
@@ -9823,6 +9826,338 @@ export const useReorderTaskStatusDefinitions = <
   TContext
 > => {
   return useMutation(getReorderTaskStatusDefinitionsMutationOptions(options));
+};
+
+/**
+ * @summary List project groups (ordered by sortOrder)
+ */
+export const getListProjectGroupsUrl = () => {
+  return `/api/project-groups`;
+};
+
+export const listProjectGroups = async (
+  options?: RequestInit,
+): Promise<ProjectGroup[]> => {
+  return customFetch<ProjectGroup[]>(getListProjectGroupsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProjectGroupsQueryKey = () => {
+  return [`/api/project-groups`] as const;
+};
+
+export const getListProjectGroupsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProjectGroups>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProjectGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListProjectGroupsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listProjectGroups>>
+  > = ({ signal }) => listProjectGroups({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProjectGroups>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProjectGroupsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProjectGroups>>
+>;
+export type ListProjectGroupsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List project groups (ordered by sortOrder)
+ */
+
+export function useListProjectGroups<
+  TData = Awaited<ReturnType<typeof listProjectGroups>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProjectGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProjectGroupsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a project group
+ */
+export const getCreateProjectGroupUrl = () => {
+  return `/api/project-groups`;
+};
+
+export const createProjectGroup = async (
+  createProjectGroupBody: CreateProjectGroupBody,
+  options?: RequestInit,
+): Promise<ProjectGroup> => {
+  return customFetch<ProjectGroup>(getCreateProjectGroupUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createProjectGroupBody),
+  });
+};
+
+export const getCreateProjectGroupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProjectGroup>>,
+    TError,
+    { data: BodyType<CreateProjectGroupBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProjectGroup>>,
+  TError,
+  { data: BodyType<CreateProjectGroupBody> },
+  TContext
+> => {
+  const mutationKey = ["createProjectGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProjectGroup>>,
+    { data: BodyType<CreateProjectGroupBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createProjectGroup(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateProjectGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createProjectGroup>>
+>;
+export type CreateProjectGroupMutationBody = BodyType<CreateProjectGroupBody>;
+export type CreateProjectGroupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a project group
+ */
+export const useCreateProjectGroup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProjectGroup>>,
+    TError,
+    { data: BodyType<CreateProjectGroupBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createProjectGroup>>,
+  TError,
+  { data: BodyType<CreateProjectGroupBody> },
+  TContext
+> => {
+  return useMutation(getCreateProjectGroupMutationOptions(options));
+};
+
+/**
+ * @summary Update (rename / reorder / recolor) a project group
+ */
+export const getUpdateProjectGroupUrl = (id: number) => {
+  return `/api/project-groups/${id}`;
+};
+
+export const updateProjectGroup = async (
+  id: number,
+  updateProjectGroupBody: UpdateProjectGroupBody,
+  options?: RequestInit,
+): Promise<ProjectGroup> => {
+  return customFetch<ProjectGroup>(getUpdateProjectGroupUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateProjectGroupBody),
+  });
+};
+
+export const getUpdateProjectGroupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProjectGroup>>,
+    TError,
+    { id: number; data: BodyType<UpdateProjectGroupBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProjectGroup>>,
+  TError,
+  { id: number; data: BodyType<UpdateProjectGroupBody> },
+  TContext
+> => {
+  const mutationKey = ["updateProjectGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProjectGroup>>,
+    { id: number; data: BodyType<UpdateProjectGroupBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateProjectGroup(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProjectGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProjectGroup>>
+>;
+export type UpdateProjectGroupMutationBody = BodyType<UpdateProjectGroupBody>;
+export type UpdateProjectGroupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update (rename / reorder / recolor) a project group
+ */
+export const useUpdateProjectGroup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProjectGroup>>,
+    TError,
+    { id: number; data: BodyType<UpdateProjectGroupBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProjectGroup>>,
+  TError,
+  { id: number; data: BodyType<UpdateProjectGroupBody> },
+  TContext
+> => {
+  return useMutation(getUpdateProjectGroupMutationOptions(options));
+};
+
+/**
+ * @summary Delete a project group (sets projectGroupId=null on affected projects)
+ */
+export const getDeleteProjectGroupUrl = (id: number) => {
+  return `/api/project-groups/${id}`;
+};
+
+export const deleteProjectGroup = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteProjectGroupUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteProjectGroupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProjectGroup>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProjectGroup>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteProjectGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProjectGroup>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteProjectGroup(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteProjectGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProjectGroup>>
+>;
+
+export type DeleteProjectGroupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a project group (sets projectGroupId=null on affected projects)
+ */
+export const useDeleteProjectGroup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProjectGroup>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProjectGroup>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteProjectGroupMutationOptions(options));
 };
 
 /**

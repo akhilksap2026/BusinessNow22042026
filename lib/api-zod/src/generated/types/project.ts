@@ -26,6 +26,7 @@ export interface Project {
   internalExternal: string;
   isAdminProject?: number;
   opportunityId?: number | null;
+  projectGroupId?: number | null;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;

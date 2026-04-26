@@ -2222,6 +2222,71 @@ paths:
                 items:
                   $ref: '#/components/schemas/TaskStatusDefinition'
 
+  /project-groups:
+    get:
+      summary: List project groups (ordered by sortOrder)
+      operationId: listProjectGroups
+      responses:
+        '200':
+          description: Ordered project groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectGroup'
+    post:
+      summary: Create a project group
+      operationId: createProjectGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectGroupBody'
+      responses:
+        '201':
+          description: Created project group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroup'
+  /project-groups/{id}:
+    patch:
+      summary: Update (rename / reorder / recolor) a project group
+      operationId: updateProjectGroup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectGroupBody'
+      responses:
+        '200':
+          description: Updated project group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroup'
+    delete:
+      summary: Delete a project group (sets projectGroupId=null on affected projects)
+      operationId: deleteProjectGroup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
   /skills:
     get:
       summary: List skills
@@ -3751,6 +3816,9 @@ components:
         opportunityId:
           type: integer
           nullable: true
+        projectGroupId:
+          type: integer
+          nullable: true
         deletedAt:
           type: string
           nullable: true
@@ -3868,6 +3936,9 @@ components:
           type: string
         description:
           type: string
+        projectGroupId:
+          type: integer
+          nullable: true
 
     # ─── TASK ───────────────────────────────────────────────────
     Task:
@@ -5874,6 +5945,49 @@ components:
         - isDefault
         - createdAt
         - updatedAt
+
+    ProjectGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - sortOrder
+        - createdAt
+        - updatedAt
+
+    CreateProjectGroupBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        color:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+
+    UpdateProjectGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
 
     Skill:
       type: object

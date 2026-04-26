@@ -25,6 +25,7 @@ export const projectsTable = pgTable("projects", {
   isAdminProject: integer("is_admin_project").notNull().default(0),
   autoAllocate: boolean("auto_allocate").notNull().default(false),
   opportunityId: integer("opportunity_id"),
+  projectGroupId: integer("project_group_id"),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

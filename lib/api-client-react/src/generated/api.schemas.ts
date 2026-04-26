@@ -97,6 +97,7 @@ export interface Project {
   internalExternal: string;
   isAdminProject?: number;
   opportunityId?: number | null;
+  projectGroupId?: number | null;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -143,6 +144,7 @@ export interface UpdateProjectBody {
   completion?: number;
   health?: string;
   description?: string;
+  projectGroupId?: number | null;
 }
 
 export interface Task {
@@ -1038,6 +1040,30 @@ export interface TaskStatusDefinition {
   color?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProjectGroup {
+  id: number;
+  name: string;
+  /** @nullable */
+  color?: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectGroupBody {
+  name: string;
+  /** @nullable */
+  color?: string | null;
+  sortOrder?: number;
+}
+
+export interface UpdateProjectGroupBody {
+  name?: string;
+  /** @nullable */
+  color?: string | null;
+  sortOrder?: number;
 }
 
 export interface Skill {
