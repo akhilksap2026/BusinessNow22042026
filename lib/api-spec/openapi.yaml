@@ -3900,6 +3900,8 @@ components:
           type: number
         description:
           type: string
+        internalExternal:
+          type: string
       required:
         - accountId
         - name

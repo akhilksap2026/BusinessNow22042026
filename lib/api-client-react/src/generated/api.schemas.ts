@@ -130,6 +130,7 @@ export interface CreateProjectBody {
   budget: number;
   budgetedHours: number;
   description?: string;
+  internalExternal?: string;
 }
 
 export interface UpdateProjectBody {

@@ -135,7 +135,7 @@ export default function Accounts() {
 
   function openEdit(account: Account) {
     setEditTarget(account);
-    setEditForm({ name: account.name, domain: account.domain, tier: account.tier, region: account.region, status: account.status, contractValue: String(account.contractValue ?? "") });
+    setEditForm({ name: account.name, domain: account.domain, tier: account.tier, region: account.region, status: account.status, contractValue: String(account.contractValue ?? ""), isInternal: account.isInternal ?? account.accountType === "internal" });
     setShowEdit(true);
   }
 
@@ -145,7 +145,7 @@ export default function Accounts() {
   }
 
   function resetForm() {
-    setForm({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
+    setForm({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
   }
 
   const filtered = accounts.filter(a => {

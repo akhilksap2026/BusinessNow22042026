@@ -36,6 +36,13 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **Dialog form section dividers** (US-10): Resource Request dialog (`add_member` flow) now has "Role & Skills" / "Schedule" / "Priority" horizontal rule + h3 section separators.
 - **Bulk row actions** (US-8): Projects desktop table has a leading checkbox column (select-all header + per-row). When ≥1 row selected, a sticky floating action bar appears at the bottom: selected count · Export CSV · Archive · ✕ clear. CSV export downloads `projects.csv` with all visible columns.
 
+### E2E pass (April 26 2026)
+- Verified all 5 workflows healthy (API Server, businessnow web, mockup-sandbox; the duplicate `artifacts/api-server: API Server` workflow fails on EADDRINUSE port 8080 — unavoidable: same server binds the port from the canonical workflow).
+- DB schema in sync: 65 tables present including `project_groups`, `task_status_definitions`; columns `accounts.is_internal` and `projects.project_group_id` confirmed.
+- Smoke-tested 33 GET endpoints with valid auth headers — all 200/expected. Validated POST `/api/projects` with `internalExternal:"Internal"` round-trips through DB and response correctly.
+- Fixed TS errors I introduced in the prior bundles: `parseInt(req.params.id)` → `parseInt(String(...))` in `projectGroups.ts`; missing `isInternal` on `setForm/setEditForm` in `accounts.tsx`; explicit `TaskStatusDefinition[]` typing + `queryKey` on `useListTaskStatusDefinitions` in `lib/task-status.ts`; `(user as any).isInternal` cast in `admin.tsx` (User type doesn't carry the field — only Account does).
+- Added `internalExternal` (optional) to `CreateProjectBody` in `openapi.yaml` to close API contract gap with the create-project wizard; regenerated client + zod via `pnpm --filter @workspace/api-spec run codegen`.
+
 ### Cleanup (April 2026 — E2E + janitor pass)
 - Deleted ~110 MB of junk: root `codebase-snapshot.md` (2.9 MB auto-dump), `screenshots/` (old audit JPGs), and from `attached_assets/`: the 111 MB ZIP, all `Pasted-*.txt` clipboard files, `*.docx`. Kept image references and the two markdown spec files in `attached_assets/`.
 - Removed 26 unused shadcn UI primitives from `artifacts/businessnow/src/components/ui/` (accordion, aspect-ratio, button-group, calendar, carousel, chart, context-menu, drawer, empty, field, hover-card, input-group, input-otp, item, kbd, menubar, navigation-menu, null-cell, pagination, radio-group, resizable, sidebar, slider, sonner, spinner, toggle-group). Verified zero imports — cross-checked sibling components/ui/ for primitive-on-primitive deps before deleting.

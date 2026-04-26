@@ -1,4 +1,4 @@
-import { useListTaskStatusDefinitions } from "@workspace/api-client-react";
+import { useListTaskStatusDefinitions, type TaskStatusDefinition } from "@workspace/api-client-react";
 
 export const TASK_STATUS_VALUES = [
   "Not Started",
@@ -46,14 +46,16 @@ export const TASK_STATUS_CYCLE: TaskStatus[] = [
 export function useTaskStatuses(): {
   statuses: string[];
   isLoading: boolean;
-  raw: ReturnType<typeof useListTaskStatusDefinitions>["data"];
+  raw: TaskStatusDefinition[] | undefined;
 } {
   const q = useListTaskStatusDefinitions({
     query: {
+      queryKey: ["task-status-definitions"],
       staleTime: 60_000,
     },
   });
-  const fromApi = q.data?.map((s) => s.label).filter(Boolean);
+  const data = q.data as TaskStatusDefinition[] | undefined;
+  const fromApi = data?.map((s) => s.label).filter(Boolean);
   const statuses = fromApi && fromApi.length > 0 ? fromApi : (TASK_STATUS_VALUES as readonly string[]).slice();
-  return { statuses, isLoading: q.isLoading, raw: q.data };
+  return { statuses, isLoading: q.isLoading, raw: data };
 }

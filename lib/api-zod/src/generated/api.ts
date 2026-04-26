@@ -239,6 +239,7 @@ export const CreateProjectBody = zod.object({
   budget: zod.number(),
   budgetedHours: zod.number(),
   description: zod.string().optional(),
+  internalExternal: zod.string().optional(),
 });
 
 /**

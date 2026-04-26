@@ -1322,7 +1322,7 @@ export default function Admin() {
                                 {user.activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
                                   : user.activeStatus === "inactive" ? <Badge variant="secondary" className="text-xs text-muted-foreground">Inactive</Badge>
                                   : <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border">Active</Badge>}
-                                {user.isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
+                                {(user as any).isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
                               </TableCell>
                               <TableCell className="text-right">${user.costRate}/hr</TableCell>
                               <TableCell>
