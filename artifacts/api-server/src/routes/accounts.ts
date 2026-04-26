@@ -32,13 +32,26 @@ router.get("/accounts", async (req, res): Promise<void> => {
   res.json(ListAccountsResponse.parse(rows.map(mapAccount)));
 });
 
+// Section E: keep `accountType` and `isInternal` in sync on every write so
+// existing consumers (which still read accountType) and new ones (which read
+// isInternal) always see consistent values.
+function syncInternalFlags<T extends { accountType?: string; isInternal?: boolean }>(data: T): T {
+  if (data.isInternal !== undefined) {
+    data.accountType = data.isInternal ? "internal" : (data.accountType === "internal" ? "client" : (data.accountType ?? "client"));
+  } else if (data.accountType !== undefined) {
+    data.isInternal = data.accountType === "internal";
+  }
+  return data;
+}
+
 router.post("/accounts", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateAccountBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [row] = await db.insert(accountsTable).values(parsed.data as any).returning();
+  const data = syncInternalFlags({ ...parsed.data });
+  const [row] = await db.insert(accountsTable).values(data as any).returning();
   res.status(201).json(GetAccountResponse.parse(mapAccount(row)));
 });
 
@@ -55,7 +68,8 @@ router.patch("/accounts/:id", requirePM, async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateAccountBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [row] = await db.update(accountsTable).set(parsed.data as any).where(eq(accountsTable.id, params.data.id)).returning();
+  const data = syncInternalFlags({ ...parsed.data });
+  const [row] = await db.update(accountsTable).set(data as any).where(eq(accountsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Account not found" }); return; }
   res.json(UpdateAccountResponse.parse(mapAccount(row)));
 });

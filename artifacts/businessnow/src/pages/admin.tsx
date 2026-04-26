@@ -54,6 +54,8 @@ import {
   getListCustomFieldDefinitionsQueryKey,
   useListAuditLog,
   getListAuditLogQueryKey,
+  useListTaskStatusDefinitions,
+  useReorderTaskStatusDefinitions,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,8 +71,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TemplateEditor } from "@/components/template-editor";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/contexts/current-user";
@@ -262,6 +265,100 @@ function UserConfigTab({ users, BASE, onRefresh }: {
                 </TableRow>
               );
             })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Section D — admin panel for reordering task status definitions.
+// Uses simple ↑/↓ buttons (instead of dnd-kit) to keep the surface tiny —
+// the table only ever holds a handful of rows in practice.
+function TaskStatusesAdminPanel() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data: defs } = useListTaskStatusDefinitions();
+  const reorderMut = useReorderTaskStatusDefinitions({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ["/task-status-definitions"] });
+        qc.invalidateQueries();
+        toast({ title: "Order saved" });
+      },
+      onError: (err: any) =>
+        toast({ title: "Failed to reorder", description: err?.message ?? "Try again.", variant: "destructive" }),
+    },
+  });
+
+  const sorted = (defs ?? []).slice().sort((a, b) => a.position - b.position);
+
+  function move(idx: number, delta: number) {
+    const next = sorted.slice();
+    const target = idx + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    reorderMut.mutate({ data: { order: next.map((s) => s.id) } });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Task Statuses</CardTitle>
+        <CardDescription>
+          Reorder the statuses available on tasks. Status labels appear in the
+          kanban board, task list, and task detail dropdown.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">#</TableHead>
+              <TableHead>Label</TableHead>
+              <TableHead className="w-24">Terminal</TableHead>
+              <TableHead className="w-24">Default</TableHead>
+              <TableHead className="w-32 text-right">Reorder</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sorted.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                  No task statuses defined.
+                </TableCell>
+              </TableRow>
+            )}
+            {sorted.map((s, idx) => (
+              <TableRow key={s.id} data-testid={`row-task-status-${s.id}`}>
+                <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
+                <TableCell className="font-medium">{s.label}</TableCell>
+                <TableCell>{s.isTerminal ? "Yes" : "—"}</TableCell>
+                <TableCell>{s.isDefault ? "Yes" : "—"}</TableCell>
+                <TableCell className="text-right space-x-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    disabled={idx === 0 || reorderMut.isPending}
+                    onClick={() => move(idx, -1)}
+                    data-testid={`button-status-up-${s.id}`}
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    disabled={idx === sorted.length - 1 || reorderMut.isPending}
+                    onClick={() => move(idx, 1)}
+                    data-testid={`button-status-down-${s.id}`}
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </CardContent>
@@ -1101,6 +1198,9 @@ export default function Admin() {
               <TabsTrigger value="timecategories" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Time Categories
               </TabsTrigger>
+              <TabsTrigger value="taskstatuses" className="flex items-center gap-2" data-testid="tab-task-statuses">
+                <ListTodo className="h-4 w-4" /> Task Statuses
+              </TabsTrigger>
               <TabsTrigger value="timesettings" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" /> Time Settings
               </TabsTrigger>
@@ -1589,6 +1689,10 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="taskstatuses" className="m-0 space-y-4" data-testid="content-task-statuses">
+            <TaskStatusesAdminPanel />
+          </TabsContent>
+
           <TabsContent value="timesettings" className="m-0 space-y-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -1757,7 +1861,17 @@ export default function Admin() {
                   </button>
                 </div>
 
-                <div className="rounded-lg border p-4 space-y-3">
+                <Collapsible defaultOpen={false} className="rounded-lg border bg-muted/20">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 hover:bg-muted/40 transition-colors group">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Advanced settings</span>
+                      <span className="text-xs text-muted-foreground">— role overrides, time-module config, and reporting</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="px-4 pb-4 pt-0 space-y-4">
+                <div className="rounded-lg border p-4 space-y-3 bg-background">
                   <div>
                     <p className="text-sm font-medium">Date-Lock Override Roles</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Comma-separated role names that may bypass the Date Lock. Admin always exempt.</p>
@@ -1781,7 +1895,7 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border p-4 space-y-4">
+                <div className="rounded-lg border p-4 space-y-4 bg-background">
                   <div>
                     <p className="text-sm font-medium">Time Module Configuration</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Configuration-flexibility controls for the time module.</p>
@@ -1865,6 +1979,8 @@ export default function Admin() {
                     </button>
                   </div>
                 </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 {timeSettings && (
                   <p className="text-xs text-muted-foreground">Last saved: {new Date(timeSettings.updatedAt).toLocaleString()}</p>

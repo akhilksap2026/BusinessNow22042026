@@ -2,6 +2,7 @@ import { useState } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/contexts/current-user";
+import { useTaskStatuses } from "@/lib/task-status";
 import {
   useListTaskComments,
   useCreateTaskComment,
@@ -41,7 +42,9 @@ interface TaskDetailSheetProps {
   isParent?: boolean;
 }
 
-const STATUS_OPTIONS = ["Not Started", "In Progress", "On Hold", "Canceled", "Completed"];
+// Section D: STATIC fallback only — actual status options are pulled from the
+// backend at render time via useTaskStatuses() so admins can customize them.
+const STATUS_OPTIONS_FALLBACK = ["Not Started", "In Progress", "On Hold", "Canceled", "Completed"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 const APPROVAL_OPTIONS = ["none", "pending", "approved", "rejected"];
 
@@ -65,6 +68,9 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const queryClient = useQueryClient();
 
   const { data: users } = useListUsers();
+  // Section D — pull configurable status options.
+  const { statuses: dynamicStatusOptions } = useTaskStatuses();
+  const STATUS_OPTIONS = dynamicStatusOptions.length > 0 ? dynamicStatusOptions : STATUS_OPTIONS_FALLBACK;
   const { data: comments, isLoading: loadingComments } = useListTaskComments(taskId ?? 0, {
     query: { enabled: !!taskId, queryKey: [...getListTaskCommentsQueryKey(taskId ?? 0)] },
   });

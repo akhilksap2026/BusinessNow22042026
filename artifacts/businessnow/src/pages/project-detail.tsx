@@ -1,7 +1,8 @@
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, useListSkills, useListProjectBudgetEntries, useCreateProjectBudgetEntry, getListProjectBudgetEntriesQueryKey } from "@workspace/api-client-react";
+import { useTaskStatuses } from "@/lib/task-status";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, useListSkills, useListProjects, useListProjectBudgetEntries, useCreateProjectBudgetEntry, getListProjectBudgetEntriesQueryKey } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +38,12 @@ export default function ProjectDetail() {
   const { id } = useParams();
   const projectId = parseInt(id || "0", 10);
   
+  // Section D — configurable task statuses (used for the kanban columns).
+  const { statuses: dynamicStatuses } = useTaskStatuses();
+  const kanbanStatuses = dynamicStatuses.length > 0
+    ? dynamicStatuses
+    : ["Not Started", "In Progress", "On Hold", "Completed", "Canceled"];
+
   const { data: project, isLoading: isLoadingProject } = useGetProject(projectId, {
     query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) }
   });
@@ -485,6 +492,7 @@ export default function ProjectDetail() {
   }
 
   const [allocForm, setAllocForm] = useState({
+    projectId: String(projectId),
     userId: "",
     role: "",
     startDate: "",
@@ -495,6 +503,11 @@ export default function ProjectDetail() {
     isTimesheetApprover: false,
     isLeaveApprover: false,
   });
+
+  // Project list for the (editable) Project field on the allocation dialog.
+  // Defaults to the current project; user can re-target the allocation to
+  // another project they have access to.
+  const { data: allProjects } = useListProjects();
 
   // Mon–Fri working-day count between two ISO dates (inclusive).
   function workingDaysBetween(startISO: string, endISO: string): number {
@@ -553,7 +566,7 @@ export default function ProjectDetail() {
     setEditAllocId(null);
     const method = readPreferredMethod();
     const defaultValue = method === "hours_per_day" ? "8" : method === "percentage_capacity" ? "100" : "40";
-    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", method, methodValue: defaultValue, isSoftAllocation: false, isTimesheetApprover: false, isLeaveApprover: false });
+    setAllocForm({ projectId: String(projectId), userId: "", role: "", startDate: "", endDate: "", method, methodValue: defaultValue, isSoftAllocation: false, isTimesheetApprover: false, isLeaveApprover: false });
     setAllocDialogOpen(true);
   }
 
@@ -580,6 +593,7 @@ export default function ProjectDetail() {
       methodValue = String(Number(alloc.hoursPerWeek) / 5);
     }
     setAllocForm({
+      projectId: String(projectId),
       userId: alloc.userId?.toString() ?? "",
       role: alloc.role,
       startDate: alloc.startDate,
@@ -596,8 +610,9 @@ export default function ProjectDetail() {
   async function handleSaveAlloc() {
     if (!allocForm.role || !allocForm.startDate || !allocForm.endDate) return;
     const d = deriveAllocFields(allocForm.method, allocForm.methodValue, allocForm.startDate, allocForm.endDate);
+    const targetProjectId = parseInt(allocForm.projectId) || projectId;
     const payload: any = {
-      projectId,
+      projectId: targetProjectId,
       userId: allocForm.userId ? parseInt(allocForm.userId) : undefined,
       role: allocForm.role,
       startDate: allocForm.startDate,
@@ -1017,7 +1032,7 @@ export default function ProjectDetail() {
                 ) : (
                   <div className="overflow-x-auto pb-4">
                     <div className="flex gap-4 min-w-max">
-                      {(["Not Started", "In Progress", "On Hold", "Completed", "Canceled"] as const).map(status => {
+                      {kanbanStatuses.map(status => {
                         const colTasks = (tasks || []).filter((t: any) => {
                           const s = t.status === "Blocked" ? "On Hold" : t.status;
                           return s === status && !t.parentTaskId && !t.isMilestone;
@@ -1899,6 +1914,20 @@ export default function ProjectDetail() {
             <DialogDescription>Assign a team member and define their time commitment to this project.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Project *</Label>
+              <Select value={allocForm.projectId} onValueChange={v => setAllocForm(f => ({ ...f, projectId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                <SelectContent>
+                  {(allProjects ?? []).map((p: any) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}{p.id === projectId ? " (current)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Defaults to the current project. Change to allocate this team member to a different project.</p>
+            </div>
             <div className="space-y-1.5">
               <Label>Team Member</Label>
               <Select value={allocForm.userId || "none"} onValueChange={v => setAllocForm(f => ({ ...f, userId: v === "none" ? "" : v }))}>

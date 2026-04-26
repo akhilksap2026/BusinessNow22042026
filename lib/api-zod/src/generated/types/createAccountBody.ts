@@ -13,6 +13,7 @@ export interface CreateAccountBody {
   region: string;
   status?: string;
   accountType?: string;
+  isInternal?: boolean;
   contractValue: number;
   billingAddress?: string | null;
   logoUrl?: string | null;

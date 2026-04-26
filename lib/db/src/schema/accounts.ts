@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,6 +10,9 @@ export const accountsTable = pgTable("accounts", {
   region: text("region").notNull(),
   status: text("status").notNull().default("Active"),
   accountType: text("account_type").notNull().default("client"),
+  // Section E: explicit boolean flag for "internal" accounts. Kept in sync
+  // with `accountType` on the API side so existing consumers continue to work.
+  isInternal: boolean("is_internal").notNull().default(false),
   contractValue: numeric("contract_value", { precision: 12, scale: 2 }).notNull().default("0"),
   billingAddress: text("billing_address"),
   logoUrl: text("logo_url"),

@@ -75,8 +75,8 @@ export default function Accounts() {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [editTarget, setEditTarget] = useState<Account | null>(null);
-  const [form, setForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
-  const [editForm, setEditForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
+  const [form, setForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
+  const [editForm, setEditForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
 
   const [expandedAccounts, setExpandedAccounts] = useState<Set<number>>(new Set());
 
@@ -102,7 +102,8 @@ export default function Accounts() {
       region: form.region,
       status: form.status,
       contractValue: Number(form.contractValue) || 0,
-    }),
+      isInternal: form.isInternal,
+    } as any),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowCreate(false); resetForm(); toast({ title: "Account created" }); },
     onError: (err: any) => toast({ title: "Failed to create account", description: err?.message ?? "Please try again.", variant: "destructive" }),
   });
@@ -391,6 +392,22 @@ export default function Accounts() {
                   {["Active", "Inactive", "Prospect", "At Risk"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="col-span-2 flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="acct-is-internal"
+                checked={form.isInternal}
+                onChange={e => setForm(f => ({ ...f, isInternal: e.target.checked }))}
+                className="h-4 w-4 rounded border-input"
+                data-testid="checkbox-is-internal"
+              />
+              <Label htmlFor="acct-is-internal" className="font-normal cursor-pointer">
+                Internal account
+                <span className="text-xs text-muted-foreground ml-2">
+                  (represents the operating company; used for internal projects)
+                </span>
+              </Label>
             </div>
           </div>
           <DialogFooter>

@@ -123,6 +123,7 @@ import type {
   Prospect,
   RateCard,
   RejectTimesheetBody,
+  ReorderTaskStatusDefinitionsBody,
   ReorderTasksBody,
   ReorderTasksResponse,
   ResourceRequest,
@@ -137,6 +138,7 @@ import type {
   TaskChecklistItem,
   TaskComment,
   TaskNote,
+  TaskStatusDefinition,
   TaxCode,
   TemplateAllocation,
   TemplateAllocationsSummary,
@@ -9652,6 +9654,175 @@ export const useDeleteSkillCategory = <
   TContext
 > => {
   return useMutation(getDeleteSkillCategoryMutationOptions(options));
+};
+
+/**
+ * @summary List task status definitions (ordered by position)
+ */
+export const getListTaskStatusDefinitionsUrl = () => {
+  return `/api/task-status-definitions`;
+};
+
+export const listTaskStatusDefinitions = async (
+  options?: RequestInit,
+): Promise<TaskStatusDefinition[]> => {
+  return customFetch<TaskStatusDefinition[]>(
+    getListTaskStatusDefinitionsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListTaskStatusDefinitionsQueryKey = () => {
+  return [`/api/task-status-definitions`] as const;
+};
+
+export const getListTaskStatusDefinitionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTaskStatusDefinitions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTaskStatusDefinitions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTaskStatusDefinitionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTaskStatusDefinitions>>
+  > = ({ signal }) => listTaskStatusDefinitions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTaskStatusDefinitions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTaskStatusDefinitionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTaskStatusDefinitions>>
+>;
+export type ListTaskStatusDefinitionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List task status definitions (ordered by position)
+ */
+
+export function useListTaskStatusDefinitions<
+  TData = Awaited<ReturnType<typeof listTaskStatusDefinitions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTaskStatusDefinitions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTaskStatusDefinitionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Reorder task status definitions
+ */
+export const getReorderTaskStatusDefinitionsUrl = () => {
+  return `/api/task-status-definitions/reorder`;
+};
+
+export const reorderTaskStatusDefinitions = async (
+  reorderTaskStatusDefinitionsBody: ReorderTaskStatusDefinitionsBody,
+  options?: RequestInit,
+): Promise<TaskStatusDefinition[]> => {
+  return customFetch<TaskStatusDefinition[]>(
+    getReorderTaskStatusDefinitionsUrl(),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(reorderTaskStatusDefinitionsBody),
+    },
+  );
+};
+
+export const getReorderTaskStatusDefinitionsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderTaskStatusDefinitions>>,
+    TError,
+    { data: BodyType<ReorderTaskStatusDefinitionsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderTaskStatusDefinitions>>,
+  TError,
+  { data: BodyType<ReorderTaskStatusDefinitionsBody> },
+  TContext
+> => {
+  const mutationKey = ["reorderTaskStatusDefinitions"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderTaskStatusDefinitions>>,
+    { data: BodyType<ReorderTaskStatusDefinitionsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reorderTaskStatusDefinitions(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReorderTaskStatusDefinitionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderTaskStatusDefinitions>>
+>;
+export type ReorderTaskStatusDefinitionsMutationBody =
+  BodyType<ReorderTaskStatusDefinitionsBody>;
+export type ReorderTaskStatusDefinitionsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reorder task status definitions
+ */
+export const useReorderTaskStatusDefinitions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderTaskStatusDefinitions>>,
+    TError,
+    { data: BodyType<ReorderTaskStatusDefinitionsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reorderTaskStatusDefinitions>>,
+  TError,
+  { data: BodyType<ReorderTaskStatusDefinitionsBody> },
+  TContext
+> => {
+  return useMutation(getReorderTaskStatusDefinitionsMutationOptions(options));
 };
 
 /**

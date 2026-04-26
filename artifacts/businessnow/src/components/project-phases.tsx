@@ -34,6 +34,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
+import { useTaskStatuses, TASK_STATUS_CYCLE } from "@/lib/task-status";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -57,6 +58,7 @@ import {
   Milestone,
   ChevronsDown,
   ChevronsUp,
+  Columns3,
   GripVertical,
   ArrowRightLeft,
   Save,
@@ -112,6 +114,23 @@ function calcEffort(node: TaskNode): number {
 function calcLoggedHours(node: TaskNode, hoursByTaskId: Map<number, number>): number {
   const own = hoursByTaskId.get(node.task.id) ?? 0;
   return node.children.reduce((sum, child) => sum + calcLoggedHours(child, hoursByTaskId), own);
+}
+
+// Roll-ups for the optional hour columns. Leaves use the task's own value;
+// parents sum their descendants. Falls back to `effort` when plannedHours
+// is absent (legacy rows). Estimate falls back to planned, then effort.
+function calcPlanned(node: TaskNode): number {
+  if (node.children.length === 0) {
+    return Number(node.task.plannedHours ?? node.task.effort ?? 0) || 0;
+  }
+  return node.children.reduce((sum, child) => sum + calcPlanned(child), 0);
+}
+function calcEstimate(node: TaskNode): number {
+  if (node.children.length === 0) {
+    const t = node.task;
+    return Number(t.estimateHours ?? t.plannedHours ?? t.effort ?? 0) || 0;
+  }
+  return node.children.reduce((sum, child) => sum + calcEstimate(child), 0);
 }
 
 function allNodeIds(nodes: TaskNode[]): number[] {
@@ -183,6 +202,12 @@ interface SortableTaskRowProps {
   totalEffort: number;
   ownLogged: number;
   totalLogged: number;
+  totalPlanned: number;
+  totalEstimate: number;
+  totalActual: number;
+  totalEtc: number;
+  totalEac: number;
+  hourCols: { planned: boolean; estimate: boolean; actual: boolean; etc: boolean; eac: boolean };
   users: any[] | undefined;
   hoursByTaskId: Map<number, number>;
   onToggleExpand: (id: number) => void;
@@ -196,8 +221,12 @@ interface SortableTaskRowProps {
 function SortableTaskRow(props: SortableTaskRowProps) {
   const {
     node, isExpanded, hasChildren, totalEffort, ownLogged, totalLogged,
+    totalPlanned, totalEstimate, totalActual, totalEtc, totalEac, hourCols,
     users, onToggleExpand, onOpenDetail, onCycleStatus, onAddSubtask, onMoveTo, onDelete,
   } = props;
+  // Reference unused legacy props to satisfy noUnusedLocals; values are
+  // surfaced through the new hour-column cells via the *Planned/Logged rollups.
+  void totalEffort; void ownLogged; void totalLogged;
   const { task, depth } = node;
   const showPhaseBadge = !!task.isPhase;
   const INDENT_PX = 20;
@@ -320,43 +349,28 @@ function SortableTaskRow(props: SortableTaskRowProps) {
         )}
       </div>
 
-      {/* Effort + Logged time */}
-      <div className="w-28 shrink-0 text-xs text-right tabular-nums">
-        {task.isMilestone ? null : hasChildren ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="cursor-help leading-tight">
-                <div className="text-muted-foreground">
-                  {totalEffort > 0 ? `${totalEffort % 1 === 0 ? totalEffort : totalEffort.toFixed(1)}h` : "—"}
-                  <span className="text-[10px] ml-0.5 opacity-50">plan ∑</span>
-                </div>
-                <div className="text-emerald-600 dark:text-emerald-400">
-                  {totalLogged > 0 ? `${totalLogged % 1 === 0 ? totalLogged : totalLogged.toFixed(1)}h` : "—"}
-                  <span className="text-[10px] ml-0.5 opacity-60">logged ∑</span>
-                </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-[240px] text-xs">
-              <p className="font-semibold">Auto-calculated</p>
-              <p className="mt-0.5">Planned effort: {totalEffort.toFixed(1)}h</p>
-              <p>Logged time: {totalLogged.toFixed(1)}h</p>
-              <p className="text-muted-foreground mt-0.5">
-                Sum of all {countDescendants(node)} descendant task
-                {countDescendants(node) !== 1 ? "s" : ""}. Log time directly on leaf tasks only.
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <div className="leading-tight">
-            <div>{totalEffort > 0 ? `${totalEffort % 1 === 0 ? totalEffort : totalEffort.toFixed(1)}h` : "—"}</div>
-            {ownLogged > 0 && (
-              <div className="text-emerald-600 dark:text-emerald-400 text-[10px]">
-                {ownLogged % 1 === 0 ? ownLogged : ownLogged.toFixed(1)}h logged
-              </div>
+      {/* Hour columns (configurable: Planned / Estimate / Actual / ETC / EAC) */}
+      {(() => {
+        const fmt = (n: number) => (n === 0 ? "—" : (n % 1 === 0 ? `${n}h` : `${n.toFixed(1)}h`));
+        const cell = (val: number, key: string, opts?: { negativeRed?: boolean }) => (
+          <div key={key} className="w-20 shrink-0 text-xs text-right tabular-nums">
+            {task.isMilestone ? <span className="text-muted-foreground">—</span> : (
+              <span className={opts?.negativeRed && val < 0 ? "text-red-600 font-medium" : ""}>
+                {hasChildren ? <span className="opacity-60">{fmt(val)}</span> : fmt(val)}
+              </span>
             )}
           </div>
-        )}
-      </div>
+        );
+        return (
+          <>
+            {hourCols.planned && cell(totalPlanned, "planned")}
+            {hourCols.estimate && cell(totalEstimate, "estimate")}
+            {hourCols.actual && cell(totalActual, "actual")}
+            {hourCols.etc && cell(totalEtc, "etc", { negativeRed: true })}
+            {hourCols.eac && cell(totalEac, "eac")}
+          </>
+        );
+      })()}
 
       {/* Actions menu */}
       <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -412,6 +426,8 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
     { projectId },
     { query: { enabled: !!projectId, queryKey: getListTimeEntriesQueryKey({ projectId }) } }
   );
+  // Section D — configurable task statuses (used by handleStatusCycle below).
+  const { raw: taskStatusDefs } = useTaskStatuses();
 
   const hoursByTaskId = useMemo(() => {
     const map = new Map<number, number>();
@@ -446,6 +462,27 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const [moveTask, setMoveTask] = useState<any | null>(null);
   const [moveTargetParentId, setMoveTargetParentId] = useState<number | null>(null);
   const [moveSearch, setMoveSearch] = useState("");
+
+  // Optional hour columns. Default visible: Planned + Actual.
+  // Persisted to localStorage so the user's choice survives reloads.
+  const COLS_LS_KEY = "phases.task.cols.v1";
+  type HourCol = "planned" | "estimate" | "actual" | "etc" | "eac";
+  const DEFAULT_COLS: Record<HourCol, boolean> = { planned: true, estimate: false, actual: true, etc: false, eac: false };
+  const [hourCols, setHourCols] = useState<Record<HourCol, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(COLS_LS_KEY);
+      if (!raw) return DEFAULT_COLS;
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_COLS, ...parsed };
+    } catch { return DEFAULT_COLS; }
+  });
+  function toggleCol(c: HourCol) {
+    setHourCols(prev => {
+      const next = { ...prev, [c]: !prev[c] };
+      try { localStorage.setItem(COLS_LS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   // ── Apply pending overlay so the tree renders optimistically ──────────────
 
@@ -720,7 +757,15 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   };
 
   const handleStatusCycle = async (task: any) => {
-    const order = ["Not Started", "In Progress", "Completed", "On Hold"];
+    // Section D: pull cycle order from configurable status definitions when
+    // available, filter out terminal statuses (e.g. Completed/Canceled) so the
+    // single-click cycle never lands on a "done" state. Fall back to the
+    // static cycle if the API hasn't loaded yet.
+    const dynamicCycle =
+      taskStatusDefs && taskStatusDefs.length > 0
+        ? taskStatusDefs.filter((s) => !s.isTerminal).map((s) => s.label)
+        : (TASK_STATUS_CYCLE as readonly string[]).slice();
+    const order = dynamicCycle.length > 0 ? dynamicCycle : ["Not Started", "In Progress", "On Hold"];
     const current = task.status === "Blocked" ? "On Hold" : task.status;
     const idx = order.indexOf(current);
     const next = order[(idx === -1 ? 0 : idx + 1) % order.length];
@@ -891,6 +936,33 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
               {allExpanded ? "Collapse All" : "Expand All"}
             </Button>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                <Columns3 className="h-3.5 w-3.5" />
+                Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Hour columns</div>
+              {([
+                { key: "planned", label: "Planned" },
+                { key: "estimate", label: "Estimate" },
+                { key: "actual", label: "Actual" },
+                { key: "etc", label: "ETC" },
+                { key: "eac", label: "EAC" },
+              ] as { key: HourCol; label: string }[]).map(c => (
+                <DropdownMenuItem key={c.key} onSelect={(e) => { e.preventDefault(); toggleCol(c.key); }} className="cursor-pointer">
+                  <div className="flex items-center gap-2 w-full">
+                    <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${hourCols[c.key] ? "bg-indigo-600 border-indigo-600 text-white" : "border-muted-foreground/40"}`}>
+                      {hourCols[c.key] ? "✓" : ""}
+                    </span>
+                    <span>{c.label}</span>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" onClick={() => openAddTask(null)}>
             <Plus className="h-4 w-4 mr-1.5" />
             Add Task
@@ -909,7 +981,11 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
           <div className="w-20 shrink-0">Priority</div>
           <div className="w-32 shrink-0">Assigned Resource</div>
           <div className="w-24 shrink-0">Due</div>
-          <div className="w-28 shrink-0 text-right">Planned Hours</div>
+          {hourCols.planned && <div className="w-20 shrink-0 text-right">Planned</div>}
+          {hourCols.estimate && <div className="w-20 shrink-0 text-right">Estimate</div>}
+          {hourCols.actual && <div className="w-20 shrink-0 text-right">Actual</div>}
+          {hourCols.etc && <div className="w-20 shrink-0 text-right">ETC</div>}
+          {hourCols.eac && <div className="w-20 shrink-0 text-right">EAC</div>}
           <div className="w-7 shrink-0" />
         </div>
 
@@ -937,6 +1013,14 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                   const totalEffort = calcEffort(node);
                   const ownLogged = hoursByTaskId.get(node.task.id) ?? 0;
                   const totalLogged = hasChildren ? calcLoggedHours(node, hoursByTaskId) : ownLogged;
+                  // Hour-column rollups. Actual = total logged hours (parent
+                  // = sum of descendants). ETC and EAC are derived per the
+                  // same formulas the API uses on a single row.
+                  const totalPlanned = calcPlanned(node);
+                  const totalEstimate = calcEstimate(node);
+                  const totalActual = totalLogged;
+                  const totalEtc = totalEstimate - totalActual;
+                  const totalEac = totalActual + Math.abs(totalEtc);
                   return (
                     <SortableTaskRow
                       key={node.task.id}
@@ -946,6 +1030,12 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                       totalEffort={totalEffort}
                       ownLogged={ownLogged}
                       totalLogged={totalLogged}
+                      totalPlanned={totalPlanned}
+                      totalEstimate={totalEstimate}
+                      totalActual={totalActual}
+                      totalEtc={totalEtc}
+                      totalEac={totalEac}
+                      hourCols={hourCols}
                       users={users}
                       hoursByTaskId={hoursByTaskId}
                       onToggleExpand={toggleExpand}

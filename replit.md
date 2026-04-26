@@ -689,3 +689,30 @@ Fixes applied after architect code review:
   - #5 Task creation refresh: `onAddTask` already invalidates `getListTasksQueryKey({projectId})`.
   - #6 CO project field: no change-order form has a free-text project name field; CO is scoped via URL `projectId`.
   - #7 New Contract button: opens a working dialog with project Select + dates + value; no disable needed.
+
+### Bug-Fix Bundle A–F (April 2026)
+Six-section medium-complexity fix bundle applied across DB, API, and frontend. No unrelated routes/APIs/permissions touched.
+
+- **A — Effort & forecast**
+  - A1/A2 (prior): tasks `plannedHours`/`estimateHours` columns + `mapTask()` returns planned/estimate/actual/etc/eac.
+  - A3 (prior): task detail sheet renders Planned/Estimate/Actual/ETC/EAC fields with red-on-negative ETC.
+  - **A4 (new)**: `project-phases.tsx` adds a Columns dropdown (Columns3 icon) toggling 5 optional task-list columns — Planned, Estimate, Actual, ETC, EAC. Default visible = Planned + Actual. Visibility persisted in `localStorage("project-phases.hourCols")`. Parent loop computes per-task totals once and passes to `SortableTaskRow` props.
+- **B — Wizard "Starting Point" step (new)**
+  - `create-project-wizard.tsx`: blank-mode flow gains step 4 with three button cards (blank / from template / decide later) plus a Template `<Select>` shown when "from template" is chosen. Review becomes step 5; `validateStep4` gates the Next button. After `createProject` succeeds, `useApplyTemplateToProject` runs when a template was selected.
+- **C — Allocation defaults to current project (new)**
+  - `project-detail.tsx` allocation dialog: editable Project `<Select>` defaults to the current `projectId`; user can switch target project before saving.
+- **D — Configurable task statuses (new, full-stack)**
+  - DB: `lib/db/src/schema/taskStatusDefinitions.ts` (id/label/position/isTerminal/isDefault/color), exported via `index.ts`. Pushed via `db push --force`. Seeded 5 defaults: Not Started (default), In Progress, On Hold, Completed (terminal), Canceled (terminal).
+  - API: `lib/api-spec/openapi.yaml` adds `GET /task-status-definitions` (ordered by position) and `PATCH /task-status-definitions/reorder` (admin-only) plus `TaskStatusDefinition` schema. Codegen regenerated.
+  - Server: `routes/taskStatusDefinitions.ts` mounted from `routes/index.ts`; reorder gated by `requireAdmin`.
+  - Frontend: `lib/task-status.ts` exposes `useTaskStatuses()` hook (60s staleTime, falls back to static `TASK_STATUS_VALUES` when API empty/loading). Wired into:
+    - `project-phases.tsx` — `handleStatusCycle` cycles through non-terminal definitions.
+    - `project-detail.tsx` — kanban columns built from definitions.
+    - `task-detail-sheet.tsx` — STATUS_OPTIONS dynamic.
+  - Admin: new "Task Statuses" tab (ListTodo icon) between Time Categories and Time Settings; `TaskStatusesAdminPanel` shows ordered table with ↑/↓ reorder buttons (simple choice over dnd-kit because there are only a handful of rows). Reorder calls `useReorderTaskStatusDefinitions` and invalidates the list query.
+- **E — Internal account flag (new, full-stack)**
+  - DB: `accounts.is_internal` boolean default false. Backfilled `UPDATE accounts SET is_internal = true WHERE account_type = 'internal'`.
+  - API: `Account`, `CreateAccountBody`, `UpdateAccountBody` extended with `isInternal`; codegen regenerated. `routes/accounts.ts` `syncInternalFlags` helper keeps `isInternal` and `accountType="internal"` in sync on POST/PATCH (preserves `accountType` when not internal).
+  - Frontend: `accounts.tsx` form has Internal checkbox writing `isInternal`. `create-project-wizard.tsx` filters the Account Select by `isInternal` when the wizard's internal/external toggle is set to Internal.
+- **F — Time settings progressive disclosure (new)**
+  - `admin.tsx` timesettings tab: "Date-Lock Override Roles" + "Time Module Configuration" sections wrapped in shadcn `<Collapsible>` "Advanced settings" (collapsed by default, ChevronDown rotates on open). Top of the panel shows the common settings unobstructed.

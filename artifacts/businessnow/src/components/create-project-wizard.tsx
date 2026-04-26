@@ -17,6 +17,7 @@ import {
   useListUsers,
   useListRateCards,
   useListProjectTemplates,
+  useApplyTemplateToProject,
   useCreateProject,
   useCreateAllocation,
   useCreateProjectFromTemplate,
@@ -57,6 +58,9 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState<Mode>("choose");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  // Section B "Starting Point" — chosen at step 4 of the blank-mode flow.
+  const [startingPoint, setStartingPoint] = useState<"blank" | "template" | "later">("blank");
+  const [postCreateTemplateId, setPostCreateTemplateId] = useState<number | null>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -69,6 +73,7 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
   const createProject = useCreateProject();
   const createAllocation = useCreateAllocation();
   const createFromTemplate = useCreateProjectFromTemplate();
+  const applyTemplate = useApplyTemplateToProject();
 
   const blankForm = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
@@ -93,6 +98,8 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
       setMode("choose");
       setStep(1);
       setSelectedTemplateId(null);
+      setStartingPoint("blank");
+      setPostCreateTemplateId(null);
       blankForm.reset();
       templateForm.reset();
     }
@@ -133,7 +140,28 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
       }
 
       queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
-      toast({ title: "Project created successfully" });
+
+      // Section B: if user picked "from template" at the Starting Point step,
+      // apply the chosen template to the freshly-created project. Failures
+      // here don't roll back the project — we surface a non-blocking warning.
+      if (startingPoint === "template" && postCreateTemplateId) {
+        try {
+          await applyTemplate.mutateAsync({
+            id: postCreateTemplateId,
+            data: { projectId: project.id, startDate: values.startDate },
+          });
+          toast({ title: "Project created and template applied" });
+        } catch {
+          toast({
+            title: "Project created — template apply failed",
+            description: "You can apply the template later from the project page.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({ title: "Project created successfully" });
+      }
+
       handleClose(false);
       setLocation(`/projects/${project.id}`);
     } catch {
@@ -184,6 +212,19 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
   const validateStep3 = async () => {
     const valid = await blankForm.trigger(["ownerId", "teamMembers", "rateCardId"]);
     if (valid) setStep(4);
+  };
+
+  const validateStep4 = () => {
+    // Block advancing to review when "from template" is selected without a pick.
+    if (startingPoint === "template" && !postCreateTemplateId) {
+      toast({
+        title: "Pick a template",
+        description: "Select a template to start from, or choose another option.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setStep(5);
   };
 
   const selectedTemplate = templates?.find(t => t.id === selectedTemplateId);
@@ -448,18 +489,26 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
                             <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {accounts?.map(acc => (
-                              <SelectItem key={acc.id} value={acc.id.toString()} data-testid={`option-account-${acc.id}`}>
-                                <span className="flex items-center gap-2">
-                                  {acc.name}
-                                  {acc.accountType === "internal" && (
-                                    <Badge variant="outline" className="text-[10px] py-0 h-4 border-indigo-300 text-indigo-700 dark:text-indigo-300 dark:border-indigo-700">
-                                      Internal
-                                    </Badge>
-                                  )}
-                                </span>
-                              </SelectItem>
-                            ))}
+                            {(() => {
+                              // Section E: when project type = Internal, only show
+                              // internal accounts (isInternal=true OR legacy account_type=internal).
+                              const isInternalProj = blankForm.watch("internalExternal") === "Internal";
+                              const filtered = isInternalProj
+                                ? accounts?.filter(a => (a as any).isInternal === true || a.accountType === "internal")
+                                : accounts;
+                              return filtered?.map(acc => (
+                                <SelectItem key={acc.id} value={acc.id.toString()} data-testid={`option-account-${acc.id}`}>
+                                  <span className="flex items-center gap-2">
+                                    {acc.name}
+                                    {((acc as any).isInternal === true || acc.accountType === "internal") && (
+                                      <Badge variant="outline" className="text-[10px] py-0 h-4 border-indigo-300 text-indigo-700 dark:text-indigo-300 dark:border-indigo-700">
+                                        Internal
+                                      </Badge>
+                                    )}
+                                  </span>
+                                </SelectItem>
+                              ));
+                            })()}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -644,6 +693,71 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
 
               {step === 4 && (
                 <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Starting Point</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Choose how you want to populate this project's phases and tasks.
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      { id: "blank" as const, title: "Start blank", desc: "Create the project with no phases or tasks. You can add them manually." },
+                      { id: "template" as const, title: "Start from a template", desc: "Apply a project template to scaffold phases and tasks." },
+                      { id: "later" as const, title: "Decide later", desc: "Create the project now and pick a starting point afterwards." },
+                    ].map((opt) => {
+                      const selected = startingPoint === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setStartingPoint(opt.id)}
+                          className={`w-full text-left rounded-md border p-3 transition-colors ${
+                            selected ? "border-primary bg-accent" : "hover:bg-accent/50"
+                          }`}
+                          data-testid={`starting-point-${opt.id}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 ${
+                              selected ? "border-primary bg-primary" : "border-muted-foreground"
+                            }`} />
+                            <div>
+                              <div className="font-medium text-sm">{opt.title}</div>
+                              <div className="text-xs text-muted-foreground">{opt.desc}</div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {startingPoint === "template" && (
+                    <div className="space-y-2 pt-2">
+                      <label className="text-sm font-medium">Template</label>
+                      <Select
+                        value={postCreateTemplateId ? String(postCreateTemplateId) : ""}
+                        onValueChange={(v) => setPostCreateTemplateId(parseInt(v, 10))}
+                      >
+                        <SelectTrigger data-testid="select-post-create-template">
+                          <SelectValue placeholder="Choose a template..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates?.map((t) => (
+                            <SelectItem key={t.id} value={String(t.id)}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!templates?.length && (
+                        <p className="text-xs text-muted-foreground">
+                          No templates available. Pick another option or create one in Project Templates.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {step === 5 && (
+                <div className="space-y-4">
                   <h3 className="font-medium text-lg">Review Project Details</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="text-muted-foreground">Name:</div>
@@ -675,9 +789,10 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
                 {step === 1 && <Button type="button" onClick={validateStep1}>Next</Button>}
                 {step === 2 && <Button type="button" onClick={validateStep2}>Next</Button>}
                 {step === 3 && <Button type="button" onClick={validateStep3}>Next</Button>}
-                {step === 4 && (
-                  <Button type="submit" disabled={createProject.isPending}>
-                    {createProject.isPending ? "Creating..." : "Create Project"}
+                {step === 4 && <Button type="button" onClick={validateStep4}>Next</Button>}
+                {step === 5 && (
+                  <Button type="submit" disabled={createProject.isPending || applyTemplate.isPending}>
+                    {createProject.isPending || applyTemplate.isPending ? "Creating..." : "Create Project"}
                   </Button>
                 )}
               </DialogFooter>

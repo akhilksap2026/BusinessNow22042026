@@ -15,6 +15,8 @@ export interface Account {
   status: string;
   /** Account type: 'client' (default) or 'internal' (e.g. KSAP itself) */
   accountType: string;
+  /** True for accounts that represent the operating company itself. Mirrors accountType='internal'. */
+  isInternal: boolean;
   contractValue: number;
   billingAddress?: string | null;
   logoUrl?: string | null;

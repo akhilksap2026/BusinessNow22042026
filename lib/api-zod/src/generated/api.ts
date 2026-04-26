@@ -74,6 +74,11 @@ export const ListAccountsResponseItem = zod.object({
     .describe(
       "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)",
     ),
+  isInternal: zod
+    .boolean()
+    .describe(
+      "True for accounts that represent the operating company itself. Mirrors accountType='internal'.",
+    ),
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -93,6 +98,7 @@ export const CreateAccountBody = zod.object({
   region: zod.string(),
   status: zod.string().optional(),
   accountType: zod.string().optional(),
+  isInternal: zod.boolean().optional(),
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -117,6 +123,11 @@ export const GetAccountResponse = zod.object({
     .describe(
       "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)",
     ),
+  isInternal: zod
+    .boolean()
+    .describe(
+      "True for accounts that represent the operating company itself. Mirrors accountType='internal'.",
+    ),
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -139,6 +150,7 @@ export const UpdateAccountBody = zod.object({
   region: zod.string().optional(),
   status: zod.string().optional(),
   accountType: zod.string().optional(),
+  isInternal: zod.boolean().optional(),
   contractValue: zod.number().optional(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
@@ -155,6 +167,11 @@ export const UpdateAccountResponse = zod.object({
     .string()
     .describe(
       "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)",
+    ),
+  isInternal: zod
+    .boolean()
+    .describe(
+      "True for accounts that represent the operating company itself. Mirrors accountType='internal'.",
     ),
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
@@ -2660,6 +2677,46 @@ export const DeleteSkillCategoryParams = zod.object({
 });
 
 /**
+ * @summary List task status definitions (ordered by position)
+ */
+export const ListTaskStatusDefinitionsResponseItem = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  position: zod.number(),
+  isTerminal: zod.boolean(),
+  isDefault: zod.boolean(),
+  color: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListTaskStatusDefinitionsResponse = zod.array(
+  ListTaskStatusDefinitionsResponseItem,
+);
+
+/**
+ * @summary Reorder task status definitions
+ */
+export const ReorderTaskStatusDefinitionsBody = zod.object({
+  order: zod
+    .array(zod.number())
+    .describe("IDs in their new order, position 0..n"),
+});
+
+export const ReorderTaskStatusDefinitionsResponseItem = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  position: zod.number(),
+  isTerminal: zod.boolean(),
+  isDefault: zod.boolean(),
+  color: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ReorderTaskStatusDefinitionsResponse = zod.array(
+  ReorderTaskStatusDefinitionsResponseItem,
+);
+
+/**
  * @summary List skills
  */
 export const ListSkillsQueryParams = zod.object({
@@ -3212,6 +3269,11 @@ export const ConvertProspectResponse = zod.object({
       .string()
       .describe(
         "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)",
+      ),
+    isInternal: zod
+      .boolean()
+      .describe(
+        "True for accounts that represent the operating company itself. Mirrors accountType='internal'.",
       ),
     contractValue: zod.number(),
     billingAddress: zod.string().nullish(),

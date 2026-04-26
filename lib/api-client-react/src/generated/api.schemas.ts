@@ -41,6 +41,8 @@ export interface Account {
   status: string;
   /** Account type: 'client' (default) or 'internal' (e.g. KSAP itself) */
   accountType: string;
+  /** True for accounts that represent the operating company itself. Mirrors accountType='internal'. */
+  isInternal: boolean;
   contractValue: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
@@ -56,6 +58,7 @@ export interface CreateAccountBody {
   region: string;
   status?: string;
   accountType?: string;
+  isInternal?: boolean;
   contractValue: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
@@ -68,6 +71,7 @@ export interface UpdateAccountBody {
   region?: string;
   status?: string;
   accountType?: string;
+  isInternal?: boolean;
   contractValue?: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
@@ -1025,6 +1029,17 @@ export interface CreateSkillCategoryBody {
   name: string;
 }
 
+export interface TaskStatusDefinition {
+  id: number;
+  label: string;
+  position: number;
+  isTerminal: boolean;
+  isDefault: boolean;
+  color?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Skill {
   id: number;
   categoryId?: number;
@@ -1670,6 +1685,11 @@ export type ListRevenueEntriesParams = {
 export type ListTimeOffRequestsParams = {
   userId?: number;
   status?: string;
+};
+
+export type ReorderTaskStatusDefinitionsBody = {
+  /** IDs in their new order, position 0..n */
+  order: number[];
 };
 
 export type ListSkillsParams = {

@@ -2182,6 +2182,46 @@ paths:
         '204':
           description: Deleted
 
+  /task-status-definitions:
+    get:
+      summary: List task status definitions (ordered by position)
+      operationId: listTaskStatusDefinitions
+      responses:
+        '200':
+          description: Ordered task statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskStatusDefinition'
+  /task-status-definitions/reorder:
+    patch:
+      summary: Reorder task status definitions
+      operationId: reorderTaskStatusDefinitions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order]
+              properties:
+                order:
+                  type: array
+                  items:
+                    type: integer
+                  description: IDs in their new order, position 0..n
+      responses:
+        '200':
+          description: Updated ordered task statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskStatusDefinition'
+
   /skills:
     get:
       summary: List skills
@@ -3581,6 +3621,9 @@ components:
         accountType:
           type: string
           description: "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)"
+        isInternal:
+          type: boolean
+          description: "True for accounts that represent the operating company itself. Mirrors accountType='internal'."
         contractValue:
           type: number
         billingAddress:
@@ -3604,6 +3647,7 @@ components:
         - region
         - status
         - accountType
+        - isInternal
         - contractValue
         - createdAt
         - updatedAt
@@ -3623,6 +3667,8 @@ components:
           type: string
         accountType:
           type: string
+        isInternal:
+          type: boolean
         contractValue:
           type: number
         billingAddress:
@@ -3653,6 +3699,8 @@ components:
           type: string
         accountType:
           type: string
+        isInternal:
+          type: boolean
         contractValue:
           type: number
         billingAddress:
@@ -5797,6 +5845,35 @@ components:
           type: string
       required:
         - name
+
+    TaskStatusDefinition:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        position:
+          type: integer
+        isTerminal:
+          type: boolean
+        isDefault:
+          type: boolean
+        color:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - label
+        - position
+        - isTerminal
+        - isDefault
+        - createdAt
+        - updatedAt
 
     Skill:
       type: object

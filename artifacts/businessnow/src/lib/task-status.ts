@@ -1,3 +1,5 @@
+import { useListTaskStatusDefinitions } from "@workspace/api-client-react";
+
 export const TASK_STATUS_VALUES = [
   "Not Started",
   "In Progress",
@@ -32,3 +34,26 @@ export const TASK_STATUS_CYCLE: TaskStatus[] = [
   "Completed",
   "On Hold",
 ];
+
+/**
+ * Section D — Configurable task statuses.
+ *
+ * Returns the ordered list of status labels from the backend
+ * (`task_status_definitions` table). Falls back to the static
+ * `TASK_STATUS_VALUES` while loading or on error so existing UI
+ * never renders an empty dropdown.
+ */
+export function useTaskStatuses(): {
+  statuses: string[];
+  isLoading: boolean;
+  raw: ReturnType<typeof useListTaskStatusDefinitions>["data"];
+} {
+  const q = useListTaskStatusDefinitions({
+    query: {
+      staleTime: 60_000,
+    },
+  });
+  const fromApi = q.data?.map((s) => s.label).filter(Boolean);
+  const statuses = fromApi && fromApi.length > 0 ? fromApi : (TASK_STATUS_VALUES as readonly string[]).slice();
+  return { statuses, isLoading: q.isLoading, raw: q.data };
+}
