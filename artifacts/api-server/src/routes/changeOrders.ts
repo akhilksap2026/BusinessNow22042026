@@ -31,6 +31,16 @@ async function generateCRNumber(projectId: number): Promise<string> {
 router.get("/projects/:id/change-orders", async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.id, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  const [project] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(eq(projectsTable.id, projectId));
+  if (!project) {
+    res.status(404).json({ error: `Project ${projectId} does not exist` });
+    return;
+  }
+
   const rows = await db.select().from(changeOrdersTable).where(eq(changeOrdersTable.projectId, projectId));
   res.json(rows.map(mapCO));
 });
@@ -38,6 +48,17 @@ router.get("/projects/:id/change-orders", async (req, res): Promise<void> => {
 router.post("/projects/:id/change-orders", requirePM, async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.id, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  // Confirm project exists so callers get a clean 404 rather than a Postgres FK violation.
+  const [project] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(eq(projectsTable.id, projectId));
+  if (!project) {
+    res.status(404).json({ error: `Project ${projectId} does not exist` });
+    return;
+  }
+
   const {
     title, description, amount, additionalHours, status,
     requestedDate, submittedDate, submittedByUserId,
