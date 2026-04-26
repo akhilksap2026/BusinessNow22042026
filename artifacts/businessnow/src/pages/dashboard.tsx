@@ -83,19 +83,19 @@ function KpiTile({
         data-testid={testId}
         className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${STATUS_BORDER[status]}`}
       >
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 px-3 pt-3 pb-1">
           <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          <div className={`h-8 w-8 rounded-md flex items-center justify-center ${STATUS_ICON_BG[status]}`}>
-            <Icon className="h-4 w-4" />
+          <div className={`h-6 w-6 rounded flex items-center justify-center ${STATUS_ICON_BG[status]}`}>
+            <Icon className="h-3.5 w-3.5" />
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 pb-3 pt-0">
           {isLoading ? (
-            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-6 w-20" />
           ) : (
             <>
-              <div className="text-3xl font-bold tracking-tight">{value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{caption}</p>
+              <div className="text-xl font-bold tracking-tight">{value}</div>
+              <p className="text-xs text-muted-foreground mt-0.5">{caption}</p>
             </>
           )}
         </CardContent>

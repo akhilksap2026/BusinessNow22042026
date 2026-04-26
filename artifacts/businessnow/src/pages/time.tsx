@@ -376,37 +376,37 @@ export default function TimeTracking() {
           }
         />
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
               <CardTitle className="text-sm font-medium">This Week</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold tracking-tight">{summary?.totalHoursThisWeek}h</div>
+            <CardContent className="px-3 pb-2 pt-0">
+              {isLoadingSummary ? <Skeleton className="h-5 w-16" /> : (
+                <div className="text-lg font-bold tracking-tight">{summary?.totalHoursThisWeek}h</div>
               )}
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
               <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold tracking-tight">{summary?.totalHoursThisMonth}h</div>
+            <CardContent className="px-3 pb-2 pt-0">
+              {isLoadingSummary ? <Skeleton className="h-5 w-16" /> : (
+                <div className="text-lg font-bold tracking-tight">{summary?.totalHoursThisMonth}h</div>
               )}
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
               <CardTitle className="text-sm font-medium">Billable Ratio</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold tracking-tight text-green-600 dark:text-green-400">{summary?.billablePercent}%</div>
+            <CardContent className="px-3 pb-2 pt-0">
+              {isLoadingSummary ? <Skeleton className="h-5 w-16" /> : (
+                <div className="text-lg font-bold tracking-tight text-green-600 dark:text-green-400">{summary?.billablePercent}%</div>
               )}
             </CardContent>
           </Card>

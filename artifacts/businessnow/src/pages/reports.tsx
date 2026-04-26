@@ -1312,10 +1312,10 @@ export default function Reports() {
                 [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)
               ) : (
                 <>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-green-600">{health?.onTrack || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">At Risk</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-amber-600">{health?.atRisk || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Off Track</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-red-600">{health?.offTrack || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-blue-600">{health?.completed || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-green-600">{health?.onTrack || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">At Risk</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-amber-600">{health?.atRisk || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Off Track</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-red-600">{health?.offTrack || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-blue-600">{health?.completed || 0}</div></CardContent></Card>
                 </>
               )}
             </div>

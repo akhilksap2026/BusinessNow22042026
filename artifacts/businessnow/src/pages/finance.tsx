@@ -277,19 +277,19 @@ export default function Finance() {
           }
         />
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {(["Total Invoiced", "Total Paid", "Outstanding", "Overdue"] as const).map((label, i) => {
             const vals = [summary?.totalInvoiced, summary?.totalPaid, summary?.totalOutstanding, summary?.totalOverdue];
             const colors = ["", "text-green-600 dark:text-green-400", "", "text-destructive"];
             return (
               <Card key={label}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
                   <CardTitle className="text-sm font-medium">{label}</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  {isLoadingSummary ? <Skeleton className="h-8 w-24" /> : (
-                    <div className={`text-2xl font-bold tracking-tight ${colors[i]}`}>${vals[i]?.toLocaleString()}</div>
+                <CardContent className="px-3 pb-2 pt-0">
+                  {isLoadingSummary ? <Skeleton className="h-5 w-24" /> : (
+                    <div className={`text-lg font-bold tracking-tight ${colors[i]}`}>${vals[i]?.toLocaleString()}</div>
                   )}
                 </CardContent>
               </Card>
