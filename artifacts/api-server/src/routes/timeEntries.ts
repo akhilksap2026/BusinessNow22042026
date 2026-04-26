@@ -349,7 +349,7 @@ router.get("/time-entries", async (req, res): Promise<void> => {
   res.json(ListTimeEntriesResponse.parse(rows.map(mapEntry)));
 });
 
-router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
+router.post("/time-entries", async (req, res): Promise<void> => {
   const parsed = CreateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const data: any = { ...parsed.data, hours: String(parsed.data.hours) };
@@ -433,7 +433,7 @@ router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
   res.status(201).json({ ...mapEntry(row), guardrails: softBlocks.length > 0 ? guardrailResults : undefined });
 });
 
-router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
+router.patch("/time-entries/:id", async (req, res): Promise<void> => {
   const params = UpdateTimeEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateTimeEntryBody.safeParse(req.body);
@@ -579,7 +579,7 @@ router.post("/time-entries/bulk-delete", requirePM, async (req, res): Promise<vo
   res.json({ deleted: ids.length });
 });
 
-router.delete("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
+router.delete("/time-entries/:id", async (req, res): Promise<void> => {
   const params = DeleteTimeEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
