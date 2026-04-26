@@ -19,6 +19,7 @@ import { useCurrentUser } from "@/contexts/current-user";
 import {
   CheckCircle2, AlertTriangle, Circle, ChevronRight, ChevronLeft,
   Sparkles, Pencil, SkipForward, Loader2, Clock, Briefcase, Calendar,
+  MessageSquare, Zap, Trash2, Edit2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +75,8 @@ interface TimeLogAssistantProps {
 const STEPS = {
   MODE: 0, DAY_SELECT: 1, PROJECT: 2, TASK: 3, HOURS: 4,
   OVERRUN: 45, CATEGORY: 5, COMMENT: 6, DAY_SUMMARY: 7, REVIEW: 8,
+  NL: 9,      // Natural language input
+  SUGGEST: 10, // Auto-suggest review
 };
 
 export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
@@ -104,6 +107,17 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
   const [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]);
   const [saving, setSaving] = useState(false);
   const [editingUid, setEditingUid] = useState<string | null>(null);
+
+  // ── Natural Language mode state ───────────────────────────────────────────
+  const [nlMessage, setNlMessage] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlReply, setNlReply] = useState<string | null>(null);
+  const [nlWarnings, setNlWarnings] = useState<string[]>([]);
+  const [nlSuggested, setNlSuggested] = useState<PendingEntry[]>([]);
+
+  // ── Auto-suggest mode state ────────────────────────────────────────────────
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestEntries, setSuggestEntries] = useState<PendingEntry[]>([]);
 
   const currentDay = selectedDays[currentDayIdx] ?? today;
 
@@ -413,6 +427,91 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
     }
   }
 
+  // ── Natural Language handlers ─────────────────────────────────────────────
+
+  async function handleNlSubmit() {
+    if (!nlMessage.trim()) return;
+    setNlLoading(true);
+    setNlReply(null);
+    setNlWarnings([]);
+    setNlSuggested([]);
+    try {
+      const resp = await fetch("/api/ai/timesheet-assist", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ userId, message: nlMessage.trim(), weekStart: weekDays[0] }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await resp.json();
+      setNlReply(data.reply ?? null);
+      setNlWarnings(data.warnings ?? []);
+      const mapped: PendingEntry[] = (data.entries ?? []).map((e: any) => ({
+        uid: uid(),
+        date: e.date ?? today,
+        projectId: e.projectId ?? null,
+        projectName: e.projectName ?? "Unknown",
+        taskId: null,
+        taskName: "",
+        categoryId: null,
+        categoryName: "",
+        hours: Number(e.hours) || 0,
+        comment: e.description ?? "",
+      }));
+      setNlSuggested(mapped);
+    } catch {
+      setNlReply("I couldn't process that request right now. Please try again.");
+    } finally {
+      setNlLoading(false);
+    }
+  }
+
+  function acceptNlSuggestions() {
+    setPendingEntries(prev => [...prev, ...nlSuggested]);
+    setNlSuggested([]);
+    setNlReply(null);
+    setNlWarnings([]);
+    setNlMessage("");
+    setStep(STEPS.REVIEW);
+  }
+
+  // ── Auto-suggest handlers ─────────────────────────────────────────────────
+
+  async function handleAutoSuggest() {
+    setSuggestLoading(true);
+    setSuggestEntries([]);
+    setStep(STEPS.SUGGEST);
+    try {
+      const resp = await fetch(`/api/ai/timesheet-suggestions?userId=${userId}&weekStart=${weekDays[0]}`, {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(15000),
+      });
+      const data = await resp.json();
+      const mapped: PendingEntry[] = (data.suggestions ?? []).map((s: any) => ({
+        uid: uid(),
+        date: s.date,
+        projectId: s.projectId,
+        projectName: s.projectName,
+        taskId: null,
+        taskName: "",
+        categoryId: null,
+        categoryName: "",
+        hours: s.hours,
+        comment: s.description ?? "",
+      }));
+      setSuggestEntries(mapped);
+    } catch {
+      setSuggestEntries([]);
+    } finally {
+      setSuggestLoading(false);
+    }
+  }
+
+  function acceptSuggestions(selected: PendingEntry[]) {
+    setPendingEntries(prev => [...prev, ...selected]);
+    setSuggestEntries([]);
+    setStep(STEPS.REVIEW);
+  }
+
   function dayLabel(date: string) {
     return format(new Date(date + "T00:00:00"), "EEE d MMM");
   }
@@ -498,6 +597,22 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {format(new Date(weekDays[0] + "T00:00:00"), "MMM d")} – {format(new Date(weekDays[4] + "T00:00:00"), "MMM d")}
                   </div>
+                </button>
+                <button
+                  onClick={() => setStep(STEPS.NL)}
+                  className="rounded-xl border-2 border-muted hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 p-5 text-left transition-colors group"
+                >
+                  <MessageSquare className="h-7 w-7 text-violet-500 mb-2" />
+                  <div className="font-semibold text-sm">Describe your day</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">AI parses plain text</div>
+                </button>
+                <button
+                  onClick={handleAutoSuggest}
+                  className="rounded-xl border-2 border-muted hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 p-5 text-left transition-colors group"
+                >
+                  <Zap className="h-7 w-7 text-emerald-500 mb-2" />
+                  <div className="font-semibold text-sm">Auto-suggest</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Fill from allocations</div>
                 </button>
               </div>
             </div>
@@ -894,6 +1009,116 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
               )}
             </div>
           )}
+          {/* STEP 9: NATURAL LANGUAGE */}
+          {step === STEPS.NL && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium">Describe your work in plain language</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Example: "I spent 3 hours on Acme CRM today and 2 hours on internal training"</p>
+              </div>
+              <textarea
+                className="w-full min-h-[100px] rounded-lg border border-muted bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                placeholder="What did you work on? Include hours and project names..."
+                value={nlMessage}
+                onChange={e => setNlMessage(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && e.metaKey) handleNlSubmit(); }}
+              />
+              <Button className="w-full" onClick={handleNlSubmit} disabled={nlLoading || !nlMessage.trim()}>
+                {nlLoading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Parsing…</> : <><Sparkles className="h-4 w-4 mr-2" />Parse with AI</>}
+              </Button>
+
+              {nlReply && (
+                <div className="rounded-lg border border-violet-200 bg-violet-50 dark:bg-violet-950/20 p-3 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-violet-600">
+                    <Sparkles className="h-3.5 w-3.5" /> AI Response
+                  </div>
+                  <p className="text-sm text-foreground">{nlReply}</p>
+                  {nlWarnings.length > 0 && (
+                    <div className="space-y-1 mt-1">
+                      {nlWarnings.map((w, i) => (
+                        <div key={i} className="flex items-start gap-1.5 text-xs text-amber-600">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /> {w}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {nlSuggested.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Suggested entries</p>
+                  {nlSuggested.map(e => (
+                    <div key={e.uid} className="rounded-lg border p-3 flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium truncate">{e.projectName}</span>
+                          <span className="text-sm font-bold text-indigo-600 shrink-0">{e.hours}h</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{e.date}</div>
+                        {e.comment && <div className="text-xs text-muted-foreground italic mt-0.5">&ldquo;{e.comment}&rdquo;</div>}
+                      </div>
+                      <button onClick={() => setNlSuggested(prev => prev.filter(s => s.uid !== e.uid))} className="text-red-400 hover:text-red-600 p-1 rounded">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <Button className="w-full" onClick={acceptNlSuggestions} disabled={nlSuggested.length === 0}>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Accept {nlSuggested.length} {nlSuggested.length === 1 ? "entry" : "entries"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 10: AUTO-SUGGEST */}
+          {step === STEPS.SUGGEST && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium">Auto-suggested entries</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Based on your project allocations and missing hours this week.</p>
+              </div>
+              {suggestLoading && (
+                <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground text-sm">
+                  <Loader2 className="h-5 w-5 animate-spin" /> Generating suggestions…
+                </div>
+              )}
+              {!suggestLoading && suggestEntries.length === 0 && (
+                <p className="text-sm text-muted-foreground py-6 text-center">No suggestions — your timesheet looks complete for this week.</p>
+              )}
+              {!suggestLoading && suggestEntries.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    {[...new Set(suggestEntries.map(e => e.date))].sort().map(date => (
+                      <div key={date} className="space-y-1.5">
+                        <p className="text-xs font-semibold text-muted-foreground">{dayLabel(date)}</p>
+                        {suggestEntries.filter(e => e.date === date).map(e => (
+                          <div key={e.uid} className="rounded-lg border p-3 flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium truncate">{e.projectName}</span>
+                                <span className="text-sm font-bold text-emerald-600 shrink-0">{e.hours}h</span>
+                              </div>
+                              {e.comment && <div className="text-xs text-muted-foreground italic">&ldquo;{e.comment}&rdquo;</div>}
+                            </div>
+                            <button onClick={() => setSuggestEntries(prev => prev.filter(s => s.uid !== e.uid))} className="text-red-400 hover:text-red-600 p-1 rounded">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => acceptSuggestions(suggestEntries)}>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Accept all {suggestEntries.length} suggestions
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Back button */}
@@ -910,6 +1135,8 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
                   [STEPS.CATEGORY]: STEPS.HOURS,
                   [STEPS.COMMENT]: showCategoryStep ? STEPS.CATEGORY : STEPS.HOURS,
                   [STEPS.DAY_SUMMARY]: STEPS.COMMENT,
+                  [STEPS.NL]: STEPS.MODE,
+                  [STEPS.SUGGEST]: STEPS.MODE,
                 };
                 setStep(backMap[step] ?? STEPS.MODE);
               }}

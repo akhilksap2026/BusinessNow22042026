@@ -1,0 +1,73 @@
+Now I have a thorough understanding of the BusinessNow codebase — the allocation model (hoursPerWeek, totalHours, hoursPerDay), timesheet approval workflows, governance settings, billable/non-billable tracking, and existing gaps. Here is the fully improved prompt:
+
+Improved Prompt: Timesheet Module — AI Assistant & Guardrails
+
+🧩 Context
+This is the Timesheet Module of BusinessNow PSA — the most critical module used by every employee across all projects. It must be accurate, guided, and enforceable. The AI assistant embedded in this module must serve as both a smart assistant and a compliance enforcer.
+
+📋 Part 1: Timesheet Entry Display Rules
+When an employee opens their timesheet, the system must:
+
+Show only their assigned work — display each row as: Project Name → Phase → Task → Subtask (respecting the full task hierarchy), pre-filtered to only the projects and tasks where the employee has an active allocation for that week.
+Pre-populate from allocations — auto-fill the timesheet grid with the employee's allocated projects/tasks using their hoursPerWeek from the allocations table, so they only need to confirm or adjust, not start from scratch.
+Show allocation context inline — next to each project row, display: Allocated Hours/Week, Total Allocated Hours (project duration), Hours Logged So Far, and Remaining Hours. This gives the employee full visibility without leaving the timesheet.
+Enforce timecode/activity selection — each time entry must require the employee to select the correct Timecode Category → Activity → Billable/Non-Billable flag, aligned to the firm's taxonomy.
+
+
+🚨 Part 2: Guardrails & Validation Rules
+The following rules must be enforced at the point of entry, not just at submission:
+Rule 1 — Daily Hour Cap
+Block or warn if a single day's total logged hours (across all projects) exceeds the employee's configured daily capacity (default: 8 hours). Alert: "You have logged X hours on [date], which exceeds your daily capacity of Y hours. Please review before saving."
+Rule 2 — Weekly Allocation Overrun
+If the hours logged for a project in a given week exceed the employee's hoursPerWeek allocation for that project, raise a soft warning: "You have logged X hours on [Project Name] this week, which exceeds your weekly allocation of Y hours. Billed hours are more than planned — please recheck before submitting."
+Rule 3 — Project Budget Overrun (Cumulative)
+If cumulative hours logged by the employee on a project are approaching or exceed their totalHours allocation (e.g., ≥90% threshold = warning, ≥100% = hard block with override requiring PM approval), alert: "Your total logged hours on [Project Name] have reached X of your Y allocated hours. Contact your Project Manager before logging additional hours."
+Rule 4 — Duplicate Entry Detection
+If the employee attempts to log time for the same Project + Task + Date combination more than once, warn: "A time entry already exists for [Task] on [Date]. Do you want to add to it or replace it?"
+Rule 5 — Weekend / Non-Working Day Guard
+Block time entries on weekends or configured public holidays (using the employee's assigned Holiday Calendar), unless explicitly enabled by admin in time_settings. Alert: "[Date] is a non-working day. Are you sure you want to log time here?"
+Rule 6 — Unsubmitted Timesheet Reminder
+If the current week's timesheet is in Draft status past the configured timesheetDueDay and timesheetDueTime, automatically surface a reminder banner: "Your timesheet for the week of [date] is due. Please review and submit by [deadline]."
+Rule 7 — Minimum Hours Submission Gate
+Enforce the minSubmitHours setting — prevent submission if total hours are below the configured minimum. Alert: "You have only logged X hours this week. The minimum required for submission is Y hours."
+Rule 8 — Maximum Hours Submission Gate
+Enforce the maxSubmitHours setting — prevent submission if total hours exceed the configured maximum. Alert: "Your total logged hours of X exceed the maximum allowed of Y hours per week. Please review."
+Rule 9 — Time Entry on Inactive / Ended Project
+Block time entries on projects where the employee's allocation endDate has passed. Alert: "Your allocation on [Project Name] ended on [date]. You cannot log time to this project. Contact your PM to extend your allocation if needed."
+Rule 10 — Billable Hours Ratio Anomaly
+If an employee's billable percentage for the week falls significantly below their historical average (e.g., >20% drop) or their project's expected billable ratio, surface a soft alert for the approver: "[Employee]'s billable hours this week are X%, which is significantly below their average of Y%. Review before approving."
+Rule 11 — Self-Approval Prevention
+Enforce the existing rule: an employee cannot approve their own timesheet, even if they hold an approver role on the project.
+Rule 12 — Notes Required on Rejection
+When an approver rejects a timesheet, a rejection note must be mandatory, not optional. The note is surfaced to the employee in the notification and inline in the timesheet Draft view.
+
+🤖 Part 3: AI Assistant for Timesheet Filling
+The AI assistant must act as a smart co-pilot embedded within the timesheet grid. It should:
+Auto-Suggest Time Entries
+Based on the employee's active allocations, recent timesheet patterns, and open tasks assigned to them, the AI proactively suggests: "Based on your allocations this week, here is a suggested timesheet. Review and confirm, or edit as needed." The suggestion pre-fills Project, Task, Hours (from hoursPerWeek / workingDaysInWeek), and Billable flag.
+Natural Language Entry
+Allow the employee to type in plain language, e.g., "I worked 3 hours on Oracle WMS data mapping today" — and the AI maps this to the correct Project → Task → Timecode, prompts for confirmation, and logs the entry.
+Guardrail Enforcement in Conversation
+The AI must apply all guardrails in Part 2 conversationally. If a user types "log 10 hours on HarbourLink EDI today", the AI must respond: "That would exceed your daily capacity of 8 hours and your weekly allocation of 32 hours for this project. Would you like me to split this across two days instead, or adjust the hours?"
+Allocation Awareness
+Before logging any entry, the AI must check the employee's hoursPerWeek, totalHours, and cumulative hours logged and surface this context: "You have 12 hours remaining on your HarbourLink allocation. This entry would use 4 of them."
+Missing Timesheet Detection
+At the start of each working day, the AI proactively checks for unlogged days in the current week and prompts: "You haven't logged time for [Monday, Tuesday]. Would you like me to suggest entries based on your schedule?"
+Explanation of Alerts
+When a guardrail triggers, the AI must explain clearly why: "I'm flagging this because your planned allocation for [Project] is 24 hours/week, and you've already logged 22 hours this week. Adding 4 more would put you 2 hours over plan. Should I notify your PM?"
+Escalation to PM
+If an employee's hours are consistently over or under allocation across multiple weeks, the AI should generate a summary alert for the Project Manager or approver: "[Employee] has exceeded their weekly allocation on [Project] for 3 consecutive weeks. Review may be needed."
+Audit Trail Awareness
+The AI must never silently overwrite an existing approved or locked entry. If a user asks to edit a locked entry, the AI responds: "This entry is locked after approval. Please contact your approver or an admin to unlock it."
+
+✅ Part 4: Submission & Approval Flow
+
+Employee submits → system validates all guardrails → if clean, status moves to Submitted and the resolved approver is notified.
+Approver sees a summary: total hours, billable %, allocation compliance status (green / amber / red per project), and any flagged entries.
+Approver can approve, reject (with mandatory note), or request clarification via the in-timesheet message thread.
+On rejection, the timesheet returns to Draft with the rejection note visible inline, and the employee is notified.
+Bulk approval is supported for PMs managing large teams, with automated flagging of any timesheets with unresolved guardrail warnings.
+
+
+📊 Part 5: Reporting Hooks
+Every guardrail event (warning triggered, override requested, anomaly flagged) must be logged for downstream reporting. The reports module should expose: Allocation vs. Actuals by resource and project, Billable utilisation %, Over/under allocation trends, and Timesheet submission compliance rates (submitted on time vs. late).

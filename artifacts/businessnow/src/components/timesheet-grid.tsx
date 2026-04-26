@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -32,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star, TrendingUp, AlertTriangle, CheckCircle2, Zap, Bell } from "lucide-react";
 import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -102,6 +102,15 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const [rejectTimesheetId, setRejectTimesheetId] = useState<number | null>(null);
   const [rejectNote, setRejectNote] = useState("");
 
+  // Guardrail confirmation dialog (for 409 soft-block responses)
+  const [guardrailConfirm, setGuardrailConfirm] = useState<{
+    row: TimesheetRow;
+    dayStr: string;
+    newHours: number;
+    warning: string;
+    code: string;
+  } | null>(null);
+
   const weekStartsOnChanged = wsd;
   const currentWeekEnd = endOfWeek(currentWeekStart, { weekStartsOn: wsd });
   const weekStartStr = format(currentWeekStart, "yyyy-MM-dd");
@@ -141,6 +150,22 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const { data: timeSettings } = useQuery({
     queryKey: ["time-settings"],
     queryFn: async () => { const r = await fetch("/api/time-settings", { headers: authHeaders() }); return r.json(); },
+  });
+
+  // Guardrail context: allocation vs actuals per project for this week
+  const { data: guardrailCtx } = useQuery({
+    queryKey: ["guardrail-context", userId, weekStartStr],
+    queryFn: async () => {
+      const r = await fetch(`/api/time-entries/guardrail-context?userId=${userId}&weekStart=${weekStartStr}`, { headers: authHeaders() });
+      return r.json() as Promise<{
+        allocations: { projectId: number; allocatedPerWeek: number; allocatedTotal: number; weekLoggedHours: number; totalLoggedHours: number; remainingTotal: number | null; weekOverrun: boolean; budgetPct: number | null; allocationEndDate: string; isExpired: boolean }[];
+        dailyCapacity: number;
+        weeklyCapacity: number;
+        dailyTotals: Record<string, number>;
+      }>;
+    },
+    enabled: !!userId,
+    staleTime: 30000,
   });
 
   // Time-off and holiday indicators
@@ -291,7 +316,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
 
   // ─── Cell editing ─────────────────────────────────────────────────────────────
 
-  async function handleCellSave(row: TimesheetRow, dayStr: string, rawValue: string) {
+  async function handleCellSave(row: TimesheetRow, dayStr: string, rawValue: string, force = false) {
     const parsed = parseFloat(rawValue) || 0;
     const newHours = Math.min(24, Math.max(0, parsed));
     const currentHours = row.days[dayStr] || 0;
@@ -313,16 +338,54 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
           description: row.description ?? "",
           billable: row.isNonProject ? false : (row.billable ?? true),
           categoryId: row.categoryId ?? undefined,
+          force,
         };
         if (row.projectId) payload.projectId = row.projectId;
         if (row.taskId) payload.taskId = row.taskId;
         if (row.activityName) payload.activityName = row.activityName;
-        await createTimeEntry.mutateAsync({ data: payload });
+
+        // Use raw fetch so we can handle 409 guardrail warnings
+        const resp = await fetch("/api/time-entries", {
+          method: "POST",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify(payload),
+        });
+
+        if (resp.status === 409) {
+          const body = await resp.json();
+          setGuardrailConfirm({
+            row,
+            dayStr,
+            newHours,
+            warning: body.warning ?? "Guardrail check triggered. Do you want to proceed?",
+            code: body.guardrailCode ?? "UNKNOWN",
+          });
+          return;
+        }
+
+        if (resp.status === 422) {
+          const body = await resp.json();
+          toast({ title: "Entry blocked", description: body.error, variant: "destructive" });
+          return;
+        }
+
+        if (!resp.ok) {
+          toast({ title: "Failed to save hours", variant: "destructive" });
+          return;
+        }
       }
       invalidate();
+      queryClient.invalidateQueries({ queryKey: ["guardrail-context", userId, weekStartStr] });
     } catch {
       toast({ title: "Failed to update hours", variant: "destructive" });
     }
+  }
+
+  async function handleGuardrailForce() {
+    if (!guardrailConfirm) return;
+    const { row, dayStr, newHours } = guardrailConfirm;
+    setGuardrailConfirm(null);
+    await handleCellSave(row, dayStr, String(newHours), true);
   }
 
   function startEdit(row: TimesheetRow, dayStr: string) {
@@ -424,7 +487,26 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   // ─── Submit ──────────────────────────────────────────────────────────────────
 
   const minHours = timeSettings?.minSubmitHours ?? 0;
+  const maxHours = timeSettings?.maxSubmitHours ?? null;
   const hoursShort = minHours > 0 ? Math.max(0, minHours - grandTotal) : 0;
+
+  // Rule 6 — Unsubmitted reminder banner: check if today is past the due day for the current week
+  const isSubmissionLate = useMemo(() => {
+    if (!timeSettings) return false;
+    if (timesheet?.status === "Submitted" || timesheet?.status === "Approved") return false;
+    const dueDay = timeSettings.timesheetDueDay ?? "Monday";
+    const dueDayMap: Record<string, number> = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+    const dueDow = dueDayMap[dueDay] ?? 1;
+    const todayDow = new Date().getDay();
+    const isCurrentWeek = weekStartStr === format(startOfWeek(new Date(), { weekStartsOn: wsd }), "yyyy-MM-dd");
+    return isCurrentWeek && todayDow > dueDow && grandTotal > 0;
+  }, [timeSettings, timesheet, weekStartStr, grandTotal, wsd]);
+
+  // Helper: get allocation context for a project
+  const getAllocContext = useCallback((projectId: number | null | undefined) => {
+    if (!projectId || !guardrailCtx?.allocations) return null;
+    return guardrailCtx.allocations.find((a) => a.projectId === projectId) ?? null;
+  }, [guardrailCtx]);
 
   async function onSubmitTimesheet() {
     if (!timesheet?.id) return;
@@ -535,6 +617,22 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
         </div>
       </div>
 
+      {/* Rule 6 — Submission Reminder Banner */}
+      {isSubmissionLate && (
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 text-sm">
+          <Bell className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <span className="font-medium text-amber-800 dark:text-amber-300">Timesheet due: </span>
+            <span className="text-amber-700 dark:text-amber-400">
+              Your timesheet for this week is past the {timeSettings?.timesheetDueDay} deadline and hasn't been submitted yet.
+            </span>
+          </div>
+          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white shrink-0" onClick={onSubmitTimesheet} disabled={submitTimesheet.isPending || (minHours > 0 && hoursShort > 0)}>
+            Submit now
+          </Button>
+        </div>
+      )}
+
       {/* Grid */}
       <div className="border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -613,6 +711,40 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-50 text-violet-700 border border-violet-200">{categoryName}</span>
                               )}
                             </div>
+                            {/* Allocation context bar */}
+                            {!row.isNonProject && (() => {
+                              const ctx = getAllocContext(row.projectId);
+                              if (!ctx || (!ctx.allocatedPerWeek && !ctx.allocatedTotal)) return null;
+                              const weekPct = ctx.allocatedPerWeek > 0 ? Math.min(100, Math.round((ctx.weekLoggedHours / ctx.allocatedPerWeek) * 100)) : 0;
+                              const overrun = ctx.weekOverrun;
+                              const expired = ctx.isExpired;
+                              return (
+                                <div className="mt-1.5 space-y-0.5">
+                                  {ctx.allocatedPerWeek > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                        <div className={cn("h-full rounded-full transition-all", overrun ? "bg-amber-500" : "bg-indigo-400")} style={{ width: `${weekPct}%` }} />
+                                      </div>
+                                      <span className={cn("text-[10px] font-medium whitespace-nowrap", overrun ? "text-amber-600" : "text-muted-foreground")}>
+                                        {ctx.weekLoggedHours}h / {ctx.allocatedPerWeek}h wk
+                                        {overrun && <span className="ml-0.5 text-amber-600">⚠</span>}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {ctx.allocatedTotal > 0 && ctx.budgetPct !== null && (
+                                    <div className="text-[10px] text-muted-foreground">
+                                      {ctx.totalLoggedHours}h of {ctx.allocatedTotal}h total
+                                      {ctx.budgetPct >= 90 && <span className="ml-1 text-orange-500 font-medium">({ctx.budgetPct}% used)</span>}
+                                    </div>
+                                  )}
+                                  {expired && (
+                                    <div className="text-[10px] text-red-500 font-medium flex items-center gap-0.5">
+                                      <AlertTriangle className="h-2.5 w-2.5" /> Allocation expired {ctx.allocationEndDate}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                           {/* Per-row clock icon */}
                           {!isLocked && (
@@ -957,17 +1089,52 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
         </DialogContent>
       </Dialog>
 
-      {/* Reject Dialog */}
+      {/* Reject Dialog — Rule 12: rejection note is mandatory */}
       <Dialog open={!!rejectTimesheetId} onOpenChange={(o) => !o && setRejectTimesheetId(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reject Timesheet</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Reject Timesheet</DialogTitle>
+            <DialogDescription>A rejection reason is required so the employee knows what to correct.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-2">
-            <Label>Rejection Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
-            <Input value={rejectNote} onChange={e => setRejectNote(e.target.value)} placeholder="Please explain why this timesheet was rejected..." />
+            <Label>Rejection Reason <span className="text-red-500">*</span></Label>
+            <Input value={rejectNote} onChange={e => setRejectNote(e.target.value)} placeholder="Please explain why this timesheet is being returned..." />
+            {rejectNote.trim().length === 0 && <p className="text-xs text-muted-foreground">Required — employees will see this message and must correct their timesheet.</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectTimesheetId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={onReject} disabled={rejectTimesheetMutation.isPending}>Reject Timesheet</Button>
+            <Button
+              variant="destructive"
+              onClick={onReject}
+              disabled={rejectTimesheetMutation.isPending || rejectNote.trim().length === 0}
+            >
+              Reject Timesheet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Guardrail Confirmation Dialog — soft-block overrides */}
+      <Dialog open={!!guardrailConfirm} onOpenChange={(o) => !o && setGuardrailConfirm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Timesheet Guardrail
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-foreground">{guardrailConfirm?.warning}</p>
+            <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 p-3 text-xs text-amber-700 dark:text-amber-400">
+              Code: <span className="font-mono font-medium">{guardrailConfirm?.code}</span>
+              <span className="ml-2 text-muted-foreground">· Override will be noted in the audit log.</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGuardrailConfirm(null)}>Cancel</Button>
+            <Button variant="default" onClick={handleGuardrailForce} className="bg-amber-600 hover:bg-amber-700 text-white">
+              Save Anyway
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

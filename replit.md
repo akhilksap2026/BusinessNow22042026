@@ -36,6 +36,29 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **Dialog form section dividers** (US-10): Resource Request dialog (`add_member` flow) now has "Role & Skills" / "Schedule" / "Priority" horizontal rule + h3 section separators.
 - **Bulk row actions** (US-8): Projects desktop table has a leading checkbox column (select-all header + per-row). When ≥1 row selected, a sticky floating action bar appears at the bottom: selected count · Export CSV · Archive · ✕ clear. CSV export downloads `projects.csv` with all visible columns.
 
+### Timesheet Module Enhancement (April 26 2026)
+- **12 Guardrail Rules implemented:**
+  - **Rule 1 (Daily Cap):** POST /api/time-entries soft-blocks if daily logged hours would exceed `weeklyCapacity/workingDays` — returns 409 with `requiresConfirmation:true`; frontend shows a confirmation dialog with "Save Anyway" override.
+  - **Rule 2 (Weekly Allocation Overrun):** Checks user's allocation `hoursPerWeek` for the week; soft-block if exceeded.
+  - **Rule 3 (Budget Overrun):** Checks cumulative `totalHours` allocation; hard-block (422) at ≥100% used, soft-block at ≥90%.
+  - **Rule 4 (Duplicate Detection):** Soft-block if same userId+projectId+taskId+date already has an entry.
+  - **Rule 5 (Weekend/Holiday Guard):** Soft-block if date is Sat/Sun or in user's holiday calendar.
+  - **Rule 6 (Reminder Banner):** Frontend banner appears on current week if past `timesheetDueDay` and timesheet not yet submitted; includes "Submit now" button.
+  - **Rule 7 (Min Hours Gate):** Already existed; now shows user-friendly message with exact hours short.
+  - **Rule 8 (Max Hours Gate):** Submit route now enforces `maxSubmitHours` from time_settings — returns 400 if exceeded.
+  - **Rule 9 (Inactive Project):** Hard-block (422) if user's allocation `endDate` < entry date.
+  - **Rule 10 (Billable Anomaly):** New endpoint POST /api/ai/billable-anomaly-check compares user billable% vs org average; returns anomaly flag + message.
+  - **Rule 11 (Self-Approval):** Already existed in approve route.
+  - **Rule 12 (Mandatory Rejection Note):** Reject route returns 400 if `rejectionNote` is empty; frontend disables Reject button until note entered.
+- **Guardrail context endpoint:** GET /api/time-entries/guardrail-context returns allocation vs actuals per project for the week, daily capacity, daily totals. Used by grid to display allocation progress bars.
+- **Allocation context in grid:** Each project row now shows a mini progress bar (week logged vs allocated), budget% used, and "Allocation expired" warning for expired allocations.
+- **Enhanced AI assistant (3 new modes):**
+  - "Describe your day" (NL): textarea → POST /api/ai/timesheet-assist → Claude parses natural language, returns structured entries + warnings.
+  - "Auto-suggest": GET /api/ai/timesheet-suggestions → fills missing hours from allocations with AI-generated descriptions; review & accept.
+  - Original "Today" / "This week" wizard unchanged.
+- **New AI endpoints:** POST /api/ai/timesheet-assist, GET /api/ai/timesheet-suggestions, POST /api/ai/billable-anomaly-check.
+- **Files changed:** `artifacts/api-server/src/routes/timeEntries.ts`, `timesheets.ts`, `aiTimeAssistant.ts`; `artifacts/businessnow/src/components/timesheet-grid.tsx`, `time-log-assistant.tsx`.
+
 ### E2E pass (April 26 2026)
 - Verified all 5 workflows healthy (API Server, businessnow web, mockup-sandbox; the duplicate `artifacts/api-server: API Server` workflow fails on EADDRINUSE port 8080 — unavoidable: same server binds the port from the canonical workflow).
 - DB schema in sync: 65 tables present including `project_groups`, `task_status_definitions`; columns `accounts.is_internal` and `projects.project_group_id` confirmed.

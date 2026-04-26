@@ -150,11 +150,17 @@ router.post("/timesheets/:id/submit", async (req, res): Promise<void> => {
     const stErr = checkTimesheetStatusChangeable(existing, role, settings);
     if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
   }
-  // Check minimum hours requirement
+  // Check minimum and maximum hours requirements
   const settingsRows = await db.select().from(timeSettingsTable).limit(1);
   const minHours = settingsRows[0]?.minSubmitHours ?? 0;
-  if (minHours > 0 && Number(existing.totalHours) < minHours) {
-    res.status(400).json({ error: `Minimum ${minHours} hours required before submission. Current: ${Number(existing.totalHours)}h` });
+  const maxHours = settingsRows[0]?.maxSubmitHours ?? null;
+  const currentHours = Number(existing.totalHours);
+  if (minHours > 0 && currentHours < minHours) {
+    res.status(400).json({ error: `You have only logged ${currentHours}h this week. The minimum required for submission is ${minHours} hours.` });
+    return;
+  }
+  if (maxHours != null && currentHours > maxHours) {
+    res.status(400).json({ error: `Your total logged hours of ${currentHours}h exceed the maximum allowed of ${maxHours} hours per week. Please review.` });
     return;
   }
   const submittedByUserId = (req.body as any)?.submittedByUserId ?? existing.userId;
@@ -246,6 +252,12 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Submitted") { res.status(400).json({ error: "Only Submitted timesheets can be rejected" }); return; }
+  // Rule 12 — Rejection note is mandatory
+  const rejectionNote = (parsed.data.rejectionNote ?? "").trim();
+  if (!rejectionNote) {
+    res.status(400).json({ error: "A rejection note is required. Please explain why this timesheet is being returned so the employee can correct it." });
+    return;
+  }
   {
     const role = String(req.headers["x-user-role"] ?? "");
     const settings = await getGovernanceSettings();

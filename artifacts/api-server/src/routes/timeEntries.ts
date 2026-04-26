@@ -1,8 +1,15 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { db, timeEntriesTable, projectsTable, usersTable, tasksTable, activityDefaultsTable, timeSettingsTable, timeCategoriesTable } from "@workspace/db";
+import {
+  db, timeEntriesTable, projectsTable, usersTable, tasksTable,
+  activityDefaultsTable, timeSettingsTable, timeCategoriesTable,
+  allocationsTable, holidayDatesTable,
+} from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
-import { getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable, checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry } from "../lib/governance";
+import {
+  getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable,
+  checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry,
+} from "../lib/governance";
 import {
   ListTimeEntriesResponse,
   ListTimeEntriesQueryParams,
@@ -15,6 +22,290 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+// ─── Guardrail Engine ─────────────────────────────────────────────────────────
+
+type GuardrailItem =
+  | { type: "hard_block"; code: string; message: string }
+  | { type: "soft_block"; code: string; message: string };
+
+function getWeekStart(date: string): string {
+  const d = new Date(date + "T00:00:00");
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function getWeekEnd(weekStart: string): string {
+  const d = new Date(weekStart + "T00:00:00");
+  d.setDate(d.getDate() + 6);
+  return d.toISOString().slice(0, 10);
+}
+
+async function runGuardrails(data: {
+  userId: number;
+  date: string;
+  hours: number;
+  projectId?: number | null;
+  taskId?: number | null;
+}): Promise<GuardrailItem[]> {
+  const results: GuardrailItem[] = [];
+
+  // Rule 9 — Time Entry on Inactive / Ended Project allocation
+  if (data.projectId) {
+    const [alloc] = await db
+      .select()
+      .from(allocationsTable)
+      .where(
+        and(
+          eq(allocationsTable.projectId, data.projectId),
+          eq(allocationsTable.userId, data.userId),
+        ),
+      )
+      .limit(1);
+    if (alloc && alloc.endDate < data.date) {
+      results.push({
+        type: "hard_block",
+        code: "INACTIVE_PROJECT",
+        message: `Your allocation on this project ended on ${alloc.endDate}. You cannot log time to this project. Contact your PM to extend your allocation if needed.`,
+      });
+    }
+  }
+
+  // Rule 5 — Weekend / Non-Working Day Guard
+  const dateObj = new Date(data.date + "T00:00:00");
+  const dow = dateObj.getDay(); // 0=Sun, 6=Sat
+  if (dow === 0 || dow === 6) {
+    results.push({
+      type: "soft_block",
+      code: "NON_WORKING_DAY",
+      message: `${data.date} is a weekend. Are you sure you want to log time here?`,
+    });
+  } else {
+    // Check user's holiday calendar
+    const [user] = await db
+      .select({ holidayCalendarId: usersTable.holidayCalendarId } as any)
+      .from(usersTable)
+      .where(eq(usersTable.id, data.userId))
+      .limit(1);
+    const calId = (user as any)?.holidayCalendarId;
+    if (calId) {
+      const [holiday] = await db
+        .select({ id: holidayDatesTable.id })
+        .from(holidayDatesTable)
+        .where(
+          and(
+            eq(holidayDatesTable.calendarId, calId),
+            eq(holidayDatesTable.date, data.date),
+          ),
+        )
+        .limit(1);
+      if (holiday) {
+        results.push({
+          type: "soft_block",
+          code: "PUBLIC_HOLIDAY",
+          message: `${data.date} is a public holiday in your calendar. Are you sure you want to log time here?`,
+        });
+      }
+    }
+  }
+
+  // Rule 1 — Daily Hour Cap
+  const [settings] = await db.select().from(timeSettingsTable).limit(1);
+  const weeklyCapacity = settings?.weeklyCapacityHours ?? 40;
+  const workingDays = (settings?.workingDays ?? "Mon,Tue,Wed,Thu,Fri").split(",").filter(Boolean).length || 5;
+  const dailyCapacity = Math.round(weeklyCapacity / workingDays);
+
+  const dayEntries = await db
+    .select({ hours: timeEntriesTable.hours })
+    .from(timeEntriesTable)
+    .where(
+      and(
+        eq(timeEntriesTable.userId, data.userId),
+        eq(timeEntriesTable.date, data.date),
+      ),
+    );
+  const existingDayHours = dayEntries.reduce((s, e) => s + Number(e.hours), 0);
+  const newDayTotal = existingDayHours + data.hours;
+
+  if (newDayTotal > dailyCapacity) {
+    results.push({
+      type: "soft_block",
+      code: "DAILY_CAP",
+      message: `You will log ${newDayTotal.toFixed(1)} hours on ${data.date}, which exceeds your daily capacity of ${dailyCapacity} hours. Please review before saving.`,
+    });
+  }
+
+  // Rule 4 — Duplicate Entry Detection
+  if (data.projectId && data.taskId) {
+    const [dup] = await db
+      .select({ id: timeEntriesTable.id })
+      .from(timeEntriesTable)
+      .where(
+        and(
+          eq(timeEntriesTable.userId, data.userId),
+          eq(timeEntriesTable.projectId, data.projectId),
+          eq(timeEntriesTable.taskId, data.taskId),
+          eq(timeEntriesTable.date, data.date),
+        ),
+      )
+      .limit(1);
+    if (dup) {
+      results.push({
+        type: "soft_block",
+        code: "DUPLICATE_ENTRY",
+        message: `A time entry already exists for this task on ${data.date}. Adding this will combine with the existing entry.`,
+      });
+    }
+  }
+
+  // Rules 2 & 3 — Allocation overrun checks
+  if (data.projectId) {
+    const [alloc] = await db
+      .select()
+      .from(allocationsTable)
+      .where(
+        and(
+          eq(allocationsTable.projectId, data.projectId),
+          eq(allocationsTable.userId, data.userId),
+        ),
+      )
+      .limit(1);
+
+    if (alloc) {
+      // Rule 2 — Weekly Allocation Overrun
+      const allocHPW = Number(alloc.hoursPerWeek);
+      if (allocHPW > 0) {
+        const wStart = getWeekStart(data.date);
+        const wEnd = getWeekEnd(wStart);
+        const weekEntries = await db
+          .select({ hours: timeEntriesTable.hours })
+          .from(timeEntriesTable)
+          .where(
+            and(
+              eq(timeEntriesTable.userId, data.userId),
+              eq(timeEntriesTable.projectId, data.projectId),
+              gte(timeEntriesTable.date, wStart),
+              lte(timeEntriesTable.date, wEnd),
+            ),
+          );
+        const weekHours = weekEntries.reduce((s, e) => s + Number(e.hours), 0);
+        if (weekHours + data.hours > allocHPW) {
+          results.push({
+            type: "soft_block",
+            code: "WEEKLY_OVERRUN",
+            message: `You will log ${(weekHours + data.hours).toFixed(1)} hours on this project this week, which exceeds your weekly allocation of ${allocHPW}h. Billed hours are more than planned — please recheck before submitting.`,
+          });
+        }
+      }
+
+      // Rule 3 — Cumulative Budget Overrun
+      const allocTotal = Number(alloc.totalHours);
+      if (allocTotal > 0) {
+        const cumEntries = await db
+          .select({ hours: timeEntriesTable.hours })
+          .from(timeEntriesTable)
+          .where(
+            and(
+              eq(timeEntriesTable.userId, data.userId),
+              eq(timeEntriesTable.projectId, data.projectId),
+            ),
+          );
+        const cumHours = cumEntries.reduce((s, e) => s + Number(e.hours), 0);
+        const newTotal = cumHours + data.hours;
+        const pct = (newTotal / allocTotal) * 100;
+        if (pct >= 100) {
+          results.push({
+            type: "hard_block",
+            code: "BUDGET_OVERRUN",
+            message: `Your total logged hours on this project have reached ${newTotal.toFixed(1)} of your ${allocTotal}h allocated hours. Contact your Project Manager before logging additional hours.`,
+          });
+        } else if (pct >= 90) {
+          results.push({
+            type: "soft_block",
+            code: "BUDGET_WARNING",
+            message: `Your total logged hours on this project will reach ${newTotal.toFixed(1)} of your ${allocTotal}h allocated (${pct.toFixed(0)}%). Contact your PM if you need more time.`,
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+// ─── Guardrail context endpoint ───────────────────────────────────────────────
+// GET /api/time-entries/guardrail-context?userId=X&weekStart=Y
+// Returns allocation vs actuals context for the timesheet grid.
+router.get("/time-entries/guardrail-context", async (req, res): Promise<void> => {
+  const userId = req.query.userId ? Number(req.query.userId) : null;
+  const weekStart = req.query.weekStart ? String(req.query.weekStart) : null;
+  if (!userId || !weekStart) {
+    res.status(400).json({ error: "userId and weekStart required" });
+    return;
+  }
+  const weekEnd = getWeekEnd(weekStart);
+
+  const allocs = await db
+    .select()
+    .from(allocationsTable)
+    .where(eq(allocationsTable.userId, userId));
+
+  const weekEntries = await db
+    .select()
+    .from(timeEntriesTable)
+    .where(
+      and(
+        eq(timeEntriesTable.userId, userId),
+        gte(timeEntriesTable.date, weekStart),
+        lte(timeEntriesTable.date, weekEnd),
+      ),
+    );
+
+  const allEntries = await db
+    .select({ projectId: timeEntriesTable.projectId, hours: timeEntriesTable.hours })
+    .from(timeEntriesTable)
+    .where(eq(timeEntriesTable.userId, userId));
+
+  const context = allocs.map((a) => {
+    const weekLoggedHours = weekEntries
+      .filter((e) => e.projectId === a.projectId)
+      .reduce((s, e) => s + Number(e.hours), 0);
+    const totalLoggedHours = allEntries
+      .filter((e) => e.projectId === a.projectId)
+      .reduce((s, e) => s + Number(e.hours), 0);
+    const allocTotal = Number(a.totalHours);
+    const allocPerWeek = Number(a.hoursPerWeek);
+    return {
+      projectId: a.projectId,
+      allocatedPerWeek: allocPerWeek,
+      allocatedTotal: allocTotal,
+      weekLoggedHours,
+      totalLoggedHours,
+      remainingTotal: allocTotal > 0 ? Math.max(0, allocTotal - totalLoggedHours) : null,
+      weekOverrun: allocPerWeek > 0 && weekLoggedHours > allocPerWeek,
+      budgetPct: allocTotal > 0 ? Math.round((totalLoggedHours / allocTotal) * 100) : null,
+      allocationEndDate: a.endDate,
+      isExpired: a.endDate < weekStart,
+    };
+  });
+
+  // Also compute daily totals for the week for Rule 1 (daily cap) display
+  const [settings] = await db.select().from(timeSettingsTable).limit(1);
+  const weeklyCapacity = settings?.weeklyCapacityHours ?? 40;
+  const workingDays = (settings?.workingDays ?? "Mon,Tue,Wed,Thu,Fri").split(",").filter(Boolean).length || 5;
+  const dailyCapacity = Math.round(weeklyCapacity / workingDays);
+
+  const dailyTotals: Record<string, number> = {};
+  for (const e of weekEntries) {
+    dailyTotals[e.date] = (dailyTotals[e.date] ?? 0) + Number(e.hours);
+  }
+
+  res.json({ allocations: context, dailyCapacity, weeklyCapacity, dailyTotals });
+});
+
+// ─── Core helpers ─────────────────────────────────────────────────────────────
 
 async function isParentOrPhaseTask(taskId: number): Promise<boolean> {
   const [self] = await db
@@ -43,6 +334,8 @@ function mapEntry(e: typeof timeEntriesTable.$inferSelect) {
   };
 }
 
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
 router.get("/time-entries", async (req, res): Promise<void> => {
   const qp = ListTimeEntriesQueryParams.safeParse(req.query);
   const conditions = [];
@@ -60,8 +353,8 @@ router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const data: any = { ...parsed.data, hours: String(parsed.data.hours) };
-  // Pass-through fields not in generated schema
   const body = req.body ?? {};
+
   if (body.categoryId !== undefined && data.categoryId === undefined) {
     data.categoryId = body.categoryId === null ? null : Number(body.categoryId);
   }
@@ -74,8 +367,10 @@ router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
       return;
     }
   }
+
   // Enforce: non-project activities must be non-billable
   if (!data.projectId) { data.projectId = null; data.billable = false; }
+
   // Default cascade: task → activity-default → time-settings.defaultBillable / time-category.defaultBillable
   const billableMissing = data.billable === undefined || data.billable === null;
   const categoryMissing = data.categoryId === undefined || data.categoryId === null;
@@ -101,8 +396,41 @@ router.post("/time-entries", requirePM, async (req, res): Promise<void> => {
     const [cat] = await db.select().from(timeCategoriesTable).where(eq(timeCategoriesTable.id, Number(data.categoryId)));
     if (cat && data.projectId) data.billable = cat.defaultBillable !== false;
   }
+
+  // ─── Run guardrails ────────────────────────────────────────────────────────
+  const force = body.force === true;
+  const guardrailResults = await runGuardrails({
+    userId: Number(data.userId),
+    date: String(data.date),
+    hours: Number(data.hours),
+    projectId: data.projectId ?? null,
+    taskId: data.taskId ?? null,
+  });
+
+  const hardBlocks = guardrailResults.filter((r) => r.type === "hard_block") as { type: "hard_block"; code: string; message: string }[];
+  const softBlocks = guardrailResults.filter((r) => r.type === "soft_block") as { type: "soft_block"; code: string; message: string }[];
+
+  if (hardBlocks.length > 0) {
+    res.status(422).json({
+      error: hardBlocks[0].message,
+      guardrailCode: hardBlocks[0].code,
+      guardrails: guardrailResults,
+    });
+    return;
+  }
+
+  if (softBlocks.length > 0 && !force) {
+    res.status(409).json({
+      warning: softBlocks[0].message,
+      guardrailCode: softBlocks[0].code,
+      guardrails: guardrailResults,
+      requiresConfirmation: true,
+    });
+    return;
+  }
+
   const [row] = await db.insert(timeEntriesTable).values(data).returning();
-  res.status(201).json(mapEntry(row));
+  res.status(201).json({ ...mapEntry(row), guardrails: softBlocks.length > 0 ? guardrailResults : undefined });
 });
 
 router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => {
@@ -114,21 +442,17 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Time entry not found" }); return; }
   const settings = await getGovernanceSettings();
-  // Date-based lock: edit details
   const dateErr = checkEntryEditable(existing, role, settings);
   if (dateErr) { res.status(dateErr.status).json({ error: dateErr.error }); return; }
-  // Lock-on-Approval: parent timesheet
   const ts = await getTimesheetForEntry(existing);
   if (ts) {
     const tsErr = checkTimesheetEditable(ts, role, settings);
     if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
   }
-  // Invoice protection: block project move if entry is invoiced
   const invErr = await checkInvoicedMove(existing, (parsed.data as any).projectId);
   if (invErr) { res.status(invErr.status).json({ error: invErr.error }); return; }
   const teUpdates: any = { ...parsed.data };
   if (teUpdates.hours !== undefined) teUpdates.hours = String(teUpdates.hours);
-  // Pass-through fields not in generated UpdateTimeEntryBody Zod schema
   const body = req.body ?? {};
   if (body.categoryId !== undefined) teUpdates.categoryId = body.categoryId === null ? null : Number(body.categoryId);
   if (body.taskId !== undefined) teUpdates.taskId = body.taskId === null ? null : Number(body.taskId);
@@ -141,7 +465,6 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   if (typeof body.role === "string") teUpdates.role = body.role.trim() || null;
   if (typeof body.rejected === "boolean") teUpdates.rejected = body.rejected;
   if (typeof body.rejectionNote === "string") teUpdates.rejectionNote = body.rejectionNote.trim() || null;
-  // Status changes (approved / rejected) require status-change permission
   if (body.approved !== undefined || body.rejected !== undefined) {
     const statusErr = checkEntryStatusChangeable(existing, role, settings);
     if (statusErr) { res.status(statusErr.status).json({ error: statusErr.error }); return; }
@@ -154,7 +477,6 @@ router.patch("/time-entries/:id", requirePM, async (req, res): Promise<void> => 
   res.json(UpdateTimeEntryResponse.parse(mapEntry(row)));
 });
 
-// Per-entry reject (used by Approvals → detail review with selected entries)
 router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
@@ -169,7 +491,6 @@ router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<voi
     .set({ rejected: true, approved: false, rejectionNote: reason || null })
     .where(eq(timeEntriesTable.id, id))
     .returning();
-  // Notify submitter
   try {
     await db.insert((await import("@workspace/db")).notificationsTable).values({
       type: "timesheet_entry_rejected",
@@ -183,7 +504,6 @@ router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<voi
   res.json(mapEntry(row));
 });
 
-// Bulk per-entry reject: { ids: number[], reason: string }
 router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<void> => {
   const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
   const reason = String(req.body?.rejectionNote ?? req.body?.reason ?? "").trim();
@@ -219,7 +539,6 @@ router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<vo
   res.json({ rejected: ids.length });
 });
 
-// Bulk approve: { ids: number[] }
 router.post("/time-entries/bulk-approve", requirePM, async (req, res): Promise<void> => {
   const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
@@ -237,7 +556,6 @@ router.post("/time-entries/bulk-approve", requirePM, async (req, res): Promise<v
   res.json({ approved: ids.length });
 });
 
-// Bulk delete: { ids: number[] }
 router.post("/time-entries/bulk-delete", requirePM, async (req, res): Promise<void> => {
   const ids: number[] = Array.isArray(req.body?.ids) ? req.body.ids.map((x: any) => Number(x)).filter(Boolean) : [];
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
@@ -275,7 +593,6 @@ router.delete("/time-entries/:id", requirePM, async (req, res): Promise<void> =>
     const tsErr = checkTimesheetEditable(ts, role, settings);
     if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
   }
-  // Invoiced entries cannot be deleted
   const { getInvoicedLink } = await import("../lib/governance");
   const link = await getInvoicedLink(existing.id);
   if (link) { res.status(409).json({ error: `Cannot delete: this entry is on invoice ${link.invoiceId} (${link.invoiceStatus}). Void or delete the invoice first.` }); return; }
@@ -306,7 +623,7 @@ router.get("/time-entries/summary", async (_req, res): Promise<void> => {
 
   const byProject = Array.from(byProjectMap.entries()).map(([projectId, hours]) => ({
     projectId,
-    projectName: projects.find(p => p.id === projectId)?.name ?? 'Unknown',
+    projectName: projects.find(p => p.id === projectId)?.name ?? "Unknown",
     hours,
   }));
 
@@ -315,7 +632,7 @@ router.get("/time-entries/summary", async (_req, res): Promise<void> => {
 
   const byUser = Array.from(byUserMap.entries()).map(([userId, hours]) => ({
     userId,
-    userName: users.find(u => u.id === userId)?.name ?? 'Unknown',
+    userName: users.find(u => u.id === userId)?.name ?? "Unknown",
     hours,
   }));
 
