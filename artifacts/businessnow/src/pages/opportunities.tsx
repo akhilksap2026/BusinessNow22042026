@@ -462,7 +462,7 @@ function KanbanBoard({
       {STAGES.map(stage => (
         <div
           key={stage}
-          className={`flex flex-col w-60 rounded-lg border ${STAGE_BG[stage]} p-2`}
+          className={`flex flex-col w-52 rounded-lg border ${STAGE_BG[stage]} p-2`}
           onDragOver={e => e.preventDefault()}
           onDrop={() => {
             if (dragging !== null) onStageChange(dragging, stage);

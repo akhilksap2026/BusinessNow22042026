@@ -1,0 +1,83 @@
+I want to improve the information density of my application without changing any business logic, data models, APIs, routes, permissions, or functionality.
+
+Problem:
+Across pages such as Time Tracking, Opportunities, and Client Accounts, there is too much unused white space on the left, right, and top of the page. Users want to see more information on a single screen and reduce unnecessary scrolling.
+
+Please carefully inspect the app layout before making changes. Look especially for shared layout/page wrapper components, sidebar layout code, and Tailwind/CSS classes such as:
+- max-w-7xl
+- max-w-screen-xl
+- container
+- mx-auto
+- px-6, px-8, p-6, p-8
+- py-6, py-8
+- space-y-6
+- gap-6
+- margin-left values for the sidebar
+- fixed content widths
+
+Main goal:
+Make the app use more of the available viewport width and reduce unnecessary vertical spacing, while keeping the UI clean and readable.
+
+Specific requirements:
+
+1. Fix the main content width
+- Remove unnecessary centered/max-width constraints from main page containers.
+- The main content area should use the full available browser width.
+- Prefer `w-full max-w-none` for desktop page containers.
+- Keep small, reasonable page padding, for example `px-3` or `px-4`, not large gutters.
+
+2. Fix sidebar spacing
+- If the app has a collapsible or hidden sidebar, make sure the main content does not reserve the full expanded sidebar width when the sidebar is collapsed.
+- The left margin of the main content should match the actual visible sidebar width.
+- Use a centralized CSS variable or shared layout calculation if possible, such as:
+  - collapsed sidebar: about 48px to 64px
+  - expanded sidebar: existing expanded width
+- Do not leave a large blank gutter on the left.
+
+3. Reduce top whitespace
+- Reduce excessive top padding above breadcrumbs/page titles.
+- Keep breadcrumbs and page titles visible, but make the vertical spacing more compact.
+- Avoid large empty gaps between the page title, action buttons, summary cards, tabs, and the main content.
+
+4. Make cards and tables more compact
+- Reduce card padding from large values like `p-6` to `p-3` or `p-4` where appropriate.
+- Reduce table row height and cell padding slightly.
+- Preserve readability and clickable targets.
+- Do not hide columns or remove data.
+
+5. Improve the Opportunities Kanban layout
+- Reduce the gap between Kanban columns.
+- Reduce column minimum width slightly so more columns fit on screen.
+- Keep horizontal scrolling only when necessary.
+- Do not change opportunity data, stages, drag/drop behavior, or card actions.
+
+6. Improve the Time Tracking layout
+- Make the timesheet table use the available width.
+- Reduce excess spacing around the week selector, summary cards, tabs, and table.
+- Do not change time calculations, approvals, submission behavior, or billable logic.
+
+7. Improve the Client Accounts layout
+- Make the accounts table use the available width.
+- Reduce excessive outer margins and top spacing.
+- Keep search, row actions, statuses, tiers, and account details intact.
+
+8. Do this safely
+- Prefer making changes in shared layout components and shared CSS/Tailwind classes instead of editing every page separately.
+- Do not rename routes, components, API calls, database fields, or props unless absolutely necessary.
+- Do not remove features.
+- Do not change colors, branding, authentication, permissions, or business logic.
+- Do not use CSS zoom or transform scaling as a workaround.
+
+9. Responsive behavior
+- Desktop should be dense and full-width.
+- Tablet and mobile should still work correctly.
+- Avoid horizontal overflow on normal pages except for Kanban or truly wide tables.
+
+10. After making changes
+- Run the app and check these pages:
+  - Time Tracking
+  - Opportunities
+  - Client Accounts
+- Verify there is less white space on the left, right, and top.
+- Verify no buttons, tables, dropdowns, tabs, modals, or forms are broken.
+- Provide a concise summary of which files were changed and why.

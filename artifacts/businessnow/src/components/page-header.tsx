@@ -72,7 +72,7 @@ export function PageHeader({
   const isHome = location === "/" || location === "";
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-1", className)}>
       {crumbs && !isHome && (
         <nav aria-label="Breadcrumb">
           <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
