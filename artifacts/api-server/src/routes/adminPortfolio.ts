@@ -17,11 +17,13 @@ const router: IRouter = Router();
 
 type HealthBucket = "Green" | "Amber" | "Red";
 
-function healthToBucket(h: string): HealthBucket {
+function healthToBucket(h: string | null | undefined): HealthBucket {
   if (h === "On Track") return "Green";
   if (h === "At Risk") return "Amber";
   if (h === "Off Track") return "Red";
-  return "Green";
+  // Unknown / null health surfaces as Amber so it does not silently
+  // disappear from the at-risk count on the Command Center dashboard.
+  return "Amber";
 }
 
 function isAllocationActive(a: { startDate: string; endDate: string }, today: string): boolean {

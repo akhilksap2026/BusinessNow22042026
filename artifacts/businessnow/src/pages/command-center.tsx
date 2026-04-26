@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -556,9 +556,9 @@ export default function CommandCenter() {
                   </TableRow>
                 ) : (
                   groupedProjects.map((group) => (
-                    <>
+                    <Fragment key={`group-${group.key}`}>
                       {groupBy !== "none" && (
-                        <TableRow key={`group-${group.key}`} className="bg-muted/40">
+                        <TableRow className="bg-muted/40">
                           <TableCell colSpan={12} className="text-xs font-semibold text-muted-foreground">
                             {group.key} · {group.rows.length}
                           </TableCell>
@@ -604,7 +604,7 @@ export default function CommandCenter() {
                           <TableCell className="text-xs">{p.billingType}</TableCell>
                         </TableRow>
                       ))}
-                    </>
+                    </Fragment>
                   ))
                 )}
               </TableBody>
