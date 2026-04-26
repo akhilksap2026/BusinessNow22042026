@@ -4,6 +4,20 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+### Recent: Unified Collapsible Task Hierarchy (Apr 2026)
+- New shared module `artifacts/businessnow/src/components/task-tree.tsx`:
+  - `<TreeToggle />` — accessible 24×24 expand/collapse control (ChevronRight/Down, Enter/Space, `aria-expanded`, spacer for leaves so columns align).
+  - Helpers: `buildTreeFromFlat`, `flattenVisibleNodes`, `collectAllNodeIds`, `useExpandedIds` hook (Set-based state with toggle/expandAll/collapseAll).
+- **Project Tasks tab** (`project-phases.tsx`): `SortableTaskRow` uses `<TreeToggle />`; phases are auto-expanded on first non-empty load (`didInitExpanded` gate + useEffect collecting `isPhase` rows); descendant tasks remain collapsed by default per spec.
+- **Template Editor** (`template-editor.tsx`): `TaskRow` uses `<TreeToggle />` (hidden on leaves — fixes prior "broken chevron" complaint); `descendantCount` flows through `TaskTree → TaskRow` and renders as `(N)` collapsed / `N sub` expanded.
+- **Timesheet grid** (`timesheet-grid.tsx`):
+  - State: `collapsedProjects: Set<string>`, `collapsedTasks: Set<number>` (default empty = all expanded).
+  - `displayRows` useMemo groups flat `rows` by projectId → walks `parentTaskId` chains via `allTasks` (cycle guard) → emits discriminated union `project | task | leaf`.
+  - Walk supports multiple direct leaves per task (e.g. duplicate task with different activityName/description) — uses `directLeaves[]` filter, not `findIndex`, so no rows are dropped.
+  - Three render branches: project header (FolderOpen icon + daily totals row), task summary (`<TreeToggle />` + Phase badge + rolled-up totals), leaf (existing editable cells, indented per depth, project name omitted since hoisted to header).
+  - **Important closure ordering**: `getProjectName/getTaskName/getCategoryName` are declared *before* the `displayRows` useMemo (they're closed over by it). Do NOT move them back into the helpers section below.
+- Out of scope (not implemented): drag-to-reparent, add/delete from tree.
+
 ## Project: BusinessNow PSA Platform
 
 A full-stack Professional Services Automation (PSA) platform for KSAP Technology consulting firm. Modeled after Rocketlane-style tools.

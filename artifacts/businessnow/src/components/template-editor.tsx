@@ -43,6 +43,7 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { TreeToggle } from "@/components/task-tree";
 
 const BILLING_TYPES = ["Fixed Fee", "Time & Materials", "Retainer", "Milestone-Based"];
 const PRIORITIES = ["Low", "Medium", "High", "Critical"];
@@ -106,6 +107,7 @@ function TaskRow({
   expandedIds,
   toggleExpanded,
   depth,
+  descendantCount,
   onDelete,
   onUpdate,
 }: {
@@ -115,6 +117,7 @@ function TaskRow({
   expandedIds: Set<number>;
   toggleExpanded: (id: number) => void;
   depth: number;
+  descendantCount: number;
   onDelete: () => Promise<void>;
   onUpdate: (data: Partial<TemplateTask>) => Promise<void>;
 }) {
@@ -139,14 +142,13 @@ function TaskRow({
     <div className="border rounded-md bg-background">
       <div className="flex items-center gap-2 px-3 py-2" style={{ paddingLeft: 12 + depth * 20 }}>
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-        <button
-          type="button"
-          aria-label={expanded ? "Collapse" : "Expand"}
-          className={`mr-0.5 text-muted-foreground hover:text-foreground ${!hasChildren ? "" : ""}`}
-          onClick={() => toggleExpanded(task.id)}
-        >
-          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        </button>
+        <TreeToggle
+          expanded={expanded}
+          hasChildren={hasChildren}
+          onToggle={() => toggleExpanded(task.id)}
+          label={task.name}
+          size="sm"
+        />
         <div className="flex-1 min-w-0">
           <InlineEdit
             value={task.name}
@@ -155,7 +157,12 @@ function TaskRow({
             onSave={v => onUpdate({ name: v })}
           />
         </div>
-        {hasChildren && (
+        {hasChildren && !expanded && (
+          <Badge variant="outline" className="text-xs shrink-0 text-muted-foreground" title={`${descendantCount} descendant task(s)`}>
+            ({descendantCount})
+          </Badge>
+        )}
+        {hasChildren && expanded && (
           <Badge variant="outline" className="text-xs shrink-0 text-muted-foreground">
             {children.length} sub
           </Badge>
@@ -307,6 +314,13 @@ function TaskTree({
       {rows.map(task => {
         const children = allTasks.filter(t => t.parentTaskId === task.id);
         const expanded = expandedIds.has(task.id);
+        // Count all transitive descendants (sub, sub-sub, …) for the badge
+        // shown when the row is collapsed.
+        const countDescendants = (id: number): number => {
+          const direct = allTasks.filter(t => t.parentTaskId === id);
+          return direct.reduce((s, c) => s + 1 + countDescendants(c.id), 0);
+        };
+        const descendantCount = countDescendants(task.id);
         return (
           <div key={task.id}>
             <TaskRow
@@ -316,6 +330,7 @@ function TaskTree({
               expandedIds={expandedIds}
               toggleExpanded={toggleExpanded}
               depth={depth}
+              descendantCount={descendantCount}
               onDelete={() => onDeleteTask(task.id)}
               onUpdate={data => onUpdateTask(task.id, data)}
             />

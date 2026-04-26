@@ -32,8 +32,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star, TrendingUp, AlertTriangle, CheckCircle2, Zap, Bell } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star, TrendingUp, AlertTriangle, CheckCircle2, Zap, Bell, FolderOpen } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { TreeToggle } from "@/components/task-tree";
 import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -321,6 +322,204 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   for (const pr of Object.values(persistedRowMap)) { rows.push(pr); seenKeys.add(pr.key); }
   for (const er of Object.values(entryRowMap)) { if (!seenKeys.has(er.key)) rows.push(er); }
 
+  // ─── Lookup helpers (declared before any hierarchy build that needs them) ──
+  // Defined as `const` arrow fns; must precede `displayRows` useMemo below
+  // because closure capture happens at first render before later declarations.
+  const getProjectName = (id?: number | null) => projects?.find(p => p.id === id)?.name;
+  const getTaskName = (id?: number | null) => allTasks?.find(t => t.id === id)?.name;
+  const getCategoryName = (id?: number | null) => timeCategories?.find(c => c.id === id)?.name;
+
+  // ─── Hierarchical view (Project → Phase → Task → Subtask) ────────────────────
+  // The flat `rows` list is reorganised into a tree view: each project becomes
+  // a collapsible header; underneath, leaf rows are nested under synthesised
+  // task summary nodes that follow the parentTaskId chain in `allTasks`.
+  // Hour cells stay editable on leaf rows only; summary/project rows show
+  // aggregated daily totals (read-only) so users can scan timesheets at a
+  // higher level. Default state: everything expanded so leaves are visible.
+
+  // Collapsed-state Sets (presence == collapsed). Defaulting to "absent ==
+  // expanded" means new tasks/projects appear opened automatically.
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+  const [collapsedTasks, setCollapsedTasks] = useState<Set<number>>(new Set());
+  const toggleProject = useCallback((key: string) => {
+    setCollapsedProjects(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+  const toggleTaskSummary = useCallback((id: number) => {
+    setCollapsedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  type LeafEntry = { row: TimesheetRow; chain: number[] };
+  type DisplayEntry =
+    | { kind: "project"; projectKey: string; projectName: string; isNonProject: boolean; dailyTotals: Record<string, number>; total: number; leafCount: number; collapsed: boolean }
+    | { kind: "task"; taskId: number; taskName: string; isPhase: boolean; depth: number; dailyTotals: Record<string, number>; total: number; descendantLeafCount: number; collapsed: boolean }
+    | { kind: "leaf"; row: TimesheetRow; depth: number };
+
+  const displayRows: DisplayEntry[] = useMemo(() => {
+    const out: DisplayEntry[] = [];
+    const tasks = (allTasks ?? []) as any[];
+    const taskById = new Map<number, any>();
+    for (const t of tasks) taskById.set(t.id, t);
+
+    // 1) Group rows by project (or "non-project" bucket).
+    const groups = new Map<string, TimesheetRow[]>();
+    for (const r of rows) {
+      const key = r.isNonProject || r.projectId == null ? "__nonproject__" : `p${r.projectId}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+
+    // Stable project ordering: by project name (non-project bucket last).
+    const sortedKeys = [...groups.keys()].sort((a, b) => {
+      if (a === "__nonproject__") return 1;
+      if (b === "__nonproject__") return -1;
+      const an = getProjectName(parseInt(a.slice(1), 10)) ?? "";
+      const bn = getProjectName(parseInt(b.slice(1), 10)) ?? "";
+      return an.localeCompare(bn);
+    });
+
+    // 2) Helpers
+    const sumDays = (entries: { days: Record<string, number> }[]) => {
+      const totals: Record<string, number> = {};
+      for (const e of entries) {
+        for (const [d, h] of Object.entries(e.days)) {
+          totals[d] = (totals[d] ?? 0) + h;
+        }
+      }
+      return totals;
+    };
+    const sumTotal = (totals: Record<string, number>) =>
+      Object.values(totals).reduce((s, v) => s + v, 0);
+
+    // 3) For each project group, build the task hierarchy and walk it.
+    for (const projectKey of sortedKeys) {
+      const projectRows = groups.get(projectKey)!;
+      const isNonProject = projectKey === "__nonproject__";
+      const projectName = isNonProject
+        ? "Non-project Activities"
+        : (getProjectName(parseInt(projectKey.slice(1), 10)) ?? "Unknown project");
+
+      // Build ancestor chains (root → ... → leaf task) for each leaf row.
+      const leaves: LeafEntry[] = projectRows.map(row => {
+        if (row.taskId == null || isNonProject) return { row, chain: [] };
+        const chain: number[] = [];
+        let cur = taskById.get(row.taskId);
+        const guard = new Set<number>(); // guard against accidental cycles
+        while (cur && !guard.has(cur.id)) {
+          guard.add(cur.id);
+          chain.unshift(cur.id);
+          cur = cur.parentTaskId != null ? taskById.get(cur.parentTaskId) : null;
+        }
+        return { row, chain };
+      });
+
+      // Project header totals (aggregate every leaf in the group).
+      const projectDaily = sumDays(projectRows);
+      const projectTotal = sumTotal(projectDaily);
+      const projectCollapsed = collapsedProjects.has(projectKey);
+
+      out.push({
+        kind: "project",
+        projectKey,
+        projectName,
+        isNonProject,
+        dailyTotals: projectDaily,
+        total: projectTotal,
+        leafCount: projectRows.length,
+        collapsed: projectCollapsed,
+      });
+
+      if (projectCollapsed) continue;
+
+      // Recurse: at each level, partition leaves by chain[depth].
+      const walk = (subset: LeafEntry[], depth: number) => {
+        // Group by chain[depth]; "self" leaves (chain.length === depth) render as leaves at this depth.
+        const groupsAtDepth = new Map<number, LeafEntry[]>();
+        const selfLeaves: LeafEntry[] = [];
+        for (const l of subset) {
+          if (l.chain.length <= depth) {
+            selfLeaves.push(l);
+          } else {
+            const k = l.chain[depth];
+            if (!groupsAtDepth.has(k)) groupsAtDepth.set(k, []);
+            groupsAtDepth.get(k)!.push(l);
+          }
+        }
+
+        // Sort task groups by task name for stability.
+        const orderedGroupKeys = [...groupsAtDepth.keys()].sort((a, b) => {
+          const an = taskById.get(a)?.name ?? "";
+          const bn = taskById.get(b)?.name ?? "";
+          return an.localeCompare(bn);
+        });
+
+        for (const taskId of orderedGroupKeys) {
+          const groupLeaves = groupsAtDepth.get(taskId)!;
+          const task = taskById.get(taskId);
+          // All direct leaves whose chain ends at this task (the row IS this
+          // task). There can be many — same task, multiple activities or
+          // descriptions — and they must all be rendered, not just the first.
+          const directLeaves = groupLeaves.filter(
+            l => l.chain.length === depth + 1 && l.chain[depth] === taskId,
+          );
+          const deeper = groupLeaves.filter(
+            l => !(l.chain.length === depth + 1 && l.chain[depth] === taskId),
+          );
+
+          if (deeper.length === 0) {
+            // No nested children — render all direct leaves at this depth.
+            // (When there is exactly one and no deeper rows, this collapses to
+            // the simple flat case the user sees today.)
+            for (const dl of directLeaves) {
+              out.push({ kind: "leaf", row: dl.row, depth });
+            }
+          } else {
+            // Synthesise a task summary header that groups the direct leaves
+            // (if any) plus all deeper rows. The summary's daily totals
+            // include both buckets so the parent reflects everything beneath.
+            const allInGroup = groupLeaves.map(l => l.row);
+            const taskDaily = sumDays(allInGroup);
+            const taskTotal = sumTotal(taskDaily);
+            const collapsed = collapsedTasks.has(taskId);
+            out.push({
+              kind: "task",
+              taskId,
+              taskName: task?.name ?? `Task #${taskId}`,
+              isPhase: !!task?.isPhase,
+              depth,
+              dailyTotals: taskDaily,
+              total: taskTotal,
+              descendantLeafCount: groupLeaves.length,
+              collapsed,
+            });
+            if (!collapsed) {
+              // Render every direct leaf at depth+1 so they sit alongside their
+              // sibling subtasks beneath the synthesised parent.
+              for (const dl of directLeaves) {
+                out.push({ kind: "leaf", row: dl.row, depth: depth + 1 });
+              }
+              walk(deeper, depth + 1);
+            }
+          }
+        }
+
+        // Orphan leaves (no taskId at all) at this depth, rendered last.
+        for (const l of selfLeaves) {
+          out.push({ kind: "leaf", row: l.row, depth });
+        }
+      };
+      walk(leaves, 0);
+    }
+    return out;
+  }, [rows, allTasks, collapsedProjects, collapsedTasks, projects]);
+
   // ─── Totals ──────────────────────────────────────────────────────────────────
 
   const dailyTotals = allWeekDays.map(day => {
@@ -330,10 +529,8 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const grandTotal = dailyTotals.reduce((s, v) => s + v, 0);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-  const getProjectName = (id?: number | null) => projects?.find(p => p.id === id)?.name;
-  const getTaskName = (id?: number | null) => allTasks?.find(t => t.id === id)?.name;
-  const getCategoryName = (id?: number | null) => timeCategories?.find(c => c.id === id)?.name;
+  // (Lookup helpers `getProjectName` / `getTaskName` / `getCategoryName` are
+  // declared above the displayRows builder; do not redeclare here.)
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey() });
@@ -743,35 +940,119 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.length === 0 ? (
+              {displayRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={11} className="text-center text-muted-foreground py-10">
                     No rows yet. Click "Add Activity" to add a task or non-project activity.
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => {
+                displayRows.map((entry, idx) => {
+                  // ── Project header row ──────────────────────────────────────
+                  if (entry.kind === "project") {
+                    return (
+                      <TableRow key={`proj-${entry.projectKey}`} className="bg-muted/40 hover:bg-muted/50 border-t-2 border-b">
+                        <TableCell className="py-2">
+                          <div className="flex items-center gap-1.5">
+                            <TreeToggle
+                              expanded={!entry.collapsed}
+                              hasChildren={entry.leafCount > 0}
+                              onToggle={() => toggleProject(entry.projectKey)}
+                              label={entry.projectName}
+                              size="sm"
+                            />
+                            <FolderOpen className={cn("h-3.5 w-3.5 shrink-0", entry.isNonProject ? "text-slate-400" : "text-indigo-500")} />
+                            <span className="font-semibold text-sm truncate" title={entry.projectName}>{entry.projectName}</span>
+                            <span className="text-[10px] text-muted-foreground shrink-0">
+                              ({entry.leafCount} {entry.leafCount === 1 ? "row" : "rows"})
+                            </span>
+                          </div>
+                        </TableCell>
+                        {allWeekDays.map(day => {
+                          const dayStr = format(day, "yyyy-MM-dd");
+                          const v = entry.dailyTotals[dayStr] ?? 0;
+                          return (
+                            <TableCell key={dayStr} className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
+                              {v > 0 ? v : <span className="text-muted-foreground/30">·</span>}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right font-bold text-sm">{entry.total > 0 ? entry.total : "—"}</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    );
+                  }
+
+                  // ── Task summary row (synthesised parent) ──────────────────
+                  if (entry.kind === "task") {
+                    return (
+                      <TableRow key={`task-${entry.taskId}-${idx}`} className="bg-muted/15 hover:bg-muted/25">
+                        <TableCell className="py-1.5">
+                          <div className="flex items-center gap-1.5" style={{ paddingLeft: 8 + (entry.depth + 1) * 16 }}>
+                            <TreeToggle
+                              expanded={!entry.collapsed}
+                              hasChildren={entry.descendantLeafCount > 0}
+                              onToggle={() => toggleTaskSummary(entry.taskId)}
+                              label={entry.taskName}
+                              size="sm"
+                            />
+                            <span className="text-sm font-medium truncate text-foreground/90" title={entry.taskName}>
+                              {entry.taskName}
+                            </span>
+                            {entry.isPhase && (
+                              <span className="text-[9px] px-1 py-0 h-3.5 inline-flex items-center rounded border border-indigo-300 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30">
+                                Phase
+                              </span>
+                            )}
+                            {entry.collapsed && entry.descendantLeafCount > 0 && (
+                              <span className="text-[10px] text-muted-foreground shrink-0">({entry.descendantLeafCount})</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        {allWeekDays.map(day => {
+                          const dayStr = format(day, "yyyy-MM-dd");
+                          const v = entry.dailyTotals[dayStr] ?? 0;
+                          return (
+                            <TableCell key={dayStr} className="text-center text-xs tabular-nums text-muted-foreground/80">
+                              {v > 0 ? <span className="opacity-70">{v}</span> : <span className="text-muted-foreground/20">·</span>}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right text-sm font-medium text-muted-foreground">{entry.total > 0 ? entry.total : "—"}</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    );
+                  }
+
+                  // ── Leaf row (real, editable) ──────────────────────────────
+                  const row = entry.row;
+                  const leafDepth = entry.depth;
                   const rowTotal = allWeekDays.reduce((sum, day) => {
                     const dayStr = format(day, "yyyy-MM-dd");
                     return sum + (row.days[dayStr] || 0);
                   }, 0);
                   const taskName = row.taskId ? getTaskName(row.taskId) : null;
                   const categoryName = row.categoryId ? getCategoryName(row.categoryId) : null;
+                  // Indent leaf to align under its task summary parent (or
+                  // directly under the project header if no task ancestor).
+                  const leafIndent = 8 + (leafDepth + 1) * 16;
                   return (
                     <TableRow key={row.key} className="hover:bg-muted/10 group">
                       <TableCell className="py-2 align-middle">
-                        <div className="flex items-start gap-1.5">
+                        <div className="flex items-start gap-1.5" style={{ paddingLeft: leafIndent }}>
+                          {/* Spacer to align with TreeToggle in summary rows */}
+                          <span className="inline-block w-5 shrink-0" aria-hidden="true" />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm truncate max-w-[180px]">
                               {row.isNonProject
                                 ? <span className="text-slate-500 italic">{row.activityName || "Non-project activity"}</span>
-                                : getProjectName(row.projectId) ?? <span className="text-muted-foreground">Unknown project</span>
+                                : taskName ?? <span className="text-muted-foreground italic">No task</span>
                               }
                             </div>
-                            {!row.isNonProject && taskName && (
-                              <div className="text-xs text-muted-foreground truncate max-w-[180px] mt-0.5">{taskName}</div>
+                            {row.activityName && taskName && row.activityName !== taskName && !row.isNonProject && (
+                              <div className="text-xs text-muted-foreground truncate max-w-[180px] mt-0.5">{row.activityName}</div>
                             )}
-                            {row.description && !taskName && !row.isNonProject && (
+                            {row.description && !row.isNonProject && (
                               <div className="text-xs text-muted-foreground truncate max-w-[180px] mt-0.5">{row.description}</div>
                             )}
                             <div className="flex gap-1 mt-1 flex-wrap">

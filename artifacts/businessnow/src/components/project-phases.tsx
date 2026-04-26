@@ -34,6 +34,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
+import { TreeToggle } from "@/components/task-tree";
 import { useTaskStatuses, TASK_STATUS_CYCLE } from "@/lib/task-status";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,8 +53,6 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Plus,
   MoreVertical,
-  ChevronDown,
-  ChevronRight,
   Calendar,
   Milestone,
   ChevronsDown,
@@ -260,23 +259,15 @@ function SortableTaskRow(props: SortableTaskRowProps) {
         <GripVertical className="h-4 w-4" />
       </button>
 
-      {/* Expand / collapse toggle */}
-      <div className="w-5 shrink-0 flex items-center justify-center">
-        {hasChildren ? (
-          <button
-            onClick={() => onToggleExpand(task.id)}
-            className="rounded p-0.5 hover:bg-muted text-muted-foreground transition-colors"
-            aria-label={isExpanded ? "Collapse" : "Expand"}
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5" />
-            )}
-          </button>
-        ) : (
-          <span className="w-3.5 h-3.5 block" />
-        )}
+      {/* Expand / collapse toggle (shared component for cross-surface consistency) */}
+      <div className="w-6 shrink-0 flex items-center justify-center">
+        <TreeToggle
+          expanded={isExpanded}
+          hasChildren={hasChildren}
+          onToggle={() => onToggleExpand(task.id)}
+          label={task.name}
+          size="sm"
+        />
       </div>
 
       {/* Task name */}
@@ -445,7 +436,12 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
 
   // ── State ──────────────────────────────────────────────────────────────────
 
+  // Default tree state: Phase nodes expanded (so their direct child tasks are
+  // visible), but all non-phase Tasks collapsed (so deep subtask trees don't
+  // overwhelm the user on page load). Recomputed once when the task list
+  // first loads — user toggles thereafter are preserved.
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [didInitExpanded, setDidInitExpanded] = useState(false);
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [addingParentId, setAddingParentId] = useState<number | null>(null);
   const [addingParentName, setAddingParentName] = useState<string>("");
@@ -493,6 +489,17 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const visibleNodes = useMemo(() => flattenVisible(tree, expandedIds), [tree, expandedIds]);
   const visibleIds = useMemo(() => visibleNodes.map((n) => n.task.id), [visibleNodes]);
   const allExpanded = allIds.length > 0 && allIds.every((id) => expandedIds.has(id));
+
+  // Initial expand: open all Phase nodes (top-level isPhase tasks) once tasks
+  // load. Runs only the first time we receive a non-empty task list so that
+  // subsequent refetches don't clobber the user's manual expand/collapse.
+  useEffect(() => {
+    if (didInitExpanded) return;
+    if (serverTasks.length === 0) return;
+    const phaseIds = serverTasks.filter((t: any) => t.isPhase).map((t: any) => t.id as number);
+    setExpandedIds(new Set(phaseIds));
+    setDidInitExpanded(true);
+  }, [serverTasks, didInitExpanded]);
 
   function expandAll() { setExpandedIds(new Set(allIds)); }
   function collapseAll() { setExpandedIds(new Set()); }
