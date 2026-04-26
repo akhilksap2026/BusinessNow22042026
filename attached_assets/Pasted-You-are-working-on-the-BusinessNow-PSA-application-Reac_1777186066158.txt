@@ -1,0 +1,109 @@
+You are working on the BusinessNow PSA application (React + TypeScript + Express + Drizzle ORM).
+
+Build an AI-guided Time Logging Assistant as a new drawer component that sits alongside the existing TimesheetGrid. Do NOT modify or remove the existing timesheet grid. Do NOT change any existing APIs, routes, permissions, or data models. All time entries created by the assistant must use the same createTimeEntry API call as the grid currently uses.
+
+--- COMPONENT: TimeLogAssistant ---
+
+Create a new component: src/components/time-log-assistant.tsx
+This renders as a right-side drawer (use the existing Sheet component from the UI library).
+
+The assistant is opened by a new "Log Time with Assistant" button added to the timesheet page header. This button is visible to collaborator-role users.
+
+The assistant is a multi-step wizard with the following steps:
+
+STEP 0 — MODE
+Show two buttons: "Today only" (shows today's date) and "This week" (shows the current week range).
+Store the selected mode in local state.
+
+STEP 1 — DAY SELECTION (weekly mode only)
+Fetch existing time entries for the week (already available via useListTimeEntries).
+For each day Mon–Fri (or configured week days), show:
+- Green checkmark + "Xh logged" if total hours >= 8 (or configured daily target)
+- Warning icon + "Xh logged (Yh missing)" if some hours exist but below target
+- Empty circle if no hours logged
+Allow the user to tap days to select them. Provide a "Select all missing" shortcut.
+Proceed only with selected days.
+
+STEP 2 — PROJECT SELECT
+Fetch the user's allocations (useListAllocations filtered to userId and current date range).
+Show only projects the user is currently allocated to as large tappable buttons.
+Include an "Internal / Non-project time" option at the bottom.
+Do not show the full project list.
+
+STEP 3 — TASK SELECT
+Fetch tasks for the selected project filtered to assigneeIds containing the current user (use useListTasks with projectId).
+Show each task as a tappable button with task name (primary), status badge (secondary), and due date (tertiary).
+Include a "+ General project work (no task)" option.
+
+STEP 4 — HOURS
+Show quick-select chip buttons for: 0.5h, 1h, 1.5h, 2h, 2.5h, 3h, 3.5h, 4h, 4.5h, 5h, 6h, 7h, 8h.
+Below the chips, show a numeric input for custom amounts (step 0.25).
+Below both, show a passive informational line: "Your allocation: Xh/week · Logged this week: Yh"
+Derive allocation hours from the allocations data already fetched. Derive logged hours from time entries for the week.
+
+STEP 4a — OVERRUN WARNING (conditional)
+If (already logged this week + new entry hours) > user's weekly allocation for that project:
+Show a warning card explaining the overrun with the exact numbers.
+Show two buttons: "Yes, log it" (proceeds) and "No, adjust" (goes back to hours step).
+The entry is not blocked — only a confirmation is required.
+
+STEP 5 — ACTIVITY CATEGORY (conditional)
+Only show this step if the workspace time_settings.trackTimeAgainst includes categories AND time categories exist.
+Fetch categories via useListTimeCategories.
+Show each category as a chip/badge button.
+If no categories are configured, skip this step silently.
+
+STEP 6 — COMMENT
+Call the Anthropic API (POST https://api.anthropic.com/v1/messages) with:
+- model: "claude-sonnet-4-20250514"
+- max_tokens: 100
+- A prompt that includes: project name, task name, activity category, and asks for a single concise sentence (max 12 words) describing typical work of this type.
+Show the suggestion in a highlighted box with three options: "Use this", "Edit", "Skip".
+"Use this" accepts the suggestion as-is.
+"Edit" shows the suggestion in an editable text input.
+"Skip" leaves the description blank (unless workspace settings require it).
+
+STEP 7 — ADD MORE FOR THIS DAY
+After capturing one entry, show: the entry just logged as a summary line, a progress bar showing total logged vs. 8h target for the day, and two buttons: "+ Add another project for this day" (loops back to Step 2) and "Next day →" or "Review →" if this was the last day.
+
+STEP 8 — REVIEW
+Show all captured entries grouped by day.
+Each entry shows: project name, task name, hours, category, comment.
+Each entry has an [Edit] link that takes the user back to the relevant step for that entry.
+Show total hours captured across the session.
+Two action buttons at the bottom:
+- "Save as draft" — calls createTimeEntry for each entry, does not submit the timesheet
+- "Save & Submit" — calls createTimeEntry for each entry, then calls submitTimesheet for the affected week(s)
+
+After saving, invalidate the time entries query and timesheet query so the grid refreshes immediately.
+Show a success toast: "X entries logged across Y days."
+Close the drawer.
+
+--- CONSTRAINTS ---
+- Do not modify timesheet-grid.tsx
+- Do not modify any existing API routes
+- Do not change any permissions or authentication logic
+- Use only existing UI components from the ui/ library (Sheet, Button, Badge, Progress, Input, etc.)
+- Use only existing React Query hooks already in the codebase
+- The Anthropic API call for comment suggestion must handle errors gracefully — if it fails or times out (after 4 seconds), skip the suggestion and show the empty input directly
+- The assistant must work correctly in both daily and weekly mode
+- Test: create entries via assistant, confirm they appear in the timesheet grid, confirm submit flow triggers approval
+
+Validation Checklist
+
+ "Log Time with Assistant" button appears on the timesheet page and opens the drawer
+ Mode selection (Daily / Weekly) correctly shapes the subsequent flow
+ Day selection in weekly mode correctly identifies days with missing hours
+ Project list shows only the user's allocated projects, not all projects
+ Task list shows only tasks assigned to the user for the selected project
+ Hour chips are selectable and the custom input accepts 0.25 increments
+ Allocation overrun warning fires correctly and shows accurate numbers
+ Warning allows the user to proceed or go back — it does not hard-block
+ Activity step is skipped when no categories are configured
+ AI comment suggestion appears and all three options (Use / Edit / Skip) work
+ Suggestion failure (API timeout or error) falls back gracefully to empty input
+ Review step shows all entries correctly before any are saved
+ "Save as draft" creates entries without triggering submission
+ "Save & Submit" creates entries and triggers the approval workflow
+ Timesheet grid reflects all new entries immediately after save
+ Existing grid functionality is completely unaffected
