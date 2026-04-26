@@ -58,6 +58,8 @@ function Router() {
           <Admin />
         </RequirePermission>
       </Route>
+      <Route path="/rate-cards"><Redirect to="/admin?tab=ratecards" /></Route>
+      <Route path="/admin/rate-cards"><Redirect to="/admin?tab=ratecards" /></Route>
       <Route path="/notifications" component={Notifications} />
       <Route path="/forbidden"><Forbidden /></Route>
       <Route component={NotFound} />

@@ -1,0 +1,46 @@
+## 7. Budget Ledger — wire approved Change Orders into the budget history
+
+**Bug:** The project Finance tab already has a "Budget History" card with an "Add Budget Entry" button, but approving a Change Order does not automatically create a budget entry, so the ledger stays empty unless entries are added manually.
+
+1. In `lib/db/src/schema/` find (or confirm) the `budgetEntriesTable`. It must have these columns — add any that are missing and run a migration:
+   ```
+   id, projectId, date, type (text: 'sow'|'change_order'|'adjustment'),
+   description, amountDelta (numeric), hoursDelta (numeric),
+   documentUrl (text, nullable), changeOrderId (integer, nullable FK),
+   createdAt
+   ```
+
+2. In `artifacts/api-server/src/routes/changeOrders.ts`, find the `PATCH /change-orders/:id` handler. After a status update to `"Approved"`, insert a budget entry:
+   ```ts
+   if (body.status === "Approved" && previous.status !== "Approved") {
+     await db.insert(budgetEntriesTable).values({
+       projectId: updated.projectId,
+       date: new Date().toISOString().split("T")[0],
+       type: "change_order",
+       description: `Change Order: ${updated.title}`,
+       amountDelta: String(updated.amount ?? 0),
+       hoursDelta: String(updated.additionalHours ?? 0),
+       documentUrl: updated.documentLink ?? null,
+       changeOrderId: updated.id,
+     });
+   }
+   ```
+
+3. In `artifacts/api-server/src/routes/projects.ts` (or a dedicated budget-entries route), ensure `GET /projects/:id/budget-entries` returns entries ordered by `date` ascending, with a `runningTotal` and `runningHours` computed field (running sum as you iterate the rows).
+
+4. In the project Finance tab UI, confirm the Budget History table renders these columns: Date | Type | Description | Amount Δ | Hours Δ | Running Total | Doc. Update the "Total Budget" figure shown in the project finance summary to equal the sum of all `amountDelta` values from approved entries — not the static `project.budget` field.
+
+5. When the initial SOW budget entry does not exist, show a prompt in the Budget History card: "No budget entries yet. Add the original SOW to start tracking." with a pre-filled "Add Budget Entry" dialog that defaults `type` to `"sow"`.
+
+---
+
+## Verification checklist
+
+After all changes, manually verify:
+- [ ] `/admin?tab=ratecards` loads Rate Cards without error
+- [ ] Finance page search finds projects by name in all three tabs (Invoices, Billing Schedules, Revenue)
+- [ ] "New Contract" saves to the `contracts` table and appears in the Contracts tab
+- [ ] Creating a Change Order requires selecting a project from a dropdown (no free-text)
+- [ ] Template editor chevrons expand/collapse child tasks; nested tasks (3 levels) render correctly
+- [ ] Deleting or moving a task shows an Undo toast; clicking Undo reverts the change
+- [ ] Approving a Change Order auto-creates a budget entry in the project Finance tab ledger

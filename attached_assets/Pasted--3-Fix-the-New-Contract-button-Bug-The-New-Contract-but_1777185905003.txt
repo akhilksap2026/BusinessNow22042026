@@ -1,0 +1,43 @@
+
+## 3. Fix the New Contract button
+
+**Bug:** The "New Contract" button on the Finance page opens a dialog but saving does nothing meaningful — it secretly posts to the documents endpoint as a freetext blob with no real contract entity.
+
+Do the following:
+
+**Schema** — add `artifacts/businessnow/../lib/db/src/schema/contracts.ts`:
+```ts
+import { pgTable, serial, integer, text, numeric, timestamp } from "drizzle-orm/pg-core";
+import { projectsTable } from "./projects";
+
+export const contractsTable = pgTable("contracts", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  status: text("status").notNull().default("Draft"),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  value: numeric("value", { precision: 12, scale: 2 }),
+  documentUrl: text("document_url"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type Contract = typeof contractsTable.$inferSelect;
+```
+Export it from the schema index. Run the migration.
+
+**API** — create `artifacts/api-server/src/routes/contracts.ts` with:
+- `GET /contracts` — list all, ordered by `createdAt` desc
+- `POST /contracts` — create (body: `{ projectId, name, status?, startDate?, endDate?, value?, documentUrl?, notes? }`)
+- `PATCH /contracts/:id` — update
+- `DELETE /contracts/:id` — delete (admin/PM only)
+
+Register the router in `artifacts/api-server/src/routes/index.ts`.
+
+**Frontend** — in `artifacts/businessnow/src/pages/finance.tsx`:
+1. Replace the fake document save with a real `POST /contracts` call using `fetch` with `authHeaders()`.
+2. After saving, invalidate the contracts query and show a success toast.
+3. Add a "Contracts" tab to the Finance page Tabs list.
+4. In that tab, render a table of contracts: Name | Project | Status | Value | Start | End | Doc Link | Actions (edit/delete).
