@@ -508,7 +508,7 @@ export default function Admin() {
   async function fetchJobRoles() {
     setJobRolesLoading(true);
     try {
-      const res = await fetch("/api/job-roles");
+      const res = await fetch("/api/job-roles", { headers: authHeaders() });
       if (res.ok) setJobRoles(await res.json());
     } finally {
       setJobRolesLoading(false);
@@ -624,7 +624,7 @@ export default function Admin() {
   const { data: cfSections, refetch: refetchCfSections } = useQuery({
     queryKey: ["custom-field-sections"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/custom-field-sections`);
+      const res = await fetch(`${BASE}/api/custom-field-sections`, { headers: authHeaders() });
       if (!res.ok) return [] as any[];
       return res.json() as Promise<any[]>;
     },
@@ -665,7 +665,7 @@ export default function Admin() {
   const { data: activityDefaults, refetch: refetchActivityDefaults } = useQuery({
     queryKey: ["activity-defaults"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/activity-defaults`);
+      const res = await fetch(`${BASE}/api/activity-defaults`, { headers: authHeaders() });
       if (!res.ok) return [] as any[];
       return res.json() as Promise<any[]>;
     },
@@ -718,7 +718,7 @@ export default function Admin() {
   const { data: companySettings, refetch: refetchCompany } = useQuery({
     queryKey: ["company-settings"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/company-settings`);
+      const res = await fetch(`${BASE}/api/company-settings`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch company settings");
       return res.json() as Promise<{ id: number; name: string; address: string | null; logoUrl: string | null; timezone: string; currency: string; fiscalYearStart: string; website: string | null; phone: string | null }>;
     },
@@ -787,7 +787,7 @@ export default function Admin() {
   const { data: timeSettings, refetch: refetchTimeSettings } = useQuery({
     queryKey: ["time-settings"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/time-settings`);
+      const res = await fetch(`${BASE}/api/time-settings`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch time settings");
       return res.json() as Promise<{
         id: number; weeklyCapacityHours: number; workingDays: string;
