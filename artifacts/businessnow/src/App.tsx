@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +7,7 @@ import { DensityProvider } from "@/contexts/density";
 import { ThemeProvider } from "@/contexts/theme";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { queryClient } from "@/lib/queryClient";
-import React from "react";
+import React, { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
@@ -21,19 +21,35 @@ import Admin from "@/pages/admin";
 import Notifications from "@/pages/notifications";
 import Prospects from "@/pages/prospects";
 import Opportunities from "@/pages/opportunities";
+import Login from "@/pages/login";
 import Forbidden from "@/pages/forbidden";
 import { RequirePermission } from "@/components/require-permission";
 import { RoleSelectorModal } from "@/components/role-selector-modal";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useCurrentUser();
+  const { isLoading, isAuthenticated } = useCurrentUser();
+  const [location, navigate] = useLocation();
+  const onLogin = location === "/login";
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated && !onLogin) {
+      navigate("/login");
+    }
+  }, [isLoading, isAuthenticated, onLogin, navigate]);
+
   if (isLoading) return null;
+  // /login is rendered by the Router below so it can mount even when
+  // unauthenticated. For everything else, hold rendering until the user
+  // is authenticated (the effect above will have started the redirect).
+  if (!isAuthenticated && !onLogin) return null;
   return <>{children}</>;
 }
 
 function Router() {
   return (
     <Switch>
+      <Route path="/login" component={Login} />
       <Route path="/" component={Dashboard} />
       <Route path="/projects" component={Projects} />
       <Route path="/projects/:id" component={ProjectDetail} />
@@ -80,8 +96,8 @@ function App() {
                     <ErrorBoundary>
                       <Router />
                     </ErrorBoundary>
+                    <RoleSelectorModal />
                   </AuthGate>
-                  <RoleSelectorModal />
                 </WouterRouter>
                 <Toaster />
               </TooltipProvider>

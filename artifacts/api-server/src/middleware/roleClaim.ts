@@ -3,7 +3,11 @@ import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { resolveRole, type RoleValue } from "../constants/roles";
 
-const BOOTSTRAP_PATHS = new Set<string>(["/me", "/healthz"]);
+const BOOTSTRAP_PATHS = new Set<string>([
+  "/me",
+  "/healthz",
+  "/auth/users-for-login",
+]);
 
 export interface AuthenticatedRequest extends Request {
   authUserId?: number;

@@ -39,6 +39,7 @@ import { projectUpdatesRouter } from "./projectUpdates";
 import projectGroupsRouter from "./projectGroups";
 import contractsRouter from "./contracts";
 import aiTimeAssistantRouter from "./aiTimeAssistant";
+import authLoginRouter from "./authLogin";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
 
@@ -46,6 +47,9 @@ const router: IRouter = Router();
 
 // Health check is public — no auth required.
 router.use(healthRouter);
+
+// Login picker is public — no auth required (bootstrap-exempt in roleClaim).
+router.use(authLoginRouter);
 
 // Customer role has no UI surface and no internal-API access.
 router.use(denyCustomerRole);

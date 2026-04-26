@@ -20,18 +20,22 @@ export interface CurrentUser {
 interface CurrentUserCtx {
   currentUser: CurrentUser | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
   activeRole: string;
   availableRoles: string[];
   switchRole: (role: string) => void;
+  loginAs: (userId: number, role: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const CurrentUserContext = createContext<CurrentUserCtx>({
   currentUser: null,
   isLoading: true,
+  isAuthenticated: false,
   activeRole: "Admin",
   availableRoles: ["Admin"],
   switchRole: () => {},
+  loginAs: async () => {},
   logout: async () => {},
 });
 
@@ -42,6 +46,13 @@ function applyRoleHeaders(role: string, userId?: number) {
     localStorage.setItem("activeUserId", String(userId));
   }
   setDefaultHeaders(headers);
+}
+
+function clearRoleHeaders() {
+  // Clear both client-side default headers so subsequent fetches go out
+  // unauthenticated and the server returns 401 (instead of accidentally
+  // reusing stale credentials).
+  setDefaultHeaders({});
 }
 
 async function logRoleSwitch(from: string, to: string, userId?: number) {
@@ -69,9 +80,11 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     activeRoleRef.current = activeRole;
   }, [activeRole]);
 
-  const fetchMe = useCallback(async (): Promise<CurrentUser | null> => {
+  const fetchMe = useCallback(async (userId: number, role: string): Promise<CurrentUser | null> => {
     try {
-      const r = await fetch(`${BASE}/api/me`, { headers: { "x-user-role": "Admin" } });
+      const r = await fetch(`${BASE}/api/me`, {
+        headers: { "x-user-id": String(userId), "x-user-role": role },
+      });
       if (!r.ok) return null;
       return (await r.json()) as CurrentUser;
     } catch {
@@ -79,29 +92,44 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Initial bootstrap.
+  // Initial bootstrap. Only attempts to rehydrate a session if BOTH
+  // activeUserId and activeRole are present in localStorage; otherwise the
+  // app is considered logged-out and the AuthGate will redirect to /login.
   useEffect(() => {
-    fetchMe()
+    const storedUserId = localStorage.getItem("activeUserId");
+    const storedRole = localStorage.getItem("activeRole");
+    if (!storedUserId || !storedRole) {
+      setIsLoading(false);
+      return;
+    }
+    const userId = Number(storedUserId);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      localStorage.removeItem("activeUserId");
+      localStorage.removeItem("activeRole");
+      setIsLoading(false);
+      return;
+    }
+    applyRoleHeaders(storedRole, userId);
+    fetchMe(userId, storedRole)
       .then((data) => {
         if (data) {
           setCurrentUser(data);
-          const stored = localStorage.getItem("activeRole");
           const available = [data.role, ...(data.secondaryRoles ?? [])];
-          // Auto-pick when the user has only one role.
-          if (available.length === 1) {
-            const only = data.role;
-            setActiveRole(only);
-            localStorage.setItem("activeRole", only);
-            applyRoleHeaders(only, data.id);
-          } else if (stored && available.includes(stored)) {
-            setActiveRole(stored);
-            applyRoleHeaders(stored, data.id);
-          } else {
-            // Multi-role first-visit: leave activeRole as default header but DO NOT
-            // persist to localStorage — the RoleSelectorModal will open and the
-            // user's pick will write the value.
+          // Self-heal: if the stored role is no longer assigned, fall back
+          // to the user's primary role.
+          if (!available.includes(storedRole)) {
+            setActiveRole(data.role);
+            localStorage.setItem("activeRole", data.role);
             applyRoleHeaders(data.role, data.id);
+          } else {
+            setActiveRole(storedRole);
           }
+        } else {
+          // Stored credentials are stale (user deleted, deactivated, etc.).
+          // Clear and force a fresh login.
+          localStorage.removeItem("activeUserId");
+          localStorage.removeItem("activeRole");
+          clearRoleHeaders();
         }
       })
       .finally(() => setIsLoading(false));
@@ -112,9 +140,26 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!currentUser) return;
     const interval = setInterval(async () => {
-      const fresh = await fetchMe();
-      if (!fresh) return;
-      // Account deactivated → clear local state and redirect to root.
+      const fresh = await fetchMe(currentUser.id, activeRoleRef.current);
+      // /api/me returns non-2xx (and fetchMe → null) when the user has been
+      // deleted, deactivated, or had their assigned roles changed in a way
+      // that makes the current role-claim invalid. Treat any of those as a
+      // forced sign-out so the UI doesn't keep firing failing requests under
+      // a stale identity.
+      if (!fresh) {
+        toast({
+          title: "Your session has ended",
+          description: "Please sign in again.",
+          variant: "destructive",
+        });
+        localStorage.removeItem("activeRole");
+        localStorage.removeItem("activeUserId");
+        setCurrentUser(null);
+        clearRoleHeaders();
+        window.location.href = `${BASE}/login`;
+        return;
+      }
+      // Account deactivated → clear local state and bounce to login.
       if (fresh.activeStatus && fresh.activeStatus !== "active") {
         toast({
           title: "Your account was deactivated",
@@ -122,9 +167,10 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
         localStorage.removeItem("activeRole");
+        localStorage.removeItem("activeUserId");
         setCurrentUser(null);
-        applyRoleHeaders("Admin");
-        window.location.href = BASE || "/";
+        clearRoleHeaders();
+        window.location.href = `${BASE}/login`;
         return;
       }
       setCurrentUser(fresh);
@@ -152,6 +198,23 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function loginAs(userId: number, role: string): Promise<void> {
+    setIsLoading(true);
+    applyRoleHeaders(role, userId);
+    const data = await fetchMe(userId, role);
+    if (!data) {
+      clearRoleHeaders();
+      localStorage.removeItem("activeUserId");
+      localStorage.removeItem("activeRole");
+      setIsLoading(false);
+      throw new Error("Login failed: user not found or inactive.");
+    }
+    setCurrentUser(data);
+    setActiveRole(role);
+    localStorage.setItem("activeRole", role);
+    setIsLoading(false);
+  }
+
   async function logout() {
     try {
       await fetch(`${BASE}/api/auth/logout`, {
@@ -165,7 +228,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("activeUserId");
     setCurrentUser(null);
     setActiveRole("Admin");
-    applyRoleHeaders("Admin");
+    clearRoleHeaders();
   }
 
   const availableRoles = currentUser
@@ -176,7 +239,18 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     : [activeRole];
 
   return (
-    <CurrentUserContext.Provider value={{ currentUser, isLoading, activeRole, availableRoles, switchRole, logout }}>
+    <CurrentUserContext.Provider
+      value={{
+        currentUser,
+        isLoading,
+        isAuthenticated: currentUser !== null,
+        activeRole,
+        availableRoles,
+        switchRole,
+        loginAs,
+        logout,
+      }}
+    >
       {children}
     </CurrentUserContext.Provider>
   );
