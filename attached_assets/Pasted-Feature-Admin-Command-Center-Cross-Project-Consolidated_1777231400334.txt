@@ -1,0 +1,62 @@
+Feature: Admin Command Center — Cross-Project Consolidated View
+Access Control: Visible only to users with account_admin or super_user roles. This page must not appear in navigation or be accessible via direct URL for any other role.
+
+Page Purpose
+A single, always-current command center that gives admins a portfolio-wide view of all active (and optionally archived) projects — surfacing budget health, resource pricing, capacity pressure, and any condition requiring immediate attention, without requiring the admin to open individual projects.
+
+Section 1 — Portfolio KPI Bar (top of page)
+Display a summary strip with the following aggregate metrics across all projects:
+
+Total Portfolio Budget — sum of all project budgets (SOW + approved Change Orders)
+Total Planned Hours vs Total Actual Hours logged (with a % burn indicator)
+Total Billed to Date vs Total Revenue Recognized
+Projects At Risk / Red Health — count, clickable to filter the table below
+Over-Allocated Employees — count of users exceeding 100% capacity on ≥1 day, clickable to jump to Section 3
+Unfulfilled Resource Requests — count of pending/open resource requests across all projects
+
+
+Section 2 — Consolidated Project Table
+A sortable, filterable data table. Each row = one project. Columns:
+ColumnDetailProject NameClickable → opens project detailClient / AccountStatusActive / On Hold / Completed / At RiskHealth🟢 Green / 🟡 Amber / 🔴 Red with tooltip showing reasonTotal BudgetDynamic rollup: Original SOW + all approved Change OrdersBudget Spent (%)Actuals / Total Budget, with a progress bar; red if >90%Planned HoursSum of all task planned hoursActual HoursSum of all logged time entriesETC / EACEstimated Time to Complete / Estimate at CompletionBilling TypeFixed Fee / T&M / Non-BillableAllocated ResourcesCount of active allocations; flag icon if any are over-allocatedResource CostSum of (allocation hours × cost rate) per projectUnfulfilled RequestsCount of open resource requests for this projectPM / OwnerEnd DateHighlight red if within 14 days and status is not Completed
+Filtering: by Status, Health, Client, PM, and date range.
+Grouping option: Group by Client/Account or by PM.
+
+Section 3 — Employees Utilised >100%
+A dedicated panel (collapsible) listing every employee currently over-allocated. For each person show:
+
+Name, Role, Department
+Current utilisation % (e.g. 127%)
+Which projects they are allocated to and the hours/week on each
+A mini utilisation heatmap for the next 4 weeks (reuse the existing UtilisationHeatmap component)
+A quick-action button: "View Allocations" → opens the resource timeline filtered to that user
+
+
+Section 4 — Resource Requirements Needing Attention
+List all open/pending resource requests across every project, grouped by project. For each request show:
+
+Role requested, required skills, start date, hours/week
+Request status (Pending / Approved / Rejected / Fulfilled)
+Days since request was raised (flag if >7 days unactioned)
+Quick-action: "Assign Resource" → opens the existing assign dialog
+
+
+Section 5 — Budget Alerts
+Flag projects where any of the following is true:
+
+Budget spend ≥ 90% but project status is not Completed
+Actual hours already exceed planned hours
+EAC > Total Budget (cost overrun projection)
+No budget entry exists (budget = $0 or null)
+
+Each alert row links directly to the relevant project's Budget tab.
+
+Technical Notes
+
+Route: /admin/portfolio or /command-center — guard with requireRole(["account_admin", "super_user"]) middleware
+Data sources: Compose from existing endpoints: GET /projects, GET /projects/{id}/summary, GET /projects/{id}/budget-entries, GET /resources/capacity, GET /resource-requests, GET /reports/budget-vs-actuals
+Consider adding: a new GET /admin/portfolio-summary endpoint that aggregates all the above in one call to avoid N+1 fetching on page load
+Refresh: Add a manual refresh button + auto-refresh every 5 minutes
+Export: CSV export of the consolidated project table for finance/management reporting
+
+
+This keeps the spirit of your original request while adding precision around data sources, role guards, UX structure, and actionability — so a developer can implement it without needing to ask clarifying questions.

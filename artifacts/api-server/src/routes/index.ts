@@ -39,6 +39,7 @@ import { projectUpdatesRouter } from "./projectUpdates";
 import projectGroupsRouter from "./projectGroups";
 import contractsRouter from "./contracts";
 import aiTimeAssistantRouter from "./aiTimeAssistant";
+import adminPortfolioRouter from "./adminPortfolio";
 import authLoginRouter from "./authLogin";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
@@ -97,5 +98,6 @@ router.use(projectUpdatesRouter);
 router.use(projectGroupsRouter);
 router.use(contractsRouter);
 router.use(aiTimeAssistantRouter);
+router.use(adminPortfolioRouter);
 
 export default router;

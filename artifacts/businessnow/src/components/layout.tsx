@@ -30,6 +30,7 @@ import {
   BarChart3,
   Settings,
   Bell,
+  Gauge,
   Menu,
   UserSearch,
   TrendingUp,
@@ -104,6 +105,7 @@ const WORKSPACE_SECTIONS: NavSection[] = [
 const WORKSPACE_NAV: NavItemDef[] = WORKSPACE_SECTIONS.flatMap(s => s.items);
 
 const ADMIN_NAV: NavItemDef[] = [
+  { href: "/command-center", label: "Command Center", icon: Gauge, requires: "settings.manageTeam" },
   { href: "/finance", label: "Finance", icon: DollarSign },
   { href: "/reports", label: "Reports", icon: BarChart3, requires: "reports.viewStandard" },
   { href: "/admin", label: "Admin", icon: Settings, requires: "settings.manageTeam" },

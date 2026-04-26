@@ -18,6 +18,7 @@ import Resources from "@/pages/resources";
 import Finance from "@/pages/finance";
 import Reports from "@/pages/reports";
 import Admin from "@/pages/admin";
+import CommandCenter from "@/pages/command-center";
 import Notifications from "@/pages/notifications";
 import Prospects from "@/pages/prospects";
 import Opportunities from "@/pages/opportunities";
@@ -74,6 +75,12 @@ function Router() {
           <Admin />
         </RequirePermission>
       </Route>
+      <Route path="/command-center">
+        <RequirePermission permission="settings.manageTeam">
+          <CommandCenter />
+        </RequirePermission>
+      </Route>
+      <Route path="/admin/portfolio"><Redirect to="/command-center" /></Route>
       <Route path="/rate-cards"><Redirect to="/admin?tab=ratecards" /></Route>
       <Route path="/admin/rate-cards"><Redirect to="/admin?tab=ratecards" /></Route>
       <Route path="/notifications" component={Notifications} />
