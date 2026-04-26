@@ -328,6 +328,13 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   const getProjectName = (id?: number | null) => projects?.find(p => p.id === id)?.name;
   const getTaskName = (id?: number | null) => allTasks?.find(t => t.id === id)?.name;
   const getCategoryName = (id?: number | null) => timeCategories?.find(c => c.id === id)?.name;
+  // A task that has children (or is itself a phase) should accumulate its
+  // time from its leaves, not be logged against directly. Used to disable
+  // hour cells / log buttons on summary rows (H1 from product feedback).
+  const taskHasChildren = (taskId?: number | null) =>
+    taskId != null && (allTasks?.some(t => t.parentTaskId === taskId) ?? false);
+  const isParentTaskRow = (row: { taskId?: number | null; isNonProject?: boolean }) =>
+    !row.isNonProject && taskHasChildren(row.taskId);
 
   // ─── Hierarchical view (Project → Phase → Task → Subtask) ────────────────────
   // The flat `rows` list is reorganised into a tree view: each project becomes
@@ -1033,6 +1040,10 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                   }, 0);
                   const taskName = row.taskId ? getTaskName(row.taskId) : null;
                   const categoryName = row.categoryId ? getCategoryName(row.categoryId) : null;
+                  // H1: time cannot be logged against a parent task — those
+                  // accumulate from their children. Show the row read-only with
+                  // a tooltip pointing to the leaf-only rule.
+                  const isParentLeaf = isParentTaskRow(row);
                   // Indent leaf to align under its task summary parent (or
                   // directly under the project header if no task ancestor).
                   const leafIndent = 8 + (leafDepth + 1) * 16;
@@ -1105,7 +1116,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                             })()}
                           </div>
                           {/* Per-row clock icon */}
-                          {!isLocked && (
+                          {!isLocked && !isParentLeaf && (
                             <button
                               title="Log time for this row"
                               onClick={() => openLogForRow(row)}
@@ -1114,6 +1125,14 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                               <Clock className="h-3.5 w-3.5" />
                             </button>
                           )}
+                          {isParentLeaf && (
+                            <span
+                              title="Time accumulates from child tasks. Log on a leaf task instead."
+                              className="text-[10px] text-muted-foreground italic shrink-0 px-1.5 py-0.5 rounded bg-muted/40 border border-muted"
+                            >
+                              roll-up
+                            </span>
+                          )}
                         </div>
                       </TableCell>
 
@@ -1121,8 +1140,8 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                         const dayStr = format(day, "yyyy-MM-dd");
                         const hours = row.days[dayStr] || 0;
                         const multiEntry = (row.entryIds[dayStr]?.length ?? 0) > 1;
-                        const isEditing = editingCell?.rowKey === row.key && editingCell?.dayStr === dayStr;
-                        const canClick = !isLocked && !multiEntry;
+                        const isEditing = editingCell?.rowKey === row.key && editingCell?.dayStr === dayStr && !isParentLeaf;
+                        const canClick = !isLocked && !multiEntry && !isParentLeaf;
                         return (
                           <TableCell key={dayStr} className="text-center p-1">
                             {isEditing ? (
@@ -1144,13 +1163,15 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
                               />
                             ) : (
                               <button
-                                onClick={() => startEdit(row, dayStr)}
-                                title={multiEntry ? "Multiple entries — use clock icon to add more" : isLocked ? "Timesheet is locked" : "Click to edit · Tab to advance"}
+                                onClick={() => canClick && startEdit(row, dayStr)}
+                                disabled={isParentLeaf}
+                                title={isParentLeaf ? "Time accumulates from child tasks — log on a leaf task instead" : multiEntry ? "Multiple entries — use clock icon to add more" : isLocked ? "Timesheet is locked" : "Click to edit · Tab to advance"}
                                 className={cn(
                                   "w-full min-h-[32px] px-1 rounded text-sm font-medium transition-colors",
                                   canClick && "hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer dark:hover:bg-indigo-900/20",
                                   !canClick && "cursor-default",
-                                  hours > 0 && "text-foreground",
+                                  isParentLeaf && "text-muted-foreground/60 italic cursor-not-allowed",
+                                  hours > 0 && !isParentLeaf && "text-foreground",
                                 )}
                               >
                                 {hours > 0 ? hours : <span className="text-muted-foreground/30 text-lg">·</span>}

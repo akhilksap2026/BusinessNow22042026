@@ -43,6 +43,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  FileText,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -65,15 +67,41 @@ type NavItemDef = {
   requires?: AccountPermission;
 };
 
-const WORKSPACE_NAV: NavItemDef[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, requires: "dashboards.view" },
-  { href: "/projects", label: "Projects", icon: Briefcase },
-  { href: "/accounts", label: "Accounts", icon: Users },
-  { href: "/prospects", label: "Prospects", icon: UserSearch },
-  { href: "/opportunities", label: "Opportunities", icon: TrendingUp },
-  { href: "/time", label: "Time Tracking", icon: Clock },
-  { href: "/resources", label: "Resources", icon: CalendarDays },
+/**
+ * Sidebar groups (F4 from product feedback): related entries are nested under
+ * a labeled subhead so PMO admins can find Templates / Rate Cards beside the
+ * Projects entry instead of digging into Admin tabs.
+ */
+type NavSection = { title?: string; items: NavItemDef[] };
+
+const WORKSPACE_SECTIONS: NavSection[] = [
+  {
+    title: "Dashboard",
+    items: [
+      { href: "/", label: "Overview", icon: LayoutDashboard, requires: "dashboards.view" },
+    ],
+  },
+  {
+    title: "Projects",
+    items: [
+      { href: "/projects", label: "Projects", icon: Briefcase },
+      { href: "/admin?tab=templates", label: "Templates", icon: FileText },
+      { href: "/admin?tab=ratecards", label: "Rate Cards", icon: Tag },
+    ],
+  },
+  {
+    title: "Workspace",
+    items: [
+      { href: "/accounts", label: "Accounts", icon: Users },
+      { href: "/prospects", label: "Prospects", icon: UserSearch },
+      { href: "/opportunities", label: "Opportunities", icon: TrendingUp },
+      { href: "/time", label: "Time Tracking", icon: Clock },
+      { href: "/resources", label: "Resources", icon: CalendarDays },
+    ],
+  },
 ];
+
+const WORKSPACE_NAV: NavItemDef[] = WORKSPACE_SECTIONS.flatMap(s => s.items);
 
 const ADMIN_NAV: NavItemDef[] = [
   { href: "/finance", label: "Finance", icon: DollarSign },
@@ -469,28 +497,40 @@ export function Layout({ children }: { children: ReactNode }) {
   const MobileNavLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
       <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Workspace</p>
-      {WORKSPACE_NAV.map(item => {
-        const Icon = item.icon;
-        const active = isActive(item.href);
+      {WORKSPACE_SECTIONS.map((section, idx) => {
+        const items = section.items.filter(item => !item.requires || checkPerm(item.requires));
+        if (items.length === 0) return null;
         return (
-          <SheetClose asChild key={item.href}>
-            <Link href={item.href}>
-              <div
-                role="link"
-                aria-current={active ? "page" : undefined}
-                onClick={onNavigate}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
-                  "focus-visible:ring-2 focus-visible:ring-ring",
-                  active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-                data-testid={`nav-mobile-${item.label.toLowerCase().replace(/ /g, "-")}`}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </div>
-            </Link>
-          </SheetClose>
+          <div key={section.title ?? `m-ws-${idx}`} className={cn(idx > 0 && "mt-1")}>
+            {section.title && (
+              <p className="px-2 pt-1 pb-0.5 text-[10px] font-medium tracking-wide text-muted-foreground/70">{section.title}</p>
+            )}
+            {items.map(item => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <SheetClose asChild key={item.href}>
+                  <Link href={item.href}>
+                    <div
+                      role="link"
+                      aria-current={active ? "page" : undefined}
+                      onClick={onNavigate}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer outline-none",
+                        "focus-visible:ring-2 focus-visible:ring-ring",
+                        section.title && "ml-2",
+                        active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                      data-testid={`nav-mobile-${item.label.toLowerCase().replace(/ /g, "-")}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </div>
+                  </Link>
+                </SheetClose>
+              );
+            })}
+          </div>
         );
       })}
       <div className="my-1 border-t border-border" />
@@ -574,7 +614,22 @@ export function Layout({ children }: { children: ReactNode }) {
           {!collapsed && (
             <p className="px-2 pt-1 pb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">Workspace</p>
           )}
-          {visibleWorkspaceNav.map(item => <NavItem key={item.href} item={item} />)}
+          {WORKSPACE_SECTIONS.map((section, idx) => {
+            const items = section.items.filter(item => !item.requires || checkPerm(item.requires));
+            if (items.length === 0) return null;
+            return (
+              <div key={section.title ?? `ws-${idx}`} className={cn(idx > 0 && "mt-1")}>
+                {!collapsed && section.title && (
+                  <p className="px-2 pt-1 pb-0.5 text-[10px] font-medium tracking-wide text-muted-foreground/70">{section.title}</p>
+                )}
+                {items.map(item => (
+                  <div key={item.href} className={!collapsed && section.title ? "ml-2" : undefined}>
+                    <NavItem item={item} />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
 
           {visibleAdminNav.length > 0 && (
             <>

@@ -42,7 +42,7 @@ export default function ProjectDetail() {
   const { statuses: dynamicStatuses } = useTaskStatuses();
   const kanbanStatuses = dynamicStatuses.length > 0
     ? dynamicStatuses
-    : ["Not Started", "In Progress", "On Hold", "Completed", "Canceled"];
+    : ["Not Started", "Started", "On Hold", "Completed", "Canceled"];
 
   const { data: project, isLoading: isLoadingProject } = useGetProject(projectId, {
     query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) }
@@ -1022,7 +1022,7 @@ export default function ProjectDetail() {
                         if (taskFilter === "overdue") return t.dueDate && t.dueDate < today && t.status !== "Completed" && !t.isMilestone;
                         if (taskFilter === "blocked") return t.status === "On Hold" || t.status === "Blocked";
                         if (taskFilter === "at_risk") return t.isMilestone && t.dueDate && t.dueDate > today && t.status !== "Completed" && new Date(t.dueDate).getTime() - Date.now() < 7 * 86400000;
-                        if (taskFilter === "on_track") return t.status === "In Progress" && (!t.dueDate || t.dueDate >= today) && !t.isMilestone;
+                        if (taskFilter === "on_track") return (t.status === "Started" || t.status === "In Progress") && (!t.dueDate || t.dueDate >= today) && !t.isMilestone;
                         return false;
                       });
                       if (filtered.length === 0) return <p className="text-sm text-muted-foreground py-2">No tasks match this filter.</p>;
@@ -1052,15 +1052,17 @@ export default function ProjectDetail() {
                         });
                         const colors: Record<string, string> = {
                           "Not Started": "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
+                          "Started": "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
                           "In Progress": "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
                           "On Hold": "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
                           "Completed": "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
                           "Canceled": "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
                         };
                         const nextStatus: Record<string, string> = {
-                          "Not Started": "In Progress",
+                          "Not Started": "Started",
+                          "Started": "Completed",
                           "In Progress": "Completed",
-                          "On Hold": "In Progress",
+                          "On Hold": "Started",
                           "Completed": "Not Started",
                           "Canceled": "Not Started",
                         };
@@ -2137,7 +2139,7 @@ export default function ProjectDetail() {
                 <Select value={editProjectForm.status} onValueChange={v => setEditProjectForm(f => ({ ...f, status: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {["Not Started", "In Progress", "At Risk", "Completed", "On Hold"].map(s => (
+                    {["Not Started", "Started", "At Risk", "Completed", "On Hold"].map(s => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                   </SelectContent>

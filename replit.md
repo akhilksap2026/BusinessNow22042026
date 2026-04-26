@@ -764,3 +764,34 @@ Six-section medium-complexity fix bundle applied across DB, API, and frontend. N
   - Frontend: `accounts.tsx` form has Internal checkbox writing `isInternal`. `create-project-wizard.tsx` filters the Account Select by `isInternal` when the wizard's internal/external toggle is set to Internal.
 - **F — Time settings progressive disclosure (new)**
   - `admin.tsx` timesettings tab: "Date-Lock Override Roles" + "Time Module Configuration" sections wrapped in shadcn `<Collapsible>` "Advanced settings" (collapsed by default, ChevronDown rotates on open). Top of the panel shows the common settings unobstructed.
+
+
+### Sedore Feedback — Recommended Next Steps Pass 1 (April 2026)
+First pass on the prioritized Sedore feedback. Three quick wins shipped; remaining items are queued for follow-up passes.
+
+- **T001-C2 — Default task status renamed "Started"**
+  - `lib/task-status.ts`: `TASK_STATUS_VALUES` and `TASK_STATUS_CYCLE` use "Started"; `LEGACY_STATUS_MAP` maps "In Progress" → "Started" so older API payloads still render.
+  - `status-badge.tsx` color map gains a "Started" key (alias of the In Progress styling) so badges render correctly for both labels.
+  - `project-phases.tsx`: zod task schema enum, single-click status cycle, and dropdown options all use "Started"; legacy "In Progress" rows still resolve through the legacy map.
+  - `project-detail.tsx`: kanban columns, on-track filter, status color map, and the project edit dropdown accept both "Started" and legacy "In Progress".
+  - `project-gantt.tsx`, `task-detail-sheet.tsx`, `reports.tsx`: chart legend / fallback / report filters updated.
+  - DB backfill: `UPDATE tasks/phases SET status='Started' WHERE status='In Progress'` (6 tasks + 4 phases).
+- **T001-B3 — Job role dropdown on direct allocation form**
+  - Seeded 9 default `job_roles` (Project Manager, Senior Consultant, Consultant, Business Analyst, Developer, QA/Test Engineer, Solution Architect, Change Manager, Trainer); added insert in `scripts/src/seed.ts` before skills with `onConflictDoNothing`.
+  - The allocation dialog in `project-detail.tsx` already drives its Role field from `useListJobRoles()` (same hook used by Resource Request), so the seed data is now what populates the picker out of the box.
+- **T001-F4 — Sidebar grouping**
+  - `layout.tsx`: introduced `WORKSPACE_SECTIONS` with three groups — **Dashboard** (single item), **Projects** (Projects, Templates → `/admin?tab=templates`, Rate Cards → `/admin?tab=ratecards`), and **Workspace** (Accounts, Prospects, Opportunities, Time, Resources). Section titles render as small uppercase labels; items indent under the title in both desktop and mobile renderers. Added `FileText` and `Tag` icon imports.
+- **T003 — Block time logging on parent tasks**
+  - `timesheet-grid.tsx`: added `taskHasChildren()` and `isParentTaskRow()` helpers. Leaf rows whose `taskId` has children show a "roll-up" badge instead of the clock affordance, and the cell's edit button is disabled with a tooltip "Time accumulates from child tasks — log on a leaf task instead". Click handler is also gated so keyboard-only users cannot bypass the disabled button.
+
+### Deferred / Pending follow-ups
+- **T001-A8** (PMO `requireProjectDescription` setting) — needs schema + API regen; deferred to a focused full-stack pass.
+- **T002-F1** (template create-task UX) — audited and confirmed already correct: the create form has Name, Parent, Status (locked Not Started), Priority, Planned Hours, Due offset, Billable, and Assignee Role Placeholder; no dependency field at create. No code change required.
+- **T002-C7** (parent dropdown refresh) — audited: phase creation routes through `useCreateTask` and `onAddTask` already invalidates `getListTasksQueryKey({ projectId })`, which is what the parent dropdown reads from. No code change required; the original report likely reflected stale cache before the existing invalidation landed.
+- **T004** drag-to-reparent, **T005** allocation-derived planned hours, **T006** global Add Allocation — pending future passes.
+
+### Pass 1 — Architect Review Follow-ups
+After code review, two consistency gaps were closed:
+
+- **Status legacy mapping is now actually applied at runtime.** `useTaskStatuses()` runs each backend label through `taskStatusLabel(...)` and dedupes, so a backend `task_status_definitions` row labelled "In Progress" surfaces as "Started" everywhere the hook is used. `task-detail-sheet.tsx` reads `taskStatusLabel(task?.status)` for both the Select value and the option list (legacy labels not in the dynamic options are appended once so the Select never falls into an empty-value state). `project-phases.tsx` `handleStatusCycle` normalizes both the cycle order and the current task status before `indexOf`, so a row with legacy "In Progress" still cycles forward correctly.
+- **Sidebar gets explicit section labels for all three groups.** `WORKSPACE_SECTIONS` in `layout.tsx` now declares titles for `Dashboard`, `Projects`, and `Workspace`. The single Dashboard item is renamed "Overview" under the Dashboard heading. Both desktop and mobile renderers already iterated `WORKSPACE_SECTIONS`, so the heading change ships in both layouts at once.

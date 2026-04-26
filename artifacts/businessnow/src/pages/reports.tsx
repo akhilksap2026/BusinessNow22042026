@@ -51,7 +51,7 @@ const HEALTH_COLORS: Record<string, string> = {
   "On Track": "#10b981", "At Risk": "#f59e0b", "Off Track": "#ef4444",
 };
 const STATUS_COLORS: Record<string, string> = {
-  "In Progress": "#7c3aed", "Completed": "#10b981", "Not Started": "#94a3b8", "On Hold": "#f59e0b",
+  "In Progress": "#7c3aed", "Started": "#7c3aed", "Completed": "#10b981", "Not Started": "#94a3b8", "On Hold": "#f59e0b",
 };
 
 function StarRating({ rating }: { rating: number | null }) {
@@ -281,7 +281,7 @@ function ProjectPerformanceReport() {
             <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              {["Not Started","In Progress","Completed","On Hold"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {["Not Started","Started","Completed","On Hold"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={healthFilter} onValueChange={setHealthFilter}>

@@ -35,7 +35,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
 import { TreeToggle } from "@/components/task-tree";
-import { useTaskStatuses, TASK_STATUS_CYCLE } from "@/lib/task-status";
+import { useTaskStatuses, TASK_STATUS_CYCLE, taskStatusLabel } from "@/lib/task-status";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -181,7 +181,7 @@ function applyPending(tasks: any[], pending: PendingMap): any[] {
 
 const taskSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  status: z.enum(["Not Started", "In Progress", "On Hold", "Completed", "Canceled"]),
+  status: z.enum(["Not Started", "Started", "In Progress", "On Hold", "Completed", "Canceled"]),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]),
   assigneeIds: z.array(z.number()),
   dueDate: z.string().optional(),
@@ -773,8 +773,8 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
       taskStatusDefs && taskStatusDefs.length > 0
         ? taskStatusDefs.filter((s) => !s.isTerminal).map((s) => s.label)
         : (TASK_STATUS_CYCLE as readonly string[]).slice();
-    const order = dynamicCycle.length > 0 ? dynamicCycle : ["Not Started", "In Progress", "On Hold"];
-    const current = task.status === "Blocked" ? "On Hold" : task.status;
+    const order = dynamicCycle.length > 0 ? dynamicCycle.map((s) => taskStatusLabel(s)) : ["Not Started", "Started", "On Hold"];
+    const current = taskStatusLabel(task.status);
     const idx = order.indexOf(current);
     const next = order[(idx === -1 ? 0 : idx + 1) % order.length];
     const previous = task.status;
@@ -1217,7 +1217,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {["Not Started", "In Progress", "On Hold", "Completed", "Canceled"].map((s) => (
+                          {["Not Started", "Started", "On Hold", "Completed", "Canceled"].map((s) => (
                             <SelectItem key={s} value={s}>{s}</SelectItem>
                           ))}
                         </SelectContent>

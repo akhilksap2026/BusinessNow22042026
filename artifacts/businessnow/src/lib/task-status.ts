@@ -2,7 +2,7 @@ import { useListTaskStatusDefinitions, type TaskStatusDefinition } from "@worksp
 
 export const TASK_STATUS_VALUES = [
   "Not Started",
-  "In Progress",
+  "Started",
   "On Hold",
   "Completed",
   "Canceled",
@@ -10,11 +10,15 @@ export const TASK_STATUS_VALUES = [
 
 export type TaskStatus = (typeof TASK_STATUS_VALUES)[number];
 
+// C2 from product feedback (Sedore 4/24/26): default label switched from
+// "In Progress" → "Started". Legacy DB rows that still hold "In Progress"
+// (and other historical values) display through the canonical label.
 const LEGACY_STATUS_MAP: Record<string, TaskStatus> = {
+  "In Progress": "Started",
   "Blocked": "On Hold",
   "Todo": "Not Started",
   "Done": "Completed",
-  "In Review": "In Progress",
+  "In Review": "Started",
   "Cancelled": "Canceled",
 };
 
@@ -30,7 +34,7 @@ export function normalizeTaskStatus(raw: string | null | undefined): TaskStatus 
 
 export const TASK_STATUS_CYCLE: TaskStatus[] = [
   "Not Started",
-  "In Progress",
+  "Started",
   "Completed",
   "On Hold",
 ];
@@ -55,7 +59,10 @@ export function useTaskStatuses(): {
     },
   });
   const data = q.data as TaskStatusDefinition[] | undefined;
-  const fromApi = data?.map((s) => s.label).filter(Boolean);
-  const statuses = fromApi && fromApi.length > 0 ? fromApi : (TASK_STATUS_VALUES as readonly string[]).slice();
+  const fromApi = data
+    ?.map((s) => taskStatusLabel(s.label))
+    .filter((v): v is string => !!v);
+  const deduped = fromApi ? Array.from(new Set(fromApi)) : undefined;
+  const statuses = deduped && deduped.length > 0 ? deduped : (TASK_STATUS_VALUES as readonly string[]).slice();
   return { statuses, isLoading: q.isLoading, raw: data };
 }

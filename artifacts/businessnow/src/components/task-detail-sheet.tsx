@@ -2,7 +2,7 @@ import { useState } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/contexts/current-user";
-import { useTaskStatuses } from "@/lib/task-status";
+import { useTaskStatuses, taskStatusLabel } from "@/lib/task-status";
 import {
   useListTaskComments,
   useCreateTaskComment,
@@ -45,7 +45,7 @@ interface TaskDetailSheetProps {
 
 // Section D: STATIC fallback only — actual status options are pulled from the
 // backend at render time via useTaskStatuses() so admins can customize them.
-const STATUS_OPTIONS_FALLBACK = ["Not Started", "In Progress", "On Hold", "Canceled", "Completed"];
+const STATUS_OPTIONS_FALLBACK = ["Not Started", "Started", "On Hold", "Canceled", "Completed"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 const APPROVAL_OPTIONS = ["none", "pending", "approved", "rejected"];
 
@@ -271,18 +271,24 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</label>
-                  <Select defaultValue={task?.status ?? "Not Started"} onValueChange={(v) => handleUpdateField("status", v)}>
-                    <SelectTrigger className="h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(s)}`}>{s}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {(() => {
+                    const canonical = taskStatusLabel(task?.status);
+                    const opts = STATUS_OPTIONS.includes(canonical) ? STATUS_OPTIONS : [...STATUS_OPTIONS, canonical];
+                    return (
+                      <Select value={canonical} onValueChange={(v) => handleUpdateField("status", v)}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {opts.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(s)}`}>{s}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Priority</label>

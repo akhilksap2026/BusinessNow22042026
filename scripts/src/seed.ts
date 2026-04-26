@@ -125,6 +125,22 @@ async function main() {
     ])
     .returning();
 
+  // ─── Job roles (B3 — seed defaults so allocation Role dropdown is never empty) ──
+  await db
+    .insert(schema.jobRolesTable)
+    .values([
+      { name: "Project Manager" },
+      { name: "Senior Consultant" },
+      { name: "Consultant" },
+      { name: "Business Analyst" },
+      { name: "Developer" },
+      { name: "QA / Test Engineer" },
+      { name: "Solution Architect" },
+      { name: "Change Manager" },
+      { name: "Trainer" },
+    ])
+    .onConflictDoNothing();
+
   const skillRows = await db
     .insert(schema.skillsTable)
     .values([
