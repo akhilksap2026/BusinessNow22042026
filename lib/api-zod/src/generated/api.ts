@@ -380,7 +380,14 @@ export const ListProjectBudgetEntriesResponse = zod.object({
 });
 
 /**
- * @summary Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+ * Accepts `type: "SOW"` or `type: "Adjustment"`. SOW entries seed the
+project's baseline and are limited to one per project — a partial
+unique index `budget_entries_sow_per_project_uq` enforces this at
+the DB level, so a duplicate SOW (including concurrent requests)
+returns `409 Conflict`. CO entries are inserted automatically by
+the change-order approval flow and cannot be created here.
+
+ * @summary Create a manual SOW or Adjustment budget entry for a project. CO entries are auto-recorded by the change-order approval flow.
  */
 export const CreateProjectBudgetEntryParams = zod.object({
   id: zod.coerce.number(),
@@ -388,7 +395,11 @@ export const CreateProjectBudgetEntryParams = zod.object({
 
 export const CreateProjectBudgetEntryBody = zod.object({
   entryDate: zod.string(),
-  type: zod.string().describe("One of SOW, CO, Adjustment"),
+  type: zod
+    .enum(["SOW", "Adjustment"])
+    .describe(
+      "Manual budget entries support `SOW` (project baseline, one per\nproject) or `Adjustment` (free-form correction).  `CO` entries\nare inserted automatically by the change-order approval flow\nand are not accepted here.\n",
+    ),
   description: zod.string(),
   amount: zod.number().optional(),
   hours: zod.number().optional(),

@@ -115,6 +115,20 @@ export default function ProjectDetail() {
   };
   const [budgetEntryForm, setBudgetEntryForm] = useState(emptyBudgetEntryForm);
 
+  // Pre-fill the dialog as the project's original SOW baseline. Used by both
+  // the empty-state prompt and (potentially) any "Set initial SOW" CTA.
+  function openSowEntry() {
+    setBudgetEntryForm({
+      entryDate: new Date().toISOString().slice(0, 10),
+      type: "SOW",
+      description: "Original SOW",
+      amount: project ? String(Number(project.budget) || 0) : "",
+      hours: project ? String(Number(project.budgetedHours) || 0) : "",
+      documentLink: "",
+    });
+    setBudgetEntryDialogOpen(true);
+  }
+
   async function handleSaveBudgetEntry() {
     if (!budgetEntryForm.description.trim()) {
       toast({ title: "Description is required", variant: "destructive" });
@@ -789,16 +803,15 @@ export default function ProjectDetail() {
             </CardHeader>
             <CardContent>
               {(() => {
-                const sowAmount = (budgetEntries?.entries ?? [])
-                  .filter(e => e.type === "SOW")
-                  .reduce((s, e) => s + Number(e.amount), 0);
-                const coAmount = (budgetEntries?.entries ?? [])
-                  .filter(e => e.type === "CO")
-                  .reduce((s, e) => s + Number(e.amount), 0);
-                const adjAmount = (budgetEntries?.entries ?? [])
-                  .filter(e => e.type === "Adjustment")
-                  .reduce((s, e) => s + Number(e.amount), 0);
-                const revised = budgetEntries?.totalAmount ?? Number(project.budget);
+                const entries = budgetEntries?.entries ?? [];
+                const sowAmount = entries.filter(e => e.type === "SOW").reduce((s, e) => s + Number(e.amount), 0);
+                const coAmount = entries.filter(e => e.type === "CO").reduce((s, e) => s + Number(e.amount), 0);
+                const adjAmount = entries.filter(e => e.type === "Adjustment").reduce((s, e) => s + Number(e.amount), 0);
+                // Prefer the ledger sum once any entries exist (canonical source of truth);
+                // fall back to project.budget only when no ledger has been started yet.
+                const revised = entries.length > 0
+                  ? (budgetEntries?.totalAmount ?? 0)
+                  : Number(project.budget);
                 return (
                   <>
                     <div className="text-2xl font-bold tracking-tight">{formatCurrency(revised)}</div>
@@ -1322,7 +1335,16 @@ export default function ProjectDetail() {
               {budgetHistoryOpen && (
                 <CardContent>
                   {(budgetEntries?.entries ?? []).length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No budget entries yet.</p>
+                    <div className="py-6 text-center space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        No budget entries yet. Add the original SOW to start tracking.
+                      </p>
+                      {isPM && (
+                        <Button size="sm" variant="outline" onClick={openSowEntry}>
+                          <Plus className="h-4 w-4 mr-1" /> Add SOW Entry
+                        </Button>
+                      )}
+                    </div>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -1469,9 +1491,13 @@ export default function ProjectDetail() {
           <Dialog open={budgetEntryDialogOpen} onOpenChange={setBudgetEntryDialogOpen}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Add Budget Entry</DialogTitle>
+                <DialogTitle>
+                  {budgetEntryForm.type === "SOW" ? "Add SOW Entry" : "Add Budget Entry"}
+                </DialogTitle>
                 <DialogDescription>
-                  Manually adjust the project budget. Use Adjustment for corrections; SOWs and approved CRs are recorded automatically.
+                  {budgetEntryForm.type === "SOW"
+                    ? "Record the project's original Statement of Work as the baseline budget. You can only add one SOW per project."
+                    : "Adjustments are free-form corrections to the budget ledger. Approved Change Requests are recorded automatically; the original SOW can be added from the Budget History card."}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -1483,8 +1509,12 @@ export default function ProjectDetail() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Type</Label>
-                    <Input value="Adjustment" disabled />
-                    <p className="text-xs text-muted-foreground">SOW and CO entries are recorded automatically.</p>
+                    <Input value={budgetEntryForm.type} disabled />
+                    <p className="text-xs text-muted-foreground">
+                      {budgetEntryForm.type === "SOW"
+                        ? "Baseline budget — only one allowed per project."
+                        : "SOW and CO entries are recorded automatically."}
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-1.5">

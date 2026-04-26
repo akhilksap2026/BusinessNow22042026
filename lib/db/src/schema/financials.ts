@@ -1,4 +1,5 @@
-import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, boolean, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -73,18 +74,31 @@ export const insertRevenueEntrySchema = createInsertSchema(revenueEntriesTable).
 export type InsertRevenueEntry = z.infer<typeof insertRevenueEntrySchema>;
 export type RevenueEntry = typeof revenueEntriesTable.$inferSelect;
 
-export const budgetEntriesTable = pgTable("budget_entries", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  entryDate: text("entry_date").notNull(),
-  type: text("type").notNull(),
-  description: text("description").notNull(),
-  amount: numeric("amount", { precision: 15, scale: 2 }).notNull().default("0"),
-  hours: numeric("hours", { precision: 10, scale: 2 }).notNull().default("0"),
-  documentLink: text("document_link"),
-  changeOrderId: integer("change_order_id").unique(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const budgetEntriesTable = pgTable(
+  "budget_entries",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id").notNull(),
+    entryDate: text("entry_date").notNull(),
+    type: text("type").notNull(),
+    description: text("description").notNull(),
+    amount: numeric("amount", { precision: 15, scale: 2 }).notNull().default("0"),
+    hours: numeric("hours", { precision: 10, scale: 2 }).notNull().default("0"),
+    documentLink: text("document_link"),
+    changeOrderId: integer("change_order_id").unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // At most one SOW row per project — partial unique index is the
+    // race-safe backstop for the application-level guard in
+    // POST /projects/:id/budget-entries.  CO and Adjustment rows are
+    // unrestricted (CO uniqueness is handled by the change_order_id unique
+    // constraint above; Adjustments can repeat freely).
+    sowOncePerProject: uniqueIndex("budget_entries_sow_per_project_uq")
+      .on(table.projectId)
+      .where(sql`${table.type} = 'SOW'`),
+  }),
+);
 
 export const insertBudgetEntrySchema = createInsertSchema(budgetEntriesTable).omit({ id: true, createdAt: true });
 export type InsertBudgetEntry = z.infer<typeof insertBudgetEntrySchema>;

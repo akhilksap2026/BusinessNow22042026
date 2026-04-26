@@ -50,6 +50,7 @@ import type {
   CreateInvoiceLineItemBody,
   CreateOpportunityBody,
   CreateProjectBody,
+  CreateProjectBudgetEntry409,
   CreateProjectFromTemplateBody,
   CreateProjectGroupBody,
   CreateProjectTemplateBody,
@@ -1493,7 +1494,14 @@ export function useListProjectBudgetEntries<
 }
 
 /**
- * @summary Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+ * Accepts `type: "SOW"` or `type: "Adjustment"`. SOW entries seed the
+project's baseline and are limited to one per project — a partial
+unique index `budget_entries_sow_per_project_uq` enforces this at
+the DB level, so a duplicate SOW (including concurrent requests)
+returns `409 Conflict`. CO entries are inserted automatically by
+the change-order approval flow and cannot be created here.
+
+ * @summary Create a manual SOW or Adjustment budget entry for a project. CO entries are auto-recorded by the change-order approval flow.
  */
 export const getCreateProjectBudgetEntryUrl = (id: number) => {
   return `/api/projects/${id}/budget-entries`;
@@ -1513,7 +1521,7 @@ export const createProjectBudgetEntry = async (
 };
 
 export const getCreateProjectBudgetEntryMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<CreateProjectBudgetEntry409>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1555,13 +1563,14 @@ export type CreateProjectBudgetEntryMutationResult = NonNullable<
 >;
 export type CreateProjectBudgetEntryMutationBody =
   BodyType<CreateBudgetEntryBody>;
-export type CreateProjectBudgetEntryMutationError = ErrorType<unknown>;
+export type CreateProjectBudgetEntryMutationError =
+  ErrorType<CreateProjectBudgetEntry409>;
 
 /**
- * @summary Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+ * @summary Create a manual SOW or Adjustment budget entry for a project. CO entries are auto-recorded by the change-order approval flow.
  */
 export const useCreateProjectBudgetEntry = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<CreateProjectBudgetEntry409>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<

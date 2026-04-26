@@ -1172,10 +1172,29 @@ export interface ProjectBudgetEntries {
   entries: BudgetEntry[];
 }
 
+/**
+ * Manual budget entries support `SOW` (project baseline, one per
+project) or `Adjustment` (free-form correction).  `CO` entries
+are inserted automatically by the change-order approval flow
+and are not accepted here.
+
+ */
+export type CreateBudgetEntryBodyType =
+  (typeof CreateBudgetEntryBodyType)[keyof typeof CreateBudgetEntryBodyType];
+
+export const CreateBudgetEntryBodyType = {
+  SOW: "SOW",
+  Adjustment: "Adjustment",
+} as const;
+
 export interface CreateBudgetEntryBody {
   entryDate: string;
-  /** One of SOW, CO, Adjustment */
-  type: string;
+  /** Manual budget entries support `SOW` (project baseline, one per
+project) or `Adjustment` (free-form correction).  `CO` entries
+are inserted automatically by the change-order approval flow
+and are not accepted here.
+ */
+  type: CreateBudgetEntryBodyType;
   description: string;
   amount?: number;
   hours?: number;
@@ -1634,6 +1653,10 @@ export type ListAccountsParams = {
 export type ListProjectsParams = {
   status?: string;
   accountId?: number;
+};
+
+export type CreateProjectBudgetEntry409 = {
+  error?: string;
 };
 
 export type ListTasksParams = {

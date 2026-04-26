@@ -365,10 +365,10 @@ router.get("/projects/:id/budget-entries", async (req, res): Promise<void> => {
   });
 });
 
-// Manual entries are restricted to "Adjustment". SOW rows are seeded once when
-// a project is created, and CO rows are inserted automatically by the
-// /change-orders approval flow — exposing those types here would let users
-// double-count the budget.
+// Manual entries are restricted to "SOW" (one per project, the original
+// statement-of-work baseline) or "Adjustment" (corrections). CO rows are
+// inserted automatically by the /change-orders approval flow — exposing that
+// type here would let users double-count the budget.
 router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.id, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
@@ -377,19 +377,59 @@ router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise
 
   const { entryDate, type, description, amount, hours, documentLink } = req.body ?? {};
   if (!entryDate || typeof entryDate !== "string") { res.status(400).json({ error: "entryDate is required" }); return; }
-  if (type !== "Adjustment") { res.status(400).json({ error: "Manual entries must be type 'Adjustment'. SOW and CO entries are recorded automatically." }); return; }
+  if (type !== "Adjustment" && type !== "SOW") {
+    res.status(400).json({ error: "Manual entries must be type 'SOW' or 'Adjustment'. CO entries are recorded automatically." });
+    return;
+  }
+  // Only one SOW row per project — it's the baseline.  We do an upfront check
+  // for a friendly 409 in the common (single-request) case, and the partial
+  // unique index `budget_entries_sow_per_project_uq` is the race-safe
+  // backstop for concurrent POSTs (caught below as a 23505 unique violation).
+  if (type === "SOW") {
+    const [existingSow] = await db
+      .select({ id: budgetEntriesTable.id })
+      .from(budgetEntriesTable)
+      .where(and(eq(budgetEntriesTable.projectId, projectId), eq(budgetEntriesTable.type, "SOW")));
+    if (existingSow) {
+      res.status(409).json({ error: "An SOW entry already exists for this project. Use 'Adjustment' for further changes." });
+      return;
+    }
+  }
   const desc = typeof description === "string" ? description.trim() : "";
   if (!desc) { res.status(400).json({ error: "description is required" }); return; }
 
-  const [row] = await db.insert(budgetEntriesTable).values({
-    projectId,
-    entryDate,
-    type,
-    description: desc,
-    amount: String(Number(amount) || 0),
-    hours: String(Number(hours) || 0),
-    documentLink: documentLink || null,
-  }).returning();
+  let row;
+  try {
+    [row] = await db.insert(budgetEntriesTable).values({
+      projectId,
+      entryDate,
+      type,
+      description: desc,
+      amount: String(Number(amount) || 0),
+      hours: String(Number(hours) || 0),
+      documentLink: documentLink || null,
+    }).returning();
+  } catch (err: any) {
+    // Race-safety backstop: the partial unique index
+    // `budget_entries_sow_per_project_uq` fires when a concurrent request
+    // beat us to inserting the SOW row.  Drizzle wraps the pg error, so
+    // pull the code/constraint from either `err` or `err.cause`, and
+    // narrow strictly to *our* SOW index — any other 23505 (a real bug)
+    // should re-throw and surface as 500 rather than be silently masked
+    // as "SOW already exists".
+    const pgCode = err?.code ?? err?.cause?.code;
+    const constraint: string | undefined = err?.constraint ?? err?.cause?.constraint;
+    const message: string = typeof err?.message === "string" ? err.message : "";
+    const isSowDuplicate =
+      pgCode === "23505" &&
+      (constraint === "budget_entries_sow_per_project_uq" ||
+        message.includes("budget_entries_sow_per_project_uq"));
+    if (isSowDuplicate) {
+      res.status(409).json({ error: "An SOW entry already exists for this project. Use 'Adjustment' for further changes." });
+      return;
+    }
+    throw err;
+  }
 
   await logAudit({
     entityType: "project",

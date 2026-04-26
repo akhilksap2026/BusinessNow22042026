@@ -5,11 +5,16 @@
  * BusinessNow PSA Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateBudgetEntryBodyType } from "./createBudgetEntryBodyType";
 
 export interface CreateBudgetEntryBody {
   entryDate: string;
-  /** One of SOW, CO, Adjustment */
-  type: string;
+  /** Manual budget entries support `SOW` (project baseline, one per
+project) or `Adjustment` (free-form correction).  `CO` entries
+are inserted automatically by the change-order approval flow
+and are not accepted here.
+ */
+  type: CreateBudgetEntryBodyType;
   description: string;
   amount?: number;
   hours?: number;

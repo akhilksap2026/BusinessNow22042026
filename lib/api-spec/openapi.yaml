@@ -323,7 +323,14 @@ paths:
     post:
       operationId: createProjectBudgetEntry
       tags: [projects]
-      summary: Create a manual budget entry (Adjustment-only) for a project. SOW and CO entries are auto-recorded.
+      summary: Create a manual SOW or Adjustment budget entry for a project. CO entries are auto-recorded by the change-order approval flow.
+      description: |
+        Accepts `type: "SOW"` or `type: "Adjustment"`. SOW entries seed the
+        project's baseline and are limited to one per project — a partial
+        unique index `budget_entries_sow_per_project_uq` enforces this at
+        the DB level, so a duplicate SOW (including concurrent requests)
+        returns `409 Conflict`. CO entries are inserted automatically by
+        the change-order approval flow and cannot be created here.
       parameters:
         - name: id
           in: path
@@ -343,6 +350,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BudgetEntry"
+        "409":
+          description: An SOW entry already exists for this project.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
   # ─── TASKS ────────────────────────────────────────────────────
   /tasks:
@@ -6249,7 +6265,12 @@ components:
           type: string
         type:
           type: string
-          description: One of SOW, CO, Adjustment
+          enum: [SOW, Adjustment]
+          description: |
+            Manual budget entries support `SOW` (project baseline, one per
+            project) or `Adjustment` (free-form correction).  `CO` entries
+            are inserted automatically by the change-order approval flow
+            and are not accepted here.
         description:
           type: string
         amount:
