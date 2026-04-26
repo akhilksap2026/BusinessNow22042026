@@ -1,0 +1,325 @@
+## REPLIT PROMPT — Feature 4: AI Project Brief Generator
+
+You are working on the BusinessNow PSA application (React + TypeScript + Express + Drizzle ORM + PostgreSQL).
+
+Add an AI-powered "Generate from description" starting point to the existing project creation wizard (`create-project-wizard.tsx`). This is purely additive. Do NOT modify any existing wizard flow, form schemas, mutations, routes, data models, or the `createProject` / `createProjectFromTemplate` logic. The new path runs alongside the existing flows.
+
+Make changes incrementally. Test each section before proceeding.
+
+---
+
+### SECTION A — Backend: Brief Generation Endpoint
+
+**File to create:** `artifacts/api-server/src/routes/projectBriefGenerator.ts`
+
+Create: `POST /api/ai/generate-project-brief`
+
+Protected by the existing auth middleware (same access level as `POST /api/projects`).
+
+**Request body:**
+```json
+{
+  "description": "ERP migration for a mid-sized manufacturer, 6 months, SAP S/4HANA, 3 consultants",
+  "rateCardId": 2
+}
+```
+
+`rateCardId` is optional. If provided, fetch the rate card roles from `rateCardsTable` and `rateCardLinesTable` to include in the prompt context.
+
+Also fetch the first 5 non-archived project templates from `projectTemplatesTable` including their phase names — use these as structural examples in the prompt.
+
+**Anthropic API call:**
+
+Headers:
+```
+x-api-key: process.env.ANTHROPIC_API_KEY
+anthropic-version: 2023-06-01
+content-type: application/json
+```
+
+Body:
+```json
+{
+  "model": "claude-sonnet-4-20250514",
+  "max_tokens": 1500,
+  "messages": [
+    {
+      "role": "user",
+      "content": "You are a senior professional services delivery manager. Based on the engagement description below, generate a structured project plan in JSON format only. No preamble, no explanation, no markdown fences — output only the raw JSON object.\n\nEngagement description: {description}\n\nAvailable resource roles from rate card: {roles}\n\nExample phase structures from existing templates: {templateExamples}\n\nGenerate a JSON object with exactly this structure:\n{\n  \"suggestedName\": \"string (concise project name, max 8 words)\",\n  \"suggestedDescription\": \"string (one sentence, max 20 words)\",\n  \"estimatedDurationWeeks\": number,\n  \"phases\": [\n    {\n      \"name\": \"string\",\n      \"durationWeeks\": number,\n      \"tasks\": [\n        {\n          \"name\": \"string\",\n          \"plannedHours\": number,\n          \"role\": \"string (from roles list if provided, else generic)\",\n          \"priority\": \"Low | Medium | High | Critical\"\n        }\n      ]\n    }\n  ],\n  \"suggestedRoles\": [\n    {\n      \"role\": \"string\",\n      \"count\": number,\n      \"allocationPercent\": number\n    }\n  ],\n  \"estimatedTotalHours\": number,\n  \"confidenceNote\": \"string (one sentence caveat about the estimate, max 15 words)\"\n}\n\nRules:\n- 3 to 6 phases\n- 3 to 8 tasks per phase\n- plannedHours per task: between 4 and 80\n- estimatedTotalHours must equal the sum of all task plannedHours\n- Output only the JSON object, nothing else"
+    }
+  ]
+}
+```
+
+Replace `{description}`, `{roles}`, and `{templateExamples}` with actual values before sending.
+
+If `rateCardId` is not provided or rate card fetch fails, set `{roles}` to `"Solution Architect, Functional Consultant, Technical Consultant, Project Manager, Business Analyst"`.
+
+**Response handling:**
+- Strip any accidental markdown fences (` ```json ` / ` ``` `) from the response text before parsing
+- Validate: the result must be a valid JSON object with `phases` as a non-empty array
+- If parsing fails or Anthropic does not respond within 10 seconds, return HTTP 422:
+```json
+  { "error": "generation_failed", "message": "Could not generate a project brief. Please try again or start from a template." }
+```
+- On success, return the parsed JSON object directly with HTTP 200
+
+Register this route in `artifacts/api-server/src/routes/index.ts`. Do not remove or change any existing route registrations.
+
+---
+
+### SECTION B — Frontend: State and Types
+
+**File to modify:** `artifacts/businessnow/src/components/create-project-wizard.tsx`
+
+Add the following TypeScript types at the top of the file (after existing imports):
+
+```typescript
+interface GeneratedTask {
+  name: string;
+  plannedHours: number;
+  role: string;
+  priority: "Low" | "Medium" | "High" | "Critical";
+}
+
+interface GeneratedPhase {
+  name: string;
+  durationWeeks: number;
+  tasks: GeneratedTask[];
+}
+
+interface GeneratedBrief {
+  suggestedName: string;
+  suggestedDescription: string;
+  estimatedDurationWeeks: number;
+  phases: GeneratedPhase[];
+  suggestedRoles: { role: string; count: number; allocationPercent: number }[];
+  estimatedTotalHours: number;
+  confidenceNote: string;
+}
+```
+
+Add the following state variables inside the `CreateProjectWizard` component, alongside the existing state:
+
+```typescript
+const [generatorDescription, setGeneratorDescription] = useState("");
+const [generatorLoading, setGeneratorLoading] = useState(false);
+const [generatorError, setGeneratorError] = useState<string | null>(null);
+const [generatedBrief, setGeneratedBrief] = useState<GeneratedBrief | null>(null);
+const [briefAccepted, setBriefAccepted] = useState(false);
+```
+
+---
+
+### SECTION C — Frontend: Mode Selection Step Update
+
+**File to modify:** `artifacts/businessnow/src/components/create-project-wizard.tsx`
+
+Find the existing "mode" selection step in the wizard — the screen that lets users choose between "Start blank" and "Start from template."
+
+Add a **third option card** to this screen: "Generate from description." Style it consistently with the existing option cards. Use an icon like `Sparkles` or `Wand2` from `lucide-react` (already available).
+
+When the user selects "Generate from description," set `mode` to a new value: `"generate"`. The existing `"blank"` and `"template"` modes must continue working exactly as before.
+
+---
+
+### SECTION D — Frontend: Generator Input Step
+
+**File to modify:** `artifacts/businessnow/src/components/create-project-wizard.tsx`
+
+When `mode === "generate"` and `briefAccepted === false`, render a new step with the following content (rendered inside the existing `DialogContent`):
+
+**Step title:** "Describe your engagement"
+
+**Step content:**
+
+```
+A large Textarea (min 4 rows):
+  placeholder="e.g. ERP migration for a mid-sized manufacturing client, 6-month engagement, SAP S/4HANA, 3 consultants"
+  value={generatorDescription}
+  onChange → setGeneratorDescription
+
+Below the textarea, a helper text line in muted text:
+  "Be specific about the type of engagement, duration, team size, and any key technologies."
+
+Optional: a Select dropdown for "Rate card (optional)"
+  - Fetches from the existing useListRateCards hook (already imported in the wizard)
+  - Placeholder: "Select a rate card to refine role suggestions"
+  - Stores selected rateCardId in a local state variable: const [generatorRateCardId, setGeneratorRateCardId] = useState<number | undefined>()
+
+Generate button (primary, full width):
+  Label: generatorLoading ? "Generating your project plan…" : "Generate Project Plan"
+  disabled: generatorDescription.trim().length < 20 || generatorLoading
+
+If generatorError is set, show an Alert (destructive variant) with the error message above the button.
+```
+
+**On "Generate Project Plan" click:**
+
+```typescript
+async function handleGenerate() {
+  setGeneratorLoading(true);
+  setGeneratorError(null);
+  setGeneratedBrief(null);
+  try {
+    const res = await fetch("/api/ai/generate-project-brief", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({
+        description: generatorDescription,
+        rateCardId: generatorRateCardId,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message ?? "Generation failed. Please try again.");
+    }
+    const brief: GeneratedBrief = await res.json();
+    setGeneratedBrief(brief);
+  } catch (e: any) {
+    setGeneratorError(e.message ?? "Something went wrong. Please try again.");
+  } finally {
+    setGeneratorLoading(false);
+  }
+}
+```
+
+---
+
+### SECTION E — Frontend: Brief Review Step
+
+**File to modify:** `artifacts/businessnow/src/components/create-project-wizard.tsx`
+
+When `mode === "generate"` and `generatedBrief !== null` and `briefAccepted === false`, render a review screen inside the existing `DialogContent`.
+
+**Step title:** "Review your generated plan"
+
+**Content layout:**
+
+```
+--- Summary row ---
+Suggested name: {generatedBrief.suggestedName}   [editable inline Input]
+Suggested description: {generatedBrief.suggestedDescription}   [editable inline Input]
+Estimated duration: {generatedBrief.estimatedDurationWeeks} weeks
+Total planned hours: {generatedBrief.estimatedTotalHours}h
+
+--- Confidence note ---
+ℹ️  {generatedBrief.confidenceNote}   (shown in a muted italic line with an Info icon)
+
+--- Phase + Task breakdown (scrollable, max height 300px) ---
+For each phase in generatedBrief.phases:
+  Phase header: phase.name  •  {phase.durationWeeks}w
+  For each task in phase.tasks:
+    - Task name | plannedHours h | role | Priority badge
+
+--- Suggested staffing ---
+For each entry in generatedBrief.suggestedRoles:
+  Role: count × role @ allocationPercent%
+
+--- Action buttons ---
+[← Regenerate]    — resets generatedBrief to null, keeps description
+[Use this plan →] — sets briefAccepted = true, pre-fills the main wizard form
+```
+
+**When "Use this plan →" is clicked:**
+
+Pre-fill the existing `blankForm` (the main wizard's blank project form) with:
+- `name` ← the (possibly edited) suggestedName
+- `description` ← the (possibly edited) suggestedDescription
+
+Then set `briefAccepted = true`.
+
+Store the accepted brief in state so the final project creation step can use it.
+
+**Important:** After accepting, the wizard should advance to its existing Step 2 (dates, billing type, budget) using the existing `validateStep1` → `setStep(2)` flow. The PM must still fill in dates, billing type, and budget. The generated brief does NOT skip any existing wizard steps — it only pre-fills name and description and attaches the brief for post-creation task generation.
+
+---
+
+### SECTION F — Post-Creation Task Generation
+
+**File to modify:** `artifacts/businessnow/src/components/create-project-wizard.tsx`
+
+Find the existing `onSubmit` function for the blank project form (the one that calls `createProject.mutateAsync`).
+
+After the project is successfully created (you have the `project.id`), add the following block — only when `briefAccepted === true` and `generatedBrief !== null`:
+
+```typescript
+if (briefAccepted && generatedBrief) {
+  // Create phases and tasks from the generated brief
+  // Use the existing /api/projects/:id/apply-template pattern if possible,
+  // OR create tasks directly via the existing task creation API
+  
+  for (const phase of generatedBrief.phases) {
+    // Create a phase task (isMilestone: false, parentTaskId: null)
+    const phaseTask = await fetch(`/api/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({
+        projectId: project.id,
+        name: phase.name,
+        status: "Not Started",
+        priority: "Medium",
+        isMilestone: false,
+      }),
+    }).then(r => r.json());
+
+    // Create child tasks under this phase task
+    for (const task of phase.tasks) {
+      await fetch(`/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          projectId: project.id,
+          parentTaskId: phaseTask.id,
+          name: task.name,
+          plannedHours: task.plannedHours,
+          priority: task.priority,
+          status: "Not Started",
+        }),
+      });
+    }
+  }
+
+  // Invalidate task queries for this project
+  queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId: project.id }) });
+  
+  toast({
+    title: "Project created with AI-generated plan",
+    description: `${generatedBrief.phases.length} phases and ${generatedBrief.estimatedTotalHours}h of tasks created. Review and adjust in the project plan.`,
+  });
+}
+```
+
+If any task creation fails, do not abort — log the failure silently and continue. The project itself is already created. Show a toast at the end indicating that the project was created but some tasks may need to be added manually.
+
+---
+
+### SECTION G — Reset on Close
+
+**File to modify:** `artifacts/businessnow/src/components/create-project-wizard.tsx`
+
+Find the existing `handleClose` function (or wherever the wizard resets state on close/cancel).
+
+Add these resets alongside the existing state resets:
+```typescript
+setGeneratorDescription("");
+setGeneratorLoading(false);
+setGeneratorError(null);
+setGeneratedBrief(null);
+setBriefAccepted(false);
+setGeneratorRateCardId(undefined);
+```
+
+---
+
+### CONSTRAINTS
+
+- Do not modify or remove any existing wizard steps, form schemas, or mutation handlers
+- The "Start blank" and "Start from template" paths must continue working exactly as before
+- The Anthropic API call must be made server-side in Express, not from the browser
+- The new `/api/ai/generate-project-brief` endpoint must be registered alongside existing routes without replacing any
+- Do not add new database tables or migrations
+- Do not change any permissions, authentication, or RBAC middleware
+- The generate flow must fail gracefully — if generation fails, the user can try again or switch to blank/template mode
+- Task creation after project creation should use the existing `/api/tasks` POST endpoint (do not create a new one)
+- Test: open the project creation wizard, select "Generate from description," enter a description, click generate, review the brief, accept it, complete the wizard, and confirm the project appears with phases and tasks in the task list
