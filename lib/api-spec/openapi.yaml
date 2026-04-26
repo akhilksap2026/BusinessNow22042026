@@ -3710,6 +3710,12 @@ components:
           type: string
         updatedAt:
           type: string
+        companyName:
+          type: ["string", "null"]
+        accountDomain:
+          type: ["string", "null"]
+        ownerName:
+          type: ["string", "null"]
       required:
         - id
         - accountId

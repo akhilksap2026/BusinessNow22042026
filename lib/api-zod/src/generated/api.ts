@@ -201,6 +201,9 @@ export const ListProjectsResponseItem = zod.object({
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  companyName: zod.string().nullish(),
+  accountDomain: zod.string().nullish(),
+  ownerName: zod.string().nullish(),
 });
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
 
@@ -249,6 +252,9 @@ export const GetProjectResponse = zod.object({
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  companyName: zod.string().nullish(),
+  accountDomain: zod.string().nullish(),
+  ownerName: zod.string().nullish(),
 });
 
 /**
@@ -294,6 +300,9 @@ export const UpdateProjectResponse = zod.object({
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  companyName: zod.string().nullish(),
+  accountDomain: zod.string().nullish(),
+  ownerName: zod.string().nullish(),
 });
 
 /**

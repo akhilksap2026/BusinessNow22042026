@@ -29,4 +29,10 @@ export interface Project {
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  accountDomain?: string | null;
+  /** @nullable */
+  ownerName?: string | null;
 }
