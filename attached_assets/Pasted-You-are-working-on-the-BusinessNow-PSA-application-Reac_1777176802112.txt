@@ -1,0 +1,100 @@
+You are working on the BusinessNow PSA application (React + TypeScript + Express + Drizzle ORM + PostgreSQL).
+
+Apply the following medium-complexity improvements. Do NOT change unrelated functionality, routes, APIs, data models outside what is specified, or permissions. Preserve all existing data. Make changes incrementally and test each section.
+
+--- SECTION A: Task Effort Model ---
+
+1. DATABASE — Add two columns to the tasks table:
+   - plannedHours: numeric, nullable
+   - estimateHours: numeric, nullable
+   Keep the existing estimatedHours column as-is for backward compatibility.
+   Write a Drizzle migration for these two columns only.
+
+2. BACKEND — Update the task GET response to include:
+   - plannedHours (from column)
+   - estimateHours (from column)
+   - actualHours (computed: sum of duration from timeEntriesTable WHERE taskId matches)
+   - etc: computed as (estimateHours - actualHours), can be negative
+   - eac: computed as (actualHours + abs(etc))
+   These last three are computed at query time, never stored.
+
+3. FRONTEND — File: src/components/task-detail-sheet.tsx
+   - Rename all instances of "Est. Hours" label to "Planned"
+   - Add an editable "Estimate" field below "Planned" (maps to estimateHours)
+   - Add read-only "Actual" field showing actualHours from the API response
+   - Add read-only "ETC" field showing etc value; color it red if negative
+   - Add read-only "EAC" field showing eac value
+   - Do not remove or change any other fields in the detail sheet
+
+4. FRONTEND — Task list table
+   Add Planned, Estimate, Actual, ETC, EAC as optional columns.
+   Default visibility: Planned and Actual only.
+   Follow the existing column visibility toggle pattern in the app.
+
+--- SECTION B: Project Creation Wizard Template Step ---
+
+5. File: src/components/create-project-wizard.tsx
+   Insert a new step called "Starting Point" after the project details step and before the final confirmation step.
+   This step presents three radio options:
+   a) "Start blank" (default)
+   b) "Start from a template" — show a dropdown of available templates fetched from the templates API
+   c) "Apply a template later"
+   
+   When option (b) is selected and the wizard completes, call the existing applyTemplateAsSegment API endpoint after project creation, passing the selected template ID and the new project ID.
+   Do not rewrite the rest of the wizard. Do not change the project creation API.
+
+--- SECTION C: Allocation from Project Context ---
+
+6. File: project staffing/team tab component (wherever "Add Team Member" or "Add Allocation" button lives within a project page)
+   When the allocation form is opened from within a project's Staffing tab, pre-populate the project field with the current project (use the projectId from the route params or page context).
+   The project field should still be editable — it should just default to the current project.
+   Do not change the allocation API or the standalone Allocations module.
+
+--- SECTION D: Configurable Task Status Definitions ---
+
+7. DATABASE — Create a new task_status_definitions table:
+   - id: serial primary key
+   - workspaceId: integer, foreign key to workspaces
+   - label: text, not null
+   - color: text (hex color string)
+   - sortOrder: integer
+   - isDefault: boolean
+   Seed this table for the default workspace with: Not Started (#6B7280), Started (#3B82F6), On Hold (#F59E0B), Completed (#10B981), Canceled (#EF4444).
+   Write a Drizzle migration.
+
+8. BACKEND — Add a GET /api/task-statuses endpoint that returns the definitions for the current workspace.
+   Update task create/edit validation to accept any label that exists in task_status_definitions for the workspace instead of the hardcoded enum.
+
+9. FRONTEND — Replace all hardcoded task status dropdown lists with a fetch from /api/task-statuses.
+   Add a Task Statuses admin section under PMO Settings (account_admin only) where admins can view and reorder statuses. Do not add create/delete in this phase — view and reorder only.
+
+--- SECTION E: Internal Account Flag ---
+
+10. DATABASE — Add isInternal boolean column (default false) to the accounts table. Write a Drizzle migration.
+
+11. FRONTEND — Account create/edit form: add an "Internal account" checkbox that maps to isInternal.
+    Project creation wizard: add an "Internal project" toggle. When enabled, filter the Account dropdown to show only accounts where isInternal = true.
+
+--- SECTION F: Time Settings Progressive Disclosure ---
+
+12. File: admin time settings page component
+    Wrap the following fields in a collapsible "Advanced settings" section (collapsed by default):
+    exactSubmitHours, dateLockStatusOverrideRoles, trackTimeAgainst (multi-value), and any other fields not in the primary approval/lock/reminder/billable group.
+    Use an existing Collapsible or Accordion component from the UI library. Do not remove any settings.
+
+After all changes: verify project creation wizard works end-to-end, task detail sheet shows all five effort fields, task statuses load from the API, account form shows internal checkbox, and time settings page loads without error.
+Preserve all existing routes, APIs (other than additive changes above), permissions, and authentication.
+Validation Checklist
+
+ Adding plannedHours and estimateHours columns does not break existing task reads or writes
+ Task detail sheet shows Planned (editable), Estimate (editable), Actual (read-only), ETC (read-only, red if negative), EAC (read-only)
+ ETC and EAC are never stored — always computed at render time
+ Project creation wizard shows a "Starting Point" step with three options
+ Selecting a template in the wizard applies it after project creation
+ Opening allocation from a project's Staffing tab pre-populates the project field
+ task_status_definitions table is seeded with five default statuses
+ Task status dropdowns throughout the app load from the API, not hardcoded values
+ Account create form has an "Internal account" checkbox
+ Internal project toggle in wizard filters accounts correctly
+ Time Settings advanced fields are hidden behind a collapsible toggle
+ No existing project, task, allocation, or time entry data is altered

@@ -61,7 +61,9 @@ const STATUS_BAR: Record<string, string> = {
   Completed: "#10b981",
   "In Progress": "#3b82f6",
   "Not Started": "#94a3b8",
-  Blocked: "#ef4444",
+  "On Hold": "#f59e0b",
+  Blocked: "#f59e0b",
+  Canceled: "#94a3b8",
   Overdue: "#dc2626",
   Review: "#a78bfa",
 };
@@ -421,7 +423,7 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
         {/* ── Legend bar ── */}
         <div className="flex items-center gap-4 px-3 py-1.5 text-[11px] text-slate-500 border-b bg-white flex-wrap shrink-0">
           {/* Status legend */}
-          {[["Completed", "#10b981"], ["In Progress", "#3b82f6"], ["Not Started", "#94a3b8"], ["Blocked", "#ef4444"]].map(([s, c]) => (
+          {[["Completed", "#10b981"], ["In Progress", "#3b82f6"], ["Not Started", "#94a3b8"], ["On Hold", "#f59e0b"], ["Canceled", "#cbd5e1"]].map(([s, c]) => (
             <span key={s} className="flex items-center gap-1">
               <span className="h-2.5 w-4 rounded-sm inline-block" style={{ background: c }} />{s}
             </span>

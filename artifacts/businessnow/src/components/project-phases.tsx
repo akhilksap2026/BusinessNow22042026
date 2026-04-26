@@ -46,6 +46,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Plus,
@@ -162,7 +163,7 @@ function applyPending(tasks: any[], pending: PendingMap): any[] {
 
 const taskSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  status: z.enum(["Not Started", "In Progress", "Completed", "Blocked", "Overdue"]),
+  status: z.enum(["Not Started", "In Progress", "On Hold", "Completed", "Canceled"]),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]),
   assigneeIds: z.array(z.number()),
   dueDate: z.string().optional(),
@@ -719,8 +720,10 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   };
 
   const handleStatusCycle = async (task: any) => {
-    const order = ["Not Started", "In Progress", "Completed", "Blocked"];
-    const next = order[(order.indexOf(task.status) + 1) % order.length];
+    const order = ["Not Started", "In Progress", "Completed", "On Hold"];
+    const current = task.status === "Blocked" ? "On Hold" : task.status;
+    const idx = order.indexOf(current);
+    const next = order[(idx === -1 ? 0 : idx + 1) % order.length];
     try {
       await updateTask.mutateAsync({ id: task.id, data: { status: next as any } });
       queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
@@ -730,10 +733,46 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   };
 
   const handleDelete = async (id: number) => {
+    const original = (allTasks || []).find((t: any) => t.id === id);
     try {
       await deleteTask.mutateAsync({ id });
       queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-      toast({ title: "Task deleted" });
+      const restore = async () => {
+        if (!original) return;
+        try {
+          await createTask.mutateAsync({
+            data: {
+              projectId,
+              name: original.name,
+              status: original.status,
+              priority: original.priority,
+              assigneeIds: original.assigneeIds ?? [],
+              dueDate: original.dueDate ?? undefined,
+              startDate: original.startDate ?? undefined,
+              effort: Number(original.effort ?? 0),
+              plannedHours: Number(original.plannedHours ?? original.effort ?? 0),
+              estimateHours: Number(original.estimateHours ?? original.effort ?? 0),
+              billable: !!original.billable,
+              isMilestone: !!original.isMilestone,
+              isPhase: !!original.isPhase,
+              parentTaskId: original.parentTaskId ?? undefined,
+              sortOrder: typeof original.sortOrder === "number" ? original.sortOrder : undefined,
+            } as any,
+          });
+          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+          toast({ title: "Task restored", duration: 3000 });
+        } catch {
+          toast({ title: "Could not restore task", variant: "destructive" });
+        }
+      };
+      toast({
+        title: "Task deleted",
+        description: original?.name,
+        duration: 5000,
+        action: original ? (
+          <ToastAction altText="Undo delete" onClick={restore}>Undo</ToastAction>
+        ) : undefined,
+      });
     } catch {
       toast({ title: "Error deleting task", variant: "destructive" });
     }
@@ -1079,7 +1118,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {["Not Started", "In Progress", "Completed", "Blocked"].map((s) => (
+                          {["Not Started", "In Progress", "On Hold", "Completed", "Canceled"].map((s) => (
                             <SelectItem key={s} value={s}>{s}</SelectItem>
                           ))}
                         </SelectContent>

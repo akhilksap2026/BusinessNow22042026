@@ -1,0 +1,101 @@
+You are working on the BusinessNow PSA application (React + TypeScript + Express + Drizzle ORM + PostgreSQL).
+
+Apply the following high-impact improvements carefully and incrementally. Do NOT break existing task management, project finance, change order, or navigation functionality. Preserve all existing APIs, routes, permissions, and stored data. Implement each section independently so that a failure in one section does not affect the others.
+
+--- SECTION A: Drag-and-Drop Task Reordering ---
+
+1. The @dnd-kit library is already installed. Enable drag-and-drop on the task list component (the list view within a project's task/plan tab).
+
+2. Support the following interactions:
+   a) Drag a task up or down within the same phase to reorder it. Persist new order via PATCH /api/tasks/:id (add a sortOrder field if not present, or use an equivalent ordering mechanism already in the schema).
+   b) Drag a task over another task and hold briefly to indent it — making it a child of the hovered task (sets parentTaskId). 
+   c) Drag a task to the leftmost indent position to outdent it — sets parentTaskId to null (promotes to top level within its phase).
+
+3. Add a "Move to phase" option to the task context menu (three-dot or right-click). Clicking it opens a small popover listing all phases in the current project. Selecting a phase updates the task's phaseId via the existing task update API.
+
+4. Do not implement drag-and-drop in the Gantt view — only in the list/plan view.
+
+5. If sortOrder column does not exist on the tasks table, add it as a nullable integer with a Drizzle migration. Default all existing tasks to their current row order (use rowid or id ordering as the default sort).
+
+--- SECTION B: Budget Ledger ---
+
+6. DATABASE — Create a contract_lines table:
+   - id: serial primary key
+   - projectId: integer, foreign key to projects, not null
+   - date: date, not null
+   - type: text, not null (values: 'SOW', 'ChangeOrder', 'Adjustment')
+   - description: text
+   - amount: numeric, not null
+   - referenceId: integer, nullable (links to changeOrdersTable id if type = ChangeOrder)
+   - createdAt: timestamp
+   Write a Drizzle migration. Do not alter the existing projects.budget column.
+
+7. DATA MIGRATION — For each existing project that has a non-null budget value, insert a single SOW row into contract_lines with: date = project.createdAt, type = 'SOW', description = 'Original SOW', amount = project.budget. Run this as part of the migration. Do not delete or alter the projects.budget column.
+
+8. BACKEND — Add the following endpoints:
+   - GET /api/projects/:id/contract-lines — returns all contract_lines for the project, ordered by date ascending
+   - POST /api/projects/:id/contract-lines — creates a new contract line (account_admin only)
+   Update the Change Order approval handler: when a Change Order status is set to 'Approved', automatically insert a contract_lines row (type: 'ChangeOrder', amount: changeOrder.amount, referenceId: changeOrder.id, description: changeOrder.title or name).
+
+9. FRONTEND — Project Finance tab: replace the static "Budget: $X" display with:
+   a) A summary bar showing: Original SOW | Total Change Orders | Total Budget (SOW + COs) | Spent to Date
+   b) Below the summary: a ledger table with columns: Date | Type | Description | Amount | Running Total
+   The ledger is read from GET /api/projects/:id/contract-lines.
+   Spent to date = sum of approved/invoiced billing schedule entries or time entry cost (use whichever is already computed in the existing finance summary).
+   Do not remove other existing Finance tab sections (billing schedules, invoices, revenue entries).
+
+--- SECTION C: Project Groups in Sidebar ---
+
+10. DATABASE — Create a project_groups table:
+    - id: serial primary key
+    - workspaceId: integer, foreign key
+    - name: text, not null
+    - color: text (hex)
+    - sortOrder: integer
+    Add a projectGroupId nullable integer column to the projects table as a foreign key to project_groups.
+    Write a Drizzle migration.
+
+11. BACKEND — Add endpoints:
+    - GET /api/project-groups — returns all groups for the workspace
+    - POST /api/project-groups — create a group (account_admin only)
+    - PATCH /api/project-groups/:id — rename or reorder (account_admin only)
+    - DELETE /api/project-groups/:id — delete (account_admin only; set projectGroupId = null on affected projects)
+    - PATCH /api/projects/:id — already exists; ensure it accepts projectGroupId as an updatable field
+
+12. FRONTEND — Sidebar (layout.tsx or equivalent):
+    Replace or augment the flat projects list in the sidebar with a collapsible group hierarchy:
+    - Each project group renders as a collapsible section header with its name and color indicator
+    - Projects belonging to that group appear as indented items under the group header
+    - Projects with no group appear under an "Ungrouped" section at the bottom
+    - Group headers (account_admin only): right-click or three-dot menu with Rename and Delete options
+    - A "+ New Group" action at the bottom of the groups list (account_admin only)
+    - Dragging a project into a group header (or via a "Move to group" context menu on the project) updates projectGroupId
+    
+    The existing project navigation links must continue to work. Only the grouping/presentation layer changes.
+
+After all changes, verify:
+- Task drag-and-drop works in list view without breaking Gantt
+- Task "Move to phase" context menu works
+- Project Finance tab shows the budget ledger without removing existing billing/invoice sections
+- Change Order approval automatically creates a contract_lines entry
+- Sidebar shows project groups with correct collapsible behavior
+- All existing routes, permissions, and APIs continue to function
+- No existing task, project, or finance data is altered by the migrations (only additive)
+Validation Checklist
+
+ Dragging a task within a phase reorders it and persists on page refresh
+ Indenting a task (drag-indent) sets its parentTaskId correctly
+ Outdenting a task clears its parentTaskId
+ "Move to phase" menu appears on tasks and moves the task to the selected phase
+ Drag-and-drop does not appear or break the Gantt view
+ contract_lines table is created and existing project budgets are migrated as SOW rows
+ Project Finance tab shows SOW + Change Orders summary bar
+ Ledger table shows rows with Date, Type, Description, Amount, Running Total
+ Approving a Change Order inserts a new row in the ledger automatically
+ Existing billing schedules, invoices, and revenue recognition sections in Finance tab are intact
+ project_groups table is created without altering existing project data
+ Sidebar shows collapsible project groups
+ Ungrouped projects appear under "Ungrouped"
+ Account admins can create, rename, and delete groups
+ All project links in the sidebar continue to navigate correctly
+ No existing permissions, routes, or authentication flows are changed

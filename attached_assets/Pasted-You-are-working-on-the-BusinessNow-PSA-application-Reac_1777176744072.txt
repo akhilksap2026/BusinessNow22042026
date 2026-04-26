@@ -1,0 +1,64 @@
+You are working on the BusinessNow PSA application (React + TypeScript + Express + Drizzle ORM).
+
+Apply the following targeted bug fixes and UI cleanup. Do NOT change unrelated pages, routes, APIs, data models, or permissions. Make changes incrementally. Test each affected page after each change.
+
+1. TASK DEPENDENCY LABEL FIX — File: src/components/task-detail-sheet.tsx
+   The predecessor/successor labels are inverted in the task dependency display section.
+   Swap the label text so that when a task has a dependency added (task A must finish before task B), task A is labeled "Predecessor" on task B's detail sheet.
+   The Gantt chart data is correct — only fix the label rendering in task-detail-sheet.tsx.
+
+2. TEMPLATE EDITOR EXPAND/COLLAPSE — File: src/components/template-editor.tsx
+   The chevron toggle for nested tasks is not working. Fix the expand/collapse state handler so clicking the chevron correctly shows/hides child tasks.
+   The schema already supports parentTaskId. Ensure child tasks are rendered recursively so grandchild tasks also appear when their parent is expanded.
+
+3. PMO SETTINGS RATE CARD ROUTE — File: admin/settings navigation component
+   The Rate Card tab in PMO Settings redirects to the dashboard instead of the Rate Cards page.
+   Find the route definition for this tab and wire it to the correct Rate Cards route. Do not create a new page — link to the existing one.
+
+4. FINANCIAL PAGE SEARCH — File: src/pages/finance (or equivalent) + filter-evaluator.ts or /api/finance route
+   Project name search on the Financial page returns no results.
+   Debug the server-side filter or client-side filter evaluator. Likely cause: case sensitivity mismatch or wrong field name. Fix so that typing a project name returns matching projects. Do not change other filters.
+
+5. TASK PARENT DROPDOWN CACHE INVALIDATION — File: task creation mutation handler
+   After creating a task, the new task does not appear in the Parent Task dropdown for child task creation.
+   Add queryClient.invalidateQueries targeting the project's task list query key immediately after a successful task creation. Do not change the task creation API.
+
+6. CHANGE ORDER PROJECT FIELD — File: change order create/edit form component
+   The Project Name field in the Change Order form is a free-text input.
+   Replace it with a searchable dropdown that fetches existing projects from the API (/api/projects or equivalent). Use the same pattern as other project-select dropdowns in the app. Do not change the Change Order data model or API.
+
+7. CONTRACT MANAGER — NEW CONTRACT BUTTON — File: contract manager page component
+   The "New Contract" button is non-functional.
+   If the create contract dialog/route does not exist, disable the button and add a tooltip or label that says "Coming soon." Do not wire it to a broken handler. Do not create a new module.
+
+8. TASK STATUS LABELS — UI rename only (do NOT change stored values or database schema)
+   In all task status dropdowns, filter menus, and badge displays across the application:
+   - Rename "Todo" → "Not Started"
+   - Rename "In Progress" → "Started"
+   - Rename "Blocked" → "On Hold"
+   - Rename "Done" → "Completed"
+   - Remove "In Review" from new task creation options (keep it visible in filters for historical tasks)
+   - Add "Canceled" as a valid status option in creation and edit flows
+   This is a display-layer change only. Do not alter any database columns, seed data, or API contracts.
+
+9. UNDO TOAST — File: shared mutation handlers or toast utility
+   After task deletion, phase deletion, or any bulk destructive operation, show a toast notification with an "Undo" action button.
+   The toast should remain visible for 5 seconds. The Undo action should call the inverse API operation (e.g., restore the deleted task/phase).
+   Apply this pattern only to deletions and destructive bulk actions — not to edits or status changes.
+
+After all changes: verify the following pages load without errors — Financial page, PMO Settings (Rate Card tab), Template Editor, Task Detail Sheet (dependency section), Change Order form, Contract Manager page.
+Preserve all existing routes, APIs, permissions, authentication, and data models.
+Validation Checklist
+
+ Task detail sheet shows "Predecessor" and "Successor" in the correct positions
+ Template editor chevron expands and collapses child tasks correctly
+ Grandchild tasks render inside their parent in the template editor
+ PMO Settings → Rate Card tab navigates to the Rate Cards page without error
+ Financial page search returns projects when typing a project name
+ Newly created tasks appear immediately in the parent task dropdown
+ Change Order project field is a searchable dropdown of real projects
+ "New Contract" button is visibly disabled with "Coming soon" label
+ Task status dropdowns show: Not Started, Started, On Hold, Completed, Canceled
+ "In Review" does not appear in task creation or edit dropdowns
+ Deleting a task shows an undo toast for 5 seconds
+ No existing pages, routes, or API endpoints are broken

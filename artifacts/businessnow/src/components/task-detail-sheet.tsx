@@ -538,7 +538,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                         <div key={dep.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{dep.dependencyType}</span>
-                            <span className="text-xs text-muted-foreground shrink-0">{isSuccessor ? "Predecessor:" : "Successor / Blocks:"}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">{isSuccessor ? "Predecessor:" : "Blocks:"}</span>
                             <span className="text-sm truncate">{otherName}</span>
                             {dep.lagDays > 0 && <span className="text-xs text-muted-foreground shrink-0">+{dep.lagDays}d lag</span>}
                           </div>

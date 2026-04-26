@@ -992,7 +992,7 @@ export default function ProjectDetail() {
                       const today = new Date().toISOString().slice(0, 10);
                       let filtered = (tasks || []).filter((t: any) => {
                         if (taskFilter === "overdue") return t.dueDate && t.dueDate < today && t.status !== "Completed" && !t.isMilestone;
-                        if (taskFilter === "blocked") return t.status === "Blocked";
+                        if (taskFilter === "blocked") return t.status === "On Hold" || t.status === "Blocked";
                         if (taskFilter === "at_risk") return t.isMilestone && t.dueDate && t.dueDate > today && t.status !== "Completed" && new Date(t.dueDate).getTime() - Date.now() < 7 * 86400000;
                         if (taskFilter === "on_track") return t.status === "In Progress" && (!t.dueDate || t.dueDate >= today) && !t.isMilestone;
                         return false;
@@ -1017,19 +1017,24 @@ export default function ProjectDetail() {
                 ) : (
                   <div className="overflow-x-auto pb-4">
                     <div className="flex gap-4 min-w-max">
-                      {(["Not Started", "In Progress", "Blocked", "Completed"] as const).map(status => {
-                        const colTasks = (tasks || []).filter((t: any) => t.status === status && !t.parentTaskId && !t.isMilestone);
+                      {(["Not Started", "In Progress", "On Hold", "Completed", "Canceled"] as const).map(status => {
+                        const colTasks = (tasks || []).filter((t: any) => {
+                          const s = t.status === "Blocked" ? "On Hold" : t.status;
+                          return s === status && !t.parentTaskId && !t.isMilestone;
+                        });
                         const colors: Record<string, string> = {
                           "Not Started": "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
                           "In Progress": "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
-                          "Blocked": "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+                          "On Hold": "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
                           "Completed": "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+                          "Canceled": "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
                         };
                         const nextStatus: Record<string, string> = {
                           "Not Started": "In Progress",
                           "In Progress": "Completed",
-                          "Blocked": "In Progress",
+                          "On Hold": "In Progress",
                           "Completed": "Not Started",
+                          "Canceled": "Not Started",
                         };
                         return (
                           <div key={status} className="w-72 flex-shrink-0">
