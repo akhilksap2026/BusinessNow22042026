@@ -1,18 +1,22 @@
 # BusinessNow PSA — Full Codebase Snapshot
 
-> Generated: 2026-04-26 03:06 UTC
+> Generated: 2026-04-26 05:17:52 UTC
 
 ---
+
 ## 1. Directory Tree
 
 ```
 .
+./.npmrc
+./.replit
+./.replitignore
 ./artifacts
 ./artifacts/api-server
-./artifacts/api-server/build.mjs
-./artifacts/api-server/package.json
 ./artifacts/api-server/.replit-artifact
 ./artifacts/api-server/.replit-artifact/artifact.toml
+./artifacts/api-server/build.mjs
+./artifacts/api-server/package.json
 ./artifacts/api-server/src
 ./artifacts/api-server/src/app.ts
 ./artifacts/api-server/src/constants
@@ -20,8 +24,8 @@
 ./artifacts/api-server/src/constants/roles.ts
 ./artifacts/api-server/src/index.ts
 ./artifacts/api-server/src/lib
-./artifacts/api-server/src/lib/audit.ts
 ./artifacts/api-server/src/lib/.gitkeep
+./artifacts/api-server/src/lib/audit.ts
 ./artifacts/api-server/src/lib/governance.ts
 ./artifacts/api-server/src/lib/logger.ts
 ./artifacts/api-server/src/middleware
@@ -36,8 +40,8 @@
 ./artifacts/api-server/src/routes/baselines.ts
 ./artifacts/api-server/src/routes/billingSchedules.ts
 ./artifacts/api-server/src/routes/changeOrders.ts
-./artifacts/api-server/src/routes/csatSurveys.ts
 ./artifacts/api-server/src/routes/csat.ts
+./artifacts/api-server/src/routes/csatSurveys.ts
 ./artifacts/api-server/src/routes/customFields.ts
 ./artifacts/api-server/src/routes/dashboard.ts
 ./artifacts/api-server/src/routes/documents.ts
@@ -49,6 +53,7 @@
 ./artifacts/api-server/src/routes/notifications.ts
 ./artifacts/api-server/src/routes/opportunities.ts
 ./artifacts/api-server/src/routes/placeholders.ts
+./artifacts/api-server/src/routes/projectGroups.ts
 ./artifacts/api-server/src/routes/projects.ts
 ./artifacts/api-server/src/routes/projectTemplates.ts
 ./artifacts/api-server/src/routes/projectUpdates.ts
@@ -62,6 +67,7 @@
 ./artifacts/api-server/src/routes/taskDependencies.ts
 ./artifacts/api-server/src/routes/taskDetails.ts
 ./artifacts/api-server/src/routes/tasks.ts
+./artifacts/api-server/src/routes/taskStatusDefinitions.ts
 ./artifacts/api-server/src/routes/timeEntries.ts
 ./artifacts/api-server/src/routes/timeOff.ts
 ./artifacts/api-server/src/routes/timesheets.ts
@@ -70,6 +76,8 @@
 ./artifacts/api-server/tests/permissions.test.ts
 ./artifacts/api-server/tsconfig.json
 ./artifacts/businessnow
+./artifacts/businessnow/.replit-artifact
+./artifacts/businessnow/.replit-artifact/artifact.toml
 ./artifacts/businessnow/components.json
 ./artifacts/businessnow/index.html
 ./artifacts/businessnow/package.json
@@ -79,8 +87,6 @@
 ./artifacts/businessnow/public/public
 ./artifacts/businessnow/public/public/favicon.svg
 ./artifacts/businessnow/public/public/opengraph.jpg
-./artifacts/businessnow/.replit-artifact
-./artifacts/businessnow/.replit-artifact/artifact.toml
 ./artifacts/businessnow/src
 ./artifacts/businessnow/src/App.tsx
 ./artifacts/businessnow/src/components
@@ -93,6 +99,7 @@
 ./artifacts/businessnow/src/components/project-documents.tsx
 ./artifacts/businessnow/src/components/project-forms.tsx
 ./artifacts/businessnow/src/components/project-gantt.tsx
+./artifacts/businessnow/src/components/project-groups-nav.tsx
 ./artifacts/businessnow/src/components/project-phases.tsx
 ./artifacts/businessnow/src/components/require-permission.tsx
 ./artifacts/businessnow/src/components/resource-kpi-bar.tsx
@@ -132,8 +139,8 @@
 ./artifacts/businessnow/src/components/ui/table.tsx
 ./artifacts/businessnow/src/components/ui/tabs.tsx
 ./artifacts/businessnow/src/components/ui/textarea.tsx
-./artifacts/businessnow/src/components/ui/toaster.tsx
 ./artifacts/businessnow/src/components/ui/toast.tsx
+./artifacts/businessnow/src/components/ui/toaster.tsx
 ./artifacts/businessnow/src/components/ui/toggle.tsx
 ./artifacts/businessnow/src/components/ui/tooltip-cell.tsx
 ./artifacts/businessnow/src/components/ui/tooltip.tsx
@@ -153,6 +160,7 @@
 ./artifacts/businessnow/src/lib/permissions.ts
 ./artifacts/businessnow/src/lib/queryClient.ts
 ./artifacts/businessnow/src/lib/roles.ts
+./artifacts/businessnow/src/lib/task-status.ts
 ./artifacts/businessnow/src/lib/utils.ts
 ./artifacts/businessnow/src/main.tsx
 ./artifacts/businessnow/src/pages
@@ -173,13 +181,15 @@
 ./artifacts/businessnow/tsconfig.json
 ./artifacts/businessnow/vite.config.ts
 ./artifacts/mockup-sandbox
+./artifacts/mockup-sandbox/.replit-artifact
+./artifacts/mockup-sandbox/.replit-artifact/artifact.toml
 ./artifacts/mockup-sandbox/components.json
 ./artifacts/mockup-sandbox/index.html
 ./artifacts/mockup-sandbox/mockupPreviewPlugin.ts
 ./artifacts/mockup-sandbox/package.json
-./artifacts/mockup-sandbox/.replit-artifact
-./artifacts/mockup-sandbox/.replit-artifact/artifact.toml
 ./artifacts/mockup-sandbox/src
+./artifacts/mockup-sandbox/src/.generated
+./artifacts/mockup-sandbox/src/.generated/mockup-components.ts
 ./artifacts/mockup-sandbox/src/App.tsx
 ./artifacts/mockup-sandbox/src/components
 ./artifacts/mockup-sandbox/src/components/mockups
@@ -236,13 +246,11 @@
 ./artifacts/mockup-sandbox/src/components/ui/table.tsx
 ./artifacts/mockup-sandbox/src/components/ui/tabs.tsx
 ./artifacts/mockup-sandbox/src/components/ui/textarea.tsx
-./artifacts/mockup-sandbox/src/components/ui/toaster.tsx
 ./artifacts/mockup-sandbox/src/components/ui/toast.tsx
+./artifacts/mockup-sandbox/src/components/ui/toaster.tsx
 ./artifacts/mockup-sandbox/src/components/ui/toggle-group.tsx
 ./artifacts/mockup-sandbox/src/components/ui/toggle.tsx
 ./artifacts/mockup-sandbox/src/components/ui/tooltip.tsx
-./artifacts/mockup-sandbox/src/.generated
-./artifacts/mockup-sandbox/src/.generated/mockup-components.ts
 ./artifacts/mockup-sandbox/src/hooks
 ./artifacts/mockup-sandbox/src/hooks/use-mobile.tsx
 ./artifacts/mockup-sandbox/src/hooks/use-toast.ts
@@ -313,11 +321,11 @@
 ./lib/api-zod/src/generated/types/auditLogEntry.ts
 ./lib/api-zod/src/generated/types/billingSchedule.ts
 ./lib/api-zod/src/generated/types/budgetEntry.ts
+./lib/api-zod/src/generated/types/budgetVsActualsReport.ts
 ./lib/api-zod/src/generated/types/budgetVsActualsReportProjectsItem.ts
 ./lib/api-zod/src/generated/types/budgetVsActualsReportTotals.ts
-./lib/api-zod/src/generated/types/budgetVsActualsReport.ts
-./lib/api-zod/src/generated/types/burnDownReportDataPointsItem.ts
 ./lib/api-zod/src/generated/types/burnDownReport.ts
+./lib/api-zod/src/generated/types/burnDownReportDataPointsItem.ts
 ./lib/api-zod/src/generated/types/convertOpportunityBody.ts
 ./lib/api-zod/src/generated/types/convertOpportunityResult.ts
 ./lib/api-zod/src/generated/types/convertProspectBody.ts
@@ -338,14 +346,15 @@
 ./lib/api-zod/src/generated/types/createOpportunityBody.ts
 ./lib/api-zod/src/generated/types/createProjectBody.ts
 ./lib/api-zod/src/generated/types/createProjectFromTemplateBody.ts
+./lib/api-zod/src/generated/types/createProjectGroupBody.ts
 ./lib/api-zod/src/generated/types/createProjectTemplateBody.ts
 ./lib/api-zod/src/generated/types/createProspectBody.ts
-./lib/api-zod/src/generated/types/createRateCardBodyRolesItem.ts
 ./lib/api-zod/src/generated/types/createRateCardBody.ts
+./lib/api-zod/src/generated/types/createRateCardBodyRolesItem.ts
 ./lib/api-zod/src/generated/types/createResourceRequestBody.ts
 ./lib/api-zod/src/generated/types/createRevenueEntryBody.ts
-./lib/api-zod/src/generated/types/createSavedViewBodyEntity.ts
 ./lib/api-zod/src/generated/types/createSavedViewBody.ts
+./lib/api-zod/src/generated/types/createSavedViewBodyEntity.ts
 ./lib/api-zod/src/generated/types/createSavedViewBodyVisibility.ts
 ./lib/api-zod/src/generated/types/createSkillBody.ts
 ./lib/api-zod/src/generated/types/createSkillCategoryBody.ts
@@ -363,18 +372,18 @@
 ./lib/api-zod/src/generated/types/createTimesheetBody.ts
 ./lib/api-zod/src/generated/types/createUserBody.ts
 ./lib/api-zod/src/generated/types/csatResponse.ts
-./lib/api-zod/src/generated/types/csatSummaryRatingDistribution.ts
 ./lib/api-zod/src/generated/types/csatSummary.ts
+./lib/api-zod/src/generated/types/csatSummaryRatingDistribution.ts
 ./lib/api-zod/src/generated/types/customFieldDefinition.ts
 ./lib/api-zod/src/generated/types/customFieldValue.ts
 ./lib/api-zod/src/generated/types/dashboardSummary.ts
 ./lib/api-zod/src/generated/types/documentVersion.ts
 ./lib/api-zod/src/generated/types/duplicateSavedViewBody.ts
-./lib/api-zod/src/generated/types/financeSummaryByStatusItem.ts
 ./lib/api-zod/src/generated/types/financeSummary.ts
+./lib/api-zod/src/generated/types/financeSummaryByStatusItem.ts
 ./lib/api-zod/src/generated/types/formField.ts
-./lib/api-zod/src/generated/types/formResponseResponses.ts
 ./lib/api-zod/src/generated/types/formResponse.ts
+./lib/api-zod/src/generated/types/formResponseResponses.ts
 ./lib/api-zod/src/generated/types/ganttData.ts
 ./lib/api-zod/src/generated/types/ganttRow.ts
 ./lib/api-zod/src/generated/types/getDashboardSummaryParams.ts
@@ -383,8 +392,8 @@
 ./lib/api-zod/src/generated/types/holidayCalendar.ts
 ./lib/api-zod/src/generated/types/holidayDate.ts
 ./lib/api-zod/src/generated/types/index.ts
-./lib/api-zod/src/generated/types/invoiceLineItem.ts
 ./lib/api-zod/src/generated/types/invoice.ts
+./lib/api-zod/src/generated/types/invoiceLineItem.ts
 ./lib/api-zod/src/generated/types/listAccountsParams.ts
 ./lib/api-zod/src/generated/types/listAllocationsParams.ts
 ./lib/api-zod/src/generated/types/listAuditLogParams.ts
@@ -409,59 +418,62 @@
 ./lib/api-zod/src/generated/types/listTimesheetsParams.ts
 ./lib/api-zod/src/generated/types/notification.ts
 ./lib/api-zod/src/generated/types/opportunity.ts
+./lib/api-zod/src/generated/types/project.ts
 ./lib/api-zod/src/generated/types/projectBudgetEntries.ts
 ./lib/api-zod/src/generated/types/projectDocument.ts
-./lib/api-zod/src/generated/types/projectFormDetail.ts
 ./lib/api-zod/src/generated/types/projectForm.ts
-./lib/api-zod/src/generated/types/projectHealthReportProjectsItem.ts
+./lib/api-zod/src/generated/types/projectFormDetail.ts
+./lib/api-zod/src/generated/types/projectGroup.ts
 ./lib/api-zod/src/generated/types/projectHealthReport.ts
+./lib/api-zod/src/generated/types/projectHealthReportProjectsItem.ts
 ./lib/api-zod/src/generated/types/projectSummary.ts
 ./lib/api-zod/src/generated/types/projectTemplate.ts
-./lib/api-zod/src/generated/types/project.ts
 ./lib/api-zod/src/generated/types/prospect.ts
-./lib/api-zod/src/generated/types/rateCardRolesItem.ts
 ./lib/api-zod/src/generated/types/rateCard.ts
+./lib/api-zod/src/generated/types/rateCardRolesItem.ts
 ./lib/api-zod/src/generated/types/rejectTimesheetBody.ts
 ./lib/api-zod/src/generated/types/reorderTasksBody.ts
 ./lib/api-zod/src/generated/types/reorderTasksBodyUpdatesItem.ts
 ./lib/api-zod/src/generated/types/reorderTasksResponse.ts
+./lib/api-zod/src/generated/types/reorderTaskStatusDefinitionsBody.ts
 ./lib/api-zod/src/generated/types/resourceRequest.ts
-./lib/api-zod/src/generated/types/revenueByPeriodReportPeriodsItemByMethod.ts
-./lib/api-zod/src/generated/types/revenueByPeriodReportPeriodsItem.ts
 ./lib/api-zod/src/generated/types/revenueByPeriodReport.ts
+./lib/api-zod/src/generated/types/revenueByPeriodReportPeriodsItem.ts
+./lib/api-zod/src/generated/types/revenueByPeriodReportPeriodsItemByMethod.ts
 ./lib/api-zod/src/generated/types/revenueEntry.ts
+./lib/api-zod/src/generated/types/revenueReport.ts
 ./lib/api-zod/src/generated/types/revenueReportByAccountItem.ts
 ./lib/api-zod/src/generated/types/revenueReportByMonthItem.ts
 ./lib/api-zod/src/generated/types/revenueReportByProjectItem.ts
-./lib/api-zod/src/generated/types/revenueReport.ts
+./lib/api-zod/src/generated/types/savedView.ts
 ./lib/api-zod/src/generated/types/savedViewCondition.ts
 ./lib/api-zod/src/generated/types/savedViewEntity.ts
-./lib/api-zod/src/generated/types/savedViewFiltersMatchMode.ts
 ./lib/api-zod/src/generated/types/savedViewFilters.ts
-./lib/api-zod/src/generated/types/savedView.ts
+./lib/api-zod/src/generated/types/savedViewFiltersMatchMode.ts
 ./lib/api-zod/src/generated/types/savedViewVisibility.ts
-./lib/api-zod/src/generated/types/skillCategory.ts
 ./lib/api-zod/src/generated/types/skill.ts
-./lib/api-zod/src/generated/types/submitFormResponseBodyResponses.ts
+./lib/api-zod/src/generated/types/skillCategory.ts
 ./lib/api-zod/src/generated/types/submitFormResponseBody.ts
+./lib/api-zod/src/generated/types/submitFormResponseBodyResponses.ts
+./lib/api-zod/src/generated/types/task.ts
 ./lib/api-zod/src/generated/types/taskChecklistItem.ts
 ./lib/api-zod/src/generated/types/taskComment.ts
 ./lib/api-zod/src/generated/types/taskNote.ts
-./lib/api-zod/src/generated/types/task.ts
+./lib/api-zod/src/generated/types/taskStatusDefinition.ts
 ./lib/api-zod/src/generated/types/taxCode.ts
-./lib/api-zod/src/generated/types/templateAllocationsSummaryByRoleItem.ts
-./lib/api-zod/src/generated/types/templateAllocationsSummary.ts
 ./lib/api-zod/src/generated/types/templateAllocation.ts
+./lib/api-zod/src/generated/types/templateAllocationsSummary.ts
+./lib/api-zod/src/generated/types/templateAllocationsSummaryByRoleItem.ts
 ./lib/api-zod/src/generated/types/templatePhase.ts
-./lib/api-zod/src/generated/types/templateTaskPriority.ts
 ./lib/api-zod/src/generated/types/templateTask.ts
+./lib/api-zod/src/generated/types/templateTaskPriority.ts
 ./lib/api-zod/src/generated/types/timeCategory.ts
 ./lib/api-zod/src/generated/types/timeEntry.ts
 ./lib/api-zod/src/generated/types/timeOffRequest.ts
 ./lib/api-zod/src/generated/types/timesheet.ts
+./lib/api-zod/src/generated/types/timeSummary.ts
 ./lib/api-zod/src/generated/types/timeSummaryByProjectItem.ts
 ./lib/api-zod/src/generated/types/timeSummaryByUserItem.ts
-./lib/api-zod/src/generated/types/timeSummary.ts
 ./lib/api-zod/src/generated/types/triggerBillingScheduleResponse.ts
 ./lib/api-zod/src/generated/types/updateAccountBody.ts
 ./lib/api-zod/src/generated/types/updateAllocationBody.ts
@@ -471,13 +483,14 @@
 ./lib/api-zod/src/generated/types/updateInvoiceLineItemBody.ts
 ./lib/api-zod/src/generated/types/updateOpportunityBody.ts
 ./lib/api-zod/src/generated/types/updateProjectBody.ts
+./lib/api-zod/src/generated/types/updateProjectGroupBody.ts
 ./lib/api-zod/src/generated/types/updateProjectTemplateBody.ts
 ./lib/api-zod/src/generated/types/updateProspectBody.ts
-./lib/api-zod/src/generated/types/updateRateCardBodyRolesItem.ts
 ./lib/api-zod/src/generated/types/updateRateCardBody.ts
+./lib/api-zod/src/generated/types/updateRateCardBodyRolesItem.ts
 ./lib/api-zod/src/generated/types/updateResourceRequestBody.ts
-./lib/api-zod/src/generated/types/updateResourceRequestStatusBodyStatus.ts
 ./lib/api-zod/src/generated/types/updateResourceRequestStatusBody.ts
+./lib/api-zod/src/generated/types/updateResourceRequestStatusBodyStatus.ts
 ./lib/api-zod/src/generated/types/updateSavedViewBody.ts
 ./lib/api-zod/src/generated/types/updateSavedViewBodyVisibility.ts
 ./lib/api-zod/src/generated/types/updateTaskBody.ts
@@ -488,12 +501,12 @@
 ./lib/api-zod/src/generated/types/updateTimesheetBody.ts
 ./lib/api-zod/src/generated/types/updateUserBody.ts
 ./lib/api-zod/src/generated/types/upsertCustomFieldValueBody.ts
+./lib/api-zod/src/generated/types/user.ts
 ./lib/api-zod/src/generated/types/userCapacity.ts
 ./lib/api-zod/src/generated/types/userSkillWithDetails.ts
-./lib/api-zod/src/generated/types/user.ts
+./lib/api-zod/src/generated/types/utilizationReport.ts
 ./lib/api-zod/src/generated/types/utilizationReportByMonthItem.ts
 ./lib/api-zod/src/generated/types/utilizationReportByUserItem.ts
-./lib/api-zod/src/generated/types/utilizationReport.ts
 ./lib/api-zod/src/index.ts
 ./lib/api-zod/tsconfig.json
 ./lib/api-zod/tsconfig.tsbuildinfo
@@ -520,6 +533,7 @@
 ./lib/db/src/schema/opportunities.ts
 ./lib/db/src/schema/phases.ts
 ./lib/db/src/schema/placeholders.ts
+./lib/db/src/schema/projectGroups.ts
 ./lib/db/src/schema/projectMembers.ts
 ./lib/db/src/schema/projects.ts
 ./lib/db/src/schema/projectTemplates.ts
@@ -531,17 +545,15 @@
 ./lib/db/src/schema/skills.ts
 ./lib/db/src/schema/taskRelations.ts
 ./lib/db/src/schema/tasks.ts
+./lib/db/src/schema/taskStatusDefinitions.ts
 ./lib/db/src/schema/timeEntries.ts
 ./lib/db/src/schema/timesheets.ts
 ./lib/db/src/schema/users.ts
 ./lib/db/tsconfig.json
 ./lib/db/tsconfig.tsbuildinfo
-./.npmrc
 ./package.json
 ./pnpm-lock.yaml
 ./pnpm-workspace.yaml
-./.replit
-./.replitignore
 ./replit.md
 ./scripts
 ./scripts/package.json
@@ -555,6 +567,7 @@
 ```
 
 ---
+
 ## 2. Environment Variables
 
 ```
@@ -580,10 +593,9 @@ LANG
 LD_AUDIT
 LIBGL_DRIVERS_PATH
 LOCALE_ARCHIVE
-NIX_PATH
 NIXPKGS_ALLOW_UNFREE
+NIX_PATH
 NIX_PROFILES
-npm_config_prefix
 PAGER
 PATH
 PGDATABASE
@@ -592,10 +604,7 @@ PGPASSWORD
 PGPORT
 PGUSER
 PROMPT_DIRTRIM
-REPL_HOME
-REPL_ID
-REPL_IDENTITY
-REPL_IDENTITY_KEY
+PWD
 REPLIT_ARTIFACT_ROUTER
 REPLIT_ASKPASS_PID2_SESSION
 REPLIT_BASHRC
@@ -627,21 +636,30 @@ REPLIT_SUBCLUSTER
 REPLIT_USER
 REPLIT_USERID
 REPLIT_USER_RUN
+REPL_HOME
+REPL_ID
+REPL_IDENTITY
+REPL_IDENTITY_KEY
 REPL_LANGUAGE
 REPL_OWNER
 REPL_OWNER_ID
 REPL_PUBKEYS
 REPL_SLUG
 SESSION_SECRET
+SHLVL
+TERM
 TZDIR
 USER
 XDG_CACHE_HOME
 XDG_CONFIG_HOME
 XDG_DATA_DIRS
 XDG_DATA_HOME
+__EGL_VENDOR_LIBRARY_FILENAMES
+npm_config_prefix
 ```
 
 ---
+
 ## 3. package.json Files
 
 ### `package.json`
@@ -973,6 +991,7 @@ XDG_DATA_HOME
 ```
 
 ---
+
 ## 4. Database Schema
 
 ### `lib/db/src/index.ts`
@@ -997,7 +1016,7 @@ export * from "./schema";
 
 ### `lib/db/src/schema/accounts.ts`
 ```typescript
-import { pgTable, serial, text, integer, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -1009,6 +1028,9 @@ export const accountsTable = pgTable("accounts", {
   region: text("region").notNull(),
   status: text("status").notNull().default("Active"),
   accountType: text("account_type").notNull().default("client"),
+  // Section E: explicit boolean flag for "internal" accounts. Kept in sync
+  // with `accountType` on the API side so existing consumers continue to work.
+  isInternal: boolean("is_internal").notNull().default(false),
   contractValue: numeric("contract_value", { precision: 12, scale: 2 }).notNull().default("0"),
   billingAddress: text("billing_address"),
   logoUrl: text("logo_url"),
@@ -1456,6 +1478,8 @@ export * from "./changeOrders";
 export * from "./projectUpdates";
 export * from "./intervalIq";
 export * from "./savedViews";
+export * from "./taskStatusDefinitions";
+export * from "./projectGroups";
 ```
 
 ### `lib/db/src/schema/intervalIq.ts`
@@ -1609,6 +1633,30 @@ export type InsertPlaceholder = z.infer<typeof insertPlaceholderSchema>;
 export type Placeholder = typeof placeholdersTable.$inferSelect;
 ```
 
+### `lib/db/src/schema/projectGroups.ts`
+```typescript
+import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const projectGroupsTable = pgTable("project_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertProjectGroupSchema = createInsertSchema(projectGroupsTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertProjectGroup = z.infer<typeof insertProjectGroupSchema>;
+export type ProjectGroup = typeof projectGroupsTable.$inferSelect;
+```
+
 ### `lib/db/src/schema/projectMembers.ts`
 ```typescript
 import { pgTable, serial, integer, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
@@ -1664,45 +1712,6 @@ export const insertProjectMemberSchema = createInsertSchema(projectMembersTable,
 });
 export type InsertProjectMember = z.infer<typeof insertProjectMemberSchema>;
 export type ProjectMember = typeof projectMembersTable.$inferSelect;
-```
-
-### `lib/db/src/schema/projects.ts`
-```typescript
-import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
-
-export const projectsTable = pgTable("projects", {
-  id: serial("id").primaryKey(),
-  accountId: integer("account_id").notNull(),
-  name: text("name").notNull(),
-  status: text("status").notNull().default("Not Started"),
-  ownerId: integer("owner_id").notNull(),
-  startDate: text("start_date").notNull(),
-  dueDate: text("due_date").notNull(),
-  billingType: text("billing_type").notNull().default("Fixed Fee"),
-  budget: numeric("budget", { precision: 12, scale: 2 }).notNull().default("0"),
-  trackedHours: numeric("tracked_hours", { precision: 8, scale: 2 }).notNull().default("0"),
-  allocatedHours: numeric("allocated_hours", { precision: 8, scale: 2 }).notNull().default("0"),
-  budgetedHours: numeric("budgeted_hours", { precision: 8, scale: 2 }).notNull().default("0"),
-  completion: integer("completion").notNull().default(0),
-  health: text("health").notNull().default("On Track"),
-  description: text("description"),
-  rateCardId: integer("rate_card_id"),
-  customerChampion: text("customer_champion"),
-  templateId: integer("template_id"),
-  internalExternal: text("internal_external").notNull().default("External"),
-  isAdminProject: integer("is_admin_project").notNull().default(0),
-  autoAllocate: boolean("auto_allocate").notNull().default(false),
-  opportunityId: integer("opportunity_id"),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const insertProjectSchema = createInsertSchema(projectsTable).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertProject = z.infer<typeof insertProjectSchema>;
-export type Project = typeof projectsTable.$inferSelect;
 ```
 
 ### `lib/db/src/schema/projectTemplates.ts`
@@ -1816,6 +1825,46 @@ export const updateRecipientsTable = pgTable("update_recipients", {
 
 export type ProjectUpdate = typeof projectUpdatesTable.$inferSelect;
 export type UpdateRecipient = typeof updateRecipientsTable.$inferSelect;
+```
+
+### `lib/db/src/schema/projects.ts`
+```typescript
+import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const projectsTable = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  accountId: integer("account_id").notNull(),
+  name: text("name").notNull(),
+  status: text("status").notNull().default("Not Started"),
+  ownerId: integer("owner_id").notNull(),
+  startDate: text("start_date").notNull(),
+  dueDate: text("due_date").notNull(),
+  billingType: text("billing_type").notNull().default("Fixed Fee"),
+  budget: numeric("budget", { precision: 12, scale: 2 }).notNull().default("0"),
+  trackedHours: numeric("tracked_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  allocatedHours: numeric("allocated_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  budgetedHours: numeric("budgeted_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  completion: integer("completion").notNull().default(0),
+  health: text("health").notNull().default("On Track"),
+  description: text("description"),
+  rateCardId: integer("rate_card_id"),
+  customerChampion: text("customer_champion"),
+  templateId: integer("template_id"),
+  internalExternal: text("internal_external").notNull().default("External"),
+  isAdminProject: integer("is_admin_project").notNull().default(0),
+  autoAllocate: boolean("auto_allocate").notNull().default(false),
+  opportunityId: integer("opportunity_id"),
+  projectGroupId: integer("project_group_id"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertProjectSchema = createInsertSchema(projectsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projectsTable.$inferSelect;
 ```
 
 ### `lib/db/src/schema/prospects.ts`
@@ -2118,6 +2167,30 @@ export const taskAttachmentsTable = pgTable("task_attachments", {
 export const insertTaskAttachmentSchema = createInsertSchema(taskAttachmentsTable).omit({ id: true, createdAt: true });
 export type InsertTaskAttachment = z.infer<typeof insertTaskAttachmentSchema>;
 export type TaskAttachment = typeof taskAttachmentsTable.$inferSelect;
+```
+
+### `lib/db/src/schema/taskStatusDefinitions.ts`
+```typescript
+import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const taskStatusDefinitionsTable = pgTable("task_status_definitions", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull().unique(),
+  position: integer("position").notNull().default(0),
+  isTerminal: boolean("is_terminal").notNull().default(false),
+  isDefault: boolean("is_default").notNull().default(false),
+  color: text("color"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTaskStatusDefinitionSchema = createInsertSchema(
+  taskStatusDefinitionsTable,
+).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTaskStatusDefinition = z.infer<typeof insertTaskStatusDefinitionSchema>;
+export type TaskStatusDefinition = typeof taskStatusDefinitionsTable.$inferSelect;
 ```
 
 ### `lib/db/src/schema/tasks.ts`
@@ -2447,6 +2520,7 @@ export type User = typeof usersTable.$inferSelect;
 ```
 
 ---
+
 ## 5. Source Files
 
 ### `artifacts/api-server/src/app.ts`
@@ -3424,7 +3498,6 @@ export const requireFinance = requireCanonicalRole("account_admin", "super_user"
  * legacy roles explicitly to honour the exclusion.
  */
 export const requireCostRateAccess = requireAnyRole("Admin", "Finance", "PM");
-
 ```
 
 ### `artifacts/api-server/src/middleware/roleClaim.ts`
@@ -3541,13 +3614,26 @@ router.get("/accounts", async (req, res): Promise<void> => {
   res.json(ListAccountsResponse.parse(rows.map(mapAccount)));
 });
 
+// Section E: keep `accountType` and `isInternal` in sync on every write so
+// existing consumers (which still read accountType) and new ones (which read
+// isInternal) always see consistent values.
+function syncInternalFlags<T extends { accountType?: string; isInternal?: boolean }>(data: T): T {
+  if (data.isInternal !== undefined) {
+    data.accountType = data.isInternal ? "internal" : (data.accountType === "internal" ? "client" : (data.accountType ?? "client"));
+  } else if (data.accountType !== undefined) {
+    data.isInternal = data.accountType === "internal";
+  }
+  return data;
+}
+
 router.post("/accounts", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateAccountBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [row] = await db.insert(accountsTable).values(parsed.data as any).returning();
+  const data = syncInternalFlags({ ...parsed.data });
+  const [row] = await db.insert(accountsTable).values(data as any).returning();
   res.status(201).json(GetAccountResponse.parse(mapAccount(row)));
 });
 
@@ -3564,7 +3650,8 @@ router.patch("/accounts/:id", requirePM, async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateAccountBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [row] = await db.update(accountsTable).set(parsed.data as any).where(eq(accountsTable.id, params.data.id)).returning();
+  const data = syncInternalFlags({ ...parsed.data });
+  const [row] = await db.update(accountsTable).set(data as any).where(eq(accountsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Account not found" }); return; }
   res.json(UpdateAccountResponse.parse(mapAccount(row)));
 });
@@ -4717,6 +4804,87 @@ router.delete("/change-orders/:id", requirePM, async (req, res): Promise<void> =
 export default router;
 ```
 
+### `artifacts/api-server/src/routes/csat.ts`
+```typescript
+import { Router, type IRouter } from "express";
+import { db, csatResponsesTable, csatSurveysTable } from "@workspace/db";
+import { eq, and, isNotNull } from "drizzle-orm";
+import { ListCsatResponsesQueryParams, CreateCsatResponseBody } from "@workspace/api-zod";
+
+const router: IRouter = Router();
+
+function mapCsat(r: typeof csatResponsesTable.$inferSelect) {
+  return {
+    ...r,
+    submittedAt: r.submittedAt instanceof Date ? r.submittedAt.toISOString() : r.submittedAt,
+  };
+}
+
+router.get("/csat-responses", async (req, res): Promise<void> => {
+  const qp = ListCsatResponsesQueryParams.safeParse(req.query);
+  const conditions: any[] = [];
+  if (qp.success) {
+    if (qp.data.projectId) conditions.push(eq(csatResponsesTable.projectId, qp.data.projectId));
+    if (qp.data.taskId) conditions.push(eq(csatResponsesTable.taskId, qp.data.taskId));
+  }
+  const rows = conditions.length
+    ? await db.select().from(csatResponsesTable).where(and(...conditions))
+    : await db.select().from(csatResponsesTable);
+  res.json(rows.map(mapCsat));
+});
+
+router.post("/csat-responses", async (req, res): Promise<void> => {
+  const parsed = CreateCsatResponseBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const [row] = await db.insert(csatResponsesTable).values(parsed.data).returning();
+  res.status(201).json(mapCsat(row));
+});
+
+router.get("/projects/:id/csat-summary", async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.id, 10);
+  const responses = await db.select().from(csatResponsesTable).where(eq(csatResponsesTable.projectId, projectId));
+
+  // Also include completed survey ratings
+  const completedSurveys = await db.select().from(csatSurveysTable).where(
+    and(eq(csatSurveysTable.projectId, projectId), isNotNull(csatSurveysTable.rating))
+  );
+  const pendingSurveys = await db.select().from(csatSurveysTable).where(
+    and(eq(csatSurveysTable.projectId, projectId))
+  );
+
+  // Merge manual responses + completed survey ratings for aggregate
+  const allRatings = [
+    ...responses.map(r => r.rating),
+    ...completedSurveys.map(s => s.rating as number),
+  ];
+
+  const totalResponses = allRatings.length;
+  const averageRating = totalResponses > 0
+    ? Math.round((allRatings.reduce((s, r) => s + r, 0) / totalResponses) * 10) / 10
+    : 0;
+
+  const dist: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+  allRatings.forEach(r => { dist[String(r)] = (dist[String(r)] || 0) + 1; });
+
+  const recentResponses = responses
+    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+    .slice(0, 5)
+    .map(mapCsat);
+
+  res.json({
+    projectId,
+    averageRating,
+    totalResponses,
+    ratingDistribution: dist,
+    recentResponses,
+    pendingSurveys: pendingSurveys.length,
+    completedSurveys: completedSurveys.length,
+  });
+});
+
+export default router;
+```
+
 ### `artifacts/api-server/src/routes/csatSurveys.ts`
 ```typescript
 import { Router, type IRouter } from "express";
@@ -4810,87 +4978,6 @@ router.patch("/tasks/:id/csat-enabled", async (req, res): Promise<void> => {
   const [row] = await db.update(tasksTable).set({ csatEnabled } as any).where(eq(tasksTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Task not found" }); return; }
   res.json({ id: row.id, csatEnabled: (row as any).csatEnabled });
-});
-
-export default router;
-```
-
-### `artifacts/api-server/src/routes/csat.ts`
-```typescript
-import { Router, type IRouter } from "express";
-import { db, csatResponsesTable, csatSurveysTable } from "@workspace/db";
-import { eq, and, isNotNull } from "drizzle-orm";
-import { ListCsatResponsesQueryParams, CreateCsatResponseBody } from "@workspace/api-zod";
-
-const router: IRouter = Router();
-
-function mapCsat(r: typeof csatResponsesTable.$inferSelect) {
-  return {
-    ...r,
-    submittedAt: r.submittedAt instanceof Date ? r.submittedAt.toISOString() : r.submittedAt,
-  };
-}
-
-router.get("/csat-responses", async (req, res): Promise<void> => {
-  const qp = ListCsatResponsesQueryParams.safeParse(req.query);
-  const conditions: any[] = [];
-  if (qp.success) {
-    if (qp.data.projectId) conditions.push(eq(csatResponsesTable.projectId, qp.data.projectId));
-    if (qp.data.taskId) conditions.push(eq(csatResponsesTable.taskId, qp.data.taskId));
-  }
-  const rows = conditions.length
-    ? await db.select().from(csatResponsesTable).where(and(...conditions))
-    : await db.select().from(csatResponsesTable);
-  res.json(rows.map(mapCsat));
-});
-
-router.post("/csat-responses", async (req, res): Promise<void> => {
-  const parsed = CreateCsatResponseBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [row] = await db.insert(csatResponsesTable).values(parsed.data).returning();
-  res.status(201).json(mapCsat(row));
-});
-
-router.get("/projects/:id/csat-summary", async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
-  const responses = await db.select().from(csatResponsesTable).where(eq(csatResponsesTable.projectId, projectId));
-
-  // Also include completed survey ratings
-  const completedSurveys = await db.select().from(csatSurveysTable).where(
-    and(eq(csatSurveysTable.projectId, projectId), isNotNull(csatSurveysTable.rating))
-  );
-  const pendingSurveys = await db.select().from(csatSurveysTable).where(
-    and(eq(csatSurveysTable.projectId, projectId))
-  );
-
-  // Merge manual responses + completed survey ratings for aggregate
-  const allRatings = [
-    ...responses.map(r => r.rating),
-    ...completedSurveys.map(s => s.rating as number),
-  ];
-
-  const totalResponses = allRatings.length;
-  const averageRating = totalResponses > 0
-    ? Math.round((allRatings.reduce((s, r) => s + r, 0) / totalResponses) * 10) / 10
-    : 0;
-
-  const dist: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
-  allRatings.forEach(r => { dist[String(r)] = (dist[String(r)] || 0) + 1; });
-
-  const recentResponses = responses
-    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-    .slice(0, 5)
-    .map(mapCsat);
-
-  res.json({
-    projectId,
-    averageRating,
-    totalResponses,
-    ratingDistribution: dist,
-    recentResponses,
-    pendingSurveys: pendingSurveys.length,
-    completedSurveys: completedSurveys.length,
-  });
 });
 
 export default router;
@@ -5495,6 +5582,7 @@ import billingSchedulesRouter from "./billingSchedules";
 import revenueEntriesRouter from "./revenueEntries";
 import timeOffRouter from "./timeOff";
 import skillsRouter from "./skills";
+import taskStatusDefinitionsRouter from "./taskStatusDefinitions";
 import taskDetailsRouter from "./taskDetails";
 import adminSettingsRouter from "./adminSettings";
 import customFieldsRouter from "./customFields";
@@ -5508,6 +5596,7 @@ import taskDependenciesRouter from "./taskDependencies";
 import baselinesRouter from "./baselines";
 import csatSurveysRouter from "./csatSurveys";
 import { projectUpdatesRouter } from "./projectUpdates";
+import projectGroupsRouter from "./projectGroups";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
 
@@ -5544,6 +5633,7 @@ router.use(billingSchedulesRouter);
 router.use(revenueEntriesRouter);
 router.use(timeOffRouter);
 router.use(skillsRouter);
+router.use(taskStatusDefinitionsRouter);
 router.use(taskDetailsRouter);
 router.use(adminSettingsRouter);
 router.use(customFieldsRouter);
@@ -5558,6 +5648,7 @@ router.use(taskDependenciesRouter);
 router.use(baselinesRouter);
 router.use(csatSurveysRouter);
 router.use(projectUpdatesRouter);
+router.use(projectGroupsRouter);
 
 export default router;
 ```
@@ -6192,414 +6283,118 @@ router.delete("/placeholders/:id", requireAdmin, async (req, res): Promise<void>
 export default router;
 ```
 
-### `artifacts/api-server/src/routes/projects.ts`
+### `artifacts/api-server/src/routes/projectGroups.ts`
 ```typescript
 import { Router, type IRouter } from "express";
-import { eq, and, asc, isNull, isNotNull, inArray } from "drizzle-orm";
-import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable } from "@workspace/db";
-import { logAudit } from "../lib/audit";
-import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
-  ListProjectsResponse,
-  ListProjectsQueryParams,
-  CreateProjectBody,
-  GetProjectParams,
-  GetProjectResponse,
-  UpdateProjectParams,
-  UpdateProjectBody,
-  UpdateProjectResponse,
-  DeleteProjectParams,
-  GetProjectSummaryParams,
-  GetProjectSummaryResponse,
-} from "@workspace/api-zod";
+  db,
+  projectGroupsTable,
+  projectsTable,
+} from "@workspace/db";
+import { asc, eq } from "drizzle-orm";
+import { z } from "zod/v4";
+import { requireAdmin } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
-function mapProject(p: typeof projectsTable.$inferSelect) {
+function mapGroup(r: typeof projectGroupsTable.$inferSelect) {
   return {
-    ...p,
-    budget: Number(p.budget),
-    trackedHours: Number(p.trackedHours),
-    allocatedHours: Number(p.allocatedHours),
-    budgetedHours: Number(p.budgetedHours),
-    createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt,
-    updatedAt: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : p.updatedAt,
+    ...r,
+    createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
+    updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt,
   };
 }
 
-router.get("/projects", async (req, res): Promise<void> => {
-  const qp = ListProjectsQueryParams.safeParse(req.query);
-  const conditions: ReturnType<typeof eq>[] = [isNull(projectsTable.deletedAt)];
-  if (qp.success && qp.data.status) conditions.push(eq(projectsTable.status, qp.data.status));
-  if (qp.success && qp.data.accountId) conditions.push(eq(projectsTable.accountId, qp.data.accountId));
+const CreateBody = z.object({
+  name: z.string().min(1).max(120),
+  color: z.string().max(20).nullable().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+const UpdateBody = z.object({
+  name: z.string().min(1).max(120).optional(),
+  color: z.string().max(20).nullable().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+router.get("/project-groups", async (_req, res): Promise<void> => {
   const rows = await db
-    .select({ project: projectsTable, accountName: accountsTable.name, accountDomain: accountsTable.domain, ownerName: usersTable.name })
-    .from(projectsTable)
-    .leftJoin(accountsTable, eq(projectsTable.accountId, accountsTable.id))
-    .leftJoin(usersTable, eq(projectsTable.ownerId, usersTable.id))
-    .where(and(...conditions));
-  res.json(ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain, ownerName }) => ({
-    ...mapProject(project),
-    companyName: accountName ?? undefined,
-    companyDomain: accountDomain ?? undefined,
-    ownerName: ownerName ?? undefined,
-  }))));
+    .select()
+    .from(projectGroupsTable)
+    .orderBy(asc(projectGroupsTable.sortOrder), asc(projectGroupsTable.id));
+  res.json(rows.map(mapGroup));
 });
 
-router.post("/projects", requirePM, async (req, res): Promise<void> => {
-  const parsed = CreateProjectBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  // Cross-field guard: dueDate must not precede startDate.
-  const sd = (parsed.data as any).startDate;
-  const dd = (parsed.data as any).dueDate;
-  if (sd && dd && new Date(dd) < new Date(sd)) {
-    res.status(400).json({ error: "dueDate must be on or after startDate" });
+router.post("/project-groups", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = CreateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [row] = await db.insert(projectsTable).values(parsed.data as any).returning();
-  await logAudit({ entityType: "project", entityId: row.id, action: "created", description: `Project "${row.name}" created` });
-  res.status(201).json(GetProjectResponse.parse(mapProject(row)));
+  // If sortOrder is omitted, append to the end so new groups don't overlap
+  // existing ones. Cheap because the table is tiny.
+  let nextOrder = parsed.data.sortOrder;
+  if (nextOrder === undefined) {
+    const all = await db.select({ sortOrder: projectGroupsTable.sortOrder }).from(projectGroupsTable);
+    nextOrder = all.reduce((m, r) => Math.max(m, r.sortOrder), -1) + 1;
+  }
+  const [row] = await db
+    .insert(projectGroupsTable)
+    .values({
+      name: parsed.data.name,
+      color: parsed.data.color ?? null,
+      sortOrder: nextOrder,
+    })
+    .returning();
+  res.status(201).json(mapGroup(row));
 });
 
-router.get("/projects/deleted", requireAdmin, async (_req, res): Promise<void> => {
-  const rows = await db.select().from(projectsTable).where(isNotNull(projectsTable.deletedAt));
-  res.json(rows.map(mapProject));
-});
-
-router.get("/projects/:id", async (req, res): Promise<void> => {
-  const params = GetProjectParams.safeParse(req.params);
-  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const [row] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
-  if (!row) { res.status(404).json({ error: "Project not found" }); return; }
-  res.json(GetProjectResponse.parse(mapProject(row)));
-});
-
-router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
-  const params = UpdateProjectParams.safeParse(req.params);
-  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const parsed = UpdateProjectBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  // Soft-delete leak guard: do not allow edits to a soft-deleted project
-  // (callers should use the dedicated /restore endpoint first).
-  const [existing] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
-  if (!existing) { res.status(404).json({ error: "Project not found" }); return; }
-  if (existing.deletedAt) {
-    res.status(409).json({ error: "Project is deleted; restore it before editing." });
+router.patch("/project-groups/:id", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
     return;
   }
-  // Cross-field guard against the merged value, so PATCH-only-startDate or
-  // PATCH-only-dueDate cannot create an inverted range.
-  const merged = { ...existing, ...(parsed.data as any) };
-  if (merged.startDate && merged.dueDate && new Date(merged.dueDate) < new Date(merged.startDate)) {
-    res.status(400).json({ error: "dueDate must be on or after startDate" });
+  const parsed = UpdateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [row] = await db.update(projectsTable).set(parsed.data as any).where(eq(projectsTable.id, params.data.id)).returning();
-  if (!row) { res.status(404).json({ error: "Project not found" }); return; }
-  await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
-  res.json(UpdateProjectResponse.parse(mapProject(row)));
+  const updates: Partial<typeof projectGroupsTable.$inferInsert> = { updatedAt: new Date() };
+  if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+  if (parsed.data.color !== undefined) updates.color = parsed.data.color;
+  if (parsed.data.sortOrder !== undefined) updates.sortOrder = parsed.data.sortOrder;
+
+  const [row] = await db
+    .update(projectGroupsTable)
+    .set(updates)
+    .where(eq(projectGroupsTable.id, id))
+    .returning();
+  if (!row) {
+    res.status(404).json({ error: "Project group not found" });
+    return;
+  }
+  res.json(mapGroup(row));
 });
 
-router.delete("/projects/:id", requirePM, async (req, res): Promise<void> => {
-  const params = DeleteProjectParams.safeParse(req.params);
-  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const [previous] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
-  await db.update(projectsTable).set({ deletedAt: new Date() } as any).where(eq(projectsTable.id, params.data.id));
-  if (previous) {
-    await logAudit({
-      entityType: "project",
-      entityId: previous.id,
-      action: "deleted",
-      actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
-      description: `Project "${previous.name}" archived (soft-deleted)`,
-    });
+router.delete("/project-groups/:id", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
   }
+  // Detach affected projects first so we never leave dangling projectGroupId
+  // references. This matches the spec ("set projectGroupId = null on
+  // affected projects") and keeps clients consistent.
+  await db
+    .update(projectsTable)
+    .set({ projectGroupId: null, updatedAt: new Date() })
+    .where(eq(projectsTable.projectGroupId, id));
+  await db.delete(projectGroupsTable).where(eq(projectGroupsTable.id, id));
   res.sendStatus(204);
 });
 
-router.post("/projects/:id/restore", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const [row] = await db.update(projectsTable).set({ deletedAt: null } as any).where(eq(projectsTable.id, id)).returning();
-  if (!row) { res.status(404).json({ error: "Project not found" }); return; }
-  await logAudit({
-    entityType: "project",
-    entityId: row.id,
-    action: "updated",
-    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
-    description: `Project "${row.name}" restored from archive`,
-  });
-  res.json(mapProject(row));
-});
-
-router.get("/projects/:id/summary", async (req, res): Promise<void> => {
-  const params = GetProjectSummaryParams.safeParse(req.params);
-  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
-  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
-
-  const projectInvoices = await db.select().from(invoicesTable).where(eq(invoicesTable.projectId, params.data.id));
-  const allocations = await db.select().from(allocationsTable).where(eq(allocationsTable.projectId, params.data.id));
-
-  const budget = Number(project.budget);
-  const budgetedHours = Number(project.budgetedHours);
-  const trackedHours = Number(project.trackedHours);
-  const invoicedAmount = projectInvoices.filter(i => i.status === 'Paid' || i.status === 'Approved').reduce((s, i) => s + Number(i.total), 0);
-  const pendingAmount = projectInvoices.filter(i => i.status === 'In Review' || i.status === 'Draft').reduce((s, i) => s + Number(i.total), 0);
-  const due = new Date(project.dueDate);
-  const daysRemaining = Math.max(0, Math.ceil((due.getTime() - Date.now()) / 86400000));
-  const teamSize = new Set(allocations.map(a => a.userId)).size;
-
-  res.json(GetProjectSummaryResponse.parse({
-    projectId: params.data.id,
-    budgetUsedPercent: budget > 0 ? Math.min(100, Math.round((invoicedAmount / budget) * 100)) : 0,
-    hoursUsedPercent: budgetedHours > 0 ? Math.min(100, Math.round((trackedHours / budgetedHours) * 100)) : 0,
-    daysRemaining,
-    invoicedAmount,
-    pendingAmount,
-    teamSize,
-  }));
-});
-
-// ─── Shift Dates ──────────────────────────────────────────────────────────────
-router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
-  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
-
-  const { days, fromTaskId } = req.body;
-  const shiftDays = parseInt(days, 10);
-  if (isNaN(shiftDays) || shiftDays === 0) {
-    res.status(400).json({ error: "days must be a non-zero integer" }); return;
-  }
-
-  const shiftMs = shiftDays * 86400000;
-
-  function shiftDate(d: string | null | undefined): string | null {
-    if (!d) return null;
-    return new Date(new Date(d).getTime() + shiftMs).toISOString().slice(0, 10);
-  }
-
-  // Get all tasks for the project
-  const allTasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, projectId));
-
-  // If fromTaskId given, only shift that task and its downstream dependents
-  let taskIdsToShift: Set<number>;
-  if (fromTaskId) {
-    const startId = parseInt(fromTaskId, 10);
-    // BFS downstream
-    taskIdsToShift = new Set<number>([startId]);
-    const allDeps = await db.select().from(taskDependenciesTable)
-      .where(inArray(taskDependenciesTable.predecessorId, allTasks.map(t => t.id)));
-    const queue = [startId];
-    while (queue.length > 0) {
-      const cur = queue.shift()!;
-      const downstream = allDeps.filter(d => d.predecessorId === cur);
-      for (const d of downstream) {
-        if (!taskIdsToShift.has(d.successorId)) {
-          taskIdsToShift.add(d.successorId);
-          queue.push(d.successorId);
-        }
-      }
-    }
-  } else {
-    taskIdsToShift = new Set(allTasks.map(t => t.id));
-  }
-
-  // Shift tasks
-  for (const task of allTasks) {
-    if (!taskIdsToShift.has(task.id)) continue;
-    await db.update(tasksTable).set({
-      startDate: shiftDate(task.startDate),
-      dueDate: shiftDate(task.dueDate),
-    }).where(eq(tasksTable.id, task.id));
-  }
-
-  // Phase rollup: Level-1 phase tasks now hold their own dates and are shifted in the
-  // tasks loop above; no separate phases entity to recalc.
-
-  // Optionally shift project dates too
-  if (!fromTaskId) {
-    const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
-    if (project) {
-      await db.update(projectsTable).set({
-        startDate: shiftDate(project.startDate),
-        dueDate: shiftDate(project.dueDate),
-      }).where(eq(projectsTable.id, projectId));
-    }
-  }
-
-  await logAudit({ action: "updated", entityType: "project", entityId: projectId, description: `Shifted dates by ${shiftDays} days` });
-  res.json({ shifted: taskIdsToShift.size, days: shiftDays });
-});
-
-// ── Gantt data ────────────────────────────────────────────────────────────────
-router.get("/projects/:id/gantt", async (req, res): Promise<void> => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid project id" }); return; }
-
-  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
-  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
-
-  const tasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, id));
-  const users = await db.select().from(usersTable);
-
-  const taskIds = tasks.map(t => t.id);
-  const deps = taskIds.length > 0
-    ? await db.select().from(taskDependenciesTable).where(
-        inArray(taskDependenciesTable.successorId, taskIds)
-      )
-    : [];
-
-  // Build a set of task IDs that are parents
-  const parentIds = new Set(tasks.filter(t => t.parentTaskId !== null).map(t => t.parentTaskId as number));
-
-  // Compute depth for each task by walking the parent chain
-  const depthMap = new Map<number, number>();
-  function getDepth(taskId: number, visited = new Set<number>()): number {
-    if (depthMap.has(taskId)) return depthMap.get(taskId)!;
-    if (visited.has(taskId)) return 0;
-    visited.add(taskId);
-    const task = tasks.find(t => t.id === taskId);
-    if (!task || task.parentTaskId === null) {
-      depthMap.set(taskId, 0);
-      return 0;
-    }
-    const d = 1 + getDepth(task.parentTaskId, visited);
-    depthMap.set(taskId, d);
-    return d;
-  }
-  tasks.forEach(t => getDepth(t.id));
-
-  // Sort tasks: top-level first, then by parent hierarchy
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const da = depthMap.get(a.id) ?? 0;
-    const db_ = depthMap.get(b.id) ?? 0;
-    if (da !== db_) return da - db_;
-    return a.id - b.id;
-  });
-
-  const rows = sortedTasks.map(t => {
-    const assigneeIds = (t.assigneeIds ?? []) as number[];
-    const assigneeNames = assigneeIds
-      .map(id => users.find(u => u.id === id)?.name ?? `User ${id}`)
-      .slice(0, 2)
-      .join(", ");
-    return {
-      id: t.id,
-      type: t.isMilestone ? "milestone" : "task",
-      name: t.name,
-      startDate: t.startDate ?? null,
-      dueDate: t.dueDate ?? null,
-      status: t.status,
-      completion: 0,
-      parentId: t.parentTaskId ?? null,
-      parentTaskId: t.parentTaskId ?? null,
-      depth: depthMap.get(t.id) ?? 0,
-      isMilestone: t.isMilestone,
-      milestoneType: t.milestoneType ?? null,
-      hasChildren: parentIds.has(t.id),
-      assigneeIds,
-      assigneeNames,
-    };
-  });
-
-  const dependencies = deps.map(d => ({
-    id: d.id,
-    predecessorId: d.predecessorId,
-    successorId: d.successorId,
-    dependencyType: d.dependencyType ?? "FS",
-    lagDays: d.lagDays ?? 0,
-  }));
-
-  // Determine project date range from tasks if project dates are missing
-  const allStarts = tasks.map(t => t.startDate).filter(Boolean) as string[];
-  const allEnds = tasks.map(t => t.dueDate).filter(Boolean) as string[];
-  const projectStart = project.startDate || (allStarts.length ? allStarts.sort()[0] : new Date().toISOString().slice(0, 10));
-  const projectEnd = project.dueDate || (allEnds.length ? allEnds.sort().at(-1)! : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
-
-  res.json({ projectId: id, projectStart, projectEnd, rows, dependencies });
-});
-
-// ─── Budget entries ───────────────────────────────────────────────────────────
-function mapBudgetEntry(b: typeof budgetEntriesTable.$inferSelect) {
-  return {
-    id: b.id,
-    projectId: b.projectId,
-    entryDate: b.entryDate,
-    type: b.type,
-    description: b.description,
-    amount: Number(b.amount),
-    hours: Number(b.hours),
-    documentLink: b.documentLink,
-    changeOrderId: b.changeOrderId,
-    createdAt: b.createdAt instanceof Date ? b.createdAt.toISOString() : b.createdAt,
-  };
-}
-
-router.get("/projects/:id/budget-entries", async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
-  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
-  const rows = await db
-    .select()
-    .from(budgetEntriesTable)
-    .where(eq(budgetEntriesTable.projectId, projectId))
-    .orderBy(asc(budgetEntriesTable.entryDate), asc(budgetEntriesTable.id));
-
-  let runningAmount = 0;
-  let runningHours = 0;
-  const entries = rows.map((r) => {
-    const m = mapBudgetEntry(r);
-    runningAmount += m.amount;
-    runningHours += m.hours;
-    return { ...m, runningAmount: Number(runningAmount.toFixed(2)), runningHours: Number(runningHours.toFixed(2)) };
-  });
-
-  res.json({
-    totalAmount: Number(runningAmount.toFixed(2)),
-    totalHours: Number(runningHours.toFixed(2)),
-    entries,
-  });
-});
-
-// Manual entries are restricted to "Adjustment". SOW rows are seeded once when
-// a project is created, and CO rows are inserted automatically by the
-// /change-orders approval flow — exposing those types here would let users
-// double-count the budget.
-router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
-  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
-  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
-  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
-
-  const { entryDate, type, description, amount, hours, documentLink } = req.body ?? {};
-  if (!entryDate || typeof entryDate !== "string") { res.status(400).json({ error: "entryDate is required" }); return; }
-  if (type !== "Adjustment") { res.status(400).json({ error: "Manual entries must be type 'Adjustment'. SOW and CO entries are recorded automatically." }); return; }
-  const desc = typeof description === "string" ? description.trim() : "";
-  if (!desc) { res.status(400).json({ error: "description is required" }); return; }
-
-  const [row] = await db.insert(budgetEntriesTable).values({
-    projectId,
-    entryDate,
-    type,
-    description: desc,
-    amount: String(Number(amount) || 0),
-    hours: String(Number(hours) || 0),
-    documentLink: documentLink || null,
-  }).returning();
-
-  await logAudit({
-    entityType: "project",
-    entityId: projectId,
-    action: "budget_entry_added",
-    description: `Budget entry added (${type}): ${desc} — $${Number(row.amount).toFixed(2)}, ${Number(row.hours).toFixed(2)}h`,
-    newValue: { type, amount: Number(row.amount), hours: Number(row.hours) },
-  });
-
-  res.status(201).json(mapBudgetEntry(row));
-});
-
 export default router;
-
 ```
 
 ### `artifacts/api-server/src/routes/projectTemplates.ts`
@@ -7739,6 +7534,415 @@ projectUpdatesRouter.get("/projects/:id/health-stats", async (req, res): Promise
     phases: phaseStats,
   });
 });
+```
+
+### `artifacts/api-server/src/routes/projects.ts`
+```typescript
+import { Router, type IRouter } from "express";
+import { eq, and, asc, isNull, isNotNull, inArray } from "drizzle-orm";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable } from "@workspace/db";
+import { logAudit } from "../lib/audit";
+import { requireAdmin, requirePM } from "../middleware/rbac";
+import {
+  ListProjectsResponse,
+  ListProjectsQueryParams,
+  CreateProjectBody,
+  GetProjectParams,
+  GetProjectResponse,
+  UpdateProjectParams,
+  UpdateProjectBody,
+  UpdateProjectResponse,
+  DeleteProjectParams,
+  GetProjectSummaryParams,
+  GetProjectSummaryResponse,
+} from "@workspace/api-zod";
+
+const router: IRouter = Router();
+
+function mapProject(p: typeof projectsTable.$inferSelect) {
+  return {
+    ...p,
+    budget: Number(p.budget),
+    trackedHours: Number(p.trackedHours),
+    allocatedHours: Number(p.allocatedHours),
+    budgetedHours: Number(p.budgetedHours),
+    createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt,
+    updatedAt: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : p.updatedAt,
+  };
+}
+
+router.get("/projects", async (req, res): Promise<void> => {
+  const qp = ListProjectsQueryParams.safeParse(req.query);
+  const conditions: ReturnType<typeof eq>[] = [isNull(projectsTable.deletedAt)];
+  if (qp.success && qp.data.status) conditions.push(eq(projectsTable.status, qp.data.status));
+  if (qp.success && qp.data.accountId) conditions.push(eq(projectsTable.accountId, qp.data.accountId));
+  const rows = await db
+    .select({ project: projectsTable, accountName: accountsTable.name, accountDomain: accountsTable.domain, ownerName: usersTable.name })
+    .from(projectsTable)
+    .leftJoin(accountsTable, eq(projectsTable.accountId, accountsTable.id))
+    .leftJoin(usersTable, eq(projectsTable.ownerId, usersTable.id))
+    .where(and(...conditions));
+  res.json(ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain, ownerName }) => ({
+    ...mapProject(project),
+    companyName: accountName ?? undefined,
+    companyDomain: accountDomain ?? undefined,
+    ownerName: ownerName ?? undefined,
+  }))));
+});
+
+router.post("/projects", requirePM, async (req, res): Promise<void> => {
+  const parsed = CreateProjectBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // Cross-field guard: dueDate must not precede startDate.
+  const sd = (parsed.data as any).startDate;
+  const dd = (parsed.data as any).dueDate;
+  if (sd && dd && new Date(dd) < new Date(sd)) {
+    res.status(400).json({ error: "dueDate must be on or after startDate" });
+    return;
+  }
+  const [row] = await db.insert(projectsTable).values(parsed.data as any).returning();
+  await logAudit({ entityType: "project", entityId: row.id, action: "created", description: `Project "${row.name}" created` });
+  res.status(201).json(GetProjectResponse.parse(mapProject(row)));
+});
+
+router.get("/projects/deleted", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await db.select().from(projectsTable).where(isNotNull(projectsTable.deletedAt));
+  res.json(rows.map(mapProject));
+});
+
+router.get("/projects/:id", async (req, res): Promise<void> => {
+  const params = GetProjectParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [row] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
+  if (!row) { res.status(404).json({ error: "Project not found" }); return; }
+  res.json(GetProjectResponse.parse(mapProject(row)));
+});
+
+router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
+  const params = UpdateProjectParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const parsed = UpdateProjectBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // Soft-delete leak guard: do not allow edits to a soft-deleted project
+  // (callers should use the dedicated /restore endpoint first).
+  const [existing] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Project not found" }); return; }
+  if (existing.deletedAt) {
+    res.status(409).json({ error: "Project is deleted; restore it before editing." });
+    return;
+  }
+  // Cross-field guard against the merged value, so PATCH-only-startDate or
+  // PATCH-only-dueDate cannot create an inverted range.
+  const merged = { ...existing, ...(parsed.data as any) };
+  if (merged.startDate && merged.dueDate && new Date(merged.dueDate) < new Date(merged.startDate)) {
+    res.status(400).json({ error: "dueDate must be on or after startDate" });
+    return;
+  }
+  const [row] = await db.update(projectsTable).set(parsed.data as any).where(eq(projectsTable.id, params.data.id)).returning();
+  if (!row) { res.status(404).json({ error: "Project not found" }); return; }
+  await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
+  res.json(UpdateProjectResponse.parse(mapProject(row)));
+});
+
+router.delete("/projects/:id", requirePM, async (req, res): Promise<void> => {
+  const params = DeleteProjectParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [previous] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
+  await db.update(projectsTable).set({ deletedAt: new Date() } as any).where(eq(projectsTable.id, params.data.id));
+  if (previous) {
+    await logAudit({
+      entityType: "project",
+      entityId: previous.id,
+      action: "deleted",
+      actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+      description: `Project "${previous.name}" archived (soft-deleted)`,
+    });
+  }
+  res.sendStatus(204);
+});
+
+router.post("/projects/:id/restore", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.update(projectsTable).set({ deletedAt: null } as any).where(eq(projectsTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Project not found" }); return; }
+  await logAudit({
+    entityType: "project",
+    entityId: row.id,
+    action: "updated",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+    description: `Project "${row.name}" restored from archive`,
+  });
+  res.json(mapProject(row));
+});
+
+router.get("/projects/:id/summary", async (req, res): Promise<void> => {
+  const params = GetProjectSummaryParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+  const projectInvoices = await db.select().from(invoicesTable).where(eq(invoicesTable.projectId, params.data.id));
+  const allocations = await db.select().from(allocationsTable).where(eq(allocationsTable.projectId, params.data.id));
+
+  const budget = Number(project.budget);
+  const budgetedHours = Number(project.budgetedHours);
+  const trackedHours = Number(project.trackedHours);
+  const invoicedAmount = projectInvoices.filter(i => i.status === 'Paid' || i.status === 'Approved').reduce((s, i) => s + Number(i.total), 0);
+  const pendingAmount = projectInvoices.filter(i => i.status === 'In Review' || i.status === 'Draft').reduce((s, i) => s + Number(i.total), 0);
+  const due = new Date(project.dueDate);
+  const daysRemaining = Math.max(0, Math.ceil((due.getTime() - Date.now()) / 86400000));
+  const teamSize = new Set(allocations.map(a => a.userId)).size;
+
+  res.json(GetProjectSummaryResponse.parse({
+    projectId: params.data.id,
+    budgetUsedPercent: budget > 0 ? Math.min(100, Math.round((invoicedAmount / budget) * 100)) : 0,
+    hoursUsedPercent: budgetedHours > 0 ? Math.min(100, Math.round((trackedHours / budgetedHours) * 100)) : 0,
+    daysRemaining,
+    invoicedAmount,
+    pendingAmount,
+    teamSize,
+  }));
+});
+
+// ─── Shift Dates ──────────────────────────────────────────────────────────────
+router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  const { days, fromTaskId } = req.body;
+  const shiftDays = parseInt(days, 10);
+  if (isNaN(shiftDays) || shiftDays === 0) {
+    res.status(400).json({ error: "days must be a non-zero integer" }); return;
+  }
+
+  const shiftMs = shiftDays * 86400000;
+
+  function shiftDate(d: string | null | undefined): string | null {
+    if (!d) return null;
+    return new Date(new Date(d).getTime() + shiftMs).toISOString().slice(0, 10);
+  }
+
+  // Get all tasks for the project
+  const allTasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, projectId));
+
+  // If fromTaskId given, only shift that task and its downstream dependents
+  let taskIdsToShift: Set<number>;
+  if (fromTaskId) {
+    const startId = parseInt(fromTaskId, 10);
+    // BFS downstream
+    taskIdsToShift = new Set<number>([startId]);
+    const allDeps = await db.select().from(taskDependenciesTable)
+      .where(inArray(taskDependenciesTable.predecessorId, allTasks.map(t => t.id)));
+    const queue = [startId];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      const downstream = allDeps.filter(d => d.predecessorId === cur);
+      for (const d of downstream) {
+        if (!taskIdsToShift.has(d.successorId)) {
+          taskIdsToShift.add(d.successorId);
+          queue.push(d.successorId);
+        }
+      }
+    }
+  } else {
+    taskIdsToShift = new Set(allTasks.map(t => t.id));
+  }
+
+  // Shift tasks
+  for (const task of allTasks) {
+    if (!taskIdsToShift.has(task.id)) continue;
+    await db.update(tasksTable).set({
+      startDate: shiftDate(task.startDate),
+      dueDate: shiftDate(task.dueDate),
+    }).where(eq(tasksTable.id, task.id));
+  }
+
+  // Phase rollup: Level-1 phase tasks now hold their own dates and are shifted in the
+  // tasks loop above; no separate phases entity to recalc.
+
+  // Optionally shift project dates too
+  if (!fromTaskId) {
+    const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+    if (project) {
+      await db.update(projectsTable).set({
+        startDate: shiftDate(project.startDate),
+        dueDate: shiftDate(project.dueDate),
+      }).where(eq(projectsTable.id, projectId));
+    }
+  }
+
+  await logAudit({ action: "updated", entityType: "project", entityId: projectId, description: `Shifted dates by ${shiftDays} days` });
+  res.json({ shifted: taskIdsToShift.size, days: shiftDays });
+});
+
+// ── Gantt data ────────────────────────────────────────────────────────────────
+router.get("/projects/:id/gantt", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+  const tasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, id));
+  const users = await db.select().from(usersTable);
+
+  const taskIds = tasks.map(t => t.id);
+  const deps = taskIds.length > 0
+    ? await db.select().from(taskDependenciesTable).where(
+        inArray(taskDependenciesTable.successorId, taskIds)
+      )
+    : [];
+
+  // Build a set of task IDs that are parents
+  const parentIds = new Set(tasks.filter(t => t.parentTaskId !== null).map(t => t.parentTaskId as number));
+
+  // Compute depth for each task by walking the parent chain
+  const depthMap = new Map<number, number>();
+  function getDepth(taskId: number, visited = new Set<number>()): number {
+    if (depthMap.has(taskId)) return depthMap.get(taskId)!;
+    if (visited.has(taskId)) return 0;
+    visited.add(taskId);
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.parentTaskId === null) {
+      depthMap.set(taskId, 0);
+      return 0;
+    }
+    const d = 1 + getDepth(task.parentTaskId, visited);
+    depthMap.set(taskId, d);
+    return d;
+  }
+  tasks.forEach(t => getDepth(t.id));
+
+  // Sort tasks: top-level first, then by parent hierarchy
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const da = depthMap.get(a.id) ?? 0;
+    const db_ = depthMap.get(b.id) ?? 0;
+    if (da !== db_) return da - db_;
+    return a.id - b.id;
+  });
+
+  const rows = sortedTasks.map(t => {
+    const assigneeIds = (t.assigneeIds ?? []) as number[];
+    const assigneeNames = assigneeIds
+      .map(id => users.find(u => u.id === id)?.name ?? `User ${id}`)
+      .slice(0, 2)
+      .join(", ");
+    return {
+      id: t.id,
+      type: t.isMilestone ? "milestone" : "task",
+      name: t.name,
+      startDate: t.startDate ?? null,
+      dueDate: t.dueDate ?? null,
+      status: t.status,
+      completion: 0,
+      parentId: t.parentTaskId ?? null,
+      parentTaskId: t.parentTaskId ?? null,
+      depth: depthMap.get(t.id) ?? 0,
+      isMilestone: t.isMilestone,
+      milestoneType: t.milestoneType ?? null,
+      hasChildren: parentIds.has(t.id),
+      assigneeIds,
+      assigneeNames,
+    };
+  });
+
+  const dependencies = deps.map(d => ({
+    id: d.id,
+    predecessorId: d.predecessorId,
+    successorId: d.successorId,
+    dependencyType: d.dependencyType ?? "FS",
+    lagDays: d.lagDays ?? 0,
+  }));
+
+  // Determine project date range from tasks if project dates are missing
+  const allStarts = tasks.map(t => t.startDate).filter(Boolean) as string[];
+  const allEnds = tasks.map(t => t.dueDate).filter(Boolean) as string[];
+  const projectStart = project.startDate || (allStarts.length ? allStarts.sort()[0] : new Date().toISOString().slice(0, 10));
+  const projectEnd = project.dueDate || (allEnds.length ? allEnds.sort().at(-1)! : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+
+  res.json({ projectId: id, projectStart, projectEnd, rows, dependencies });
+});
+
+// ─── Budget entries ───────────────────────────────────────────────────────────
+function mapBudgetEntry(b: typeof budgetEntriesTable.$inferSelect) {
+  return {
+    id: b.id,
+    projectId: b.projectId,
+    entryDate: b.entryDate,
+    type: b.type,
+    description: b.description,
+    amount: Number(b.amount),
+    hours: Number(b.hours),
+    documentLink: b.documentLink,
+    changeOrderId: b.changeOrderId,
+    createdAt: b.createdAt instanceof Date ? b.createdAt.toISOString() : b.createdAt,
+  };
+}
+
+router.get("/projects/:id/budget-entries", async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+  const rows = await db
+    .select()
+    .from(budgetEntriesTable)
+    .where(eq(budgetEntriesTable.projectId, projectId))
+    .orderBy(asc(budgetEntriesTable.entryDate), asc(budgetEntriesTable.id));
+
+  let runningAmount = 0;
+  let runningHours = 0;
+  const entries = rows.map((r) => {
+    const m = mapBudgetEntry(r);
+    runningAmount += m.amount;
+    runningHours += m.hours;
+    return { ...m, runningAmount: Number(runningAmount.toFixed(2)), runningHours: Number(runningHours.toFixed(2)) };
+  });
+
+  res.json({
+    totalAmount: Number(runningAmount.toFixed(2)),
+    totalHours: Number(runningHours.toFixed(2)),
+    entries,
+  });
+});
+
+// Manual entries are restricted to "Adjustment". SOW rows are seeded once when
+// a project is created, and CO rows are inserted automatically by the
+// /change-orders approval flow — exposing those types here would let users
+// double-count the budget.
+router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+  const { entryDate, type, description, amount, hours, documentLink } = req.body ?? {};
+  if (!entryDate || typeof entryDate !== "string") { res.status(400).json({ error: "entryDate is required" }); return; }
+  if (type !== "Adjustment") { res.status(400).json({ error: "Manual entries must be type 'Adjustment'. SOW and CO entries are recorded automatically." }); return; }
+  const desc = typeof description === "string" ? description.trim() : "";
+  if (!desc) { res.status(400).json({ error: "description is required" }); return; }
+
+  const [row] = await db.insert(budgetEntriesTable).values({
+    projectId,
+    entryDate,
+    type,
+    description: desc,
+    amount: String(Number(amount) || 0),
+    hours: String(Number(hours) || 0),
+    documentLink: documentLink || null,
+  }).returning();
+
+  await logAudit({
+    entityType: "project",
+    entityId: projectId,
+    action: "budget_entry_added",
+    description: `Budget entry added (${type}): ${desc} — $${Number(row.amount).toFixed(2)}, ${Number(row.hours).toFixed(2)}h`,
+    newValue: { type, amount: Number(row.amount), hours: Number(row.hours) },
+  });
+
+  res.status(201).json(mapBudgetEntry(row));
+});
+
+export default router;
 ```
 
 ### `artifacts/api-server/src/routes/prospects.ts`
@@ -8890,7 +9094,6 @@ router.post("/reports/export-async", async (req, res): Promise<void> => {
 });
 
 export default router;
-
 ```
 
 ### `artifacts/api-server/src/routes/resourceRequests.ts`
@@ -9794,6 +9997,87 @@ router.delete("/tasks/:taskId/notes/:noteId", async (req, res): Promise<void> =>
   await db.delete(taskNotesTable).where(eq(taskNotesTable.id, noteId));
   res.sendStatus(204);
 });
+
+export default router;
+```
+
+### `artifacts/api-server/src/routes/taskStatusDefinitions.ts`
+```typescript
+import { Router, type IRouter } from "express";
+import { db, taskStatusDefinitionsTable } from "@workspace/db";
+import { asc, eq, inArray } from "drizzle-orm";
+import { requireAdmin } from "../middleware/rbac";
+import { z } from "zod/v4";
+
+const router: IRouter = Router();
+
+const ReorderBody = z.object({ order: z.array(z.number().int().positive()).min(1) });
+
+function mapStatus(r: typeof taskStatusDefinitionsTable.$inferSelect) {
+  return {
+    ...r,
+    createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
+    updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt,
+  };
+}
+
+router.get("/task-status-definitions", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(taskStatusDefinitionsTable)
+    .orderBy(asc(taskStatusDefinitionsTable.position));
+  res.json(rows.map(mapStatus));
+});
+
+router.patch(
+  "/task-status-definitions/reorder",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const parsed = ReorderBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const ids = parsed.data.order;
+
+    // Reject duplicate ids in payload — silent dupes would otherwise leave
+    // gaps when paired with the full-permutation check below.
+    if (new Set(ids).size !== ids.length) {
+      res.status(400).json({ error: "Duplicate status ids in order payload" });
+      return;
+    }
+
+    // Require a full permutation of every existing status id. Partial
+    // payloads would corrupt position ordering (gaps + duplicate positions),
+    // so we 400 instead of silently rewriting only the submitted subset.
+    const allRows = await db
+      .select({ id: taskStatusDefinitionsTable.id })
+      .from(taskStatusDefinitionsTable);
+    const existingIds = new Set(allRows.map((r) => r.id));
+    if (ids.length !== existingIds.size || !ids.every((id) => existingIds.has(id))) {
+      res.status(400).json({
+        error:
+          "Reorder payload must include every existing status id exactly once",
+      });
+      return;
+    }
+
+    // Apply new positions in declared order. Sequential to keep this simple
+    // — the table is small (typically <20 rows) so the perf impact is moot.
+    for (let i = 0; i < ids.length; i++) {
+      await db
+        .update(taskStatusDefinitionsTable)
+        .set({ position: i, updatedAt: new Date() })
+        .where(eq(taskStatusDefinitionsTable.id, ids[i]));
+    }
+
+    const rows = await db
+      .select()
+      .from(taskStatusDefinitionsTable)
+      .orderBy(asc(taskStatusDefinitionsTable.position));
+    res.json(rows.map(mapStatus));
+  },
+);
 
 export default router;
 ```
@@ -11710,6 +11994,7 @@ import {
   useListUsers,
   useListRateCards,
   useListProjectTemplates,
+  useApplyTemplateToProject,
   useCreateProject,
   useCreateAllocation,
   useCreateProjectFromTemplate,
@@ -11750,6 +12035,9 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState<Mode>("choose");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  // Section B "Starting Point" — chosen at step 4 of the blank-mode flow.
+  const [startingPoint, setStartingPoint] = useState<"blank" | "template" | "later">("blank");
+  const [postCreateTemplateId, setPostCreateTemplateId] = useState<number | null>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -11762,6 +12050,7 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
   const createProject = useCreateProject();
   const createAllocation = useCreateAllocation();
   const createFromTemplate = useCreateProjectFromTemplate();
+  const applyTemplate = useApplyTemplateToProject();
 
   const blankForm = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
@@ -11786,6 +12075,8 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
       setMode("choose");
       setStep(1);
       setSelectedTemplateId(null);
+      setStartingPoint("blank");
+      setPostCreateTemplateId(null);
       blankForm.reset();
       templateForm.reset();
     }
@@ -11826,7 +12117,28 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
       }
 
       queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
-      toast({ title: "Project created successfully" });
+
+      // Section B: if user picked "from template" at the Starting Point step,
+      // apply the chosen template to the freshly-created project. Failures
+      // here don't roll back the project — we surface a non-blocking warning.
+      if (startingPoint === "template" && postCreateTemplateId) {
+        try {
+          await applyTemplate.mutateAsync({
+            id: postCreateTemplateId,
+            data: { projectId: project.id, startDate: values.startDate },
+          });
+          toast({ title: "Project created and template applied" });
+        } catch {
+          toast({
+            title: "Project created — template apply failed",
+            description: "You can apply the template later from the project page.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({ title: "Project created successfully" });
+      }
+
       handleClose(false);
       setLocation(`/projects/${project.id}`);
     } catch {
@@ -11877,6 +12189,19 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
   const validateStep3 = async () => {
     const valid = await blankForm.trigger(["ownerId", "teamMembers", "rateCardId"]);
     if (valid) setStep(4);
+  };
+
+  const validateStep4 = () => {
+    // Block advancing to review when "from template" is selected without a pick.
+    if (startingPoint === "template" && !postCreateTemplateId) {
+      toast({
+        title: "Pick a template",
+        description: "Select a template to start from, or choose another option.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setStep(5);
   };
 
   const selectedTemplate = templates?.find(t => t.id === selectedTemplateId);
@@ -12141,18 +12466,26 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
                             <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {accounts?.map(acc => (
-                              <SelectItem key={acc.id} value={acc.id.toString()} data-testid={`option-account-${acc.id}`}>
-                                <span className="flex items-center gap-2">
-                                  {acc.name}
-                                  {acc.accountType === "internal" && (
-                                    <Badge variant="outline" className="text-[10px] py-0 h-4 border-indigo-300 text-indigo-700 dark:text-indigo-300 dark:border-indigo-700">
-                                      Internal
-                                    </Badge>
-                                  )}
-                                </span>
-                              </SelectItem>
-                            ))}
+                            {(() => {
+                              // Section E: when project type = Internal, only show
+                              // internal accounts (isInternal=true OR legacy account_type=internal).
+                              const isInternalProj = blankForm.watch("internalExternal") === "Internal";
+                              const filtered = isInternalProj
+                                ? accounts?.filter(a => (a as any).isInternal === true || a.accountType === "internal")
+                                : accounts;
+                              return filtered?.map(acc => (
+                                <SelectItem key={acc.id} value={acc.id.toString()} data-testid={`option-account-${acc.id}`}>
+                                  <span className="flex items-center gap-2">
+                                    {acc.name}
+                                    {((acc as any).isInternal === true || acc.accountType === "internal") && (
+                                      <Badge variant="outline" className="text-[10px] py-0 h-4 border-indigo-300 text-indigo-700 dark:text-indigo-300 dark:border-indigo-700">
+                                        Internal
+                                      </Badge>
+                                    )}
+                                  </span>
+                                </SelectItem>
+                              ));
+                            })()}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -12337,6 +12670,71 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
 
               {step === 4 && (
                 <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Starting Point</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Choose how you want to populate this project's phases and tasks.
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      { id: "blank" as const, title: "Start blank", desc: "Create the project with no phases or tasks. You can add them manually." },
+                      { id: "template" as const, title: "Start from a template", desc: "Apply a project template to scaffold phases and tasks." },
+                      { id: "later" as const, title: "Decide later", desc: "Create the project now and pick a starting point afterwards." },
+                    ].map((opt) => {
+                      const selected = startingPoint === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setStartingPoint(opt.id)}
+                          className={`w-full text-left rounded-md border p-3 transition-colors ${
+                            selected ? "border-primary bg-accent" : "hover:bg-accent/50"
+                          }`}
+                          data-testid={`starting-point-${opt.id}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 ${
+                              selected ? "border-primary bg-primary" : "border-muted-foreground"
+                            }`} />
+                            <div>
+                              <div className="font-medium text-sm">{opt.title}</div>
+                              <div className="text-xs text-muted-foreground">{opt.desc}</div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {startingPoint === "template" && (
+                    <div className="space-y-2 pt-2">
+                      <label className="text-sm font-medium">Template</label>
+                      <Select
+                        value={postCreateTemplateId ? String(postCreateTemplateId) : ""}
+                        onValueChange={(v) => setPostCreateTemplateId(parseInt(v, 10))}
+                      >
+                        <SelectTrigger data-testid="select-post-create-template">
+                          <SelectValue placeholder="Choose a template..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates?.map((t) => (
+                            <SelectItem key={t.id} value={String(t.id)}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!templates?.length && (
+                        <p className="text-xs text-muted-foreground">
+                          No templates available. Pick another option or create one in Project Templates.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {step === 5 && (
+                <div className="space-y-4">
                   <h3 className="font-medium text-lg">Review Project Details</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="text-muted-foreground">Name:</div>
@@ -12368,9 +12766,10 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
                 {step === 1 && <Button type="button" onClick={validateStep1}>Next</Button>}
                 {step === 2 && <Button type="button" onClick={validateStep2}>Next</Button>}
                 {step === 3 && <Button type="button" onClick={validateStep3}>Next</Button>}
-                {step === 4 && (
-                  <Button type="submit" disabled={createProject.isPending}>
-                    {createProject.isPending ? "Creating..." : "Create Project"}
+                {step === 4 && <Button type="button" onClick={validateStep4}>Next</Button>}
+                {step === 5 && (
+                  <Button type="submit" disabled={createProject.isPending || applyTemplate.isPending}>
+                    {createProject.isPending || applyTemplate.isPending ? "Creating..." : "Create Project"}
                   </Button>
                 )}
               </DialogFooter>
@@ -13404,8 +13803,8 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-3 md:p-6">
-          <div className="mx-auto max-w-7xl w-full">{children}</div>
+        <div className="flex-1 overflow-y-auto p-3 md:p-4">
+          {children}
         </div>
       </main>
     </div>
@@ -13492,7 +13891,7 @@ export function PageHeader({
   const isHome = location === "/" || location === "";
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-1", className)}>
       {crumbs && !isHome && (
         <nav aria-label="Breadcrumb">
           <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
@@ -14487,7 +14886,9 @@ const STATUS_BAR: Record<string, string> = {
   Completed: "#10b981",
   "In Progress": "#3b82f6",
   "Not Started": "#94a3b8",
-  Blocked: "#ef4444",
+  "On Hold": "#f59e0b",
+  Blocked: "#f59e0b",
+  Canceled: "#94a3b8",
   Overdue: "#dc2626",
   Review: "#a78bfa",
 };
@@ -14847,7 +15248,7 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
         {/* ── Legend bar ── */}
         <div className="flex items-center gap-4 px-3 py-1.5 text-[11px] text-slate-500 border-b bg-white flex-wrap shrink-0">
           {/* Status legend */}
-          {[["Completed", "#10b981"], ["In Progress", "#3b82f6"], ["Not Started", "#94a3b8"], ["Blocked", "#ef4444"]].map(([s, c]) => (
+          {[["Completed", "#10b981"], ["In Progress", "#3b82f6"], ["Not Started", "#94a3b8"], ["On Hold", "#f59e0b"], ["Canceled", "#cbd5e1"]].map(([s, c]) => (
             <span key={s} className="flex items-center gap-1">
               <span className="h-2.5 w-4 rounded-sm inline-block" style={{ background: c }} />{s}
             </span>
@@ -15191,6 +15592,501 @@ export default function ProjectGantt({ projectId }: { projectId: number }) {
 }
 ```
 
+### `artifacts/businessnow/src/components/project-groups-nav.tsx`
+```tsx
+import { useMemo, useState } from "react";
+import { Link, useLocation } from "wouter";
+import {
+  useListProjectGroups,
+  useCreateProjectGroup,
+  useUpdateProjectGroup,
+  useDeleteProjectGroup,
+  useListProjects,
+  useUpdateProject,
+  getListProjectGroupsQueryKey,
+  getListProjectsQueryKey,
+  type ProjectGroup,
+  type Project,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  ChevronRight,
+  MoreHorizontal,
+  Plus,
+  FolderOpen,
+  Pencil,
+  Trash2,
+  FolderInput,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+
+interface ProjectGroupsNavProps {
+  isAdmin: boolean;
+  onNavigate?: () => void;
+  variant?: "desktop" | "mobile";
+}
+
+// Persist per-group expand state across navigations.
+const COLLAPSE_KEY = "projectGroups.collapsed";
+
+function readCollapsed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw));
+  } catch {
+    return new Set();
+  }
+}
+
+function writeCollapsed(set: Set<string>) {
+  try {
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+const PALETTE = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#a855f7", "#ec4899", "#14b8a6"];
+
+export function ProjectGroupsNav({ isAdmin, onNavigate, variant = "desktop" }: ProjectGroupsNavProps) {
+  const [location] = useLocation();
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: groups = [] } = useListProjectGroups();
+  const { data: projects = [] } = useListProjects();
+  const createGroup = useCreateProjectGroup();
+  const updateGroup = useUpdateProjectGroup();
+  const deleteGroupMut = useDeleteProjectGroup();
+  const updateProject = useUpdateProject();
+
+  // Hide soft-deleted projects from the sidebar grouping. The /projects page
+  // already filters these out via its own selector.
+  const liveProjects = useMemo(
+    () => (projects as Project[]).filter((p) => !p.deletedAt),
+    [projects],
+  );
+
+  // Bucket projects by their groupId. Null bucket becomes "Ungrouped".
+  const byGroup = useMemo(() => {
+    const map = new Map<number | null, Project[]>();
+    for (const p of liveProjects) {
+      const k = (p.projectGroupId ?? null) as number | null;
+      const arr = map.get(k) ?? [];
+      arr.push(p);
+      map.set(k, arr);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return map;
+  }, [liveProjects]);
+
+  const ungrouped = byGroup.get(null) ?? [];
+
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => readCollapsed());
+
+  function toggleCollapsed(key: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      writeCollapsed(next);
+      return next;
+    });
+  }
+
+  // ── Dialog state for create/rename ─────────────────────────────────────
+  const [dialogMode, setDialogMode] = useState<null | { kind: "create" } | { kind: "rename"; group: ProjectGroup }>(null);
+  const [groupName, setGroupName] = useState("");
+  const [groupColor, setGroupColor] = useState<string>(PALETTE[0]);
+
+  function openCreateDialog() {
+    setGroupName("");
+    setGroupColor(PALETTE[groups.length % PALETTE.length]);
+    setDialogMode({ kind: "create" });
+  }
+
+  function openRenameDialog(g: ProjectGroup) {
+    setGroupName(g.name);
+    setGroupColor(g.color ?? PALETTE[0]);
+    setDialogMode({ kind: "rename", group: g });
+  }
+
+  async function handleSaveDialog() {
+    const name = groupName.trim();
+    if (!name) return;
+    try {
+      if (dialogMode?.kind === "create") {
+        await createGroup.mutateAsync({ data: { name, color: groupColor } });
+        toast({ title: "Group created" });
+      } else if (dialogMode?.kind === "rename") {
+        await updateGroup.mutateAsync({
+          id: dialogMode.group.id,
+          data: { name, color: groupColor },
+        });
+        toast({ title: "Group updated" });
+      }
+      qc.invalidateQueries({ queryKey: getListProjectGroupsQueryKey() });
+      setDialogMode(null);
+    } catch (err: any) {
+      toast({
+        title: "Failed to save group",
+        description: err?.message ?? "Try again.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  // ── Delete confirm ─────────────────────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState<ProjectGroup | null>(null);
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    try {
+      await deleteGroupMut.mutateAsync({ id: pendingDelete.id });
+      qc.invalidateQueries({ queryKey: getListProjectGroupsQueryKey() });
+      qc.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+      toast({
+        title: "Group deleted",
+        description: "Projects in this group are now ungrouped.",
+      });
+      setPendingDelete(null);
+    } catch (err: any) {
+      toast({
+        title: "Failed to delete group",
+        description: err?.message ?? "Try again.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  // ── Move project to group ──────────────────────────────────────────────
+  async function moveProjectToGroup(projectId: number, groupId: number | null) {
+    try {
+      await updateProject.mutateAsync({
+        id: projectId,
+        data: { projectGroupId: groupId } as any,
+      });
+      qc.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+      toast({ title: groupId === null ? "Project moved to Ungrouped" : "Project moved" });
+    } catch (err: any) {
+      toast({
+        title: "Failed to move project",
+        description: err?.message ?? "Try again.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  function isProjectActive(id: number) {
+    return location === `/projects/${id}` || location.startsWith(`/projects/${id}/`);
+  }
+
+  function ProjectLinkRow({ p }: { p: Project }) {
+    const active = isProjectActive(p.id);
+    return (
+      <div className="group flex items-center gap-1 pl-7 pr-1">
+        <Link href={`/projects/${p.id}`}>
+          <div
+            role="link"
+            onClick={onNavigate}
+            className={cn(
+              "flex-1 min-w-0 truncate text-xs px-2 py-1 rounded-md transition-colors cursor-pointer outline-none",
+              "focus-visible:ring-2 focus-visible:ring-ring",
+              active
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+            data-testid={`nav-project-${p.id}`}
+            title={p.name}
+          >
+            {p.name}
+          </div>
+        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Project options"
+              className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+              onClick={(e) => e.stopPropagation()}
+              data-testid={`button-project-menu-${p.id}`}
+            >
+              <MoreHorizontal className="h-3 w-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <FolderInput className="h-4 w-4 mr-2" />
+                Move to group
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {groups.map((g) => (
+                  <DropdownMenuItem
+                    key={g.id}
+                    disabled={p.projectGroupId === g.id}
+                    onClick={() => moveProjectToGroup(p.id, g.id)}
+                  >
+                    <span
+                      className="inline-block h-2 w-2 rounded-full mr-2"
+                      style={{ background: g.color ?? "#94a3b8" }}
+                    />
+                    {g.name}
+                  </DropdownMenuItem>
+                ))}
+                {groups.length > 0 && <DropdownMenuSeparator />}
+                <DropdownMenuItem
+                  disabled={p.projectGroupId == null}
+                  onClick={() => moveProjectToGroup(p.id, null)}
+                >
+                  Ungrouped
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
+
+  function GroupSection({ g }: { g: ProjectGroup }) {
+    const items = byGroup.get(g.id) ?? [];
+    const key = `g${g.id}`;
+    const isCollapsed = collapsed.has(key);
+    return (
+      <div className="space-y-0.5">
+        <div className="group flex items-center gap-1 pl-3 pr-1">
+          <button
+            type="button"
+            onClick={() => toggleCollapsed(key)}
+            className="flex-1 min-w-0 flex items-center gap-1.5 px-1 py-1 rounded-md text-xs font-medium text-foreground/80 hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-expanded={!isCollapsed}
+            data-testid={`button-group-toggle-${g.id}`}
+          >
+            <ChevronRight
+              className={cn("h-3 w-3 transition-transform shrink-0", !isCollapsed && "rotate-90")}
+            />
+            <span
+              className="inline-block h-2 w-2 rounded-full shrink-0"
+              style={{ background: g.color ?? "#94a3b8" }}
+            />
+            <span className="truncate">{g.name}</span>
+            <span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
+              {items.length}
+            </span>
+          </button>
+          {isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Group options"
+                  className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  data-testid={`button-group-menu-${g.id}`}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openRenameDialog(g)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-600"
+                  onClick={() => setPendingDelete(g)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+        {!isCollapsed && (
+          <div className="space-y-0.5">
+            {items.length === 0 ? (
+              <p className="pl-9 text-[11px] text-muted-foreground italic py-1">No projects</p>
+            ) : (
+              items.map((p) => <ProjectLinkRow key={p.id} p={p} />)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const ungroupedKey = "ungrouped";
+  const ungroupedCollapsed = collapsed.has(ungroupedKey);
+
+  return (
+    <div
+      className={cn(
+        "space-y-0.5",
+        variant === "desktop" ? "mt-1 mb-1" : "mt-1",
+      )}
+      data-testid="project-groups-nav"
+    >
+      {groups.map((g) => (
+        <GroupSection key={g.id} g={g} />
+      ))}
+
+      {/* Ungrouped bucket — only render when there is something in it. */}
+      {ungrouped.length > 0 && (
+        <div className="space-y-0.5">
+          <button
+            type="button"
+            onClick={() => toggleCollapsed(ungroupedKey)}
+            className="w-full pl-3 pr-2 flex items-center gap-1.5 px-1 py-1 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-expanded={!ungroupedCollapsed}
+            data-testid="button-group-toggle-ungrouped"
+          >
+            <ChevronRight
+              className={cn("h-3 w-3 transition-transform shrink-0", !ungroupedCollapsed && "rotate-90")}
+            />
+            <FolderOpen className="h-3 w-3 shrink-0" />
+            <span>Ungrouped</span>
+            <span className="ml-auto text-[10px] tabular-nums">{ungrouped.length}</span>
+          </button>
+          {!ungroupedCollapsed && (
+            <div className="space-y-0.5">
+              {ungrouped.map((p) => (
+                <ProjectLinkRow key={p.id} p={p} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={openCreateDialog}
+          className="w-full mt-1 pl-3 pr-2 flex items-center gap-1.5 py-1 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          data-testid="button-new-project-group"
+        >
+          <Plus className="h-3 w-3" />
+          New Group
+        </button>
+      )}
+
+      {/* Create / Rename dialog */}
+      <Dialog open={dialogMode != null} onOpenChange={(open) => !open && setDialogMode(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {dialogMode?.kind === "rename" ? "Rename Group" : "New Project Group"}
+            </DialogTitle>
+            <DialogDescription>
+              Group projects in the sidebar. Projects can be moved between groups at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="group-name">Name</Label>
+              <Input
+                id="group-name"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="e.g. Active Engagements"
+                autoFocus
+                data-testid="input-group-name"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Color</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {PALETTE.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-label={`Color ${c}`}
+                    onClick={() => setGroupColor(c)}
+                    className={cn(
+                      "h-6 w-6 rounded-full border-2 transition-all",
+                      groupColor === c ? "border-foreground scale-110" : "border-transparent",
+                    )}
+                    style={{ background: c }}
+                    data-testid={`button-group-color-${c.replace("#", "")}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogMode(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveDialog}
+              disabled={!groupName.trim() || createGroup.isPending || updateGroup.isPending}
+              data-testid="button-save-project-group"
+            >
+              {dialogMode?.kind === "rename" ? "Save" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm */}
+      <AlertDialog open={pendingDelete != null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete &quot;{pendingDelete?.name}&quot;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Projects in this group will become ungrouped. The projects themselves are not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDelete}
+              data-testid="button-confirm-delete-group"
+            >
+              Delete group
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+```
+
 ### `artifacts/businessnow/src/components/project-phases.tsx`
 ```tsx
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -15229,6 +16125,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
+import { useTaskStatuses, TASK_STATUS_CYCLE } from "@/lib/task-status";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15241,6 +16138,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Plus,
@@ -15251,6 +16149,7 @@ import {
   Milestone,
   ChevronsDown,
   ChevronsUp,
+  Columns3,
   GripVertical,
   ArrowRightLeft,
   Save,
@@ -15308,6 +16207,23 @@ function calcLoggedHours(node: TaskNode, hoursByTaskId: Map<number, number>): nu
   return node.children.reduce((sum, child) => sum + calcLoggedHours(child, hoursByTaskId), own);
 }
 
+// Roll-ups for the optional hour columns. Leaves use the task's own value;
+// parents sum their descendants. Falls back to `effort` when plannedHours
+// is absent (legacy rows). Estimate falls back to planned, then effort.
+function calcPlanned(node: TaskNode): number {
+  if (node.children.length === 0) {
+    return Number(node.task.plannedHours ?? node.task.effort ?? 0) || 0;
+  }
+  return node.children.reduce((sum, child) => sum + calcPlanned(child), 0);
+}
+function calcEstimate(node: TaskNode): number {
+  if (node.children.length === 0) {
+    const t = node.task;
+    return Number(t.estimateHours ?? t.plannedHours ?? t.effort ?? 0) || 0;
+  }
+  return node.children.reduce((sum, child) => sum + calcEstimate(child), 0);
+}
+
 function allNodeIds(nodes: TaskNode[]): number[] {
   return nodes.flatMap((n) => [n.task.id, ...allNodeIds(n.children)]);
 }
@@ -15357,7 +16273,7 @@ function applyPending(tasks: any[], pending: PendingMap): any[] {
 
 const taskSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  status: z.enum(["Not Started", "In Progress", "Completed", "Blocked", "Overdue"]),
+  status: z.enum(["Not Started", "In Progress", "On Hold", "Completed", "Canceled"]),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]),
   assigneeIds: z.array(z.number()),
   dueDate: z.string().optional(),
@@ -15377,6 +16293,12 @@ interface SortableTaskRowProps {
   totalEffort: number;
   ownLogged: number;
   totalLogged: number;
+  totalPlanned: number;
+  totalEstimate: number;
+  totalActual: number;
+  totalEtc: number;
+  totalEac: number;
+  hourCols: { planned: boolean; estimate: boolean; actual: boolean; etc: boolean; eac: boolean };
   users: any[] | undefined;
   hoursByTaskId: Map<number, number>;
   onToggleExpand: (id: number) => void;
@@ -15390,8 +16312,12 @@ interface SortableTaskRowProps {
 function SortableTaskRow(props: SortableTaskRowProps) {
   const {
     node, isExpanded, hasChildren, totalEffort, ownLogged, totalLogged,
+    totalPlanned, totalEstimate, totalActual, totalEtc, totalEac, hourCols,
     users, onToggleExpand, onOpenDetail, onCycleStatus, onAddSubtask, onMoveTo, onDelete,
   } = props;
+  // Reference unused legacy props to satisfy noUnusedLocals; values are
+  // surfaced through the new hour-column cells via the *Planned/Logged rollups.
+  void totalEffort; void ownLogged; void totalLogged;
   const { task, depth } = node;
   const showPhaseBadge = !!task.isPhase;
   const INDENT_PX = 20;
@@ -15514,43 +16440,28 @@ function SortableTaskRow(props: SortableTaskRowProps) {
         )}
       </div>
 
-      {/* Effort + Logged time */}
-      <div className="w-28 shrink-0 text-xs text-right tabular-nums">
-        {task.isMilestone ? null : hasChildren ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="cursor-help leading-tight">
-                <div className="text-muted-foreground">
-                  {totalEffort > 0 ? `${totalEffort % 1 === 0 ? totalEffort : totalEffort.toFixed(1)}h` : "—"}
-                  <span className="text-[10px] ml-0.5 opacity-50">plan ∑</span>
-                </div>
-                <div className="text-emerald-600 dark:text-emerald-400">
-                  {totalLogged > 0 ? `${totalLogged % 1 === 0 ? totalLogged : totalLogged.toFixed(1)}h` : "—"}
-                  <span className="text-[10px] ml-0.5 opacity-60">logged ∑</span>
-                </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-[240px] text-xs">
-              <p className="font-semibold">Auto-calculated</p>
-              <p className="mt-0.5">Planned effort: {totalEffort.toFixed(1)}h</p>
-              <p>Logged time: {totalLogged.toFixed(1)}h</p>
-              <p className="text-muted-foreground mt-0.5">
-                Sum of all {countDescendants(node)} descendant task
-                {countDescendants(node) !== 1 ? "s" : ""}. Log time directly on leaf tasks only.
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <div className="leading-tight">
-            <div>{totalEffort > 0 ? `${totalEffort % 1 === 0 ? totalEffort : totalEffort.toFixed(1)}h` : "—"}</div>
-            {ownLogged > 0 && (
-              <div className="text-emerald-600 dark:text-emerald-400 text-[10px]">
-                {ownLogged % 1 === 0 ? ownLogged : ownLogged.toFixed(1)}h logged
-              </div>
+      {/* Hour columns (configurable: Planned / Estimate / Actual / ETC / EAC) */}
+      {(() => {
+        const fmt = (n: number) => (n === 0 ? "—" : (n % 1 === 0 ? `${n}h` : `${n.toFixed(1)}h`));
+        const cell = (val: number, key: string, opts?: { negativeRed?: boolean }) => (
+          <div key={key} className="w-20 shrink-0 text-xs text-right tabular-nums">
+            {task.isMilestone ? <span className="text-muted-foreground">—</span> : (
+              <span className={opts?.negativeRed && val < 0 ? "text-red-600 font-medium" : ""}>
+                {hasChildren ? <span className="opacity-60">{fmt(val)}</span> : fmt(val)}
+              </span>
             )}
           </div>
-        )}
-      </div>
+        );
+        return (
+          <>
+            {hourCols.planned && cell(totalPlanned, "planned")}
+            {hourCols.estimate && cell(totalEstimate, "estimate")}
+            {hourCols.actual && cell(totalActual, "actual")}
+            {hourCols.etc && cell(totalEtc, "etc", { negativeRed: true })}
+            {hourCols.eac && cell(totalEac, "eac")}
+          </>
+        );
+      })()}
 
       {/* Actions menu */}
       <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -15606,6 +16517,8 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
     { projectId },
     { query: { enabled: !!projectId, queryKey: getListTimeEntriesQueryKey({ projectId }) } }
   );
+  // Section D — configurable task statuses (used by handleStatusCycle below).
+  const { raw: taskStatusDefs } = useTaskStatuses();
 
   const hoursByTaskId = useMemo(() => {
     const map = new Map<number, number>();
@@ -15640,6 +16553,27 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const [moveTask, setMoveTask] = useState<any | null>(null);
   const [moveTargetParentId, setMoveTargetParentId] = useState<number | null>(null);
   const [moveSearch, setMoveSearch] = useState("");
+
+  // Optional hour columns. Default visible: Planned + Actual.
+  // Persisted to localStorage so the user's choice survives reloads.
+  const COLS_LS_KEY = "phases.task.cols.v1";
+  type HourCol = "planned" | "estimate" | "actual" | "etc" | "eac";
+  const DEFAULT_COLS: Record<HourCol, boolean> = { planned: true, estimate: false, actual: true, etc: false, eac: false };
+  const [hourCols, setHourCols] = useState<Record<HourCol, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(COLS_LS_KEY);
+      if (!raw) return DEFAULT_COLS;
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_COLS, ...parsed };
+    } catch { return DEFAULT_COLS; }
+  });
+  function toggleCol(c: HourCol) {
+    setHourCols(prev => {
+      const next = { ...prev, [c]: !prev[c] };
+      try { localStorage.setItem(COLS_LS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   // ── Apply pending overlay so the tree renders optimistically ──────────────
 
@@ -15914,8 +16848,18 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   };
 
   const handleStatusCycle = async (task: any) => {
-    const order = ["Not Started", "In Progress", "Completed", "Blocked"];
-    const next = order[(order.indexOf(task.status) + 1) % order.length];
+    // Section D: pull cycle order from configurable status definitions when
+    // available, filter out terminal statuses (e.g. Completed/Canceled) so the
+    // single-click cycle never lands on a "done" state. Fall back to the
+    // static cycle if the API hasn't loaded yet.
+    const dynamicCycle =
+      taskStatusDefs && taskStatusDefs.length > 0
+        ? taskStatusDefs.filter((s) => !s.isTerminal).map((s) => s.label)
+        : (TASK_STATUS_CYCLE as readonly string[]).slice();
+    const order = dynamicCycle.length > 0 ? dynamicCycle : ["Not Started", "In Progress", "On Hold"];
+    const current = task.status === "Blocked" ? "On Hold" : task.status;
+    const idx = order.indexOf(current);
+    const next = order[(idx === -1 ? 0 : idx + 1) % order.length];
     try {
       await updateTask.mutateAsync({ id: task.id, data: { status: next as any } });
       queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
@@ -15925,10 +16869,46 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   };
 
   const handleDelete = async (id: number) => {
+    const original = (allTasks || []).find((t: any) => t.id === id);
     try {
       await deleteTask.mutateAsync({ id });
       queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-      toast({ title: "Task deleted" });
+      const restore = async () => {
+        if (!original) return;
+        try {
+          await createTask.mutateAsync({
+            data: {
+              projectId,
+              name: original.name,
+              status: original.status,
+              priority: original.priority,
+              assigneeIds: original.assigneeIds ?? [],
+              dueDate: original.dueDate ?? undefined,
+              startDate: original.startDate ?? undefined,
+              effort: Number(original.effort ?? 0),
+              plannedHours: Number(original.plannedHours ?? original.effort ?? 0),
+              estimateHours: Number(original.estimateHours ?? original.effort ?? 0),
+              billable: !!original.billable,
+              isMilestone: !!original.isMilestone,
+              isPhase: !!original.isPhase,
+              parentTaskId: original.parentTaskId ?? undefined,
+              sortOrder: typeof original.sortOrder === "number" ? original.sortOrder : undefined,
+            } as any,
+          });
+          queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+          toast({ title: "Task restored", duration: 3000 });
+        } catch {
+          toast({ title: "Could not restore task", variant: "destructive" });
+        }
+      };
+      toast({
+        title: "Task deleted",
+        description: original?.name,
+        duration: 5000,
+        action: original ? (
+          <ToastAction altText="Undo delete" onClick={restore}>Undo</ToastAction>
+        ) : undefined,
+      });
     } catch {
       toast({ title: "Error deleting task", variant: "destructive" });
     }
@@ -16047,6 +17027,33 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
               {allExpanded ? "Collapse All" : "Expand All"}
             </Button>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                <Columns3 className="h-3.5 w-3.5" />
+                Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Hour columns</div>
+              {([
+                { key: "planned", label: "Planned" },
+                { key: "estimate", label: "Estimate" },
+                { key: "actual", label: "Actual" },
+                { key: "etc", label: "ETC" },
+                { key: "eac", label: "EAC" },
+              ] as { key: HourCol; label: string }[]).map(c => (
+                <DropdownMenuItem key={c.key} onSelect={(e) => { e.preventDefault(); toggleCol(c.key); }} className="cursor-pointer">
+                  <div className="flex items-center gap-2 w-full">
+                    <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${hourCols[c.key] ? "bg-indigo-600 border-indigo-600 text-white" : "border-muted-foreground/40"}`}>
+                      {hourCols[c.key] ? "✓" : ""}
+                    </span>
+                    <span>{c.label}</span>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" onClick={() => openAddTask(null)}>
             <Plus className="h-4 w-4 mr-1.5" />
             Add Task
@@ -16065,7 +17072,11 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
           <div className="w-20 shrink-0">Priority</div>
           <div className="w-32 shrink-0">Assigned Resource</div>
           <div className="w-24 shrink-0">Due</div>
-          <div className="w-28 shrink-0 text-right">Planned Hours</div>
+          {hourCols.planned && <div className="w-20 shrink-0 text-right">Planned</div>}
+          {hourCols.estimate && <div className="w-20 shrink-0 text-right">Estimate</div>}
+          {hourCols.actual && <div className="w-20 shrink-0 text-right">Actual</div>}
+          {hourCols.etc && <div className="w-20 shrink-0 text-right">ETC</div>}
+          {hourCols.eac && <div className="w-20 shrink-0 text-right">EAC</div>}
           <div className="w-7 shrink-0" />
         </div>
 
@@ -16093,6 +17104,14 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                   const totalEffort = calcEffort(node);
                   const ownLogged = hoursByTaskId.get(node.task.id) ?? 0;
                   const totalLogged = hasChildren ? calcLoggedHours(node, hoursByTaskId) : ownLogged;
+                  // Hour-column rollups. Actual = total logged hours (parent
+                  // = sum of descendants). ETC and EAC are derived per the
+                  // same formulas the API uses on a single row.
+                  const totalPlanned = calcPlanned(node);
+                  const totalEstimate = calcEstimate(node);
+                  const totalActual = totalLogged;
+                  const totalEtc = totalEstimate - totalActual;
+                  const totalEac = totalActual + Math.abs(totalEtc);
                   return (
                     <SortableTaskRow
                       key={node.task.id}
@@ -16102,6 +17121,12 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                       totalEffort={totalEffort}
                       ownLogged={ownLogged}
                       totalLogged={totalLogged}
+                      totalPlanned={totalPlanned}
+                      totalEstimate={totalEstimate}
+                      totalActual={totalActual}
+                      totalEtc={totalEtc}
+                      totalEac={totalEac}
+                      hourCols={hourCols}
                       users={users}
                       hoursByTaskId={hoursByTaskId}
                       onToggleExpand={toggleExpand}
@@ -16274,7 +17299,7 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {["Not Started", "In Progress", "Completed", "Blocked"].map((s) => (
+                          {["Not Started", "In Progress", "On Hold", "Completed", "Canceled"].map((s) => (
                             <SelectItem key={s} value={s}>{s}</SelectItem>
                           ))}
                         </SelectContent>
@@ -18583,6 +19608,7 @@ import { useState } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/contexts/current-user";
+import { useTaskStatuses } from "@/lib/task-status";
 import {
   useListTaskComments,
   useCreateTaskComment,
@@ -18622,7 +19648,9 @@ interface TaskDetailSheetProps {
   isParent?: boolean;
 }
 
-const STATUS_OPTIONS = ["Not Started", "In Progress", "On Hold", "Canceled", "Completed"];
+// Section D: STATIC fallback only — actual status options are pulled from the
+// backend at render time via useTaskStatuses() so admins can customize them.
+const STATUS_OPTIONS_FALLBACK = ["Not Started", "In Progress", "On Hold", "Canceled", "Completed"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 const APPROVAL_OPTIONS = ["none", "pending", "approved", "rejected"];
 
@@ -18646,6 +19674,9 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const queryClient = useQueryClient();
 
   const { data: users } = useListUsers();
+  // Section D — pull configurable status options.
+  const { statuses: dynamicStatusOptions } = useTaskStatuses();
+  const STATUS_OPTIONS = dynamicStatusOptions.length > 0 ? dynamicStatusOptions : STATUS_OPTIONS_FALLBACK;
   const { data: comments, isLoading: loadingComments } = useListTaskComments(taskId ?? 0, {
     query: { enabled: !!taskId, queryKey: [...getListTaskCommentsQueryKey(taskId ?? 0)] },
   });
@@ -19119,7 +20150,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                         <div key={dep.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{dep.dependencyType}</span>
-                            <span className="text-xs text-muted-foreground shrink-0">{isSuccessor ? "Predecessor:" : "Successor / Blocks:"}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">{isSuccessor ? "Predecessor:" : "Blocks:"}</span>
                             <span className="text-sm truncate">{otherName}</span>
                             {dep.lagDays > 0 && <span className="text-xs text-muted-foreground shrink-0">+{dep.lagDays}d lag</span>}
                           </div>
@@ -24483,7 +25514,8 @@ const STATUS_CLASSES: Record<string, string> = {
   "In Progress":     "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   "At Risk":         "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
   "Completed":       "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  "On Hold":         "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+  "On Hold":         "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+  "Canceled":        "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
   "On Track":        "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
   "Off Track":       "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
   "Active":          "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
@@ -24803,43 +25835,6 @@ Textarea.displayName = "Textarea"
 export { Textarea }
 ```
 
-### `artifacts/businessnow/src/components/ui/toaster.tsx`
-```tsx
-import { useToast } from "@/hooks/use-toast"
-import {
-  Toast,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-} from "@/components/ui/toast"
-
-export function Toaster() {
-  const { toasts } = useToast()
-
-  return (
-    <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        )
-      })}
-      <ToastViewport />
-    </ToastProvider>
-  )
-}
-```
-
 ### `artifacts/businessnow/src/components/ui/toast.tsx`
 ```tsx
 import * as React from "react"
@@ -24968,6 +25963,43 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+}
+```
+
+### `artifacts/businessnow/src/components/ui/toaster.tsx`
+```tsx
+import { useToast } from "@/hooks/use-toast"
+import {
+  Toast,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+} from "@/components/ui/toast"
+
+export function Toaster() {
+  const { toasts } = useToast()
+
+  return (
+    <ToastProvider>
+      {toasts.map(function ({ id, title, description, action, ...props }) {
+        return (
+          <Toast key={id} {...props}>
+            <div className="grid gap-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && (
+                <ToastDescription>{description}</ToastDescription>
+              )}
+            </div>
+            {action}
+            <ToastClose />
+          </Toast>
+        )
+      })}
+      <ToastViewport />
+    </ToastProvider>
+  )
 }
 ```
 
@@ -26829,6 +27861,69 @@ export function usePermissions(activeRole: string) {
 }
 ```
 
+### `artifacts/businessnow/src/lib/task-status.ts`
+```typescript
+import { useListTaskStatusDefinitions } from "@workspace/api-client-react";
+
+export const TASK_STATUS_VALUES = [
+  "Not Started",
+  "In Progress",
+  "On Hold",
+  "Completed",
+  "Canceled",
+] as const;
+
+export type TaskStatus = (typeof TASK_STATUS_VALUES)[number];
+
+const LEGACY_STATUS_MAP: Record<string, TaskStatus> = {
+  "Blocked": "On Hold",
+  "Todo": "Not Started",
+  "Done": "Completed",
+  "In Review": "In Progress",
+  "Cancelled": "Canceled",
+};
+
+export function taskStatusLabel(raw: string | null | undefined): string {
+  if (!raw) return "Not Started";
+  return LEGACY_STATUS_MAP[raw] ?? raw;
+}
+
+export function normalizeTaskStatus(raw: string | null | undefined): TaskStatus {
+  const v = taskStatusLabel(raw);
+  return (TASK_STATUS_VALUES as readonly string[]).includes(v) ? (v as TaskStatus) : "Not Started";
+}
+
+export const TASK_STATUS_CYCLE: TaskStatus[] = [
+  "Not Started",
+  "In Progress",
+  "Completed",
+  "On Hold",
+];
+
+/**
+ * Section D — Configurable task statuses.
+ *
+ * Returns the ordered list of status labels from the backend
+ * (`task_status_definitions` table). Falls back to the static
+ * `TASK_STATUS_VALUES` while loading or on error so existing UI
+ * never renders an empty dropdown.
+ */
+export function useTaskStatuses(): {
+  statuses: string[];
+  isLoading: boolean;
+  raw: ReturnType<typeof useListTaskStatusDefinitions>["data"];
+} {
+  const q = useListTaskStatusDefinitions({
+    query: {
+      staleTime: 60_000,
+    },
+  });
+  const fromApi = q.data?.map((s) => s.label).filter(Boolean);
+  const statuses = fromApi && fromApi.length > 0 ? fromApi : (TASK_STATUS_VALUES as readonly string[]).slice();
+  return { statuses, isLoading: q.isLoading, raw: q.data };
+}
+```
+
 ### `artifacts/businessnow/src/lib/utils.ts`
 ```typescript
 import { clsx, type ClassValue } from "clsx"
@@ -26927,8 +28022,8 @@ export default function Accounts() {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [editTarget, setEditTarget] = useState<Account | null>(null);
-  const [form, setForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
-  const [editForm, setEditForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "" });
+  const [form, setForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
+  const [editForm, setEditForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
 
   const [expandedAccounts, setExpandedAccounts] = useState<Set<number>>(new Set());
 
@@ -26954,7 +28049,8 @@ export default function Accounts() {
       region: form.region,
       status: form.status,
       contractValue: Number(form.contractValue) || 0,
-    }),
+      isInternal: form.isInternal,
+    } as any),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowCreate(false); resetForm(); toast({ title: "Account created" }); },
     onError: (err: any) => toast({ title: "Failed to create account", description: err?.message ?? "Please try again.", variant: "destructive" }),
   });
@@ -27243,6 +28339,22 @@ export default function Accounts() {
                   {["Active", "Inactive", "Prospect", "At Risk"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="col-span-2 flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="acct-is-internal"
+                checked={form.isInternal}
+                onChange={e => setForm(f => ({ ...f, isInternal: e.target.checked }))}
+                className="h-4 w-4 rounded border-input"
+                data-testid="checkbox-is-internal"
+              />
+              <Label htmlFor="acct-is-internal" className="font-normal cursor-pointer">
+                Internal account
+                <span className="text-xs text-muted-foreground ml-2">
+                  (represents the operating company; used for internal projects)
+                </span>
+              </Label>
             </div>
           </div>
           <DialogFooter>
@@ -27577,6 +28689,8 @@ import {
   getListCustomFieldDefinitionsQueryKey,
   useListAuditLog,
   getListAuditLogQueryKey,
+  useListTaskStatusDefinitions,
+  useReorderTaskStatusDefinitions,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27592,8 +28706,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TemplateEditor } from "@/components/template-editor";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/contexts/current-user";
@@ -27785,6 +28900,100 @@ function UserConfigTab({ users, BASE, onRefresh }: {
                 </TableRow>
               );
             })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Section D — admin panel for reordering task status definitions.
+// Uses simple ↑/↓ buttons (instead of dnd-kit) to keep the surface tiny —
+// the table only ever holds a handful of rows in practice.
+function TaskStatusesAdminPanel() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data: defs } = useListTaskStatusDefinitions();
+  const reorderMut = useReorderTaskStatusDefinitions({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ["/task-status-definitions"] });
+        qc.invalidateQueries();
+        toast({ title: "Order saved" });
+      },
+      onError: (err: any) =>
+        toast({ title: "Failed to reorder", description: err?.message ?? "Try again.", variant: "destructive" }),
+    },
+  });
+
+  const sorted = (defs ?? []).slice().sort((a, b) => a.position - b.position);
+
+  function move(idx: number, delta: number) {
+    const next = sorted.slice();
+    const target = idx + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    reorderMut.mutate({ data: { order: next.map((s) => s.id) } });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Task Statuses</CardTitle>
+        <CardDescription>
+          Reorder the statuses available on tasks. Status labels appear in the
+          kanban board, task list, and task detail dropdown.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">#</TableHead>
+              <TableHead>Label</TableHead>
+              <TableHead className="w-24">Terminal</TableHead>
+              <TableHead className="w-24">Default</TableHead>
+              <TableHead className="w-32 text-right">Reorder</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sorted.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                  No task statuses defined.
+                </TableCell>
+              </TableRow>
+            )}
+            {sorted.map((s, idx) => (
+              <TableRow key={s.id} data-testid={`row-task-status-${s.id}`}>
+                <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
+                <TableCell className="font-medium">{s.label}</TableCell>
+                <TableCell>{s.isTerminal ? "Yes" : "—"}</TableCell>
+                <TableCell>{s.isDefault ? "Yes" : "—"}</TableCell>
+                <TableCell className="text-right space-x-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    disabled={idx === 0 || reorderMut.isPending}
+                    onClick={() => move(idx, -1)}
+                    data-testid={`button-status-up-${s.id}`}
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    disabled={idx === sorted.length - 1 || reorderMut.isPending}
+                    onClick={() => move(idx, 1)}
+                    data-testid={`button-status-down-${s.id}`}
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </CardContent>
@@ -28624,6 +29833,9 @@ export default function Admin() {
               <TabsTrigger value="timecategories" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Time Categories
               </TabsTrigger>
+              <TabsTrigger value="taskstatuses" className="flex items-center gap-2" data-testid="tab-task-statuses">
+                <ListTodo className="h-4 w-4" /> Task Statuses
+              </TabsTrigger>
               <TabsTrigger value="timesettings" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" /> Time Settings
               </TabsTrigger>
@@ -29112,6 +30324,10 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="taskstatuses" className="m-0 space-y-4" data-testid="content-task-statuses">
+            <TaskStatusesAdminPanel />
+          </TabsContent>
+
           <TabsContent value="timesettings" className="m-0 space-y-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -29280,7 +30496,17 @@ export default function Admin() {
                   </button>
                 </div>
 
-                <div className="rounded-lg border p-4 space-y-3">
+                <Collapsible defaultOpen={false} className="rounded-lg border bg-muted/20">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 hover:bg-muted/40 transition-colors group">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Advanced settings</span>
+                      <span className="text-xs text-muted-foreground">— role overrides, time-module config, and reporting</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="px-4 pb-4 pt-0 space-y-4">
+                <div className="rounded-lg border p-4 space-y-3 bg-background">
                   <div>
                     <p className="text-sm font-medium">Date-Lock Override Roles</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Comma-separated role names that may bypass the Date Lock. Admin always exempt.</p>
@@ -29304,7 +30530,7 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border p-4 space-y-4">
+                <div className="rounded-lg border p-4 space-y-4 bg-background">
                   <div>
                     <p className="text-sm font-medium">Time Module Configuration</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Configuration-flexibility controls for the time module.</p>
@@ -29388,6 +30614,8 @@ export default function Admin() {
                     </button>
                   </div>
                 </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 {timeSettings && (
                   <p className="text-xs text-muted-foreground">Last saved: {new Date(timeSettings.updatedAt).toLocaleString()}</p>
@@ -30935,19 +32163,19 @@ function KpiTile({
         data-testid={testId}
         className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${STATUS_BORDER[status]}`}
       >
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 px-3 pt-3 pb-1">
           <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          <div className={`h-8 w-8 rounded-md flex items-center justify-center ${STATUS_ICON_BG[status]}`}>
-            <Icon className="h-4 w-4" />
+          <div className={`h-6 w-6 rounded flex items-center justify-center ${STATUS_ICON_BG[status]}`}>
+            <Icon className="h-3.5 w-3.5" />
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 pb-3 pt-0">
           {isLoading ? (
-            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-6 w-20" />
           ) : (
             <>
-              <div className="text-3xl font-bold tracking-tight">{value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{caption}</p>
+              <div className="text-xl font-bold tracking-tight">{value}</div>
+              <p className="text-xs text-muted-foreground mt-0.5">{caption}</p>
             </>
           )}
         </CardContent>
@@ -31668,19 +32896,19 @@ export default function Finance() {
           }
         />
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {(["Total Invoiced", "Total Paid", "Outstanding", "Overdue"] as const).map((label, i) => {
             const vals = [summary?.totalInvoiced, summary?.totalPaid, summary?.totalOutstanding, summary?.totalOverdue];
             const colors = ["", "text-green-600 dark:text-green-400", "", "text-destructive"];
             return (
               <Card key={label}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
                   <CardTitle className="text-sm font-medium">{label}</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  {isLoadingSummary ? <Skeleton className="h-8 w-24" /> : (
-                    <div className={`text-2xl font-bold tracking-tight ${colors[i]}`}>${vals[i]?.toLocaleString()}</div>
+                <CardContent className="px-3 pb-2 pt-0">
+                  {isLoadingSummary ? <Skeleton className="h-5 w-24" /> : (
+                    <div className={`text-lg font-bold tracking-tight ${colors[i]}`}>${vals[i]?.toLocaleString()}</div>
                   )}
                 </CardContent>
               </Card>
@@ -33046,7 +34274,7 @@ function KanbanBoard({
       {STAGES.map(stage => (
         <div
           key={stage}
-          className={`flex flex-col w-60 rounded-lg border ${STAGE_BG[stage]} p-2`}
+          className={`flex flex-col w-52 rounded-lg border ${STAGE_BG[stage]} p-2`}
           onDragOver={e => e.preventDefault()}
           onDrop={() => {
             if (dragging !== null) onStageChange(dragging, stage);
@@ -33212,7 +34440,8 @@ function OpportunityTable({
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, useListSkills, useListProjectBudgetEntries, useCreateProjectBudgetEntry, getListProjectBudgetEntriesQueryKey } from "@workspace/api-client-react";
+import { useTaskStatuses } from "@/lib/task-status";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useGetProjectCsatSummary, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, getGetProjectCsatSummaryQueryKey, useListSkills, useListProjects, useListProjectBudgetEntries, useCreateProjectBudgetEntry, getListProjectBudgetEntriesQueryKey } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33248,6 +34477,12 @@ export default function ProjectDetail() {
   const { id } = useParams();
   const projectId = parseInt(id || "0", 10);
   
+  // Section D — configurable task statuses (used for the kanban columns).
+  const { statuses: dynamicStatuses } = useTaskStatuses();
+  const kanbanStatuses = dynamicStatuses.length > 0
+    ? dynamicStatuses
+    : ["Not Started", "In Progress", "On Hold", "Completed", "Canceled"];
+
   const { data: project, isLoading: isLoadingProject } = useGetProject(projectId, {
     query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) }
   });
@@ -33696,6 +34931,7 @@ export default function ProjectDetail() {
   }
 
   const [allocForm, setAllocForm] = useState({
+    projectId: String(projectId),
     userId: "",
     role: "",
     startDate: "",
@@ -33706,6 +34942,11 @@ export default function ProjectDetail() {
     isTimesheetApprover: false,
     isLeaveApprover: false,
   });
+
+  // Project list for the (editable) Project field on the allocation dialog.
+  // Defaults to the current project; user can re-target the allocation to
+  // another project they have access to.
+  const { data: allProjects } = useListProjects();
 
   // Mon–Fri working-day count between two ISO dates (inclusive).
   function workingDaysBetween(startISO: string, endISO: string): number {
@@ -33764,7 +35005,7 @@ export default function ProjectDetail() {
     setEditAllocId(null);
     const method = readPreferredMethod();
     const defaultValue = method === "hours_per_day" ? "8" : method === "percentage_capacity" ? "100" : "40";
-    setAllocForm({ userId: "", role: "", startDate: "", endDate: "", method, methodValue: defaultValue, isSoftAllocation: false, isTimesheetApprover: false, isLeaveApprover: false });
+    setAllocForm({ projectId: String(projectId), userId: "", role: "", startDate: "", endDate: "", method, methodValue: defaultValue, isSoftAllocation: false, isTimesheetApprover: false, isLeaveApprover: false });
     setAllocDialogOpen(true);
   }
 
@@ -33791,6 +35032,7 @@ export default function ProjectDetail() {
       methodValue = String(Number(alloc.hoursPerWeek) / 5);
     }
     setAllocForm({
+      projectId: String(projectId),
       userId: alloc.userId?.toString() ?? "",
       role: alloc.role,
       startDate: alloc.startDate,
@@ -33807,8 +35049,9 @@ export default function ProjectDetail() {
   async function handleSaveAlloc() {
     if (!allocForm.role || !allocForm.startDate || !allocForm.endDate) return;
     const d = deriveAllocFields(allocForm.method, allocForm.methodValue, allocForm.startDate, allocForm.endDate);
+    const targetProjectId = parseInt(allocForm.projectId) || projectId;
     const payload: any = {
-      projectId,
+      projectId: targetProjectId,
       userId: allocForm.userId ? parseInt(allocForm.userId) : undefined,
       role: allocForm.role,
       startDate: allocForm.startDate,
@@ -34203,7 +35446,7 @@ export default function ProjectDetail() {
                       const today = new Date().toISOString().slice(0, 10);
                       let filtered = (tasks || []).filter((t: any) => {
                         if (taskFilter === "overdue") return t.dueDate && t.dueDate < today && t.status !== "Completed" && !t.isMilestone;
-                        if (taskFilter === "blocked") return t.status === "Blocked";
+                        if (taskFilter === "blocked") return t.status === "On Hold" || t.status === "Blocked";
                         if (taskFilter === "at_risk") return t.isMilestone && t.dueDate && t.dueDate > today && t.status !== "Completed" && new Date(t.dueDate).getTime() - Date.now() < 7 * 86400000;
                         if (taskFilter === "on_track") return t.status === "In Progress" && (!t.dueDate || t.dueDate >= today) && !t.isMilestone;
                         return false;
@@ -34228,19 +35471,24 @@ export default function ProjectDetail() {
                 ) : (
                   <div className="overflow-x-auto pb-4">
                     <div className="flex gap-4 min-w-max">
-                      {(["Not Started", "In Progress", "Blocked", "Completed"] as const).map(status => {
-                        const colTasks = (tasks || []).filter((t: any) => t.status === status && !t.parentTaskId && !t.isMilestone);
+                      {kanbanStatuses.map(status => {
+                        const colTasks = (tasks || []).filter((t: any) => {
+                          const s = t.status === "Blocked" ? "On Hold" : t.status;
+                          return s === status && !t.parentTaskId && !t.isMilestone;
+                        });
                         const colors: Record<string, string> = {
                           "Not Started": "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
                           "In Progress": "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
-                          "Blocked": "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+                          "On Hold": "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
                           "Completed": "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+                          "Canceled": "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
                         };
                         const nextStatus: Record<string, string> = {
                           "Not Started": "In Progress",
                           "In Progress": "Completed",
-                          "Blocked": "In Progress",
+                          "On Hold": "In Progress",
                           "Completed": "Not Started",
+                          "Canceled": "Not Started",
                         };
                         return (
                           <div key={status} className="w-72 flex-shrink-0">
@@ -35105,6 +36353,20 @@ export default function ProjectDetail() {
             <DialogDescription>Assign a team member and define their time commitment to this project.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Project *</Label>
+              <Select value={allocForm.projectId} onValueChange={v => setAllocForm(f => ({ ...f, projectId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                <SelectContent>
+                  {(allProjects ?? []).map((p: any) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}{p.id === projectId ? " (current)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Defaults to the current project. Change to allocate this team member to a different project.</p>
+            </div>
             <div className="space-y-1.5">
               <Label>Team Member</Label>
               <Select value={allocForm.userId || "none"} onValueChange={v => setAllocForm(f => ({ ...f, userId: v === "none" ? "" : v }))}>
@@ -38362,10 +39624,10 @@ export default function Reports() {
                 [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)
               ) : (
                 <>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-green-600">{health?.onTrack || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">At Risk</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-amber-600">{health?.atRisk || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Off Track</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-red-600">{health?.offTrack || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold tracking-tight text-blue-600">{health?.completed || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-green-600">{health?.onTrack || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">At Risk</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-amber-600">{health?.atRisk || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Off Track</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-red-600">{health?.offTrack || 0}</div></CardContent></Card>
+                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-blue-600">{health?.completed || 0}</div></CardContent></Card>
                 </>
               )}
             </div>
@@ -39801,37 +41063,37 @@ export default function TimeTracking() {
           }
         />
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
               <CardTitle className="text-sm font-medium">This Week</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold tracking-tight">{summary?.totalHoursThisWeek}h</div>
+            <CardContent className="px-3 pb-2 pt-0">
+              {isLoadingSummary ? <Skeleton className="h-5 w-16" /> : (
+                <div className="text-lg font-bold tracking-tight">{summary?.totalHoursThisWeek}h</div>
               )}
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
               <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold tracking-tight">{summary?.totalHoursThisMonth}h</div>
+            <CardContent className="px-3 pb-2 pt-0">
+              {isLoadingSummary ? <Skeleton className="h-5 w-16" /> : (
+                <div className="text-lg font-bold tracking-tight">{summary?.totalHoursThisMonth}h</div>
               )}
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
               <CardTitle className="text-sm font-medium">Billable Ratio</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold tracking-tight text-green-600 dark:text-green-400">{summary?.billablePercent}%</div>
+            <CardContent className="px-3 pb-2 pt-0">
+              {isLoadingSummary ? <Skeleton className="h-5 w-16" /> : (
+                <div className="text-lg font-bold tracking-tight text-green-600 dark:text-green-400">{summary?.billablePercent}%</div>
               )}
             </CardContent>
           </Card>
@@ -40617,6 +41879,15 @@ export default function TimeTracking() {
     </Layout>
   );
 }
+```
+
+### `artifacts/mockup-sandbox/src/.generated/mockup-components.ts`
+```typescript
+// This file is auto-generated by mockupPreviewPlugin.ts.
+type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
+export const modules: ModuleMap = {
+  "./components/mockups/erd/BusinessNowERD.tsx": () => import("../components/mockups/erd/BusinessNowERD.tsx")
+};
 ```
 
 ### `artifacts/mockup-sandbox/src/App.tsx`
@@ -46736,43 +48007,6 @@ Textarea.displayName = "Textarea"
 export { Textarea }
 ```
 
-### `artifacts/mockup-sandbox/src/components/ui/toaster.tsx`
-```tsx
-import { useToast } from "@/hooks/use-toast"
-import {
-  Toast,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-} from "@/components/ui/toast"
-
-export function Toaster() {
-  const { toasts } = useToast()
-
-  return (
-    <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        )
-      })}
-      <ToastViewport />
-    </ToastProvider>
-  )
-}
-```
-
 ### `artifacts/mockup-sandbox/src/components/ui/toast.tsx`
 ```tsx
 import * as React from "react"
@@ -46901,6 +48135,43 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+}
+```
+
+### `artifacts/mockup-sandbox/src/components/ui/toaster.tsx`
+```tsx
+import { useToast } from "@/hooks/use-toast"
+import {
+  Toast,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+} from "@/components/ui/toast"
+
+export function Toaster() {
+  const { toasts } = useToast()
+
+  return (
+    <ToastProvider>
+      {toasts.map(function ({ id, title, description, action, ...props }) {
+        return (
+          <Toast key={id} {...props}>
+            <div className="grid gap-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && (
+                <ToastDescription>{description}</ToastDescription>
+              )}
+            </div>
+            {action}
+            <ToastClose />
+          </Toast>
+        )
+      })}
+      <ToastViewport />
+    </ToastProvider>
+  )
 }
 ```
 
@@ -47050,15 +48321,6 @@ const TooltipContent = React.forwardRef<
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
-```
-
-### `artifacts/mockup-sandbox/src/.generated/mockup-components.ts`
-```typescript
-// This file is auto-generated by mockupPreviewPlugin.ts.
-type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
-export const modules: ModuleMap = {
-  "./components/mockups/erd/BusinessNowERD.tsx": () => import("../components/mockups/erd/BusinessNowERD.tsx")
-};
 ```
 
 ### `artifacts/mockup-sandbox/src/hooks/use-mobile.tsx`
@@ -47436,7 +48698,8 @@ export { useToast, toast }
     color: hsl(var(--muted-foreground));
     pointer-events: none;
   }
-}```
+}
+```
 
 ### `artifacts/mockup-sandbox/src/lib/utils.ts`
 ```typescript
@@ -50045,6 +51308,111 @@ paths:
         '204':
           description: Deleted
 
+  /task-status-definitions:
+    get:
+      summary: List task status definitions (ordered by position)
+      operationId: listTaskStatusDefinitions
+      responses:
+        '200':
+          description: Ordered task statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskStatusDefinition'
+  /task-status-definitions/reorder:
+    patch:
+      summary: Reorder task status definitions
+      operationId: reorderTaskStatusDefinitions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order]
+              properties:
+                order:
+                  type: array
+                  items:
+                    type: integer
+                  description: IDs in their new order, position 0..n
+      responses:
+        '200':
+          description: Updated ordered task statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskStatusDefinition'
+
+  /project-groups:
+    get:
+      summary: List project groups (ordered by sortOrder)
+      operationId: listProjectGroups
+      responses:
+        '200':
+          description: Ordered project groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectGroup'
+    post:
+      summary: Create a project group
+      operationId: createProjectGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectGroupBody'
+      responses:
+        '201':
+          description: Created project group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroup'
+  /project-groups/{id}:
+    patch:
+      summary: Update (rename / reorder / recolor) a project group
+      operationId: updateProjectGroup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectGroupBody'
+      responses:
+        '200':
+          description: Updated project group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroup'
+    delete:
+      summary: Delete a project group (sets projectGroupId=null on affected projects)
+      operationId: deleteProjectGroup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
   /skills:
     get:
       summary: List skills
@@ -51444,6 +52812,9 @@ components:
         accountType:
           type: string
           description: "Account type: 'client' (default) or 'internal' (e.g. KSAP itself)"
+        isInternal:
+          type: boolean
+          description: "True for accounts that represent the operating company itself. Mirrors accountType='internal'."
         contractValue:
           type: number
         billingAddress:
@@ -51467,6 +52838,7 @@ components:
         - region
         - status
         - accountType
+        - isInternal
         - contractValue
         - createdAt
         - updatedAt
@@ -51486,6 +52858,8 @@ components:
           type: string
         accountType:
           type: string
+        isInternal:
+          type: boolean
         contractValue:
           type: number
         billingAddress:
@@ -51516,6 +52890,8 @@ components:
           type: string
         accountType:
           type: string
+        isInternal:
+          type: boolean
         contractValue:
           type: number
         billingAddress:
@@ -51564,6 +52940,9 @@ components:
         isAdminProject:
           type: integer
         opportunityId:
+          type: integer
+          nullable: true
+        projectGroupId:
           type: integer
           nullable: true
         deletedAt:
@@ -51683,6 +53062,9 @@ components:
           type: string
         description:
           type: string
+        projectGroupId:
+          type: integer
+          nullable: true
 
     # ─── TASK ───────────────────────────────────────────────────
     Task:
@@ -53660,6 +55042,78 @@ components:
           type: string
       required:
         - name
+
+    TaskStatusDefinition:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        position:
+          type: integer
+        isTerminal:
+          type: boolean
+        isDefault:
+          type: boolean
+        color:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - label
+        - position
+        - isTerminal
+        - isDefault
+        - createdAt
+        - updatedAt
+
+    ProjectGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - sortOrder
+        - createdAt
+        - updatedAt
+
+    CreateProjectGroupBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        color:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+
+    UpdateProjectGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
 
     Skill:
       type: object
@@ -56171,203 +57625,209 @@ main().catch((err) => {
 ```
 
 ---
+
 ## 6. Generated Files (orval / codegen)
 
 _The following files are auto-generated from `lib/api-spec/openapi.yaml` via `pnpm --filter @workspace/api-spec run codegen` and are not edited by hand:_
 
-- `lib/api-client-react/src/generated/api.schemas.ts` (1728 lines)
-- `lib/api-client-react/src/generated/api.ts` (15667 lines)
-- `lib/api-zod/src/generated/api.ts` (3822 lines)
-- `lib/api-zod/src/generated/types/account.ts` (24 lines)
-- `lib/api-zod/src/generated/types/activityItem.ts` (19 lines)
-- `lib/api-zod/src/generated/types/addUserSkillBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/allocation.ts` (29 lines)
-- `lib/api-zod/src/generated/types/applyTemplateAsSegmentBody.ts` (13 lines)
-- `lib/api-zod/src/generated/types/applyTemplateAsSegmentResult.ts` (13 lines)
-- `lib/api-zod/src/generated/types/applyTemplateBody.ts` (13 lines)
-- `lib/api-zod/src/generated/types/applyTemplateResult.ts` (16 lines)
-- `lib/api-zod/src/generated/types/approveTimesheetBody.ts` (11 lines)
-- `lib/api-zod/src/generated/types/auditLogEntry.ts` (17 lines)
-- `lib/api-zod/src/generated/types/billingSchedule.ts` (23 lines)
-- `lib/api-zod/src/generated/types/budgetEntry.ts` (23 lines)
-- `lib/api-zod/src/generated/types/budgetVsActualsReportProjectsItem.ts` (18 lines)
-- `lib/api-zod/src/generated/types/budgetVsActualsReportTotals.ts` (14 lines)
-- `lib/api-zod/src/generated/types/budgetVsActualsReport.ts` (14 lines)
-- `lib/api-zod/src/generated/types/burnDownReportDataPointsItem.ts` (13 lines)
-- `lib/api-zod/src/generated/types/burnDownReport.ts` (16 lines)
-- `lib/api-zod/src/generated/types/convertOpportunityBody.ts` (15 lines)
-- `lib/api-zod/src/generated/types/convertOpportunityResult.ts` (13 lines)
-- `lib/api-zod/src/generated/types/convertProspectBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/convertProspectResult.ts` (13 lines)
-- `lib/api-zod/src/generated/types/createAccountBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/createAllocationBody.ts` (16 lines)
-- `lib/api-zod/src/generated/types/createBillingScheduleBody.ts` (18 lines)
-- `lib/api-zod/src/generated/types/createBudgetEntryBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/createCsatResponseBody.ts` (15 lines)
-- `lib/api-zod/src/generated/types/createCustomFieldDefinitionBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/createDocumentBody.ts` (16 lines)
-- `lib/api-zod/src/generated/types/createFormBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/createFormFieldBody.ts` (15 lines)
-- `lib/api-zod/src/generated/types/createHolidayCalendarBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/createHolidayDateBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/createInvoiceBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/createInvoiceLineItemBody.ts` (20 lines)
-- `lib/api-zod/src/generated/types/createOpportunityBody.ts` (18 lines)
-- `lib/api-zod/src/generated/types/createProjectBody.ts` (20 lines)
-- `lib/api-zod/src/generated/types/createProjectFromTemplateBody.ts` (16 lines)
-- `lib/api-zod/src/generated/types/createProjectTemplateBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/createProspectBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/createRateCardBodyRolesItem.ts` (12 lines)
-- `lib/api-zod/src/generated/types/createRateCardBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/createResourceRequestBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/createRevenueEntryBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/createSavedViewBodyEntity.ts` (16 lines)
-- `lib/api-zod/src/generated/types/createSavedViewBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/createSavedViewBodyVisibility.ts` (15 lines)
-- `lib/api-zod/src/generated/types/createSkillBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/createSkillCategoryBody.ts` (11 lines)
-- `lib/api-zod/src/generated/types/createTaskBody.ts` (26 lines)
-- `lib/api-zod/src/generated/types/createTaskChecklistItemBody.ts` (13 lines)
-- `lib/api-zod/src/generated/types/createTaskCommentBody.ts` (15 lines)
-- `lib/api-zod/src/generated/types/createTaskNoteBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/createTaxCodeBody.ts` (15 lines)
-- `lib/api-zod/src/generated/types/createTemplateAllocationBody.ts` (20 lines)
-- `lib/api-zod/src/generated/types/createTemplatePhaseBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/createTemplateTaskBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/createTimeCategoryBody.ts` (13 lines)
-- `lib/api-zod/src/generated/types/createTimeEntryBody.ts` (18 lines)
-- `lib/api-zod/src/generated/types/createTimeOffRequestBody.ts` (15 lines)
-- `lib/api-zod/src/generated/types/createTimesheetBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/createUserBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/csatResponse.ts` (17 lines)
-- `lib/api-zod/src/generated/types/csatSummaryRatingDistribution.ts` (15 lines)
-- `lib/api-zod/src/generated/types/csatSummary.ts` (17 lines)
-- `lib/api-zod/src/generated/types/customFieldDefinition.ts` (19 lines)
-- `lib/api-zod/src/generated/types/customFieldValue.ts` (17 lines)
-- `lib/api-zod/src/generated/types/dashboardSummary.ts` (18 lines)
-- `lib/api-zod/src/generated/types/documentVersion.ts` (16 lines)
-- `lib/api-zod/src/generated/types/duplicateSavedViewBody.ts` (11 lines)
-- `lib/api-zod/src/generated/types/financeSummaryByStatusItem.ts` (13 lines)
-- `lib/api-zod/src/generated/types/financeSummary.ts` (17 lines)
-- `lib/api-zod/src/generated/types/formField.ts` (18 lines)
-- `lib/api-zod/src/generated/types/formResponseResponses.ts` (9 lines)
-- `lib/api-zod/src/generated/types/formResponse.ts` (17 lines)
-- `lib/api-zod/src/generated/types/ganttData.ts` (15 lines)
-- `lib/api-zod/src/generated/types/ganttRow.ts` (19 lines)
-- `lib/api-zod/src/generated/types/getDashboardSummaryParams.ts` (15 lines)
-- `lib/api-zod/src/generated/types/getDashboardSummaryPeriod.ts` (17 lines)
-- `lib/api-zod/src/generated/types/healthStatus.ts` (11 lines)
-- `lib/api-zod/src/generated/types/holidayCalendar.ts` (16 lines)
-- `lib/api-zod/src/generated/types/holidayDate.ts` (15 lines)
-- `lib/api-zod/src/generated/types/index.ts` (200 lines)
-- `lib/api-zod/src/generated/types/invoiceLineItem.ts` (26 lines)
-- `lib/api-zod/src/generated/types/invoice.ts` (21 lines)
-- `lib/api-zod/src/generated/types/listAccountsParams.ts` (14 lines)
-- `lib/api-zod/src/generated/types/listAllocationsParams.ts` (12 lines)
-- `lib/api-zod/src/generated/types/listAuditLogParams.ts` (13 lines)
-- `lib/api-zod/src/generated/types/listBillingSchedulesParams.ts` (11 lines)
-- `lib/api-zod/src/generated/types/listCsatResponsesParams.ts` (12 lines)
-- `lib/api-zod/src/generated/types/listCustomFieldDefinitionsParams.ts` (11 lines)
-- `lib/api-zod/src/generated/types/listCustomFieldValuesParams.ts` (12 lines)
-- `lib/api-zod/src/generated/types/listDocumentsParams.ts` (11 lines)
-- `lib/api-zod/src/generated/types/listFormsParams.ts` (11 lines)
-- `lib/api-zod/src/generated/types/listInvoicesParams.ts` (12 lines)
-- `lib/api-zod/src/generated/types/listOpportunitiesParams.ts` (13 lines)
-- `lib/api-zod/src/generated/types/listProjectsParams.ts` (12 lines)
-- `lib/api-zod/src/generated/types/listProspectsParams.ts` (12 lines)
-- `lib/api-zod/src/generated/types/listResourceRequestsParams.ts` (13 lines)
-- `lib/api-zod/src/generated/types/listRevenueEntriesParams.ts` (11 lines)
-- `lib/api-zod/src/generated/types/listSavedViewsEntity.ts` (16 lines)
-- `lib/api-zod/src/generated/types/listSavedViewsParams.ts` (12 lines)
-- `lib/api-zod/src/generated/types/listSkillsParams.ts` (11 lines)
-- `lib/api-zod/src/generated/types/listTasksParams.ts` (13 lines)
-- `lib/api-zod/src/generated/types/listTimeEntriesParams.ts` (14 lines)
-- `lib/api-zod/src/generated/types/listTimeOffRequestsParams.ts` (12 lines)
-- `lib/api-zod/src/generated/types/listTimesheetsParams.ts` (13 lines)
-- `lib/api-zod/src/generated/types/notification.ts` (19 lines)
-- `lib/api-zod/src/generated/types/opportunity.ts` (24 lines)
-- `lib/api-zod/src/generated/types/projectBudgetEntries.ts` (14 lines)
-- `lib/api-zod/src/generated/types/projectDocument.ts` (21 lines)
-- `lib/api-zod/src/generated/types/projectFormDetail.ts` (20 lines)
-- `lib/api-zod/src/generated/types/projectForm.ts` (19 lines)
-- `lib/api-zod/src/generated/types/projectHealthReportProjectsItem.ts` (16 lines)
-- `lib/api-zod/src/generated/types/projectHealthReport.ts` (16 lines)
-- `lib/api-zod/src/generated/types/projectSummary.ts` (17 lines)
-- `lib/api-zod/src/generated/types/projectTemplate.ts` (27 lines)
-- `lib/api-zod/src/generated/types/project.ts` (38 lines)
-- `lib/api-zod/src/generated/types/prospect.ts` (24 lines)
-- `lib/api-zod/src/generated/types/rateCardRolesItem.ts` (12 lines)
-- `lib/api-zod/src/generated/types/rateCard.ts` (20 lines)
-- `lib/api-zod/src/generated/types/rejectTimesheetBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/reorderTasksBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/reorderTasksBodyUpdatesItem.ts` (14 lines)
-- `lib/api-zod/src/generated/types/reorderTasksResponse.ts` (11 lines)
-- `lib/api-zod/src/generated/types/resourceRequest.ts` (27 lines)
-- `lib/api-zod/src/generated/types/revenueByPeriodReportPeriodsItemByMethod.ts` (11 lines)
-- `lib/api-zod/src/generated/types/revenueByPeriodReportPeriodsItem.ts` (14 lines)
-- `lib/api-zod/src/generated/types/revenueByPeriodReport.ts` (14 lines)
-- `lib/api-zod/src/generated/types/revenueEntry.ts` (19 lines)
-- `lib/api-zod/src/generated/types/revenueReportByAccountItem.ts` (13 lines)
-- `lib/api-zod/src/generated/types/revenueReportByMonthItem.ts` (13 lines)
-- `lib/api-zod/src/generated/types/revenueReportByProjectItem.ts` (13 lines)
-- `lib/api-zod/src/generated/types/revenueReport.ts` (17 lines)
-- `lib/api-zod/src/generated/types/savedViewCondition.ts` (13 lines)
-- `lib/api-zod/src/generated/types/savedViewEntity.ts` (16 lines)
-- `lib/api-zod/src/generated/types/savedViewFiltersMatchMode.ts` (15 lines)
-- `lib/api-zod/src/generated/types/savedViewFilters.ts` (14 lines)
-- `lib/api-zod/src/generated/types/savedView.ts` (22 lines)
-- `lib/api-zod/src/generated/types/savedViewVisibility.ts` (15 lines)
-- `lib/api-zod/src/generated/types/skillCategory.ts` (13 lines)
-- `lib/api-zod/src/generated/types/skill.ts` (15 lines)
-- `lib/api-zod/src/generated/types/submitFormResponseBodyResponses.ts` (9 lines)
-- `lib/api-zod/src/generated/types/submitFormResponseBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/taskChecklistItem.ts` (16 lines)
-- `lib/api-zod/src/generated/types/taskComment.ts` (18 lines)
-- `lib/api-zod/src/generated/types/taskNote.ts` (17 lines)
-- `lib/api-zod/src/generated/types/task.ts` (46 lines)
-- `lib/api-zod/src/generated/types/taxCode.ts` (17 lines)
-- `lib/api-zod/src/generated/types/templateAllocationsSummaryByRoleItem.ts` (14 lines)
-- `lib/api-zod/src/generated/types/templateAllocationsSummary.ts` (16 lines)
-- `lib/api-zod/src/generated/types/templateAllocation.ts` (26 lines)
-- `lib/api-zod/src/generated/types/templatePhase.ts` (22 lines)
-- `lib/api-zod/src/generated/types/templateTaskPriority.ts` (17 lines)
-- `lib/api-zod/src/generated/types/templateTask.ts` (27 lines)
-- `lib/api-zod/src/generated/types/timeCategory.ts` (15 lines)
-- `lib/api-zod/src/generated/types/timeEntry.ts` (21 lines)
-- `lib/api-zod/src/generated/types/timeOffRequest.ts` (20 lines)
-- `lib/api-zod/src/generated/types/timesheet.ts` (25 lines)
-- `lib/api-zod/src/generated/types/timeSummaryByProjectItem.ts` (13 lines)
-- `lib/api-zod/src/generated/types/timeSummaryByUserItem.ts` (13 lines)
-- `lib/api-zod/src/generated/types/timeSummary.ts` (17 lines)
-- `lib/api-zod/src/generated/types/triggerBillingScheduleResponse.ts` (13 lines)
-- `lib/api-zod/src/generated/types/updateAccountBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/updateAllocationBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/updateBillingScheduleBody.ts` (16 lines)
-- `lib/api-zod/src/generated/types/updateDocumentBody.ts` (13 lines)
-- `lib/api-zod/src/generated/types/updateInvoiceBody.ts` (15 lines)
-- `lib/api-zod/src/generated/types/updateInvoiceLineItemBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/updateOpportunityBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/updateProjectBody.ts` (21 lines)
-- `lib/api-zod/src/generated/types/updateProjectTemplateBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/updateProspectBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/updateRateCardBodyRolesItem.ts` (12 lines)
-- `lib/api-zod/src/generated/types/updateRateCardBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/updateResourceRequestBody.ts` (19 lines)
-- `lib/api-zod/src/generated/types/updateResourceRequestStatusBodyStatus.ts` (17 lines)
-- `lib/api-zod/src/generated/types/updateResourceRequestStatusBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/updateSavedViewBody.ts` (15 lines)
-- `lib/api-zod/src/generated/types/updateSavedViewBodyVisibility.ts` (15 lines)
-- `lib/api-zod/src/generated/types/updateTaskBody.ts` (25 lines)
-- `lib/api-zod/src/generated/types/updateTaskChecklistItemBody.ts` (13 lines)
-- `lib/api-zod/src/generated/types/updateTemplateAllocationBody.ts` (20 lines)
-- `lib/api-zod/src/generated/types/updateTimeEntryBody.ts` (16 lines)
-- `lib/api-zod/src/generated/types/updateTimeOffRequestStatusBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/updateTimesheetBody.ts` (12 lines)
-- `lib/api-zod/src/generated/types/updateUserBody.ts` (17 lines)
-- `lib/api-zod/src/generated/types/upsertCustomFieldValueBody.ts` (14 lines)
-- `lib/api-zod/src/generated/types/userCapacity.ts` (19 lines)
-- `lib/api-zod/src/generated/types/userSkillWithDetails.ts` (17 lines)
-- `lib/api-zod/src/generated/types/user.ts` (20 lines)
-- `lib/api-zod/src/generated/types/utilizationReportByMonthItem.ts` (12 lines)
-- `lib/api-zod/src/generated/types/utilizationReportByUserItem.ts` (15 lines)
-- `lib/api-zod/src/generated/types/utilizationReport.ts` (15 lines)
+- `lib/api-client-react/src/generated/api.schemas.ts` (1775 lines)
+- `lib/api-client-react/src/generated/api.ts` (16174 lines)
+- `lib/api-zod/src/generated/api.ts` (3942 lines)
+- `lib/api-zod/src/generated/types/account.ts` (27 lines)
+- `lib/api-zod/src/generated/types/activityItem.ts` (20 lines)
+- `lib/api-zod/src/generated/types/addUserSkillBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/allocation.ts` (30 lines)
+- `lib/api-zod/src/generated/types/applyTemplateAsSegmentBody.ts` (14 lines)
+- `lib/api-zod/src/generated/types/applyTemplateAsSegmentResult.ts` (14 lines)
+- `lib/api-zod/src/generated/types/applyTemplateBody.ts` (14 lines)
+- `lib/api-zod/src/generated/types/applyTemplateResult.ts` (17 lines)
+- `lib/api-zod/src/generated/types/approveTimesheetBody.ts` (12 lines)
+- `lib/api-zod/src/generated/types/auditLogEntry.ts` (18 lines)
+- `lib/api-zod/src/generated/types/billingSchedule.ts` (24 lines)
+- `lib/api-zod/src/generated/types/budgetEntry.ts` (24 lines)
+- `lib/api-zod/src/generated/types/budgetVsActualsReport.ts` (15 lines)
+- `lib/api-zod/src/generated/types/budgetVsActualsReportProjectsItem.ts` (19 lines)
+- `lib/api-zod/src/generated/types/budgetVsActualsReportTotals.ts` (15 lines)
+- `lib/api-zod/src/generated/types/burnDownReport.ts` (17 lines)
+- `lib/api-zod/src/generated/types/burnDownReportDataPointsItem.ts` (14 lines)
+- `lib/api-zod/src/generated/types/convertOpportunityBody.ts` (16 lines)
+- `lib/api-zod/src/generated/types/convertOpportunityResult.ts` (14 lines)
+- `lib/api-zod/src/generated/types/convertProspectBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/convertProspectResult.ts` (14 lines)
+- `lib/api-zod/src/generated/types/createAccountBody.ts` (21 lines)
+- `lib/api-zod/src/generated/types/createAllocationBody.ts` (17 lines)
+- `lib/api-zod/src/generated/types/createBillingScheduleBody.ts` (19 lines)
+- `lib/api-zod/src/generated/types/createBudgetEntryBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/createCsatResponseBody.ts` (16 lines)
+- `lib/api-zod/src/generated/types/createCustomFieldDefinitionBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/createDocumentBody.ts` (17 lines)
+- `lib/api-zod/src/generated/types/createFormBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/createFormFieldBody.ts` (16 lines)
+- `lib/api-zod/src/generated/types/createHolidayCalendarBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/createHolidayDateBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/createInvoiceBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/createInvoiceLineItemBody.ts` (21 lines)
+- `lib/api-zod/src/generated/types/createOpportunityBody.ts` (19 lines)
+- `lib/api-zod/src/generated/types/createProjectBody.ts` (21 lines)
+- `lib/api-zod/src/generated/types/createProjectFromTemplateBody.ts` (17 lines)
+- `lib/api-zod/src/generated/types/createProjectGroupBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/createProjectTemplateBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/createProspectBody.ts` (20 lines)
+- `lib/api-zod/src/generated/types/createRateCardBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/createRateCardBodyRolesItem.ts` (13 lines)
+- `lib/api-zod/src/generated/types/createResourceRequestBody.ts` (20 lines)
+- `lib/api-zod/src/generated/types/createRevenueEntryBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/createSavedViewBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/createSavedViewBodyEntity.ts` (17 lines)
+- `lib/api-zod/src/generated/types/createSavedViewBodyVisibility.ts` (16 lines)
+- `lib/api-zod/src/generated/types/createSkillBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/createSkillCategoryBody.ts` (12 lines)
+- `lib/api-zod/src/generated/types/createTaskBody.ts` (27 lines)
+- `lib/api-zod/src/generated/types/createTaskChecklistItemBody.ts` (14 lines)
+- `lib/api-zod/src/generated/types/createTaskCommentBody.ts` (16 lines)
+- `lib/api-zod/src/generated/types/createTaskNoteBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/createTaxCodeBody.ts` (16 lines)
+- `lib/api-zod/src/generated/types/createTemplateAllocationBody.ts` (21 lines)
+- `lib/api-zod/src/generated/types/createTemplatePhaseBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/createTemplateTaskBody.ts` (20 lines)
+- `lib/api-zod/src/generated/types/createTimeCategoryBody.ts` (14 lines)
+- `lib/api-zod/src/generated/types/createTimeEntryBody.ts` (19 lines)
+- `lib/api-zod/src/generated/types/createTimeOffRequestBody.ts` (16 lines)
+- `lib/api-zod/src/generated/types/createTimesheetBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/createUserBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/csatResponse.ts` (18 lines)
+- `lib/api-zod/src/generated/types/csatSummary.ts` (18 lines)
+- `lib/api-zod/src/generated/types/csatSummaryRatingDistribution.ts` (16 lines)
+- `lib/api-zod/src/generated/types/customFieldDefinition.ts` (20 lines)
+- `lib/api-zod/src/generated/types/customFieldValue.ts` (18 lines)
+- `lib/api-zod/src/generated/types/dashboardSummary.ts` (19 lines)
+- `lib/api-zod/src/generated/types/documentVersion.ts` (17 lines)
+- `lib/api-zod/src/generated/types/duplicateSavedViewBody.ts` (12 lines)
+- `lib/api-zod/src/generated/types/financeSummary.ts` (18 lines)
+- `lib/api-zod/src/generated/types/financeSummaryByStatusItem.ts` (14 lines)
+- `lib/api-zod/src/generated/types/formField.ts` (19 lines)
+- `lib/api-zod/src/generated/types/formResponse.ts` (18 lines)
+- `lib/api-zod/src/generated/types/formResponseResponses.ts` (10 lines)
+- `lib/api-zod/src/generated/types/ganttData.ts` (16 lines)
+- `lib/api-zod/src/generated/types/ganttRow.ts` (20 lines)
+- `lib/api-zod/src/generated/types/getDashboardSummaryParams.ts` (16 lines)
+- `lib/api-zod/src/generated/types/getDashboardSummaryPeriod.ts` (18 lines)
+- `lib/api-zod/src/generated/types/healthStatus.ts` (12 lines)
+- `lib/api-zod/src/generated/types/holidayCalendar.ts` (17 lines)
+- `lib/api-zod/src/generated/types/holidayDate.ts` (16 lines)
+- `lib/api-zod/src/generated/types/index.ts` (206 lines)
+- `lib/api-zod/src/generated/types/invoice.ts` (22 lines)
+- `lib/api-zod/src/generated/types/invoiceLineItem.ts` (27 lines)
+- `lib/api-zod/src/generated/types/listAccountsParams.ts` (15 lines)
+- `lib/api-zod/src/generated/types/listAllocationsParams.ts` (13 lines)
+- `lib/api-zod/src/generated/types/listAuditLogParams.ts` (14 lines)
+- `lib/api-zod/src/generated/types/listBillingSchedulesParams.ts` (12 lines)
+- `lib/api-zod/src/generated/types/listCsatResponsesParams.ts` (13 lines)
+- `lib/api-zod/src/generated/types/listCustomFieldDefinitionsParams.ts` (12 lines)
+- `lib/api-zod/src/generated/types/listCustomFieldValuesParams.ts` (13 lines)
+- `lib/api-zod/src/generated/types/listDocumentsParams.ts` (12 lines)
+- `lib/api-zod/src/generated/types/listFormsParams.ts` (12 lines)
+- `lib/api-zod/src/generated/types/listInvoicesParams.ts` (13 lines)
+- `lib/api-zod/src/generated/types/listOpportunitiesParams.ts` (14 lines)
+- `lib/api-zod/src/generated/types/listProjectsParams.ts` (13 lines)
+- `lib/api-zod/src/generated/types/listProspectsParams.ts` (13 lines)
+- `lib/api-zod/src/generated/types/listResourceRequestsParams.ts` (14 lines)
+- `lib/api-zod/src/generated/types/listRevenueEntriesParams.ts` (12 lines)
+- `lib/api-zod/src/generated/types/listSavedViewsEntity.ts` (17 lines)
+- `lib/api-zod/src/generated/types/listSavedViewsParams.ts` (13 lines)
+- `lib/api-zod/src/generated/types/listSkillsParams.ts` (12 lines)
+- `lib/api-zod/src/generated/types/listTasksParams.ts` (14 lines)
+- `lib/api-zod/src/generated/types/listTimeEntriesParams.ts` (15 lines)
+- `lib/api-zod/src/generated/types/listTimeOffRequestsParams.ts` (13 lines)
+- `lib/api-zod/src/generated/types/listTimesheetsParams.ts` (14 lines)
+- `lib/api-zod/src/generated/types/notification.ts` (20 lines)
+- `lib/api-zod/src/generated/types/opportunity.ts` (25 lines)
+- `lib/api-zod/src/generated/types/project.ts` (40 lines)
+- `lib/api-zod/src/generated/types/projectBudgetEntries.ts` (15 lines)
+- `lib/api-zod/src/generated/types/projectDocument.ts` (22 lines)
+- `lib/api-zod/src/generated/types/projectForm.ts` (20 lines)
+- `lib/api-zod/src/generated/types/projectFormDetail.ts` (21 lines)
+- `lib/api-zod/src/generated/types/projectGroup.ts` (18 lines)
+- `lib/api-zod/src/generated/types/projectHealthReport.ts` (17 lines)
+- `lib/api-zod/src/generated/types/projectHealthReportProjectsItem.ts` (17 lines)
+- `lib/api-zod/src/generated/types/projectSummary.ts` (18 lines)
+- `lib/api-zod/src/generated/types/projectTemplate.ts` (28 lines)
+- `lib/api-zod/src/generated/types/prospect.ts` (25 lines)
+- `lib/api-zod/src/generated/types/rateCard.ts` (21 lines)
+- `lib/api-zod/src/generated/types/rateCardRolesItem.ts` (13 lines)
+- `lib/api-zod/src/generated/types/rejectTimesheetBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/reorderTaskStatusDefinitionsBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/reorderTasksBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/reorderTasksBodyUpdatesItem.ts` (15 lines)
+- `lib/api-zod/src/generated/types/reorderTasksResponse.ts` (12 lines)
+- `lib/api-zod/src/generated/types/resourceRequest.ts` (28 lines)
+- `lib/api-zod/src/generated/types/revenueByPeriodReport.ts` (15 lines)
+- `lib/api-zod/src/generated/types/revenueByPeriodReportPeriodsItem.ts` (15 lines)
+- `lib/api-zod/src/generated/types/revenueByPeriodReportPeriodsItemByMethod.ts` (12 lines)
+- `lib/api-zod/src/generated/types/revenueEntry.ts` (20 lines)
+- `lib/api-zod/src/generated/types/revenueReport.ts` (18 lines)
+- `lib/api-zod/src/generated/types/revenueReportByAccountItem.ts` (14 lines)
+- `lib/api-zod/src/generated/types/revenueReportByMonthItem.ts` (14 lines)
+- `lib/api-zod/src/generated/types/revenueReportByProjectItem.ts` (14 lines)
+- `lib/api-zod/src/generated/types/savedView.ts` (23 lines)
+- `lib/api-zod/src/generated/types/savedViewCondition.ts` (14 lines)
+- `lib/api-zod/src/generated/types/savedViewEntity.ts` (17 lines)
+- `lib/api-zod/src/generated/types/savedViewFilters.ts` (15 lines)
+- `lib/api-zod/src/generated/types/savedViewFiltersMatchMode.ts` (16 lines)
+- `lib/api-zod/src/generated/types/savedViewVisibility.ts` (16 lines)
+- `lib/api-zod/src/generated/types/skill.ts` (16 lines)
+- `lib/api-zod/src/generated/types/skillCategory.ts` (14 lines)
+- `lib/api-zod/src/generated/types/submitFormResponseBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/submitFormResponseBodyResponses.ts` (10 lines)
+- `lib/api-zod/src/generated/types/task.ts` (47 lines)
+- `lib/api-zod/src/generated/types/taskChecklistItem.ts` (17 lines)
+- `lib/api-zod/src/generated/types/taskComment.ts` (19 lines)
+- `lib/api-zod/src/generated/types/taskNote.ts` (18 lines)
+- `lib/api-zod/src/generated/types/taskStatusDefinition.ts` (19 lines)
+- `lib/api-zod/src/generated/types/taxCode.ts` (18 lines)
+- `lib/api-zod/src/generated/types/templateAllocation.ts` (27 lines)
+- `lib/api-zod/src/generated/types/templateAllocationsSummary.ts` (17 lines)
+- `lib/api-zod/src/generated/types/templateAllocationsSummaryByRoleItem.ts` (15 lines)
+- `lib/api-zod/src/generated/types/templatePhase.ts` (23 lines)
+- `lib/api-zod/src/generated/types/templateTask.ts` (28 lines)
+- `lib/api-zod/src/generated/types/templateTaskPriority.ts` (18 lines)
+- `lib/api-zod/src/generated/types/timeCategory.ts` (16 lines)
+- `lib/api-zod/src/generated/types/timeEntry.ts` (22 lines)
+- `lib/api-zod/src/generated/types/timeOffRequest.ts` (21 lines)
+- `lib/api-zod/src/generated/types/timeSummary.ts` (18 lines)
+- `lib/api-zod/src/generated/types/timeSummaryByProjectItem.ts` (14 lines)
+- `lib/api-zod/src/generated/types/timeSummaryByUserItem.ts` (14 lines)
+- `lib/api-zod/src/generated/types/timesheet.ts` (26 lines)
+- `lib/api-zod/src/generated/types/triggerBillingScheduleResponse.ts` (14 lines)
+- `lib/api-zod/src/generated/types/updateAccountBody.ts` (21 lines)
+- `lib/api-zod/src/generated/types/updateAllocationBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/updateBillingScheduleBody.ts` (17 lines)
+- `lib/api-zod/src/generated/types/updateDocumentBody.ts` (14 lines)
+- `lib/api-zod/src/generated/types/updateInvoiceBody.ts` (16 lines)
+- `lib/api-zod/src/generated/types/updateInvoiceLineItemBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/updateOpportunityBody.ts` (20 lines)
+- `lib/api-zod/src/generated/types/updateProjectBody.ts` (23 lines)
+- `lib/api-zod/src/generated/types/updateProjectGroupBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/updateProjectTemplateBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/updateProspectBody.ts` (20 lines)
+- `lib/api-zod/src/generated/types/updateRateCardBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/updateRateCardBodyRolesItem.ts` (13 lines)
+- `lib/api-zod/src/generated/types/updateResourceRequestBody.ts` (20 lines)
+- `lib/api-zod/src/generated/types/updateResourceRequestStatusBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/updateResourceRequestStatusBodyStatus.ts` (18 lines)
+- `lib/api-zod/src/generated/types/updateSavedViewBody.ts` (16 lines)
+- `lib/api-zod/src/generated/types/updateSavedViewBodyVisibility.ts` (16 lines)
+- `lib/api-zod/src/generated/types/updateTaskBody.ts` (26 lines)
+- `lib/api-zod/src/generated/types/updateTaskChecklistItemBody.ts` (14 lines)
+- `lib/api-zod/src/generated/types/updateTemplateAllocationBody.ts` (21 lines)
+- `lib/api-zod/src/generated/types/updateTimeEntryBody.ts` (17 lines)
+- `lib/api-zod/src/generated/types/updateTimeOffRequestStatusBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/updateTimesheetBody.ts` (13 lines)
+- `lib/api-zod/src/generated/types/updateUserBody.ts` (18 lines)
+- `lib/api-zod/src/generated/types/upsertCustomFieldValueBody.ts` (15 lines)
+- `lib/api-zod/src/generated/types/user.ts` (21 lines)
+- `lib/api-zod/src/generated/types/userCapacity.ts` (20 lines)
+- `lib/api-zod/src/generated/types/userSkillWithDetails.ts` (18 lines)
+- `lib/api-zod/src/generated/types/utilizationReport.ts` (16 lines)
+- `lib/api-zod/src/generated/types/utilizationReportByMonthItem.ts` (13 lines)
+- `lib/api-zod/src/generated/types/utilizationReportByUserItem.ts` (16 lines)
