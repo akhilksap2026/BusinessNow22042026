@@ -44,8 +44,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  FileText,
-  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -70,8 +68,9 @@ type NavItemDef = {
 
 /**
  * Sidebar groups (F4 from product feedback): related entries are nested under
- * a labeled subhead so PMO admins can find Templates / Rate Cards beside the
- * Projects entry instead of digging into Admin tabs.
+ * a labeled subhead. Templates and Rate Cards intentionally live only under
+ * the Admin → Settings tabs to avoid duplication; they are reached via the
+ * "Settings" entry rather than top-level sidebar links.
  */
 type NavSection = { title?: string; items: NavItemDef[] };
 
@@ -86,8 +85,6 @@ const WORKSPACE_SECTIONS: NavSection[] = [
     title: "Projects",
     items: [
       { href: "/projects", label: "Projects", icon: Briefcase },
-      { href: "/admin?tab=templates", label: "Templates", icon: FileText },
-      { href: "/admin?tab=ratecards", label: "Rate Cards", icon: Tag },
     ],
   },
   {
