@@ -387,7 +387,55 @@ describe("resolveRole — legacy + canonical mapping", () => {
     assert.equal(resolveRole("PM"), "super_user");
   });
 
+  it("maps 'Resource Manager' to super_user", () => {
+    assert.equal(resolveRole("Resource Manager"), "super_user");
+  });
+
   it("unknown roles fall back to 'collaborator' (safe minimum)", () => {
     assert.equal(resolveRole("totally-made-up-role"), "collaborator");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  6. reports.view — new permission gate                              */
+/* ------------------------------------------------------------------ */
+
+describe("reports.view — gate checks", () => {
+  it("account_admin can view reports", () => {
+    assert.equal(can(ROLES.ACCOUNT_ADMIN, "reports.view"), true);
+  });
+
+  it("super_user can view reports", () => {
+    assert.equal(can(ROLES.SUPER_USER, "reports.view"), true);
+  });
+
+  it("collaborator CANNOT view reports", () => {
+    assert.equal(can(ROLES.COLLABORATOR, "reports.view"), false);
+  });
+
+  it("customer CANNOT view reports", () => {
+    assert.equal(can(ROLES.CUSTOMER, "reports.view"), false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  7. financials.viewCostRates — account_admin only                   */
+/* ------------------------------------------------------------------ */
+
+describe("financials.viewCostRates — account_admin exclusive", () => {
+  it("account_admin CAN view cost rates", () => {
+    assert.equal(can(ROLES.ACCOUNT_ADMIN, "financials.viewCostRates"), true);
+  });
+
+  it("super_user CANNOT view cost rates", () => {
+    assert.equal(
+      can(ROLES.SUPER_USER, "financials.viewCostRates"),
+      false,
+      "cost rates must be account_admin-only",
+    );
+  });
+
+  it("collaborator CANNOT view cost rates", () => {
+    assert.equal(can(ROLES.COLLABORATOR, "financials.viewCostRates"), false);
   });
 });

@@ -1,13 +1,10 @@
 import { Router, type IRouter } from "express";
 import { eq, asc } from "drizzle-orm";
 import { db, taskCommentsTable, taskChecklistsTable, taskNotesTable, usersTable } from "@workspace/db";
+import { hasRole } from "../constants/roles";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 
 const router: IRouter = Router();
-
-const PM_ROLES = new Set(["Admin", "PM", "Super User"]);
-function isPM(role: string): boolean {
-  return PM_ROLES.has(role);
-}
 
 function mapNote(n: typeof taskNotesTable.$inferSelect, userName: string | null) {
   return {
@@ -154,10 +151,10 @@ router.delete("/tasks/:taskId/notes/:noteId", async (req, res): Promise<void> =>
   if (isNaN(noteId)) { res.status(400).json({ error: "Invalid note id" }); return; }
   const [existing] = await db.select().from(taskNotesTable).where(eq(taskNotesTable.id, noteId));
   if (!existing) { res.sendStatus(204); return; }
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const requesterId = Number(req.headers["x-user-id"] ?? 0);
   const owner = requesterId && existing.userId === requesterId;
-  if (!owner && !isPM(role)) {
+  if (!owner && !hasRole(role, "super_user")) {
     res.status(403).json({ error: "Only the note author or a PM can delete this note." });
     return;
   }

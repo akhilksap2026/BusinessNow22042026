@@ -47,11 +47,11 @@ async function resolveApprovers(submitterUserId: number): Promise<number[]> {
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, submitterUserId));
     if (u && (u as any).timesheetApproverUserId) return [(u as any).timesheetApproverUserId];
   }
-  // Fallback: all admins
-  const admins = await db.select().from(usersTable).where(eq(usersTable.role, "Admin"));
+  // Fallback: all admins (canonical and legacy role values)
+  const admins = await db.select().from(usersTable).where(inArray(usersTable.role, ["Admin", "account_admin"]));
   if (admins.length > 0) return admins.map(a => a.id);
-  // Last resort: all Project Managers
-  const pms = await db.select().from(usersTable).where(eq(usersTable.role, "Project Manager"));
+  // Last resort: all Project Managers / super_users
+  const pms = await db.select().from(usersTable).where(inArray(usersTable.role, ["Project Manager", "PM", "super_user"]));
   return pms.map(p => p.id);
 }
 
@@ -109,7 +109,7 @@ router.patch("/timesheets/:id", async (req, res): Promise<void> => {
   const tsUpdates: any = { ...parsed.data };
   if (tsUpdates.totalHours !== undefined) tsUpdates.totalHours = String(tsUpdates.totalHours);
   if (tsUpdates.billableHours !== undefined) tsUpdates.billableHours = String(tsUpdates.billableHours);
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const settings = await getGovernanceSettings();
   // Withdraw flow: if status is changing back to Draft from Submitted, clear submitted audit fields.
   if (tsUpdates.status === "Draft") {
@@ -146,7 +146,7 @@ router.post("/timesheets/:id/submit", async (req, res): Promise<void> => {
   if (existing.status !== "Draft") { res.status(400).json({ error: "Only Draft timesheets can be submitted" }); return; }
   // Status lock guard
   {
-    const role = String(req.headers["x-user-role"] ?? "");
+    const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
     const settings = await getGovernanceSettings();
     const stErr = checkTimesheetStatusChangeable(existing, role, settings);
     if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
@@ -195,7 +195,7 @@ router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void
     return;
   }
   {
-    const role = String(req.headers["x-user-role"] ?? "");
+    const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
     const settings = await getGovernanceSettings();
     const stErr = checkTimesheetStatusChangeable(existing, role, settings);
     if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
@@ -224,7 +224,7 @@ router.post("/timesheets/:id/unapprove", async (req, res): Promise<void> => {
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
   if (existing.status !== "Approved") { res.status(400).json({ error: "Only Approved timesheets can be unapproved" }); return; }
   {
-    const role = String(req.headers["x-user-role"] ?? "");
+    const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
     const settings = await getGovernanceSettings();
     const stErr = checkTimesheetStatusChangeable(existing, role, settings);
     if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
@@ -260,7 +260,7 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
     return;
   }
   {
-    const role = String(req.headers["x-user-role"] ?? "");
+    const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
     const settings = await getGovernanceSettings();
     const stErr = checkTimesheetStatusChangeable(existing, role, settings);
     if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
@@ -289,7 +289,7 @@ router.post("/timesheets/bulk-approve", requirePM, async (req, res): Promise<voi
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
   const approvedByUserId = req.body?.approvedByUserId ?? null;
   const existing = await db.select().from(timesheetsTable).where(inArray(timesheetsTable.id, ids));
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const actorId = Number(req.headers["x-user-id"] ?? 0);
   const settings = await getGovernanceSettings();
   const eligible = existing

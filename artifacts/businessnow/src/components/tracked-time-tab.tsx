@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { hasRole } from "@/lib/roles";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -105,7 +106,7 @@ function statusBadge(s: string) {
   return <Badge className={`${map[s]} border-0`}>{s}</Badge>;
 }
 
-export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "PM" }: Props) {
+export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "collaborator" }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -712,7 +713,7 @@ function EditEntryDialog({
 }) {
   const { toast } = useToast();
   const isApproved = entry.approved;
-  const isAdmin = viewerRole === "Admin";
+  const isAdmin = hasRole(viewerRole, "account_admin");
   const taskEditable = isAdmin || (!isApproved && !entry.rejected);
   const fieldsEditable = isAdmin || !isApproved;
   const [hours, setHours] = useState(String(entry.hours));

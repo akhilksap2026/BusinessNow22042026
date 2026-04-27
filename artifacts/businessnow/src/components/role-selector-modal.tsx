@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ShieldCheck, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,13 @@ export function RoleSelectorModal() {
   const { currentUser, availableRoles, activeRole, switchRole } = useCurrentUser();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
+  const openedForRef = useRef(false);
 
   useEffect(() => {
     if (!currentUser) return;
     if (availableRoles.length <= 1) return;
-    if (!localStorage.getItem("activeRole")) {
+    if (!openedForRef.current) {
+      openedForRef.current = true;
       setOpen(true);
     }
   }, [currentUser, availableRoles.length]);
@@ -56,7 +58,7 @@ export function RoleSelectorModal() {
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!next && !localStorage.getItem("activeRole")) {
+        if (!next && !activeRole) {
           switchRole(activeRole || currentUser.role);
         }
         setOpen(next);
@@ -75,7 +77,7 @@ export function RoleSelectorModal() {
         </DialogHeader>
         <div className="grid gap-2 mt-2">
           {availableRoles.map((role) => {
-            const isCurrent = role === activeRole && !!localStorage.getItem("activeRole");
+            const isCurrent = role === activeRole;
             const isPending = role === pending;
             return (
               <button
@@ -109,7 +111,7 @@ export function RoleSelectorModal() {
             );
           })}
         </div>
-        {!localStorage.getItem("activeRole") && (
+        {!activeRole && (
           <p className="text-xs text-muted-foreground mt-3">
             Tip: pick the role you'll use most. You can always switch later from the account menu.
           </p>

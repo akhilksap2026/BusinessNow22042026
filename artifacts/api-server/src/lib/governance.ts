@@ -1,5 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import { db, timeSettingsTable, timesheetsTable, timeEntriesTable, invoiceLineItemsTable, invoicesTable } from "@workspace/db";
+import { resolveRole } from "../constants/roles";
 
 export type GovernanceSettings = {
   globalLockEnabled: boolean;
@@ -33,11 +34,11 @@ export async function getGovernanceSettings(): Promise<GovernanceSettings> {
 }
 
 function rolesFromCsv(csv: string): string[] {
-  return csv.split(",").map(r => r.trim()).filter(Boolean);
+  return csv.split(",").map(r => resolveRole(r.trim())).filter(Boolean);
 }
 
 export function isAdminRole(role: string): boolean {
-  return role === "Admin";
+  return resolveRole(role) === "account_admin";
 }
 
 function isDateOnOrBefore(entryDate: string, lockDate: string | null): boolean {
@@ -59,7 +60,7 @@ export function checkEntryEditable(
   if (isAdminRole(role)) return null;
   if (!isDateOnOrBefore(entry.date, s.lockBeforeDate)) return null;
   const allowedRoles = rolesFromCsv(s.dateLockEditOverrideRoles);
-  if (allowedRoles.includes(role)) return null;
+  if (allowedRoles.includes(resolveRole(role))) return null;
   return {
     status: 423,
     error: `This time entry is in a locked period (on or before ${s.lockBeforeDate}). Only Admins or roles with "Edit date-locked entries" permission can modify it.`,
@@ -86,7 +87,7 @@ export function checkEntryStatusChangeable(
     };
   }
   const allowedRoles = rolesFromCsv(s.dateLockStatusOverrideRoles);
-  if (allowedRoles.includes(role)) return null;
+  if (allowedRoles.includes(resolveRole(role))) return null;
   return {
     status: 423,
     error: `Cannot change status for entries on or before ${s.lockBeforeDate}. Only Admins or roles with "Change status of date-locked entries" permission can.`,
@@ -171,7 +172,7 @@ export function checkTimesheetStatusChangeable(
     };
   }
   const allowedRoles = rolesFromCsv(s.dateLockStatusOverrideRoles);
-  if (allowedRoles.includes(role)) return null;
+  if (allowedRoles.includes(resolveRole(role))) return null;
   return {
     status: 423,
     error: `Cannot change status for the week of ${ts.weekStart} (locked period). Only Admins or roles with "Change status of date-locked entries" permission can.`,

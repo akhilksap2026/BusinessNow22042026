@@ -6,6 +6,7 @@ import {
   allocationsTable, holidayDatesTable,
 } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import {
   getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable,
   checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry,
@@ -438,7 +439,7 @@ router.patch("/time-entries/:id", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const parsed = UpdateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Time entry not found" }); return; }
   const settings = await getGovernanceSettings();
@@ -483,7 +484,7 @@ router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<voi
   const reason = String(req.body?.rejectionNote ?? req.body?.reason ?? "").trim();
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, id));
   if (!existing) { res.status(404).json({ error: "Time entry not found" }); return; }
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const settings = await getGovernanceSettings();
   const statusErr = checkEntryStatusChangeable(existing, role, settings);
   if (statusErr) { res.status(statusErr.status).json({ error: statusErr.error }); return; }
@@ -510,7 +511,7 @@ router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<vo
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
   const { inArray } = await import("drizzle-orm");
   const existing = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const settings = await getGovernanceSettings();
   for (const e of existing) {
     const err = checkEntryStatusChangeable(e, role, settings);
@@ -544,7 +545,7 @@ router.post("/time-entries/bulk-approve", requirePM, async (req, res): Promise<v
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
   const { inArray } = await import("drizzle-orm");
   const existing = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const settings = await getGovernanceSettings();
   for (const e of existing) {
     const err = checkEntryStatusChangeable(e, role, settings);
@@ -561,7 +562,7 @@ router.post("/time-entries/bulk-delete", requirePM, async (req, res): Promise<vo
   if (ids.length === 0) { res.status(400).json({ error: "ids array required" }); return; }
   const { inArray } = await import("drizzle-orm");
   const existing = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const settings = await getGovernanceSettings();
   const { getInvoicedLink } = await import("../lib/governance");
   for (const e of existing) {
@@ -584,7 +585,7 @@ router.delete("/time-entries/:id", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
   if (!existing) { res.sendStatus(204); return; }
-  const role = String(req.headers["x-user-role"] ?? "");
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const settings = await getGovernanceSettings();
   const dateErr = checkEntryEditable(existing, role, settings);
   if (dateErr) { res.status(dateErr.status).json({ error: dateErr.error }); return; }

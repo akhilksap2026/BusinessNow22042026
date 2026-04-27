@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { hasRole } from "@/lib/roles";
 import {
   useListSavedViews,
   useCreateSavedView,
@@ -38,8 +39,8 @@ interface Props {
 export function SavedViewsBar({ entity, fields, value, onChange }: Props) {
   const qc = useQueryClient();
   const { currentUser, activeRole } = useCurrentUser();
-  const canSave = activeRole !== "Customer";
-  const isAdmin = activeRole === "Admin" || activeRole === "Super User";
+  const canSave = hasRole(activeRole, "collaborator");
+  const isAdmin = hasRole(activeRole, "super_user");
 
   const { data: views = [] } = useListSavedViews({ entity });
 

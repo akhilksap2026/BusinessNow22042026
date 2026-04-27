@@ -10,6 +10,7 @@ import {
 } from "@workspace/db";
 import { and, eq, or, desc } from "drizzle-orm";
 import { requirePM } from "../middleware/rbac";
+import { hasRole } from "../constants/roles";
 
 export const savedViewsRouter = Router();
 
@@ -22,7 +23,7 @@ function getCurrentUserId(req: Request): number | null {
 
 function isAdminLike(req: Request): boolean {
   const role = String(req.headers["x-user-role"] ?? "");
-  return role === "Admin" || role === "Super User";
+  return hasRole(role, "super_user");
 }
 
 savedViewsRouter.get("/saved-views", async (req: Request, res: Response) => {

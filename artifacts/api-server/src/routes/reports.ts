@@ -6,6 +6,8 @@ import {
   GetRevenueReportResponse,
   GetProjectHealthReportResponse,
 } from "@workspace/api-zod";
+import { requirePermission } from "../constants/permissions";
+import { requireFinance } from "../middleware/rbac";
 
 const router: IRouter = Router();
 
@@ -45,7 +47,7 @@ function datesInMonth(yearMonth: string): string[] {
   return dates;
 }
 
-router.get("/reports/utilization", async (_req, res): Promise<void> => {
+router.get("/reports/utilization", requirePermission("reports.view"), async (_req, res): Promise<void> => {
   const [entries, users, allTimeOffs, allHolidayDates] = await Promise.all([
     db.select().from(timeEntriesTable),
     db.select().from(usersTable),
@@ -127,7 +129,7 @@ router.get("/reports/utilization", async (_req, res): Promise<void> => {
   res.json(GetUtilizationReportResponse.parse({ averageUtilization, byUser, byMonth }));
 });
 
-router.get("/reports/revenue", async (_req, res): Promise<void> => {
+router.get("/reports/revenue", requirePermission("reports.view"), requireFinance, async (_req, res): Promise<void> => {
   const invoices = await db.select().from(invoicesTable);
   const projects = await db.select().from(projectsTable);
 
@@ -169,7 +171,7 @@ router.get("/reports/revenue", async (_req, res): Promise<void> => {
   res.json(GetRevenueReportResponse.parse({ totalRevenue, byMonth, byProject, byAccount }));
 });
 
-router.get("/reports/project-health", async (_req, res): Promise<void> => {
+router.get("/reports/project-health", requirePermission("reports.view"), async (_req, res): Promise<void> => {
   const projects = await db.select().from(projectsTable);
   const now = new Date();
 
@@ -198,7 +200,7 @@ router.get("/reports/project-health", async (_req, res): Promise<void> => {
   res.json(GetProjectHealthReportResponse.parse({ onTrack, atRisk, offTrack, completed, projects: projectList }));
 });
 
-router.get("/reports/budget-vs-actuals", async (_req, res): Promise<void> => {
+router.get("/reports/budget-vs-actuals", requirePermission("reports.view"), requireFinance, async (_req, res): Promise<void> => {
   const projects = await db.select().from(projectsTable);
   const invoices = await db.select().from(invoicesTable);
 
@@ -230,7 +232,7 @@ router.get("/reports/budget-vs-actuals", async (_req, res): Promise<void> => {
   res.json({ projects: projectList, totals: { totalBudget, totalSpent, totalRemaining, averagePercentUsed } });
 });
 
-router.get("/reports/burn-down/:projectId", async (req, res): Promise<void> => {
+router.get("/reports/burn-down/:projectId", requirePermission("reports.view"), async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.projectId, 10);
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
   if (!project) { res.status(404).json({ error: "Not found" }); return; }
@@ -270,7 +272,7 @@ router.get("/reports/burn-down/:projectId", async (req, res): Promise<void> => {
 
 
 // ─── Project Performance Report ──────────────────────────────────────────────
-router.get("/reports/project-performance", async (_req, res): Promise<void> => {
+router.get("/reports/project-performance", requirePermission("reports.view"), async (_req, res): Promise<void> => {
   const today = new Date().toISOString().slice(0, 10);
   const projects = await db.select().from(projectsTable);
   const tasks = await db.select().from(tasksTable);
@@ -325,7 +327,7 @@ router.get("/reports/project-performance", async (_req, res): Promise<void> => {
 });
 
 // ─── Operations Insights Report ───────────────────────────────────────────────
-router.get("/reports/operations-insights", async (_req, res): Promise<void> => {
+router.get("/reports/operations-insights", requirePermission("reports.view"), async (_req, res): Promise<void> => {
   const today = new Date().toISOString().slice(0, 10);
   const projects = await db.select().from(projectsTable);
   const tasks = await db.select().from(tasksTable);
@@ -389,7 +391,7 @@ router.get("/reports/operations-insights", async (_req, res): Promise<void> => {
 });
 
 // ─── CSAT Trend Report ────────────────────────────────────────────────────────
-router.get("/reports/csat-trend", async (_req, res): Promise<void> => {
+router.get("/reports/csat-trend", requirePermission("reports.view"), async (_req, res): Promise<void> => {
   const surveys = await db.select().from(csatSurveysTable);
   const responses = await db.select().from(csatResponsesTable);
   const projects = await db.select().from(projectsTable);
@@ -432,7 +434,7 @@ router.get("/reports/csat-trend", async (_req, res): Promise<void> => {
 });
 
 // ─── Interval IQ Report ───────────────────────────────────────────────────────
-router.get("/reports/interval-iq", async (_req, res): Promise<void> => {
+router.get("/reports/interval-iq", requirePermission("reports.view"), requireFinance, async (_req, res): Promise<void> => {
   const projects = await db.select().from(projectsTable);
   const tasks = await db.select().from(tasksTable);
 
@@ -517,14 +519,14 @@ router.get("/reports/interval-iq", async (_req, res): Promise<void> => {
   res.json(rows);
 });
 
-router.post("/reports/interval-iq/events", async (req, res): Promise<void> => {
+router.post("/reports/interval-iq/events", requirePermission("reports.view"), async (req, res): Promise<void> => {
   const { projectId, name, eventDate, eventType = "manual" } = req.body ?? {};
   if (!projectId || !name || !eventDate) { res.status(400).json({ error: "projectId, name, eventDate required" }); return; }
   const [ev] = await db.insert(keyEventsTable).values({ projectId: parseInt(projectId, 10), name, eventDate, eventType }).returning();
   res.status(201).json(ev);
 });
 
-router.post("/reports/interval-iq/intervals", async (req, res): Promise<void> => {
+router.post("/reports/interval-iq/intervals", requirePermission("reports.view"), async (req, res): Promise<void> => {
   const { projectId, name, startEventId, endEventId, benchmarkDays = 0 } = req.body ?? {};
   if (!projectId || !name) { res.status(400).json({ error: "projectId and name required" }); return; }
   const [row] = await db.insert(intervalsTable).values({
@@ -540,7 +542,7 @@ router.post("/reports/interval-iq/intervals", async (req, res): Promise<void> =>
 // ─── Capacity Planning Report ────────────────────────────────────────────────
 // Demand vs Supply (FTE) by week for up to 52 weeks. Demand split into
 // assigned (named user) and unassigned (placeholder). Includes role breakdown.
-router.get("/reports/capacity-planning", async (req, res): Promise<void> => {
+router.get("/reports/capacity-planning", requirePermission("reports.view"), async (req, res): Promise<void> => {
   const STD_WEEK = 40;
   const requested = parseInt(String(req.query.weeks ?? "12"), 10);
   const weeks = Math.min(52, Math.max(1, isNaN(requested) ? 12 : requested));
@@ -667,7 +669,7 @@ router.get("/reports/capacity-planning", async (req, res): Promise<void> => {
 // ─── Utilization Sub-Report (grid: users × periods) ──────────────────────────
 // Available Capacity = Total Capacity − Time-Off − Holidays
 // Cell value = (Tracked / Available) × 100  and  (Billable Tracked / Available) × 100
-router.get("/reports/utilization-grid", async (req, res): Promise<void> => {
+router.get("/reports/utilization-grid", requirePermission("reports.view"), async (req, res): Promise<void> => {
   const fromStr = String(req.query.from ?? "");
   const toStr = String(req.query.to ?? "");
   const grouping = (String(req.query.grouping ?? "week") === "month" ? "month" : "week") as "week" | "month";
@@ -806,7 +808,7 @@ router.get("/reports/utilization-grid", async (req, res): Promise<void> => {
 
 // ─── Timesheet Submissions Sub-Report ────────────────────────────────────────
 // Per-user × per-week status. View toggles: submission vs approval.
-router.get("/reports/timesheet-submissions", async (req, res): Promise<void> => {
+router.get("/reports/timesheet-submissions", requirePermission("reports.view"), async (req, res): Promise<void> => {
   const fromStr = String(req.query.from ?? "");
   const toStr = String(req.query.to ?? "");
   const view = String(req.query.view ?? "submission") === "approval" ? "approval" : "submission";
@@ -893,7 +895,7 @@ router.get("/reports/timesheet-submissions", async (req, res): Promise<void> => 
 // Returns 202 with a job id. In production this would enqueue a worker that
 // generates the CSV and emails it to the requester. Frontend uses this to
 // avoid browser timeouts on large date ranges.
-router.post("/reports/export-async", async (req, res): Promise<void> => {
+router.post("/reports/export-async", requirePermission("reports.view"), async (req, res): Promise<void> => {
   const { reportType, filters, deliveryEmail } = (req.body ?? {}) as {
     reportType?: string; filters?: unknown; deliveryEmail?: string;
   };

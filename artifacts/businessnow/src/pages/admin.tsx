@@ -624,7 +624,7 @@ export default function Admin() {
     mutationFn: async (payload: { email: string; name: string; role: string }) => {
       const r = await fetch(`${BASE}/api/users/invite`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-role": activeRole },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "Invite failed");
@@ -3575,7 +3575,7 @@ function PlaceholdersCatalog({ base }: { base: string }) {
     if (!name.trim()) return;
     const r = await fetch(`${base}/api/placeholders`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ name: name.trim(), roleId: roleId.trim() || null }),
     });
     if (r.ok) {

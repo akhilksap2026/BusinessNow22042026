@@ -89,6 +89,7 @@ export const ACCOUNT_PERMISSIONS = {
   "dashboards.manage":         { account_admin: true,  super_user: true,  collaborator: false, customer: false },
 
   // ── REPORTS ───────────────────────────────────────────────────────────────
+  "reports.view":              { account_admin: true,  super_user: true,  collaborator: false, customer: false },
   "reports.viewStandard":      { account_admin: true,  super_user: true,  collaborator: false, customer: false },
   "reports.viewCustom":        { account_admin: true,  super_user: false, collaborator: false, customer: false },
   "reports.createCustom":      { account_admin: true,  super_user: false, collaborator: false, customer: false },

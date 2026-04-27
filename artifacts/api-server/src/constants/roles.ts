@@ -63,6 +63,7 @@ export const LEGACY_ROLE_MAP: Record<string, RoleValue> = {
   Partner: "customer",
   // Demo job-title roles (legacy seed data — pending a dedicated jobRole field)
   "Project Manager": "super_user",
+  "Resource Manager": "super_user",
   "Solutions Architect": "super_user",
   "Change Management Lead": "super_user",
   Consultant: "collaborator",

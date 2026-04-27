@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { type RoleValue, hasRole, resolveRole } from "../constants/roles";
+import { requirePermission } from "../constants/permissions";
 
 // ---------------------------------------------------------------------------
 // Legacy role union — kept for full backward compatibility.
@@ -144,5 +145,5 @@ export const requireFinance = requireCanonicalRole("account_admin", "super_user"
  * In the four-role model "Finance" maps to super_user, so we check the
  * legacy roles explicitly to honour the exclusion.
  */
-export const requireCostRateAccess = requireAnyRole("Admin", "Finance", "PM");
+export const requireCostRateAccess = requirePermission("financials.viewCostRates");
 

@@ -1,15 +1,10 @@
 import { Router } from "express";
 import { db, documentsTable, documentVersionsTable, documentTemplatesTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { hasRole } from "../constants/roles";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 
 const router = Router();
-
-// Roles that can see and manage private-space documents.
-const PRIVILEGED_ROLES = new Set(["Admin", "PM", "Super User", "Finance", "Developer", "Designer", "QA"]);
-
-function canSeePrivateDocs(role: string): boolean {
-  return PRIVILEGED_ROLES.has(role);
-}
 
 function mapDoc(row: typeof documentsTable.$inferSelect) {
   return {
@@ -30,20 +25,20 @@ function mapDoc(row: typeof documentsTable.$inferSelect) {
 router.get("/documents", async (req, res) => {
   const projectId = Number(req.query.projectId);
   if (!projectId) return res.status(400).json({ error: "projectId required" });
-  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const rows = await db.select().from(documentsTable)
     .where(eq(documentsTable.projectId, projectId))
     .orderBy(desc(documentsTable.updatedAt));
-  const filtered = canSeePrivateDocs(role) ? rows : rows.filter(r => r.spaceType !== "private");
+  const filtered = hasRole(role, "super_user") ? rows : rows.filter(r => r.spaceType !== "private");
   return res.json(filtered.map(mapDoc));
 });
 
 router.post("/documents", async (req, res) => {
-  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const { projectId, name, spaceType, documentType, content, createdByUserId } = req.body;
   if (!projectId || !name) return res.status(400).json({ error: "projectId and name required" });
   const resolvedSpaceType = spaceType || "private";
-  if (resolvedSpaceType === "private" && !canSeePrivateDocs(role)) {
+  if (resolvedSpaceType === "private" && !hasRole(role, "super_user")) {
     return res.status(403).json({ error: "Insufficient permissions to create private documents" });
   }
   const [row] = await db.insert(documentsTable).values({
@@ -59,10 +54,10 @@ router.post("/documents", async (req, res) => {
 
 router.get("/documents/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const [row] = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
   if (!row) return res.status(404).json({ error: "Not found" });
-  if (row.spaceType === "private" && !canSeePrivateDocs(role)) {
+  if (row.spaceType === "private" && !hasRole(role, "super_user")) {
     return res.status(403).json({ error: "This document is private" });
   }
   return res.json(mapDoc(row));
@@ -70,12 +65,12 @@ router.get("/documents/:id", async (req, res) => {
 
 router.patch("/documents/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const { name, content, approvalStatus } = req.body;
 
   const [existing] = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
   if (!existing) return res.status(404).json({ error: "Not found" });
-  if (existing.spaceType === "private" && !canSeePrivateDocs(role)) {
+  if (existing.spaceType === "private" && !hasRole(role, "super_user")) {
     return res.status(403).json({ error: "This document is private" });
   }
 

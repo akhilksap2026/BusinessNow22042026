@@ -32,8 +32,8 @@ const CurrentUserContext = createContext<CurrentUserCtx>({
   currentUser: null,
   isLoading: true,
   isAuthenticated: false,
-  activeRole: "Admin",
-  availableRoles: ["Admin"],
+  activeRole: "collaborator",
+  availableRoles: ["collaborator"],
   switchRole: () => {},
   loginAs: async () => {},
   logout: async () => {},
@@ -73,7 +73,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeRole, setActiveRole] = useState<string>(() => {
-    return localStorage.getItem("activeRole") ?? "Admin";
+    return localStorage.getItem("activeRole") ?? "collaborator";
   });
   const activeRoleRef = useRef(activeRole);
   useEffect(() => {
@@ -227,7 +227,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("activeRole");
     localStorage.removeItem("activeUserId");
     setCurrentUser(null);
-    setActiveRole("Admin");
+    setActiveRole("collaborator");
     clearRoleHeaders();
   }
 

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { requireAdmin } from "../middleware/rbac";
 import { validateInviteRole } from "../middleware/inviteValidation";
-import { resolveRole } from "../constants/roles";
+import { resolveRole, LEGACY_ROLE_MAP } from "../constants/roles";
 import { logAudit } from "../lib/audit";
 import {
   ListUsersResponse,
@@ -191,6 +191,9 @@ router.patch("/users/:id/secondary-roles", requireAdmin, async (req, res): Promi
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { secondaryRoles } = req.body;
   if (!Array.isArray(secondaryRoles)) { res.status(400).json({ error: "secondaryRoles must be an array" }); return; }
+  const validRoles = new Set(Object.keys(LEGACY_ROLE_MAP));
+  const invalid = (secondaryRoles as unknown[]).filter(r => typeof r !== "string" || !validRoles.has(r));
+  if (invalid.length > 0) { res.status(400).json({ error: `Invalid secondary role(s): ${invalid.join(", ")}` }); return; }
   const [previous] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   const [row] = await db.update(usersTable).set({ secondaryRoles } as any).where(eq(usersTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }

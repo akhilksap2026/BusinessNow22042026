@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { hasRole } from "@/lib/roles";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/contexts/current-user";
@@ -137,7 +138,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
     } catch { /* ignore */ }
   }
 
-  const { currentUser } = useCurrentUser();
+  const { currentUser, activeRole } = useCurrentUser();
   const currentUserId = currentUser?.id ?? 1;
 
   const task = (queryClient.getQueryData(getListTasksQueryKey()) as any[])?.find((t: any) => t.id === taskId)
@@ -715,7 +716,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                       <p className="text-sm text-muted-foreground">No notes yet.</p>
                     )}
                     {notes?.map((note) => {
-                      const canDelete = note.userId === currentUserId || ["Admin", "PM", "Super User"].includes(currentUser?.role ?? "");
+                      const canDelete = note.userId === currentUserId || hasRole(activeRole, "super_user");
                       return (
                         <div key={note.id} className="flex gap-3 group">
                           <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">

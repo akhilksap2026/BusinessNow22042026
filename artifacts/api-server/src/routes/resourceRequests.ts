@@ -7,6 +7,7 @@ import {
   UpdateResourceRequestBody,
 } from "@workspace/api-zod";
 import { requirePM } from "../middleware/rbac";
+import { hasRole } from "../constants/roles";
 
 const router: IRouter = Router();
 
@@ -110,7 +111,7 @@ router.patch("/resource-requests/:id/status", requirePM, async (req, res): Promi
   if (!status) { res.status(400).json({ error: "status required" }); return; }
 
   const callerRole = (req.headers["x-user-role"] as string) ?? "";
-  const isAdmin = callerRole === "Admin" || callerRole === "Super User";
+  const isAdmin = hasRole(callerRole, "super_user");
 
   const [existing] = await db.select().from(resourceRequestsTable).where(eq(resourceRequestsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }

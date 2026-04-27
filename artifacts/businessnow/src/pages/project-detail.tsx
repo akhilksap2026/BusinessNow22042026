@@ -1,4 +1,5 @@
 import { authHeaders } from "@/lib/auth-headers";
+import { hasRole } from "@/lib/roles";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { useTaskStatuses } from "@/lib/task-status";
@@ -67,7 +68,7 @@ export default function ProjectDetail() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { currentUser, activeRole } = useCurrentUser();
-  const viewerRole = activeRole ?? "PM";
+  const viewerRole = activeRole ?? "collaborator";
   const createAllocation = useCreateAllocation();
   const updateAllocation = useUpdateAllocation();
   const deleteAllocation = useDeleteAllocation();
@@ -98,7 +99,7 @@ export default function ProjectDetail() {
   const [coForm, setCoForm] = useState(emptyCoForm);
 
   // ── Budget entries ────────────────────────────────────────────────────────
-  const isPM = ["Admin", "PM", "Super User"].includes(viewerRole);
+  const isPM = hasRole(viewerRole, "super_user");
   const { data: budgetEntries } = useListProjectBudgetEntries(projectId, {
     query: { enabled: !!projectId },
   });
@@ -2565,7 +2566,7 @@ function CsatTab({ projectId, csatSummary, csatSurveys, refetchSurveys }: {
     mutationFn: async ({ id, rating, comment }: { id: number; rating: number; comment: string }) => {
       const r = await fetch(`/api/csat-surveys/${id}/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-role": "PM" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ rating, comment }),
       });
       if (!r.ok) { const e = await r.json(); throw new Error(e.error); }

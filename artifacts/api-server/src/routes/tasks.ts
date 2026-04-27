@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq, and, inArray, asc } from "drizzle-orm";
 import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, csatSurveysTable, timeEntriesTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
+import { hasRole } from "../constants/roles";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import { logAudit } from "../lib/audit";
 import {
   ListTasksResponse,
@@ -16,11 +18,6 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-
-const PM_ROLES = new Set(["Admin", "PM", "Super User"]);
-function canReadPrivateNotes(role: string): boolean {
-  return PM_ROLES.has(role);
-}
 
 function mapTask(t: typeof tasksTable.$inferSelect, actualHoursById?: Map<number, number>) {
   const planned = Number(t.plannedHours ?? 0) || Number(t.effort ?? 0);
@@ -126,7 +123,7 @@ async function runAutoAllocateHook(opts: {
 }
 
 router.get("/tasks", async (req, res): Promise<void> => {
-  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const qp = ListTasksQueryParams.safeParse(req.query);
   const conditions = [];
   if (qp.success && qp.data.projectId) conditions.push(eq(tasksTable.projectId, qp.data.projectId));
@@ -137,7 +134,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
   const actualMap = await getActualHoursMap(rows.map(r => r.id));
   const mapped = rows.map(t => {
     const task = mapTask(t, actualMap);
-    if (!canReadPrivateNotes(role)) task.privateNotes = null;
+    if (!hasRole(role, "super_user")) task.privateNotes = null;
     return task;
   });
   res.json(ListTasksResponse.parse(mapped));
@@ -384,13 +381,13 @@ router.patch("/tasks/bulk", requirePM, async (req, res): Promise<void> => {
 });
 
 router.get("/tasks/:id", async (req, res): Promise<void> => {
-  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const params = GetTaskParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [row] = await db.select().from(tasksTable).where(eq(tasksTable.id, params.data.id));
   if (!row) { res.status(404).json({ error: "Task not found" }); return; }
   const task = mapTask(row);
-  if (!canReadPrivateNotes(role)) task.privateNotes = null;
+  if (!hasRole(role, "super_user")) task.privateNotes = null;
   res.json(GetTaskResponse.parse(task));
 });
 
