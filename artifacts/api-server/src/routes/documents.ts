@@ -97,10 +97,10 @@ router.patch("/documents/:id", async (req, res) => {
 
 router.delete("/documents/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const [existing] = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
   if (!existing) return res.status(404).json({ error: "Not found" });
-  if (existing.spaceType === "private" && !canSeePrivateDocs(role)) {
+  if (existing.spaceType === "private" && !hasRole(role, "super_user")) {
     return res.status(403).json({ error: "This document is private" });
   }
   await db.delete(documentVersionsTable).where(eq(documentVersionsTable.documentId, id));

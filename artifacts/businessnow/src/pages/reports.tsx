@@ -1165,7 +1165,7 @@ function TimesheetSubmissionsReport() {
 }
 
 export default function Reports() {
-  const { activeRole } = useCurrentUser();
+  const { activeRole, isLoading: isRoleLoading } = useCurrentUser();
   const { data: utilization, isLoading: isLoadingUtilization } = useGetUtilizationReport();
   const { data: revenue, isLoading: isLoadingRevenue } = useGetRevenueReport();
   const { data: health, isLoading: isLoadingHealth } = useGetProjectHealthReport();
@@ -1180,7 +1180,7 @@ export default function Reports() {
   const filteredRevenueData = (revenue?.byMonth ?? []).filter(m => m.month.startsWith(revenueYear));
   const filteredUtilizationData = (utilization?.byMonth ?? []).filter(m => m.month.startsWith(utilizationYear));
 
-  if (!can(activeRole, "reports.view")) return <Forbidden permission="reports.view" />;
+  if (!isRoleLoading && !can(activeRole, "reports.view")) return <Forbidden permission="reports.view" />;
 
   return (
     <Layout>
