@@ -1,0 +1,113 @@
+You are working on the BusinessNow PSA codebase (React + TypeScript frontend in artifacts/businessnow, Express + Drizzle ORM backend in artifacts/api-server, shared DB schema in lib/db). Implement the following 6 improvements incrementally, one at a time, confirming each step works before moving to the next. Do NOT change anything unrelated to the items below.
+
+────────────────────────────────────────────────
+ITEM 1 OF 6 — Remove mockup-sandbox artifact
+────────────────────────────────────────────────
+The directory ./artifacts/mockup-sandbox is development scaffolding that should not be in the production repo. It is a full standalone Vite app with its own package.json, Radix UI library, and ERD viewer.
+
+Tasks:
+1. Delete the entire ./artifacts/mockup-sandbox directory and all its contents.
+2. Check ./artifacts/api-server/src/app.ts, ./artifacts/api-server/src/routes/index.ts, and the root package.json / turbo.json (or workspace config) for any references to mockup-sandbox. Remove any found.
+3. Verify the remaining app still builds (run the build command or check for import errors).
+4. Confirm deletion with a summary of what was removed.
+
+────────────────────────────────────────────────
+ITEM 2 OF 6 — Bulk Task Updates
+────────────────────────────────────────────────
+Currently there is no way to select multiple tasks and update them at once. This is a Rocketlane benchmark gap.
+
+Backend tasks (artifacts/api-server/src/routes/tasks.ts):
+1. Add a new endpoint: PATCH /tasks/bulk — accepts { taskIds: number[], updates: { status?: string, assigneeIds?: number[], priority?: string, phaseId?: number } }. Validate that all taskIds belong to projects the requesting user has PM access to. Apply updates atomically. Return { updated: number }.
+2. Register the route in routes/index.ts if not auto-registered.
+
+Frontend tasks (artifacts/businessnow/src):
+1. In the project task list (the component that renders task rows — likely task-tree.tsx or the tasks page), add a checkbox column on the left side of each task row. Render a "select all" checkbox in the column header.
+2. When one or more tasks are checked, show a contextual action bar above (or below) the task list with: "X tasks selected" label and action buttons: Status (dropdown of available statuses), Priority (dropdown: Critical / High / Medium / Low), Assignee (user picker), Unassign, and a "Clear selection" button.
+3. On action: call PATCH /api/tasks/bulk with the selected task IDs and the chosen field update. On success, invalidate the task list query and show a toast "X tasks updated". Clear the selection.
+4. The checkbox column should not appear inside the Gantt view — only in the list view.
+
+────────────────────────────────────────────────
+ITEM 3 OF 6 — "Import from Allocations" on Timesheets
+────────────────────────────────────────────────
+Team members currently have to manually add project rows to their timesheet. They should be able to pre-fill from their active allocations for the week.
+
+Backend tasks (artifacts/api-server/src/routes/timesheets.ts or a new route):
+1. Add endpoint: POST /timesheets/import-allocations — accepts { userId: number, weekStart: string (ISO date, Monday) }. Queries allocationsTable for all active allocations for the user whose date range overlaps the given week (startDate <= weekEnd AND endDate >= weekStart). Returns an array of { projectId, projectName, taskId?, taskName? } objects — one per allocation. Does not create time entries directly; just returns the suggestion list.
+
+Frontend tasks (artifacts/businessnow/src/components/timesheet-grid.tsx or the timesheet page):
+1. Add a button "Import from allocations" (icon: Download or ArrowDownTray) near the top-right of the timesheet grid, next to the existing "Add row" or "Log Time" control.
+2. On click: call POST /api/timesheets/import-allocations with the current userId and weekStart. For each returned project/task that is not already a row in the current timesheet, add it as a new row with 0 hours pre-filled for each day. Show a toast: "X rows imported from your allocations." If all allocations are already present, show: "All your allocations are already on this timesheet."
+3. Only show this button when the timesheet status is Draft or Not Submitted (not after submission).
+
+────────────────────────────────────────────────
+ITEM 4 OF 6 — First-Run / Onboarding Checklist
+────────────────────────────────────────────────
+New workspaces have no guided setup. Add a first-run checklist that appears on the Dashboard page until dismissed.
+
+Backend tasks:
+1. Add a column to the existing workspace/account settings (or a simple key-value in adminSettings if one exists): onboardingDismissed: boolean, default false. Expose it via GET /admin/settings and allow it to be updated via PATCH /admin/settings with { onboardingDismissed: true }.
+
+Frontend tasks (artifacts/businessnow/src/pages/dashboard.tsx or the Dashboard component):
+1. Create a new component: src/components/onboarding-checklist.tsx.
+2. The checklist renders a dismissible card at the top of the Dashboard (only visible to account_admin users and only when onboardingDismissed is false).
+3. Checklist items — each auto-detects completion by querying existing API data:
+   a. "Invite your first team member" — complete if users list has count > 1.
+   b. "Create your first account (client)" — complete if accounts list has count > 0 (excluding internal accounts).
+   c. "Set up a rate card" — complete if rate cards list has count > 0.
+   d. "Configure time tracking settings" — complete if time_settings has been saved at least once (check if approvalMode is set / non-default, or simply mark manually).
+   e. "Create your first project" — complete if projects list has count > 0.
+4. Show a progress bar: "X of 5 complete". Each incomplete item has a "Go →" button linking to the relevant page.
+5. A "Dismiss" button (top-right of the card) calls PATCH /api/admin/settings { onboardingDismissed: true } and hides the card. Once dismissed it never comes back.
+6. Style the card using the existing design system (Card, Badge, Button components from src/components/ui).
+
+────────────────────────────────────────────────
+ITEM 5 OF 6 — Document Templates
+────────────────────────────────────────────────
+BusinessNow has form templates and project templates but no document templates. Add a simple document template system that lets admins define reusable rich-text document structures.
+
+Backend tasks (new file: artifacts/api-server/src/routes/documentTemplates.ts):
+1. Add DB table document_templates to lib/db/src/schema/ with columns: id, name, description, content (text — stores HTML or markdown), category (e.g. "SOW", "Status Report", "Meeting Notes", "Other"), isArchived (boolean, default false), createdAt, updatedAt. Export from lib/db/src/schema/index.ts.
+2. Run the migration (or add to the existing schema migration file).
+3. CRUD endpoints:
+   - GET /document-templates — list all non-archived, optionally filter by ?category=
+   - POST /document-templates — create (requireAdmin)
+   - GET /document-templates/:id — get single with full content
+   - PATCH /document-templates/:id — update (requireAdmin)
+   - DELETE /document-templates/:id — soft-delete by setting isArchived=true (requireAdmin)
+4. Add endpoint: POST /projects/:id/documents/from-template — accepts { templateId: number, name?: string }. Creates a new project document (in the existing documentsTable) pre-filled with the template's content. If name is omitted, use the template name. Return the created document.
+5. Register the router in routes/index.ts.
+
+Frontend tasks:
+1. Add a "Document Templates" tab to the Admin page (src/pages/admin.tsx or wherever the admin tabs live), alongside the existing Templates and Rate Cards tabs. This tab renders a list of document templates with name, category, and action buttons (Edit, Archive).
+2. Add a "New Template" button that opens a dialog/sheet with fields: Name, Category (select), Description, Content (a <textarea> for now — no rich text editor needed, plain HTML/markdown is fine).
+3. In the project documents component (src/components/project-documents.tsx), add a "From Template" button next to the existing "New Document" button. On click, show a modal listing available document templates (fetched from GET /document-templates). User selects one and clicks "Use Template" → calls POST /api/projects/:id/documents/from-template → creates and opens the new document. Show a success toast.
+
+────────────────────────────────────────────────
+ITEM 6 OF 6 — Resource AI — Allocation Suggestions
+────────────────────────────────────────────────
+When a PM is adding an allocation on a project, offer AI-powered suggestions for which team member to assign based on skills, availability, and role fit.
+
+Backend tasks (new file: artifacts/api-server/src/routes/resourceSuggestions.ts):
+1. Add endpoint: POST /resources/suggest — accepts { projectId: number, roleRequired?: string, skillIds?: number[], startDate: string, endDate: string, hoursPerWeek?: number }. Logic:
+   a. Query all internal users with their skills (from skills_matrix or users + skills tables).
+   b. Query existing allocations to compute each user's booked hours in the requested date range.
+   c. Compute available capacity = (user.capacity * weeks_in_range) - booked_hours.
+   d. Score each user: +2 pts per matching skill, +1 pt per matching role keyword in their title, -1 pt per 10h over-allocated. Filter out users with 0 available capacity.
+   e. Return top 5 users sorted by score: { userId, name, avatarUrl, title, matchingSkills: string[], availableHours: number, utilizationPct: number, score: number }.
+2. Register the router in routes/index.ts.
+
+Frontend tasks (in the allocation creation dialog — wherever allocations are created from the Resources page or Project Team tab):
+1. After the user selects a project and date range, if the assignee field is still empty, show a "Suggested Resources" section below the assignee picker. Display up to 5 suggestion cards, each showing: avatar, name, title, matching skills as badges, and available hours.
+2. Clicking a suggestion card fills the assignee field with that user.
+3. Show a loading skeleton while the suggestions are fetching. If the API returns an empty array, show: "No available resources match this criteria."
+4. The suggestion section only appears when both startDate and endDate are filled in and no assignee has been manually selected yet. Once an assignee is picked (manually or via suggestion), the section collapses.
+5. Label the section with a small "✦ AI Suggested" badge to make it clear this is AI-assisted.
+
+────────────────────────────────────────────────
+GENERAL RULES FOR ALL ITEMS
+────────────────────────────────────────────────
+- Implement items in order (1 → 2 → 3 → 4 → 5 → 6). Do not start the next item until the current one compiles without errors.
+- Do not modify any existing database migrations — only add new ones or extend the schema file following the existing pattern.
+- Follow the existing code style: TypeScript strict, Drizzle ORM queries (no raw SQL), React Query for data fetching, existing UI components from src/components/ui, existing auth headers via authHeaders() helper, existing RBAC middleware (requireAdmin, requirePM, requireFinance).
+- After each item, run a quick sanity check: ensure the TypeScript compiles and the relevant page/route is reachable.
+- Do not touch the Customer Portal, Automations Engine, i18n, or any items not listed above.
