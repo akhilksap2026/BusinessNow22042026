@@ -24,3 +24,9 @@ id = "Ol3tyMeBv81Cz93OFCYcq"
 uri = "file://prd-generator/output/prd.pdf"
 type = "pdf"
 title = "BusinessNow PSA — Product Requirements Document (PDF)"
+
+[[outputs]]
+id = "Ac0gtGejuxkcWL_6b_wXH"
+uri = "file://prd-generator/output/email-to-dan.md"
+type = "text"
+title = "Email to Dan — BusinessNow PSA glimpse"
