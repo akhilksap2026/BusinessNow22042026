@@ -4,6 +4,10 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+### April 27, 2026 — Job Card Document Generator
+
+Standalone tool at `job-card-generator/` that generates enterprise-grade job card documents in four formats (HTML, PDF, DOCX, Markdown) from a single data source. 26 sections, Big 4 consulting quality. Run with `node generate.js --format all`. Uses `wkhtmltopdf`/`wkhtmltoimage` for PDF and screenshots, `docx@8.5.0` for Word output.
+
 ### Recent: April 27, 2026 — 6-item spec rollout
 
 1. **Mockup-sandbox removed** — `artifacts/mockup-sandbox` artifact removed from project; docs updated.

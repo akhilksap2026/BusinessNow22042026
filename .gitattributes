@@ -1,1 +1,2 @@
 attached_assets/Business-Now-1_1776786563617.zip filter=lfs diff=lfs merge=lfs -text
+job-card-generator/screenshots/job-card-preview.png filter=lfs diff=lfs merge=lfs -text

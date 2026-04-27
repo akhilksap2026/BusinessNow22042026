@@ -1,0 +1,22 @@
+{
+  "name": "job-card-generator",
+  "version": "1.0.0",
+  "description": "Enterprise-grade job card document generator — DOCX, PDF, Markdown, HTML",
+  "main": "generate.js",
+  "scripts": {
+    "generate": "node generate.js",
+    "generate:html": "node generate.js --format html",
+    "generate:pdf": "node generate.js --format pdf",
+    "generate:docx": "node generate.js --format docx",
+    "generate:markdown": "node generate.js --format markdown",
+    "generate:all": "node generate.js --format all",
+    "screenshot": "node generate.js --screenshot"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "docx": "^8.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,2648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phoenix — Enterprise CRM Modernisation Programme — Job Card · MAG-JC-2026-0047</title>
+  <style>
+    /* System font stack — no external network requests needed for PDF rendering */
+
+    :root {
+      --navy:        #1B2A4A;
+      --navy-light:  #253d6b;
+      --gold:        #C9A84C;
+      --gold-light:  #F0D898;
+      --blue:        #2D6A9F;
+      --blue-light:  #EBF3FB;
+      --dark:        #0F172A;
+      --body:        #1E293B;
+      --grey:        #64748B;
+      --light-grey:  #F8FAFC;
+      --border:      #CBD5E1;
+      --red:         #DC2626;
+      --amber:       #D97706;
+      --green:       #059669;
+      --teal:        #0D9488;
+      --white:       #FFFFFF;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 10pt; }
+
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-weight: 400;
+      color: var(--body);
+      background: var(--white);
+      line-height: 1.6;
+    }
+
+    /* ═══════════════════════════════ PAGE STRUCTURE ═══════════════════════════════ */
+    .page-break { page-break-before: always; break-before: page; }
+    .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm 22mm 16mm;
+      @bottom-center {
+        content: "CONFIDENTIAL — Meridian Advisory Group · TechNova Corporation · Phoenix CRM Programme";
+        font-size: 7pt;
+        color: #94A3B8;
+        font-family: 'Segoe UI', Arial, sans-serif;
+      }
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 7pt;
+        color: #94A3B8;
+      }
+    }
+
+    /* ═══════════════════════════════ COVER PAGE ═══════════════════════════════ */
+    .cover {
+      min-height: 100vh;
+      background: var(--navy);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 0;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+    }
+    .cover-accent-bar {
+      height: 8px;
+      background: linear-gradient(90deg, var(--gold) 0%, #E8C87A 40%, var(--gold-light) 100%);
+    }
+    .cover-pattern {
+      position: absolute;
+      right: -60px;
+      top: 80px;
+      width: 420px;
+      height: 420px;
+      opacity: 0.06;
+    }
+    .cover-body {
+      padding: 60px 70px 40px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      z-index: 1;
+      position: relative;
+    }
+    .cover-firm {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 10pt;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 48px;
+    }
+    .cover-label {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8.5pt;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 14px;
+      opacity: 0.85;
+    }
+    .cover-title {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 30pt;
+      font-weight: 900;
+      color: var(--white);
+      line-height: 1.15;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    .cover-subtitle {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14pt;
+      font-weight: 300;
+      color: var(--gold-light);
+      margin-bottom: 48px;
+      letter-spacing: 0.3px;
+    }
+    .cover-divider {
+      width: 80px;
+      height: 3px;
+      background: var(--gold);
+      margin-bottom: 40px;
+    }
+    .cover-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 40px;
+      margin-bottom: 60px;
+    }
+    .cover-meta-row {
+      display: flex;
+      flex-direction: column;
+    }
+    .cover-meta-label {
+      font-size: 7pt;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+      opacity: 0.75;
+      margin-bottom: 2px;
+    }
+    .cover-meta-value {
+      font-size: 9.5pt;
+      color: var(--white);
+      font-weight: 400;
+    }
+    .cover-status-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .cover-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border: 1px solid var(--gold);
+      border-radius: 2px;
+      font-size: 7.5pt;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 700;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    }
+    .cover-footer {
+      padding: 20px 70px;
+      background: rgba(0,0,0,0.25);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cover-footer-text {
+      font-size: 7.5pt;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.5px;
+    }
+
+    /* ═══════════════════════════════ TABLE OF CONTENTS ═══════════════════════════════ */
+    .toc-page { padding: 40px 0; }
+    .toc-entry {
+      display: flex;
+      align-items: baseline;
+      padding: 5px 0;
+      border-bottom: 1px dotted var(--border);
+    }
+    .toc-number {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-weight: 700;
+      color: var(--navy);
+      font-size: 9pt;
+      min-width: 32px;
+    }
+    .toc-title {
+      font-size: 9.5pt;
+      color: var(--body);
+      flex: 1;
+      padding: 0 8px;
+    }
+    .toc-subtitle {
+      font-size: 8pt;
+      color: var(--grey);
+      margin-left: 32px;
+      padding: 1px 0;
+      border: none;
+    }
+
+    /* ═══════════════════════════════ SECTION LAYOUT ═══════════════════════════════ */
+    .section { margin: 0 0 48px; }
+    .section-header {
+      display: flex;
+      align-items: stretch;
+      margin-bottom: 24px;
+      gap: 0;
+    }
+    .section-number {
+      background: var(--navy);
+      color: var(--gold);
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 10pt;
+      font-weight: 900;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      min-width: 48px;
+      justify-content: center;
+      letter-spacing: 1px;
+    }
+    .section-title-block {
+      background: var(--blue-light);
+      border-left: 4px solid var(--gold);
+      padding: 8px 16px;
+      flex: 1;
+    }
+    .section-title {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14pt;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: -0.2px;
+    }
+    .section-subtitle {
+      font-size: 8pt;
+      color: var(--grey);
+      margin-top: 1px;
+      letter-spacing: 0.5px;
+    }
+
+    h2 {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 11pt;
+      font-weight: 700;
+      color: var(--navy);
+      margin: 20px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid var(--blue-light);
+    }
+    h3 {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 10pt;
+      font-weight: 700;
+      color: var(--blue);
+      margin: 16px 0 8px;
+    }
+    p { margin-bottom: 10px; font-size: 9.5pt; }
+    ul, ol { padding-left: 20px; margin-bottom: 10px; }
+    li { font-size: 9.5pt; margin-bottom: 3px; }
+
+    /* ═══════════════════════════════ TABLES ═══════════════════════════════ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 8.5pt;
+    }
+    thead tr {
+      background: var(--navy);
+      color: var(--white);
+    }
+    thead th {
+      padding: 8px 10px;
+      text-align: left;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-weight: 600;
+      font-size: 7.5pt;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      border: 1px solid var(--navy-light);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:nth-child(even) { background: #F8FAFC; }
+    tbody tr:nth-child(odd) { background: var(--white); }
+    tbody td {
+      padding: 7px 10px;
+      vertical-align: top;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      font-size: 8.5pt;
+      color: var(--body);
+    }
+    .table-caption {
+      font-size: 7.5pt;
+      color: var(--grey);
+      font-style: italic;
+      text-align: right;
+      margin-top: -12px;
+      margin-bottom: 16px;
+    }
+
+    /* ═══════════════════════════════ BADGES ═══════════════════════════════ */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-size: 7pt;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      white-space: nowrap;
+    }
+    .badge-done    { background: #DCFCE7; color: #166534; }
+    .badge-progress{ background: #DBEAFE; color: #1E40AF; }
+    .badge-pending { background: #FEF3C7; color: #92400E; }
+    .badge-mitigated{ background: #E0E7FF; color: #3730A3; }
+    .badge-green   { background: #DCFCE7; color: #166534; }
+    .badge-amber   { background: #FEF3C7; color: #92400E; }
+    .badge-red     { background: #FEE2E2; color: #991B1B; }
+    .badge-confidential { background: var(--navy); color: var(--gold); }
+
+    /* ═══════════════════════════════ RACI ═══════════════════════════════ */
+    .raci-table th, .raci-table td { font-size: 7.5pt; padding: 5px 6px; text-align: center; }
+    .raci-table td:first-child { text-align: left; font-weight: 600; color: var(--navy); min-width: 160px; }
+    .raci-cell {
+      font-weight: 900;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 9pt;
+      border-radius: 2px;
+      padding: 3px 6px;
+      display: inline-block;
+      min-width: 22px;
+    }
+    .raci-legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      font-size: 8pt;
+    }
+    .raci-legend-item { display: flex; align-items: center; gap: 6px; }
+
+    /* ═══════════════════════════════ INFO BOXES ═══════════════════════════════ */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .info-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .info-card {
+      background: var(--light-grey);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--navy);
+      padding: 10px 14px;
+      border-radius: 2px;
+    }
+    .info-card-label {
+      font-size: 7pt;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--grey);
+      font-weight: 600;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      margin-bottom: 3px;
+    }
+    .info-card-value {
+      font-size: 10pt;
+      font-weight: 700;
+      color: var(--navy);
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    }
+    .info-card-sub {
+      font-size: 7.5pt;
+      color: var(--grey);
+      margin-top: 2px;
+    }
+    .highlight-card {
+      background: var(--navy);
+      border: none;
+      border-left: 4px solid var(--gold);
+      color: var(--white);
+    }
+    .highlight-card .info-card-label { color: var(--gold-light); }
+    .highlight-card .info-card-value { color: var(--white); }
+    .highlight-card .info-card-sub   { color: rgba(255,255,255,0.6); }
+
+    /* ═══════════════════════════════ EXECUTIVE SUMMARY ═══════════════════════════════ */
+    .exec-summary-box {
+      background: var(--blue-light);
+      border-left: 5px solid var(--navy);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      border-radius: 0 4px 4px 0;
+    }
+    .exec-summary-box p {
+      font-size: 10pt;
+      line-height: 1.7;
+      color: var(--dark);
+      font-style: italic;
+    }
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #DCFCE7;
+      border: 1px solid #BBF7D0;
+      border-left: 5px solid var(--green);
+      padding: 10px 16px;
+      border-radius: 2px;
+      margin-bottom: 16px;
+    }
+    .status-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+    .status-dot.amber { background: var(--amber); }
+    .status-dot.red   { background: var(--red); }
+
+    /* ═══════════════════════════════ PROCESS FLOW ═══════════════════════════════ */
+    .process-flow-container {
+      background: var(--light-grey);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .process-flow-container svg { display: block; margin: 0 auto; }
+
+    /* ═══════════════════════════════ TIMELINE ═══════════════════════════════ */
+    .timeline-bar-container {
+      background: var(--light-grey);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+    .gantt-label { font-size: 7.5pt; color: var(--body); white-space: nowrap; }
+    .gantt-bar   { border-radius: 2px; height: 14px; }
+
+    /* ═══════════════════════════════ SOP STEPS ═══════════════════════════════ */
+    .sop-step {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 10px;
+      align-items: flex-start;
+    }
+    .sop-step-number {
+      background: var(--navy);
+      color: var(--gold);
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-weight: 900;
+      font-size: 9pt;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .sop-step-text {
+      font-size: 9pt;
+      color: var(--body);
+      padding-top: 3px;
+      line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════ APPROVAL BOX ═══════════════════════════════ */
+    .approval-box {
+      border: 2px solid var(--navy);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .approval-header {
+      background: var(--navy);
+      color: var(--white);
+      padding: 8px 16px;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-weight: 700;
+      font-size: 9pt;
+      letter-spacing: 1px;
+    }
+    .approval-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      padding: 14px 16px;
+      gap: 8px;
+    }
+    .approval-field-label {
+      font-size: 7pt;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--grey);
+      font-weight: 600;
+    }
+    .approval-field-line {
+      border-bottom: 1px solid var(--border);
+      height: 28px;
+      margin-top: 4px;
+    }
+
+    /* ═══════════════════════════════ WATERMARK ═══════════════════════════════ */
+    @media print {
+      .watermark {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-35deg);
+        font-size: 72pt;
+        color: rgba(200, 200, 200, 0.08);
+        font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        font-weight: 900;
+        letter-spacing: 8px;
+        z-index: 9999;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+    }
+
+    /* ═══════════════════════════════ FOOTER RULE ═══════════════════════════════ */
+    .doc-footer {
+      border-top: 2px solid var(--border);
+      padding-top: 6px;
+      margin-top: 40px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7pt;
+      color: var(--grey);
+    }
+
+    /* ═══════════════════════════════ CHECKLIST ═══════════════════════════════ */
+    .check-row td:first-child { font-weight: 600; font-size: 8pt; color: var(--navy); }
+    .check-icon { font-size: 11pt; }
+
+    /* ═══════════════════════════════ CALLOUT ═══════════════════════════════ */
+    .callout {
+      display: flex;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 3px;
+      margin-bottom: 14px;
+    }
+    .callout-warn { background: #FFFBEB; border-left: 4px solid var(--amber); }
+    .callout-info { background: var(--blue-light); border-left: 4px solid var(--blue); }
+    .callout-danger { background: #FEF2F2; border-left: 4px solid var(--red); }
+    .callout-icon { font-size: 14pt; flex-shrink: 0; }
+    .callout-text { font-size: 8.5pt; line-height: 1.5; }
+
+    /* ═══════════════════════════════ SCREENSHOTS ═══════════════════════════════ */
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .screenshot-card {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .screenshot-bar {
+      background: var(--navy);
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .browser-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .screenshot-img { width: 100%; display: block; background: #EBF3FB; }
+    .screenshot-caption {
+      padding: 6px 12px;
+      font-size: 7.5pt;
+      color: var(--grey);
+      background: var(--light-grey);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="watermark">CONFIDENTIAL</div>
+  
+  <div class="cover">
+    <div class="cover-accent-bar"></div>
+    <svg class="cover-pattern" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="200" cy="200" r="180" fill="none" stroke="white" stroke-width="2"/>
+      <circle cx="200" cy="200" r="140" fill="none" stroke="white" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="100" fill="none" stroke="white" stroke-width="1"/>
+      <circle cx="200" cy="200" r="60" fill="none" stroke="white" stroke-width="0.5"/>
+      <line x1="20" y1="200" x2="380" y2="200" stroke="white" stroke-width="0.5"/>
+      <line x1="200" y1="20" x2="200" y2="380" stroke="white" stroke-width="0.5"/>
+      <line x1="70" y1="70" x2="330" y2="330" stroke="white" stroke-width="0.5"/>
+      <line x1="330" y1="70" x2="70" y2="330" stroke="white" stroke-width="0.5"/>
+    </svg>
+    <div class="cover-body">
+      <div class="cover-firm">Meridian Advisory Group · Digital & Technology Transformation</div>
+      <div class="cover-label">Job Card Document</div>
+      <div class="cover-title">Phoenix — Enterprise CRM Modernisation Programme</div>
+      <div class="cover-subtitle">TechNova Corporation · Digital Transformation</div>
+      <div class="cover-divider"></div>
+      <div class="cover-meta">
+        <div class="cover-meta-row">
+          <span class="cover-meta-label">Document ID</span>
+          <span class="cover-meta-value">MAG-JC-2026-0047</span>
+        </div>
+        <div class="cover-meta-row">
+          <span class="cover-meta-label">Project Code</span>
+          <span class="cover-meta-value">PHX-2026</span>
+        </div>
+        <div class="cover-meta-row">
+          <span class="cover-meta-label">Version</span>
+          <span class="cover-meta-value">v3.1</span>
+        </div>
+        <div class="cover-meta-row">
+          <span class="cover-meta-label">Status</span>
+          <span class="cover-meta-value">APPROVED</span>
+        </div>
+        <div class="cover-meta-row">
+          <span class="cover-meta-label">Programme Manager</span>
+          <span class="cover-meta-value">Nathaniel Ashford</span>
+        </div>
+        <div class="cover-meta-row">
+          <span class="cover-meta-label">Executive Sponsor</span>
+          <span class="cover-meta-value">Dr. Priya Ramasamy (TechNova VP Operations)</span>
+        </div>
+        <div class="cover-meta-row">
+          <span class="cover-meta-label">Date Issued</span>
+          <span class="cover-meta-value">22 April 2026</span>
+        </div>
+        <div class="cover-meta-row">
+          <span class="cover-meta-label">Engagement Ref</span>
+          <span class="cover-meta-value">MAG-ENG-2026-0047</span>
+        </div>
+      </div>
+      <div class="cover-status-row">
+        <span class="cover-badge">CONFIDENTIAL</span>
+        <span class="cover-badge">APPROVED</span>
+        <span class="cover-badge">Execution — Sprint 4 of 6</span>
+      </div>
+    </div>
+    <div class="cover-footer">
+      <span class="cover-footer-text">&copy; 2026 Meridian Advisory Group. All rights reserved. Prepared exclusively for TechNova Corporation.</span>
+      <span class="cover-footer-text">Generated: 27 April 2026</span>
+    </div>
+  </div>
+  <div style="padding: 40px 50px 20px; max-width: 900px; margin: 0 auto;">
+    
+  <div class="page-break">
+    <div class="section-header">
+      <div class="section-number">TOC</div>
+      <div class="section-title-block">
+        <div class="section-title">Table of Contents</div>
+        <div class="section-subtitle">MAG-JC-2026-0047 · v3.1</div>
+      </div>
+    </div>
+    
+      <div class="toc-entry">
+        <span class="toc-number">01</span>
+        <span class="toc-title">Document Control & Version History</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">02</span>
+        <span class="toc-title">Executive Summary</span>
+      </div>
+      <div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Current Status</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Strategic Alignment</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Key Risks & Recommendation</span></div>
+    
+      <div class="toc-entry">
+        <span class="toc-number">03</span>
+        <span class="toc-title">Job Overview</span>
+      </div>
+      <div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Engagement Details</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Budget Summary</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Team Composition</span></div>
+    
+      <div class="toc-entry">
+        <span class="toc-number">04</span>
+        <span class="toc-title">Scope</span>
+      </div>
+      <div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ In-Scope</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Out-of-Scope</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Assumptions & Constraints</span></div>
+    
+      <div class="toc-entry">
+        <span class="toc-number">05</span>
+        <span class="toc-title">Stakeholder Matrix</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">06</span>
+        <span class="toc-title">RACI Matrix</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">07</span>
+        <span class="toc-title">Workflow & Process Flow</span>
+      </div>
+      <div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Workflow Steps</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Process Flow Diagram</span></div>
+    
+      <div class="toc-entry">
+        <span class="toc-number">08</span>
+        <span class="toc-title">Screenshots & Artefacts</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">09</span>
+        <span class="toc-title">Standard Operating Procedures (SOP)</span>
+      </div>
+      <div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Weekly Sprint Ceremony Protocol</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Change Request Management</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Defect Management & Escalation</span></div>
+    
+      <div class="toc-entry">
+        <span class="toc-number">10</span>
+        <span class="toc-title">Inputs</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">11</span>
+        <span class="toc-title">Outputs & Deliverables</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">12</span>
+        <span class="toc-title">Tools & Technology</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">13</span>
+        <span class="toc-title">Responsibilities</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">14</span>
+        <span class="toc-title">Timeline & Milestones</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">15</span>
+        <span class="toc-title">Risk Register</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">16</span>
+        <span class="toc-title">Issue Log</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">17</span>
+        <span class="toc-title">Quality Checklist</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">18</span>
+        <span class="toc-title">Testing Summary</span>
+      </div>
+      <div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Test Strategy</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Test Types</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Defect Summary</span></div>
+    
+      <div class="toc-entry">
+        <span class="toc-number">19</span>
+        <span class="toc-title">Acceptance Criteria</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">20</span>
+        <span class="toc-title">Communication Plan</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">21</span>
+        <span class="toc-title">Handover Notes</span>
+      </div>
+      <div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Knowledge Transfer</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Operational Readiness</span></div><div class="toc-entry toc-subtitle"><span class="toc-number"></span><span class="toc-title" style="color:var(--grey)">↳ Open Items</span></div>
+    
+      <div class="toc-entry">
+        <span class="toc-number">22</span>
+        <span class="toc-title">Approval Sign-off</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">A</span>
+        <span class="toc-title">Appendix A — Glossary</span>
+      </div>
+      
+    
+      <div class="toc-entry">
+        <span class="toc-number">B</span>
+        <span class="toc-title">Appendix B — References</span>
+      </div>
+      
+    
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">01</div>
+      <div class="section-title-block">
+        <div class="section-title">Document Control & Version History</div>
+        <div class="section-subtitle">Ownership, distribution, and change history</div>
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="info-card"><div class="info-card-label">Document Owner</div><div class="info-card-value">Nathaniel Ashford</div><div class="info-card-sub">Meridian Advisory Group</div></div>
+      <div class="info-card"><div class="info-card-label">Document Approver</div><div class="info-card-value">Dr. Priya Ramasamy</div><div class="info-card-sub">TechNova Corporation</div></div>
+      <div class="info-card"><div class="info-card-label">Classification</div><div class="info-card-value"><span class="badge badge-confidential">CONFIDENTIAL</span></div><div class="info-card-sub">Internal distribution only</div></div>
+      <div class="info-card"><div class="info-card-label">Next Review</div><div class="info-card-value">01 July 2026</div><div class="info-card-sub">Quarterly review cycle</div></div>
+    </div>
+    <h2>Version History</h2>
+    <table class="avoid-break">
+      <thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes</th></tr></thead>
+      <tbody>
+        <tr><td><strong>v1.0</strong></td><td>15 January 2026</td><td>Nathaniel Ashford</td><td>Initial draft — Initiation phase</td></tr><tr><td><strong>v2.0</strong></td><td>28 February 2026</td><td>Saoirse Gallagher</td><td>Design phase complete; scope, RACI, and SDD references added</td></tr><tr><td><strong>v3.0</strong></td><td>31 March 2026</td><td>Nathaniel Ashford</td><td>Sprint 1–3 complete; risk register updated; issues I-001, I-003 resolved</td></tr><tr><td><strong>v3.1</strong></td><td>22 April 2026</td><td>Linh Tran</td><td>Sprint 4 in-progress; Issue I-002 raised; defect summary updated; QC items updated</td></tr>
+      </tbody>
+    </table>
+    <h2>Distribution List</h2>
+    <table class="avoid-break">
+      <thead><tr><th>Name</th><th>Role</th><th>Organisation</th><th>Copy Type</th></tr></thead>
+      <tbody>
+        <tr><td>Dr. Priya Ramasamy</td><td>Executive Sponsor</td><td>TechNova Corporation</td><td>Controlled</td></tr>
+        <tr><td>Nathaniel Ashford</td><td>Programme Manager</td><td>Meridian Advisory Group</td><td>Controlled</td></tr>
+        <tr><td>Dr. Priya Ramasamy</td><td>Executive Sponsor</td><td>TechNova Corporation</td><td>Information</td></tr><tr><td>Brendan Mwangi</td><td>Technology Owner</td><td>TechNova Corporation</td><td>Information</td></tr><tr><td>Candice Ofoegbu</td><td>Business Process Owner</td><td>TechNova Corporation</td><td>Information</td></tr><tr><td>James Kowalski</td><td>Compliance Authority</td><td>TechNova Corporation</td><td>Information</td></tr>
+      </tbody>
+    </table>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">02</div>
+      <div class="section-title-block">
+        <div class="section-title">Executive Summary</div>
+        <div class="section-subtitle">Programme overview, current health, and recommendation</div>
+      </div>
+    </div>
+    <div class="status-indicator">
+      <div class="status-dot"></div>
+      <div><strong style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:9pt">Overall Programme Status: <span class="badge badge-green">GREEN</span></strong>
+      <span style="font-size:8pt;color:#166534;margin-left:8px">On Track — No critical path impact at this time</span></div>
+    </div>
+    <div class="exec-summary-box">
+      <p>TechNova Corporation is executing a USD 4.8M, 9-month programme to replace its legacy Siebel CRM with Salesforce Sales Cloud, Service Cloud, and a bespoke Analytics Hub, decommissioning 14 satellite systems and consolidating 3.2M customer records.</p>
+    </div>
+    <div class="info-grid-3">
+      <div class="info-card highlight-card">
+        <div class="info-card-label">Total Budget</div>
+        <div class="info-card-value">$4,800,000</div>
+        <div class="info-card-sub">Time & Materials (T&M) with Fixed-Fee Milestones</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-label">Consumed to Date</div>
+        <div class="info-card-value">$2,116,000</div>
+        <div class="info-card-sub">44.1% of total budget</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-label">Remaining</div>
+        <div class="info-card-value">$2,684,000</div>
+        <div class="info-card-sub">Forecast to complete on budget</div>
+      </div>
+    </div>
+    <h2>Strategic Alignment</h2>
+    <ul><li>FY26 Digital Transformation Strategy — Pillar 2: Customer 360</li><li>Board mandate to reduce operational cost by 18% over 3 years</li><li>Regulatory compliance — CCPA, GDPR data residency requirements</li><li>Net Promoter Score (NPS) improvement target from 42 to 68 by Q4 FY27</li></ul>
+    <h2>Key Risks Requiring Attention</h2>
+    
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-text">Data quality issues in legacy Siebel — 340K orphaned records identified</div>
+    </div>
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-text">Third-party middleware vendor (IntelliConnect) resource constraint in Sprint 5</div>
+    </div>
+    <h2>Recommendation</h2>
+    <div class="callout callout-info">
+      <div class="callout-icon">📋</div>
+      <div class="callout-text"><strong>Proceed to Sprint 5 (Integration & Data Migration). Initiate Parallel Run protocol by 2026-07-01. Board sign-off on Acceptance Criteria v2.3 required by 2026-05-15.</strong></div>
+    </div>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">03</div>
+      <div class="section-title-block">
+        <div class="section-title">Job Overview</div>
+        <div class="section-subtitle">Engagement details, budget, and core team</div>
+      </div>
+    </div>
+    <h2>Engagement Details</h2>
+    <table class="avoid-break">
+      <thead><tr><th>Field</th><th>Value</th><th>Field</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Project Name</td><td><strong>Phoenix — Enterprise CRM Modernisation Programme</strong></td><td>Project Code</td><td><strong>PHX-2026</strong></td></tr>
+        <tr><td>Client</td><td>TechNova Corporation</td><td>Engagement Ref</td><td>MAG-ENG-2026-0047</td></tr>
+        <tr><td>Project Type</td><td>Digital Transformation</td><td>Methodology</td><td>Hybrid Agile-Waterfall</td></tr>
+        <tr><td>Start Date</td><td>06 January 2026</td><td>End Date</td><td>30 September 2026</td></tr>
+        <tr><td>Contract End</td><td>15 October 2026</td><td>Current Phase</td><td><span class="badge badge-progress">In Progress</span> Execution — Sprint 4 of 6</td></tr>
+        <tr><td>Billing Type</td><td>Time & Materials (T&M) with Fixed-Fee Milestones</td><td>Currency</td><td>USD</td></tr>
+        <tr><td>Programme Manager</td><td>Nathaniel Ashford</td><td>Delivery Lead</td><td>Saoirse Gallagher</td></tr>
+        <tr><td>Solution Architect</td><td>Yusuf Okonkwo</td><td>QA Lead</td><td>Linh Tran</td></tr>
+        <tr><td>Change Manager</td><td>Marcus Delacroix</td><td>Sponsor</td><td>Dr. Priya Ramasamy (TechNova VP Operations)</td></tr>
+      </tbody>
+    </table>
+    <h2>Consulting Firm Details</h2>
+    <div class="info-grid">
+      <div class="info-card"><div class="info-card-label">Firm</div><div class="info-card-value">Meridian Advisory Group</div><div class="info-card-sub">Digital & Technology Transformation</div></div>
+      <div class="info-card"><div class="info-card-label">Contact</div><div class="info-card-value">phoenix-team@meridianadvisory.com</div><div class="info-card-sub">+1 (212) 555-0190 · www.meridianadvisory.com</div></div>
+      <div class="info-card highlight-card"><div class="info-card-label">Office Address</div><div class="info-card-value">One Meridian Plaza, 22nd Floor, New York, NY 10004</div></div>
+      <div class="info-card highlight-card"><div class="info-card-label">Total Budget</div><div class="info-card-value">$4,800,000</div><div class="info-card-sub">44% consumed · $2,684,000 remaining</div></div>
+    </div>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">04</div>
+      <div class="section-title-block">
+        <div class="section-title">Scope</div>
+        <div class="section-subtitle">In-scope, out-of-scope, assumptions, constraints, and exclusions</div>
+      </div>
+    </div>
+    <h2>In-Scope</h2>
+    <ul><li>Migration of 3.2M customer records from Siebel CRM 8.1 to Salesforce Sales Cloud</li><li>Salesforce Service Cloud implementation — Case Management, Knowledge Base, Live Chat</li><li>Custom Analytics Hub (React + Power BI Embedded) replacing 4 legacy BI tools</li><li>API gateway layer (MuleSoft Anypoint) integrating 6 downstream systems</li><li>Single Sign-On (SSO) via Azure AD B2C for 1,200 internal users and 480 partners</li><li>Data Quality Remediation — deduplication and enrichment of customer master data</li><li>User training for 1,200 internal users across 8 business units</li><li>Hypercare support — 90-day post-go-live monitoring and L1/L2 ticket handling</li><li>Decommission of 14 legacy satellite CRM systems</li><li>UAT coordination with 3 external partner organisations</li></ul>
+    <h2>Out-of-Scope</h2>
+    <div class="callout callout-warn"><div class="callout-icon">🚫</div>
+    <div class="callout-text"><ul style="margin:0;padding-left:16px"><li>ERP integration (SAP S/4HANA) — covered under separate programme PHX-ERP-2026</li><li>Legacy billing system replacement — deferred to FY27 roadmap</li><li>Mobile application development — separate workstream governed by IT PMO</li><li>Third-party vendor contract renegotiation</li><li>Hardware procurement or data centre reconfiguration</li></ul></div></div>
+    <h2>Assumptions</h2>
+    <table class="avoid-break">
+      <thead><tr><th>#</th><th>Assumption</th></tr></thead>
+      <tbody><tr><td><strong>A01</strong></td><td>Client IT team will provide dedicated DBA resource (2 FTE) for data migration windows</td></tr><tr><td><strong>A02</strong></td><td>Salesforce licences (1,200 Sales Cloud, 800 Service Cloud) procured by 2026-03-01</td></tr><tr><td><strong>A03</strong></td><td>Azure AD B2C tenant provisioned and configured by client IT by 2026-04-15</td></tr><tr><td><strong>A04</strong></td><td>All source system API documentation current and accessible by 2026-02-01</td></tr><tr><td><strong>A05</strong></td><td>Business SMEs available minimum 40% of sprint capacity for UAT and sign-off</td></tr></tbody>
+    </table>
+    <h2>Constraints</h2>
+    <table class="avoid-break">
+      <thead><tr><th>#</th><th>Constraint</th></tr></thead>
+      <tbody><tr><td><strong>C01</strong></td><td>Go-live window restricted to 2026-09-27–2026-09-28 (regulatory freeze avoidance)</td></tr><tr><td><strong>C02</strong></td><td>MuleSoft environment must remain on-premises due to data sovereignty requirements</td></tr><tr><td><strong>C03</strong></td><td>No production environment access for consultants — all deployments via client DevOps</td></tr><tr><td><strong>C04</strong></td><td>SOX compliance — all financial data fields require dual approval workflow</td></tr></tbody>
+    </table>
+    <h2>Exclusions</h2>
+    <ul><li>Meridian Advisory Group will not provide permanent technical operations staff</li><li>Consultant firm does not assume liability for pre-existing data quality defects</li></ul>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">05</div>
+      <div class="section-title-block">
+        <div class="section-title">Stakeholder Matrix</div>
+        <div class="section-subtitle">Full stakeholder register with influence, interest, and engagement strategy</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead>
+        <tr>
+          <th>Name</th><th>Title</th><th>Organisation</th><th>Role</th>
+          <th>Influence</th><th>Interest</th><th>Engagement</th>
+          <th>Comms Frequency</th><th>Primary Contact</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>Dr. Priya Ramasamy</strong></td>
+          <td>VP Operations</td>
+          <td>TechNova Corporation</td>
+          <td>Executive Sponsor</td>
+          <td><span class="badge badge-red">High</span></td>
+          <td><span class="badge badge-red">High</span></td>
+          <td><span class="badge badge-done">Champion</span></td>
+          <td>Bi-weekly Steering</td>
+          <td>Nathaniel Ashford</td>
+        </tr>
+        <tr>
+          <td><strong>Brendan Mwangi</strong></td>
+          <td>Chief Information Officer</td>
+          <td>TechNova Corporation</td>
+          <td>Technology Owner</td>
+          <td><span class="badge badge-red">High</span></td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td><span class="badge badge-progress">Supportive</span></td>
+          <td>Monthly + Ad Hoc</td>
+          <td>Yusuf Okonkwo</td>
+        </tr>
+        <tr>
+          <td><strong>Candice Ofoegbu</strong></td>
+          <td>Head of Sales Operations</td>
+          <td>TechNova Corporation</td>
+          <td>Business Process Owner</td>
+          <td><span class="badge badge-red">High</span></td>
+          <td><span class="badge badge-red">High</span></td>
+          <td><span class="badge badge-done">Champion</span></td>
+          <td>Weekly Sprint Reviews</td>
+          <td>Saoirse Gallagher</td>
+        </tr>
+        <tr>
+          <td><strong>James Kowalski</strong></td>
+          <td>Group Compliance Officer</td>
+          <td>TechNova Corporation</td>
+          <td>Compliance Authority</td>
+          <td><span class="badge badge-red">High</span></td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td><span class="badge badge-pending">Neutral</span></td>
+          <td>Monthly Compliance Gate</td>
+          <td>Marcus Delacroix</td>
+        </tr>
+        <tr>
+          <td><strong>Nathaniel Ashford</strong></td>
+          <td>Senior Manager</td>
+          <td>Meridian Advisory Group</td>
+          <td>Programme Manager (Consultant)</td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td><span class="badge badge-red">High</span></td>
+          <td><span class="badge badge-confidential">Lead</span></td>
+          <td>Daily Stand-up</td>
+          <td>Dr. Priya Ramasamy</td>
+        </tr>
+        <tr>
+          <td><strong>IntelliConnect PM</strong></td>
+          <td>Project Manager</td>
+          <td>IntelliConnect Ltd</td>
+          <td>Third-Party Middleware Vendor</td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td><span class="badge badge-done">Low</span></td>
+          <td><span class="badge badge-pending">Monitor</span></td>
+          <td>Weekly Technical Call</td>
+          <td>Yusuf Okonkwo</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 5.1 — Stakeholder Register · 22 April 2026</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">06</div>
+      <div class="section-title-block">
+        <div class="section-title">RACI Matrix</div>
+        <div class="section-subtitle">Responsibility assignment for all key programme activities</div>
+      </div>
+    </div>
+    <div class="raci-legend">
+      <div class="raci-legend-item">
+        <div class="raci-cell" style="background:#C9A84C;color:white;font-size:8pt">R</div>
+        <span>Responsible — does the work</span>
+      </div><div class="raci-legend-item">
+        <div class="raci-cell" style="background:#1B2A4A;color:white;font-size:8pt">A</div>
+        <span>Accountable — owns the outcome</span>
+      </div><div class="raci-legend-item">
+        <div class="raci-cell" style="background:#2D6A9F;color:white;font-size:8pt">C</div>
+        <span>Consulted — provides input</span>
+      </div><div class="raci-legend-item">
+        <div class="raci-cell" style="background:#6B7280;color:white;font-size:8pt">I</div>
+        <span>Informed — kept up to date</span>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+    <table class="raci-table avoid-break">
+      <thead>
+        <tr>
+          <th style="text-align:left;min-width:160px">Activity</th>
+          <th style="font-size:7pt">Exec Sponsor</th><th style="font-size:7pt">PMO</th><th style="font-size:7pt">Dev Lead</th><th style="font-size:7pt">Arch Lead</th><th style="font-size:7pt">QA Lead</th><th style="font-size:7pt">Change Mgr</th><th style="font-size:7pt">Client IT</th><th style="font-size:7pt">Compliance</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>Programme Governance & Steering</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#1B2A4A;color:white">A</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td>
+        </tr>
+        <tr>
+          <td>Sprint Planning & Backlog Refinement</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td>
+        </tr>
+        <tr>
+          <td>Salesforce Configuration & Build</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td>
+        </tr>
+        <tr>
+          <td>MuleSoft API Development</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#1B2A4A;color:white">A</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td>
+        </tr>
+        <tr>
+          <td>Data Migration Execution</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#1B2A4A;color:white">A</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td>
+        </tr>
+        <tr>
+          <td>UAT Coordination & Sign-off</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#1B2A4A;color:white">A</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td>
+        </tr>
+        <tr>
+          <td>Security & Compliance Review</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td>
+        </tr>
+        <tr>
+          <td>Go-Live Authorisation</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td>
+        </tr>
+        <tr>
+          <td>Hypercare Monitoring</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#1B2A4A;color:white">A</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td>
+        </tr>
+        <tr>
+          <td>Decommission of Legacy Systems</td>
+          <td style="text-align:center"><span class="raci-cell" style="background:#1B2A4A;color:white">A</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#2D6A9F;color:white">C</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td><td style="text-align:center"><span class="raci-cell" style="background:#C9A84C;color:white">R</span></td><td style="text-align:center"><span class="raci-cell" style="background:#6B7280;color:#6B7280">I</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="table-caption">Table 6.1 — RACI Matrix · Roles abbreviated for display. Full titles in Section 13.</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">07</div>
+      <div class="section-title-block">
+        <div class="section-title">Workflow & Process Flow</div>
+        <div class="section-subtitle">End-to-end programme workflow with phase gates</div>
+      </div>
+    </div>
+    <h2>Process Flow Diagram</h2>
+    <div class="process-flow-container">
+  <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" width="100%" style="max-width:760px">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#1B2A4A"/>
+      </marker>
+      <marker id="arr-gold" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#C9A84C"/>
+      </marker>
+    </defs>
+
+    <!-- Phase Boxes -->
+    <!-- Initiation -->
+    <rect x="10" y="110" width="90" height="50" rx="4" fill="#1B2A4A"/>
+    <text x="55" y="131" text-anchor="middle" fill="#C9A84C" font-family="Arial" font-weight="700" font-size="7">INITIATION</text>
+    <text x="55" y="145" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Kick-off &amp;</text>
+    <text x="55" y="155" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Charter</text>
+
+    <!-- Arrow 1 -->
+    <line x1="100" y1="135" x2="125" y2="135" stroke="#1B2A4A" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Discovery -->
+    <rect x="125" y="110" width="90" height="50" rx="4" fill="#253d6b"/>
+    <text x="170" y="131" text-anchor="middle" fill="#C9A84C" font-family="Arial" font-weight="700" font-size="7">DISCOVERY</text>
+    <text x="170" y="145" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Gap Analysis &amp;</text>
+    <text x="170" y="155" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Assessment</text>
+
+    <!-- Arrow 2 -->
+    <line x1="215" y1="135" x2="240" y2="135" stroke="#1B2A4A" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Design -->
+    <rect x="240" y="110" width="90" height="50" rx="4" fill="#2D6A9F"/>
+    <text x="285" y="131" text-anchor="middle" fill="white" font-family="Arial" font-weight="700" font-size="7">DESIGN</text>
+    <text x="285" y="145" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Architecture &amp;</text>
+    <text x="285" y="155" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Solution Design</text>
+
+    <!-- Arrow 3 -->
+    <line x1="330" y1="135" x2="355" y2="135" stroke="#1B2A4A" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Build -->
+    <rect x="355" y="110" width="90" height="50" rx="4" fill="#0D9488"/>
+    <text x="400" y="131" text-anchor="middle" fill="white" font-family="Arial" font-weight="700" font-size="7">BUILD</text>
+    <text x="400" y="145" text-anchor="middle" fill="white" font-family="Arial" font-size="7">6× Agile Sprints</text>
+    <text x="400" y="155" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Configuration</text>
+
+    <!-- Change Request branch (down from Build) -->
+    <line x1="400" y1="160" x2="400" y2="185" stroke="#C9A84C" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <!-- Diamond -->
+    <polygon points="400,185 422,200 400,215 378,200" fill="#FEF3C7" stroke="#C9A84C" stroke-width="1.5"/>
+    <text x="400" y="198" text-anchor="middle" fill="#92400E" font-family="Arial" font-weight="700" font-size="6.5">Change</text>
+    <text x="400" y="207" text-anchor="middle" fill="#92400E" font-family="Arial" font-weight="700" font-size="6.5">Request?</text>
+    <!-- Yes path -->
+    <line x1="378" y1="200" x2="320" y2="200" stroke="#C9A84C" stroke-width="1.5" marker-end="url(#arr-gold)"/>
+    <text x="349" y="196" text-anchor="middle" fill="#C9A84C" font-family="Arial" font-weight="600" font-size="7">Yes</text>
+    <rect x="262" y="188" width="58" height="24" rx="3" fill="#FEF3C7" stroke="#C9A84C" stroke-width="1"/>
+    <text x="291" y="203" text-anchor="middle" fill="#92400E" font-family="Arial" font-weight="700" font-size="7">Change Board</text>
+    <!-- No path (back to build/test) -->
+    <line x1="422" y1="200" x2="460" y2="200" stroke="#C9A84C" stroke-width="1.5"/>
+    <text x="441" y="196" text-anchor="middle" fill="#C9A84C" font-family="Arial" font-weight="600" font-size="7">No</text>
+    <line x1="460" y1="200" x2="460" y2="135" stroke="#C9A84C" stroke-width="1.5" marker-end="url(#arr-gold)"/>
+
+    <!-- Arrow 4 -->
+    <line x1="445" y1="135" x2="472" y2="135" stroke="#1B2A4A" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Test -->
+    <rect x="472" y="110" width="90" height="50" rx="4" fill="#7C3AED"/>
+    <text x="517" y="131" text-anchor="middle" fill="white" font-family="Arial" font-weight="700" font-size="7">TEST</text>
+    <text x="517" y="145" text-anchor="middle" fill="white" font-family="Arial" font-size="7">SIT, UAT &amp;</text>
+    <text x="517" y="155" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Performance</text>
+
+    <!-- Arrow 5 -->
+    <line x1="562" y1="135" x2="587" y2="135" stroke="#1B2A4A" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Deploy -->
+    <rect x="587" y="110" width="90" height="50" rx="4" fill="#059669"/>
+    <text x="632" y="131" text-anchor="middle" fill="white" font-family="Arial" font-weight="700" font-size="7">DEPLOY</text>
+    <text x="632" y="145" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Go-Live &amp;</text>
+    <text x="632" y="155" text-anchor="middle" fill="white" font-family="Arial" font-size="7">Cutover</text>
+
+    <!-- Arrow 6 -->
+    <line x1="677" y1="135" x2="700" y2="135" stroke="#1B2A4A" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Hypercare -->
+    <rect x="700" y="110" width="50" height="50" rx="4" fill="#C9A84C"/>
+    <text x="725" y="131" text-anchor="middle" fill="white" font-family="Arial" font-weight="700" font-size="7">HYPER</text>
+    <text x="725" y="143" text-anchor="middle" fill="white" font-family="Arial" font-weight="700" font-size="7">CARE</text>
+    <text x="725" y="155" text-anchor="middle" fill="white" font-family="Arial" font-size="6.5">90 days</text>
+
+    <!-- Phase labels above -->
+    <text x="55" y="100" text-anchor="middle" fill="#64748B" font-family="Arial" font-size="7" font-weight="600">JAN</text>
+    <text x="170" y="100" text-anchor="middle" fill="#64748B" font-family="Arial" font-size="7" font-weight="600">JAN–FEB</text>
+    <text x="285" y="100" text-anchor="middle" fill="#64748B" font-family="Arial" font-size="7" font-weight="600">FEB–MAR</text>
+    <text x="400" y="100" text-anchor="middle" fill="#64748B" font-family="Arial" font-size="7" font-weight="600">MAR–JUN</text>
+    <text x="517" y="100" text-anchor="middle" fill="#64748B" font-family="Arial" font-size="7" font-weight="600">MAY–JUN</text>
+    <text x="632" y="100" text-anchor="middle" fill="#64748B" font-family="Arial" font-size="7" font-weight="600">SEP</text>
+    <text x="725" y="100" text-anchor="middle" fill="#64748B" font-family="Arial" font-size="7" font-weight="600">OCT–DEC</text>
+
+    <!-- Gate diamonds below -->
+    <polygon points="55,172 64,180 55,188 46,180" fill="white" stroke="#1B2A4A" stroke-width="1.5"/>
+    <text x="55" y="183" text-anchor="middle" fill="#1B2A4A" font-family="Arial" font-weight="700" font-size="6">✓</text>
+    <polygon points="285,172 294,180 285,188 276,180" fill="white" stroke="#1B2A4A" stroke-width="1.5"/>
+    <text x="285" y="183" text-anchor="middle" fill="#1B2A4A" font-family="Arial" font-weight="700" font-size="6">✓</text>
+    <polygon points="517,172 526,180 517,188 508,180" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+    <text x="517" y="183" text-anchor="middle" fill="#92400E" font-family="Arial" font-weight="700" font-size="6">◇</text>
+
+    <!-- Legend -->
+    <rect x="10" y="240" width="10" height="10" fill="#1B2A4A" rx="1"/>
+    <text x="24" y="249" fill="#64748B" font-family="Arial" font-size="7">Phase</text>
+    <polygon points="90,248 96,244 102,248 96,252" fill="white" stroke="#1B2A4A" stroke-width="1.5"/>
+    <text x="106" y="249" fill="#64748B" font-family="Arial" font-size="7">Quality Gate</text>
+    <line x1="186" y1="247" x2="206" y2="247" stroke="#C9A84C" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="210" y="250" fill="#64748B" font-family="Arial" font-size="7">Change Request Path</text>
+    <polygon points="310,250 322,245 334,250 322,255" fill="#FEF3C7" stroke="#C9A84C" stroke-width="1"/>
+    <text x="338" y="252" fill="#64748B" font-family="Arial" font-size="7">Decision Point</text>
+  </svg></div>
+    <h2>Workflow Steps</h2>
+    <table class="avoid-break">
+      <thead><tr><th>#</th><th>Phase</th><th>Activity</th><th>Owner</th><th>Duration</th><th>Gate</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>1</strong></td>
+          <td>Initiation</td>
+          <td><strong>Engagement Kick-off</strong></td>
+          <td>Programme Manager</td>
+          <td>1 week</td>
+          <td style="color:var(--gold);font-weight:600;font-size:7.5pt">Steering Committee Approval</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td>Discovery</td>
+          <td><strong>Current-State Assessment & Gap Analysis</strong></td>
+          <td>Solution Architect</td>
+          <td>3 weeks</td>
+          <td style="color:var(--gold);font-weight:600;font-size:7.5pt">Business Sign-off on Gap Analysis</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td>Design</td>
+          <td><strong>Solution Architecture & Design</strong></td>
+          <td>Solution Architect + Dev Lead</td>
+          <td>4 weeks</td>
+          <td style="color:var(--gold);font-weight:600;font-size:7.5pt">Architecture Review Board Approval</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td>Build</td>
+          <td><strong>Iterative Development (6 × 2-week Sprints)</strong></td>
+          <td>Delivery Lead</td>
+          <td>12 weeks</td>
+          <td style="color:var(--gold);font-weight:600;font-size:7.5pt">Sprint Review Acceptance per Iteration</td>
+        </tr>
+        <tr>
+          <td><strong>5</strong></td>
+          <td>Test</td>
+          <td><strong>System Integration Testing & UAT</strong></td>
+          <td>QA Lead + Business SMEs</td>
+          <td>5 weeks</td>
+          <td style="color:var(--gold);font-weight:600;font-size:7.5pt">UAT Sign-off with <5 Critical Defects Outstanding</td>
+        </tr>
+        <tr>
+          <td><strong>6</strong></td>
+          <td>Deploy</td>
+          <td><strong>Go-Live & Cutover</strong></td>
+          <td>Programme Manager + Client IT</td>
+          <td>3 days</td>
+          <td style="color:var(--gold);font-weight:600;font-size:7.5pt">Exec Sponsor Go-Live Authorisation</td>
+        </tr>
+        <tr>
+          <td><strong>7</strong></td>
+          <td>Hypercare</td>
+          <td><strong>Post-Go-Live Support (90 days)</strong></td>
+          <td>Delivery Lead + QA Lead</td>
+          <td>90 days</td>
+          <td style="color:var(--gold);font-weight:600;font-size:7.5pt">Formal Acceptance Criteria Met — Client Sign-off</td>
+        </tr>
+      </tbody>
+    </table>
+    <h2>Detailed Step Inputs & Outputs</h2>
+    <table class="avoid-break">
+      <thead><tr><th>Step</th><th>Inputs</th><th>Outputs</th><th>Tools</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>1. Initiation</strong></td>
+          <td>Signed SOW, Project Charter</td>
+          <td>Kick-off Deck, RAID Log v1, Comms Plan</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Confluence, JIRA, Miro</td>
+        </tr>
+        <tr>
+          <td><strong>2. Discovery</strong></td>
+          <td>Legacy System Documentation, SME Interviews</td>
+          <td>As-Is Process Maps, Gap Analysis Report, Data Profile</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Miro, Lucidchart, Excel</td>
+        </tr>
+        <tr>
+          <td><strong>3. Design</strong></td>
+          <td>Gap Analysis, Salesforce Best Practices, MuleSoft Patterns</td>
+          <td>Solution Design Document, API Specification, Data Dictionary</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Salesforce DevOps Center, MuleSoft Design Center, Draw.io</td>
+        </tr>
+        <tr>
+          <td><strong>4. Build</strong></td>
+          <td>Approved Design Documents, Sprint Backlog</td>
+          <td>Configured Salesforce Orgs, API Endpoints, Analytics Dashboard</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">JIRA, GitHub, Salesforce Sandbox, MuleSoft CloudHub</td>
+        </tr>
+        <tr>
+          <td><strong>5. Test</strong></td>
+          <td>Test Strategy, Test Cases, Configured System</td>
+          <td>Test Completion Report, Defect Log, UAT Sign-off</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Jira Zephyr, Postman, Selenium, Excel</td>
+        </tr>
+        <tr>
+          <td><strong>6. Deploy</strong></td>
+          <td>Go-Live Readiness Report, Cutover Runbook, Rollback Plan</td>
+          <td>Live Production System, Cutover Report</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Salesforce Production Org, MuleSoft Production, Runbook</td>
+        </tr>
+        <tr>
+          <td><strong>7. Hypercare</strong></td>
+          <td>Incident Reports, User Feedback, Monitoring Dashboards</td>
+          <td>Weekly Health Reports, Defect Fixes, Knowledge Transfer Docs</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Salesforce Service Cloud, PagerDuty, Confluence</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">08</div>
+      <div class="section-title-block">
+        <div class="section-title">Screenshots & Artefacts</div>
+        <div class="section-subtitle">Application screens, dashboard views, and key artefacts</div>
+      </div>
+    </div>
+    <div class="callout callout-info">
+      <div class="callout-icon">📸</div>
+      <div class="callout-text">Screenshots below are captured automatically using <strong>wkhtmltoimage</strong>. For live applications, screenshots are taken of the target URL and embedded in all output formats. The <code>screenshots/</code> folder contains all captured PNG files.</div>
+    </div>
+    <div class="screenshot-grid">
+      
+  <div class="screenshot-card">
+    <div class="screenshot-bar">
+      <div class="browser-dot" style="background:#DC2626"></div>
+      <div class="browser-dot" style="background:#D97706;margin:0 4px"></div>
+      <div class="browser-dot" style="background:#059669"></div>
+      <span style="margin-left:8px;font-size:7pt;color:rgba(255,255,255,0.6);font-family:'Segoe UI',Arial,sans-serif">Salesforce Sales Cloud — Accounts View</span>
+    </div>
+    <div style="background:#1B2A4A15;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid #1B2A4A30;border-top:none">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="4" fill="#1B2A4A"/>
+        <path d="M5 7h14M5 12h10M5 17h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:8pt;color:#1B2A4A;font-weight:600;font-family:'Segoe UI',Arial,sans-serif">CRM Account List Dashboard</span>
+    </div>
+    <div class="screenshot-caption">Fig. 1 — CRM Account List Dashboard. Screenshot captured automatically via wkhtmltoimage.</div>
+  </div>
+  <div class="screenshot-card">
+    <div class="screenshot-bar">
+      <div class="browser-dot" style="background:#DC2626"></div>
+      <div class="browser-dot" style="background:#D97706;margin:0 4px"></div>
+      <div class="browser-dot" style="background:#059669"></div>
+      <span style="margin-left:8px;font-size:7pt;color:rgba(255,255,255,0.6);font-family:'Segoe UI',Arial,sans-serif">Analytics Hub — Executive KPI Dashboard</span>
+    </div>
+    <div style="background:#2D6A9F15;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid #2D6A9F30;border-top:none">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="4" fill="#2D6A9F"/>
+        <path d="M5 7h14M5 12h10M5 17h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:8pt;color:#2D6A9F;font-weight:600;font-family:'Segoe UI',Arial,sans-serif">Power BI Embedded Overview</span>
+    </div>
+    <div class="screenshot-caption">Fig. 2 — Power BI Embedded Overview. Screenshot captured automatically via wkhtmltoimage.</div>
+  </div>
+  <div class="screenshot-card">
+    <div class="screenshot-bar">
+      <div class="browser-dot" style="background:#DC2626"></div>
+      <div class="browser-dot" style="background:#D97706;margin:0 4px"></div>
+      <div class="browser-dot" style="background:#059669"></div>
+      <span style="margin-left:8px;font-size:7pt;color:rgba(255,255,255,0.6);font-family:'Segoe UI',Arial,sans-serif">MuleSoft Anypoint — API Management Console</span>
+    </div>
+    <div style="background:#0D948815;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid #0D948830;border-top:none">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="4" fill="#0D9488"/>
+        <path d="M5 7h14M5 12h10M5 17h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:8pt;color:#0D9488;font-weight:600;font-family:'Segoe UI',Arial,sans-serif">Integration Layer Monitoring</span>
+    </div>
+    <div class="screenshot-caption">Fig. 3 — Integration Layer Monitoring. Screenshot captured automatically via wkhtmltoimage.</div>
+  </div>
+  <div class="screenshot-card">
+    <div class="screenshot-bar">
+      <div class="browser-dot" style="background:#DC2626"></div>
+      <div class="browser-dot" style="background:#D97706;margin:0 4px"></div>
+      <div class="browser-dot" style="background:#059669"></div>
+      <span style="margin-left:8px;font-size:7pt;color:rgba(255,255,255,0.6);font-family:'Segoe UI',Arial,sans-serif">Project JIRA Board — Sprint 4 Kanban</span>
+    </div>
+    <div style="background:#7C3AED15;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid #7C3AED30;border-top:none">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="4" fill="#7C3AED"/>
+        <path d="M5 7h14M5 12h10M5 17h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:8pt;color:#7C3AED;font-weight:600;font-family:'Segoe UI',Arial,sans-serif">Sprint Backlog & Progress</span>
+    </div>
+    <div class="screenshot-caption">Fig. 4 — Sprint Backlog & Progress. Screenshot captured automatically via wkhtmltoimage.</div>
+  </div>
+    </div>
+    <div class="screenshot-grid">
+      
+  <div class="screenshot-card">
+    <div class="screenshot-bar">
+      <div class="browser-dot" style="background:#DC2626"></div>
+      <div class="browser-dot" style="background:#D97706;margin:0 4px"></div>
+      <div class="browser-dot" style="background:#059669"></div>
+      <span style="margin-left:8px;font-size:7pt;color:rgba(255,255,255,0.6);font-family:'Segoe UI',Arial,sans-serif">Salesforce Service Cloud — Case Management</span>
+    </div>
+    <div style="background:#C9A84C15;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid #C9A84C30;border-top:none">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="4" fill="#C9A84C"/>
+        <path d="M5 7h14M5 12h10M5 17h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:8pt;color:#C9A84C;font-weight:600;font-family:'Segoe UI',Arial,sans-serif">Service Desk View</span>
+    </div>
+    <div class="screenshot-caption">Fig. 5 — Service Desk View. Screenshot captured automatically via wkhtmltoimage.</div>
+  </div>
+  <div class="screenshot-card">
+    <div class="screenshot-bar">
+      <div class="browser-dot" style="background:#DC2626"></div>
+      <div class="browser-dot" style="background:#D97706;margin:0 4px"></div>
+      <div class="browser-dot" style="background:#059669"></div>
+      <span style="margin-left:8px;font-size:7pt;color:rgba(255,255,255,0.6);font-family:'Segoe UI',Arial,sans-serif">Data Migration Dashboard — Reconciliation</span>
+    </div>
+    <div style="background:#05966915;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid #05966930;border-top:none">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="4" fill="#059669"/>
+        <path d="M5 7h14M5 12h10M5 17h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:8pt;color:#059669;font-weight:600;font-family:'Segoe UI',Arial,sans-serif">Migration Progress Tracker</span>
+    </div>
+    <div class="screenshot-caption">Fig. 6 — Migration Progress Tracker. Screenshot captured automatically via wkhtmltoimage.</div>
+  </div>
+    </div>
+    <p class="table-caption">Fig. 8 — Screenshots captured as part of Sprint 4 review. PNG files available in /screenshots/ directory.</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">09</div>
+      <div class="section-title-block">
+        <div class="section-title">Standard Operating Procedures</div>
+        <div class="section-subtitle">Documented step-by-step operational protocols</div>
+      </div>
+    </div>
+    
+    <div class="avoid-break" style="margin-bottom:24px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--navy);color:white;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:10pt">Weekly Sprint Ceremony Protocol</span>
+        </div>
+        <span style="background:var(--gold);color:var(--navy);font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:7.5pt;font-weight:700;padding:3px 10px;border-radius:2px">SOP-001</span>
+      </div>
+      <div style="padding:12px 16px;background:#F8FAFC;border-bottom:1px solid var(--border)">
+        <span style="font-size:7.5pt;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:1px">Purpose:</span>
+        <span style="font-size:8.5pt;color:var(--body);margin-left:8px">Ensure consistent sprint cadence and stakeholder visibility</span>
+      </div>
+      <div style="padding:14px 16px">
+        
+        <div class="sop-step">
+          <div class="sop-step-number">1</div>
+          <div class="sop-step-text">Monday 09:00: Sprint Planning — Dev Lead runs backlog refinement, selects committed stories</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">2</div>
+          <div class="sop-step-text">Daily 09:15: Stand-up — Each team member reports: Done / Doing / Blocked (15 min max)</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">3</div>
+          <div class="sop-step-text">Wednesday 14:00: Mid-sprint check — PM reviews burn-down, escalates blockers</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">4</div>
+          <div class="sop-step-text">Friday 15:00: Sprint Review — Demo to business stakeholders; collect acceptance</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">5</div>
+          <div class="sop-step-text">Friday 16:00: Retrospective — Team reviews process; action items logged in Confluence</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">6</div>
+          <div class="sop-step-text">PM updates RAID Log, Risk Register, and Status Report before Monday 08:00</div>
+        </div>
+      </div>
+    </div>
+    <div class="avoid-break" style="margin-bottom:24px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--navy);color:white;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:10pt">Change Request Management</span>
+        </div>
+        <span style="background:var(--gold);color:var(--navy);font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:7.5pt;font-weight:700;padding:3px 10px;border-radius:2px">SOP-002</span>
+      </div>
+      <div style="padding:12px 16px;background:#F8FAFC;border-bottom:1px solid var(--border)">
+        <span style="font-size:7.5pt;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:1px">Purpose:</span>
+        <span style="font-size:8.5pt;color:var(--body);margin-left:8px">Control scope changes through a governed approval process</span>
+      </div>
+      <div style="padding:14px 16px">
+        
+        <div class="sop-step">
+          <div class="sop-step-number">1</div>
+          <div class="sop-step-text">Requester submits Change Request (CR) via Jira using CR template (min 72 hrs before sprint start)</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">2</div>
+          <div class="sop-step-text">PM assesses impact on scope, timeline, and budget within 48 hours</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">3</div>
+          <div class="sop-step-text">CR categorised: Minor (<1 day effort) — PM approval only; Major (>1 day) — Change Board required</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">4</div>
+          <div class="sop-step-text">Change Board meets bi-weekly; quorum: Exec Sponsor + CIO + PM</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">5</div>
+          <div class="sop-step-text">Approved CRs added to next sprint backlog; rejected CRs logged with rationale</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">6</div>
+          <div class="sop-step-text">PM updates Project Charter and SOW amendment if budget impact >$25,000</div>
+        </div>
+      </div>
+    </div>
+    <div class="avoid-break" style="margin-bottom:24px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--navy);color:white;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:10pt">Defect Management & Escalation</span>
+        </div>
+        <span style="background:var(--gold);color:var(--navy);font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:7.5pt;font-weight:700;padding:3px 10px;border-radius:2px">SOP-003</span>
+      </div>
+      <div style="padding:12px 16px;background:#F8FAFC;border-bottom:1px solid var(--border)">
+        <span style="font-size:7.5pt;color:var(--grey);font-weight:600;text-transform:uppercase;letter-spacing:1px">Purpose:</span>
+        <span style="font-size:8.5pt;color:var(--body);margin-left:8px">Ensure defects are triaged, tracked, and resolved within agreed SLAs</span>
+      </div>
+      <div style="padding:14px 16px">
+        
+        <div class="sop-step">
+          <div class="sop-step-number">1</div>
+          <div class="sop-step-text">Tester logs defect in Jira with severity (P1/P2/P3/P4), description, steps to reproduce, and evidence</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">2</div>
+          <div class="sop-step-text">QA Lead triages within 4 hours; assigns to owner and sets target fix date</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">3</div>
+          <div class="sop-step-text">P1 (Critical): Fix within 24 hours; automatic escalation to PM and Exec Sponsor</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">4</div>
+          <div class="sop-step-text">P2 (Major): Fix within 3 business days; weekly review in Sprint standup</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">5</div>
+          <div class="sop-step-text">P3/P4: Scheduled into subsequent sprint; closure requires QA Lead re-test</div>
+        </div>
+        <div class="sop-step">
+          <div class="sop-step-number">6</div>
+          <div class="sop-step-text">Defect closure logged in Test Completion Report; pattern analysis done at Sprint Retro</div>
+        </div>
+      </div>
+    </div>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">10</div>
+      <div class="section-title-block">
+        <div class="section-title">Inputs</div>
+        <div class="section-subtitle">Data, system, and human inputs required for programme execution</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>ID</th><th>Type</th><th>Source</th><th>Description</th><th>Format</th><th>Frequency</th><th>Volume</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>IN-001</strong></td>
+          <td><span class="badge badge-progress">System</span></td>
+          <td>Siebel CRM 8.1</td>
+          <td>Full customer master data export (CSV/XML)</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">CSV + XML</td>
+          <td>One-time migration</td>
+          <td>3.2M records</td>
+        </tr>
+        <tr>
+          <td><strong>IN-002</strong></td>
+          <td><span class="badge badge-progress">System</span></td>
+          <td>SAP ERP (read-only)</td>
+          <td>Customer purchase history and contract data</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">REST API</td>
+          <td>Real-time sync post go-live</td>
+          <td>12M transactions</td>
+        </tr>
+        <tr>
+          <td><strong>IN-003</strong></td>
+          <td><span class="badge badge-progress">Document</span></td>
+          <td>Legal / Compliance</td>
+          <td>Data retention policies and consent flags</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Excel + PDF</td>
+          <td>One-time input + quarterly updates</td>
+          <td>N/A</td>
+        </tr>
+        <tr>
+          <td><strong>IN-004</strong></td>
+          <td><span class="badge badge-progress">Human</span></td>
+          <td>Business SMEs</td>
+          <td>Process validation, UAT test execution, sign-off</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Confluence, Jira</td>
+          <td>Per sprint (2-week cycles)</td>
+          <td>Approx. 40% SME capacity</td>
+        </tr>
+        <tr>
+          <td><strong>IN-005</strong></td>
+          <td><span class="badge badge-progress">System</span></td>
+          <td>Azure AD B2C</td>
+          <td>User identity and role provisioning for SSO</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">SAML 2.0 / OAuth 2.0</td>
+          <td>Real-time on login</td>
+          <td>1,680 users</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 10.1 — Input Register · All inputs validated as part of Sprint 1 Data Quality Assessment</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">11</div>
+      <div class="section-title-block">
+        <div class="section-title">Outputs & Deliverables</div>
+        <div class="section-subtitle">Programme deliverables, system outputs, and SLAs</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>ID</th><th>Type</th><th>Destination</th><th>Description</th><th>Format</th><th>SLA / Acceptance</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>OUT-001</strong></td>
+          <td><span class="badge badge-done">System</span></td>
+          <td>Salesforce Sales Cloud</td>
+          <td>Migrated and enriched customer master</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Salesforce Records</td>
+          <td>99.5% record accuracy post-migration</td>
+        </tr>
+        <tr>
+          <td><strong>OUT-002</strong></td>
+          <td><span class="badge badge-done">Document</span></td>
+          <td>Client IT + PMO</td>
+          <td>Weekly Status Report (RAG)</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">PDF + Confluence</td>
+          <td>Every Friday by 17:00 EST</td>
+        </tr>
+        <tr>
+          <td><strong>OUT-003</strong></td>
+          <td><span class="badge badge-done">System</span></td>
+          <td>Analytics Hub</td>
+          <td>Real-time KPI dashboards via Power BI Embedded</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">REST API JSON</td>
+          <td>< 3 seconds dashboard load time</td>
+        </tr>
+        <tr>
+          <td><strong>OUT-004</strong></td>
+          <td><span class="badge badge-done">Document</span></td>
+          <td>Steering Committee</td>
+          <td>Monthly Executive Summary (Steering Pack)</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">PowerPoint + PDF</td>
+          <td>5 business days before Steering meeting</td>
+        </tr>
+        <tr>
+          <td><strong>OUT-005</strong></td>
+          <td><span class="badge badge-done">Document</span></td>
+          <td>Compliance / Audit</td>
+          <td>Data Migration Audit Trail and Reconciliation Report</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">PDF + Excel</td>
+          <td>Within 10 business days post-migration</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 11.1 — Output & Deliverable Register</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">12</div>
+      <div class="section-title-block">
+        <div class="section-title">Tools & Technology Stack</div>
+        <div class="section-subtitle">Full technology inventory, versions, and licence ownership</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>Category</th><th>Tool / Platform</th><th>Version</th><th>Purpose</th><th>Licences</th><th>Owner</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>CRM Platform</strong></td>
+          <td>Salesforce Sales Cloud + Service Cloud</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Winter '26</td>
+          <td>Core CRM replacement</td>
+          <td>1,200 Sales + 800 Service</td>
+          <td><span class="badge badge-progress">TechNova IT</span></td>
+        </tr>
+        <tr>
+          <td><strong>Integration</strong></td>
+          <td>MuleSoft Anypoint Platform</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">4.6.x</td>
+          <td>API gateway and middleware orchestration</td>
+          <td>Platinum On-Premises</td>
+          <td><span class="badge badge-progress">TechNova IT</span></td>
+        </tr>
+        <tr>
+          <td><strong>Project Management</strong></td>
+          <td>Jira Software</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">9.4 Cloud</td>
+          <td>Sprint management, defect tracking</td>
+          <td>Enterprise (unlimited)</td>
+          <td><span class="badge badge-confidential">Meridian AG</span></td>
+        </tr>
+        <tr>
+          <td><strong>Documentation</strong></td>
+          <td>Confluence</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">7.19 Cloud</td>
+          <td>Knowledge base, runbooks, SOP library</td>
+          <td>Enterprise (unlimited)</td>
+          <td><span class="badge badge-confidential">Meridian AG</span></td>
+        </tr>
+        <tr>
+          <td><strong>Analytics</strong></td>
+          <td>Power BI Embedded (A4 SKU)</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">2026-03</td>
+          <td>Embedded analytics in custom React portal</td>
+          <td>A4 Capacity (per-node)</td>
+          <td><span class="badge badge-progress">TechNova IT</span></td>
+        </tr>
+        <tr>
+          <td><strong>DevOps</strong></td>
+          <td>GitHub + GitHub Actions</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Enterprise Cloud</td>
+          <td>Source control, CI/CD pipelines</td>
+          <td>Enterprise (300 seats)</td>
+          <td><span class="badge badge-progress">TechNova IT</span></td>
+        </tr>
+        <tr>
+          <td><strong>Testing</strong></td>
+          <td>Jira Zephyr Scale</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">9.x</td>
+          <td>Test case management, execution tracking</td>
+          <td>Commercial (150 seats)</td>
+          <td><span class="badge badge-confidential">Meridian AG</span></td>
+        </tr>
+        <tr>
+          <td><strong>Identity</strong></td>
+          <td>Azure Active Directory B2C</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">P2 tier</td>
+          <td>SSO and MFA for all users</td>
+          <td>P2 per-user (1,680)</td>
+          <td><span class="badge badge-progress">TechNova IT</span></td>
+        </tr>
+        <tr>
+          <td><strong>Monitoring</strong></td>
+          <td>Datadog APM + Log Management</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Enterprise</td>
+          <td>Post-go-live performance and error monitoring</td>
+          <td>Annual enterprise contract</td>
+          <td><span class="badge badge-progress">TechNova IT</span></td>
+        </tr>
+        <tr>
+          <td><strong>Collaboration</strong></td>
+          <td>Microsoft Teams + Miro</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">M365 E5 + Miro Business</td>
+          <td>Remote collaboration, workshop facilitation</td>
+          <td>M365 E5 (bundled)</td>
+          <td><span class="badge badge-progress">Shared</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 12.1 — Technology Inventory · Version information correct as of 22 April 2026</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">13</div>
+      <div class="section-title-block">
+        <div class="section-title">Responsibilities</div>
+        <div class="section-subtitle">Role-based responsibility breakdown for all programme team members</div>
+      </div>
+    </div>
+    
+    <div class="avoid-break" style="margin-bottom:16px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--blue-light);border-left:4px solid var(--navy);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:10pt;color:var(--navy)">Programme Manager (Meridian)</div>
+          <div style="font-size:8pt;color:var(--grey);margin-top:2px">Nathaniel Ashford</div>
+        </div>
+        <span class="badge badge-confidential">Meridian Advisory Group</span>
+      </div>
+      <div style="padding:10px 14px">
+        <ul style="margin:0">
+          <li style="font-size:8.5pt;margin-bottom:4px">Overall programme delivery, governance, and stakeholder management</li><li style="font-size:8.5pt;margin-bottom:4px">Weekly status reporting and Steering Committee facilitation</li><li style="font-size:8.5pt;margin-bottom:4px">RAID Log ownership and risk escalation</li><li style="font-size:8.5pt;margin-bottom:4px">Budget tracking and forecasting (monthly ±5% variance reporting)</li><li style="font-size:8.5pt;margin-bottom:4px">Change Request assessment and Change Board coordination</li><li style="font-size:8.5pt;margin-bottom:4px">Final quality gate approval before each phase transition</li>
+        </ul>
+      </div>
+    </div>
+    <div class="avoid-break" style="margin-bottom:16px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--blue-light);border-left:4px solid var(--navy);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:10pt;color:var(--navy)">Solution Architect (Meridian)</div>
+          <div style="font-size:8pt;color:var(--grey);margin-top:2px">Yusuf Okonkwo</div>
+        </div>
+        <span class="badge badge-confidential">Meridian Advisory Group</span>
+      </div>
+      <div style="padding:10px 14px">
+        <ul style="margin:0">
+          <li style="font-size:8.5pt;margin-bottom:4px">End-to-end technical design authority — Salesforce, MuleSoft, Analytics Hub</li><li style="font-size:8.5pt;margin-bottom:4px">Architecture Review Board preparation and presentation</li><li style="font-size:8.5pt;margin-bottom:4px">Vendor technical liaison (Salesforce AE, MuleSoft CSM, IntelliConnect PM)</li><li style="font-size:8.5pt;margin-bottom:4px">Data model governance and API contract management</li><li style="font-size:8.5pt;margin-bottom:4px">Security architecture and SOX compliance technical review</li>
+        </ul>
+      </div>
+    </div>
+    <div class="avoid-break" style="margin-bottom:16px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--blue-light);border-left:4px solid var(--navy);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:10pt;color:var(--navy)">Delivery Lead (Meridian)</div>
+          <div style="font-size:8pt;color:var(--grey);margin-top:2px">Saoirse Gallagher</div>
+        </div>
+        <span class="badge badge-confidential">Meridian Advisory Group</span>
+      </div>
+      <div style="padding:10px 14px">
+        <ul style="margin:0">
+          <li style="font-size:8.5pt;margin-bottom:4px">Sprint planning, backlog management, and velocity tracking</li><li style="font-size:8.5pt;margin-bottom:4px">Day-to-day team coordination across 6 development squads</li><li style="font-size:8.5pt;margin-bottom:4px">Jira configuration, board health, and burn-down reporting</li><li style="font-size:8.5pt;margin-bottom:4px">Escalation point for development and integration blockers</li><li style="font-size:8.5pt;margin-bottom:4px">Hypercare lead during 90-day post-go-live period</li>
+        </ul>
+      </div>
+    </div>
+    <div class="avoid-break" style="margin-bottom:16px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--blue-light);border-left:4px solid var(--navy);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:10pt;color:var(--navy)">QA Lead (Meridian)</div>
+          <div style="font-size:8pt;color:var(--grey);margin-top:2px">Linh Tran</div>
+        </div>
+        <span class="badge badge-confidential">Meridian Advisory Group</span>
+      </div>
+      <div style="padding:10px 14px">
+        <ul style="margin:0">
+          <li style="font-size:8.5pt;margin-bottom:4px">Test strategy, test plan, and test case design across all workstreams</li><li style="font-size:8.5pt;margin-bottom:4px">UAT coordination with business SMEs and partner organisations</li><li style="font-size:8.5pt;margin-bottom:4px">Defect triage, SLA management, and trend analysis</li><li style="font-size:8.5pt;margin-bottom:4px">Test completion report authorship and sign-off facilitation</li><li style="font-size:8.5pt;margin-bottom:4px">Regression suite maintenance and automation framework ownership</li>
+        </ul>
+      </div>
+    </div>
+    <div class="avoid-break" style="margin-bottom:16px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="background:var(--blue-light);border-left:4px solid var(--navy);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:700;font-size:10pt;color:var(--navy)">Change Manager (Meridian)</div>
+          <div style="font-size:8pt;color:var(--grey);margin-top:2px">Marcus Delacroix</div>
+        </div>
+        <span class="badge badge-confidential">Meridian Advisory Group</span>
+      </div>
+      <div style="padding:10px 14px">
+        <ul style="margin:0">
+          <li style="font-size:8.5pt;margin-bottom:4px">Organisational change management strategy and impact assessment</li><li style="font-size:8.5pt;margin-bottom:4px">Training needs analysis and delivery plan for 1,200 users</li><li style="font-size:8.5pt;margin-bottom:4px">Stakeholder engagement plan execution and sentiment tracking</li><li style="font-size:8.5pt;margin-bottom:4px">Communication plan management and content review</li><li style="font-size:8.5pt;margin-bottom:4px">Benefits realisation framework and post-go-live adoption monitoring</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">14</div>
+      <div class="section-title-block">
+        <div class="section-title">Timeline & Milestones</div>
+        <div class="section-subtitle">Programme Gantt chart with phase status and milestone tracking</div>
+      </div>
+    </div>
+    <div class="timeline-bar-container"><svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" width="100%">
+    <defs>
+      <pattern id="grid" x="0" y="0" width="45" height="340" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="0" x2="0" y2="340" stroke="#E2E8F0" stroke-width="0.5"/>
+      </pattern>
+    </defs>
+    <rect x="160" y="0" width="540" height="340" fill="url(#grid)"/>
+  <text x="203.43820224719101" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Feb</text><line x1="199.43820224719101" y1="0" x2="199.43820224719101" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="245.91011235955057" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Mar</text><line x1="241.91011235955057" y1="0" x2="241.91011235955057" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="292.9325842696629" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Apr</text><line x1="288.9325842696629" y1="0" x2="288.9325842696629" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="338.43820224719104" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">May</text><line x1="334.43820224719104" y1="0" x2="334.43820224719104" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="385.4606741573034" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Jun</text><line x1="381.4606741573034" y1="0" x2="381.4606741573034" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="430.96629213483146" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Jul</text><line x1="426.96629213483146" y1="0" x2="426.96629213483146" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="477.9887640449438" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Aug</text><line x1="473.9887640449438" y1="0" x2="473.9887640449438" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="525.0112359550562" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Sep</text><line x1="521.0112359550562" y1="0" x2="521.0112359550562" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="570.5168539325842" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Oct</text><line x1="566.5168539325842" y1="0" x2="566.5168539325842" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="617.5393258426966" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Nov</text><line x1="613.5393258426966" y1="0" x2="613.5393258426966" y2="340" stroke="#E2E8F0" stroke-width="1"/><text x="663.0449438202247" y="14" fill="#64748B" font-family="Arial" font-size="6.5" font-weight="600">Dec</text><line x1="659.0449438202247" y1="0" x2="659.0449438202247" y2="340" stroke="#E2E8F0" stroke-width="1"/><line x1="328.3707865168539" y1="0" x2="328.3707865168539" y2="340" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="4,3"/><text x="330.3707865168539" y="14" fill="#DC2626" font-family="Arial" font-size="6" font-weight="700">TODAY</text><rect x="0" y="24" width="700" height="20" fill="#F8FAFC"/><text x="2" y="37" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Discovery & Analysis</text><rect x="160.75842696629215" y="27" width="36.40449438202245" height="14" rx="2" fill="#059669" opacity="0.9"/><polygon points="197.1629213483146,28 202.1629213483146,34 197.1629213483146,40 192.1629213483146,34" fill="#059669"/><rect x="0" y="52" width="700" height="20" fill="#FFFFFF"/><text x="2" y="65" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Solution Design</text><rect x="192.6123595505618" y="55" width="47.02247191011236" height="14" rx="2" fill="#059669" opacity="0.9"/><text x="196.6123595505618" y="65" fill="white" font-family="Arial" font-size="6" font-weight="600">Architecture Sign-off</text><polygon points="239.63483146067415,56 244.63483146067415,62 239.63483146067415,68 234.63483146067415,62" fill="#059669"/><rect x="0" y="80" width="700" height="20" fill="#F8FAFC"/><text x="2" y="93" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Sprint 1 — Core CRM Config</text><rect x="244.18539325842696" y="83" width="16.685393258427013" height="14" rx="2" fill="#059669" opacity="0.9"/><polygon points="260.87078651685397,84 265.87078651685397,90 260.87078651685397,96 255.87078651685397,90" fill="#059669"/><rect x="0" y="108" width="700" height="20" fill="#FFFFFF"/><text x="2" y="121" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Sprint 2 — Service Cloud</text><rect x="265.42134831460675" y="111" width="16.685393258426927" height="14" rx="2" fill="#059669" opacity="0.9"/><polygon points="282.1067415730337,112 287.1067415730337,118 282.1067415730337,124 277.1067415730337,118" fill="#059669"/><rect x="0" y="136" width="700" height="20" fill="#F8FAFC"/><text x="2" y="149" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Sprint 3 — API Layer</text><rect x="286.6573033707865" y="139" width="16.685393258426984" height="14" rx="2" fill="#059669" opacity="0.9"/><polygon points="303.3426966292135,140 308.3426966292135,146 303.3426966292135,152 298.3426966292135,146" fill="#059669"/><rect x="0" y="164" width="700" height="20" fill="#FFFFFF"/><text x="2" y="177" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Sprint 4 — Data Migration Dry Run</text><rect x="307.89325842696627" y="167" width="16.685393258426984" height="14" rx="2" fill="#2D6A9F" opacity="0.9"/><polygon points="324.57865168539325,168 329.57865168539325,174 324.57865168539325,180 319.57865168539325,174" fill="#C9A84C"/><rect x="0" y="192" width="700" height="20" fill="#F8FAFC"/><text x="2" y="205" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Sprint 5 — Analytics Hub</text><rect x="329.1292134831461" y="195" width="16.685393258426927" height="14" rx="2" fill="#CBD5E1" opacity="0.9"/><polygon points="345.814606741573,196 350.814606741573,202 345.814606741573,208 340.814606741573,202" fill="#C9A84C"/><rect x="0" y="220" width="700" height="20" fill="#FFFFFF"/><text x="2" y="233" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Sprint 6 — UAT & Hardening</text><rect x="350.36516853932585" y="223" width="37.921348314606746" height="14" rx="2" fill="#CBD5E1" opacity="0.9"/><polygon points="388.2865168539326,224 393.2865168539326,230 388.2865168539326,236 383.2865168539326,230" fill="#C9A84C"/><rect x="0" y="248" width="700" height="20" fill="#F8FAFC"/><text x="2" y="261" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Go-Live Preparation & Cutover</text><rect x="541.4887640449438" y="251" width="21.23595505617982" height="14" rx="2" fill="#CBD5E1" opacity="0.9"/><polygon points="562.7247191011236,252 567.7247191011236,258 562.7247191011236,264 557.7247191011236,258" fill="#C9A84C"/><rect x="0" y="276" width="700" height="20" fill="#FFFFFF"/><text x="2" y="289" fill="#1E293B" font-family="Arial" font-size="7" font-weight="400">Hypercare (90 days)</text><rect x="564.2415730337078" y="279" width="136.51685393258424" height="14" rx="2" fill="#CBD5E1" opacity="0.9"/><text x="568.2415730337078" y="289" fill="white" font-family="Arial" font-size="6" font-weight="600">Formal Acceptance</text><polygon points="700.7584269662921,280 705.7584269662921,286 700.7584269662921,292 695.7584269662921,286" fill="#C9A84C"/></svg></div>
+    <p class="table-caption" style="margin-top:8px">Fig. 14.1 — Programme Timeline · Red dashed line = Today (27 April 2026). Diamonds = Phase milestones.</p>
+    <h2>Milestone Register</h2>
+    <table class="avoid-break">
+      <thead><tr><th>Phase</th><th>Start</th><th>End</th><th>Milestone</th><th>Status</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>Discovery & Analysis</strong></td>
+          <td>06 January 2026</td>
+          <td>30 January 2026</td>
+          <td>Gap Analysis Approved</td>
+          <td><span class="badge badge-done">Complete</span></td>
+        </tr>
+        <tr>
+          <td><strong>Solution Design</strong></td>
+          <td>27 January 2026</td>
+          <td>27 February 2026</td>
+          <td>Architecture Sign-off</td>
+          <td><span class="badge badge-done">Complete</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sprint 1 — Core CRM Config</strong></td>
+          <td>02 March 2026</td>
+          <td>13 March 2026</td>
+          <td>Sales Cloud MVP</td>
+          <td><span class="badge badge-done">Complete</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sprint 2 — Service Cloud</strong></td>
+          <td>16 March 2026</td>
+          <td>27 March 2026</td>
+          <td>Service Cloud MVP</td>
+          <td><span class="badge badge-done">Complete</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sprint 3 — API Layer</strong></td>
+          <td>30 March 2026</td>
+          <td>10 April 2026</td>
+          <td>API Gateway Live</td>
+          <td><span class="badge badge-done">Complete</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sprint 4 — Data Migration Dry Run</strong></td>
+          <td>13 April 2026</td>
+          <td>24 April 2026</td>
+          <td>DM Reconciliation Report</td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sprint 5 — Analytics Hub</strong></td>
+          <td>27 April 2026</td>
+          <td>08 May 2026</td>
+          <td>Analytics Dashboard Demo</td>
+          <td><span class="badge badge-pending">Planned</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sprint 6 — UAT & Hardening</strong></td>
+          <td>11 May 2026</td>
+          <td>05 June 2026</td>
+          <td>UAT Sign-off</td>
+          <td><span class="badge badge-pending">Planned</span></td>
+        </tr>
+        <tr>
+          <td><strong>Go-Live Preparation & Cutover</strong></td>
+          <td>14 September 2026</td>
+          <td>28 September 2026</td>
+          <td>Production Go-Live</td>
+          <td><span class="badge badge-pending">Planned</span></td>
+        </tr>
+        <tr>
+          <td><strong>Hypercare (90 days)</strong></td>
+          <td>29 September 2026</td>
+          <td>28 December 2026</td>
+          <td>Formal Acceptance</td>
+          <td><span class="badge badge-pending">Planned</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">15</div>
+      <div class="section-title-block">
+        <div class="section-title">Risk Register</div>
+        <div class="section-subtitle">Programme risk log with probability, impact, mitigation, and ownership</div>
+      </div>
+    </div>
+    <div class="info-grid-3">
+      <div class="info-card" style="border-left-color:var(--red)"><div class="info-card-label">Critical / High Risks</div><div class="info-card-value">3</div></div>
+      <div class="info-card" style="border-left-color:var(--amber)"><div class="info-card-label">Open</div><div class="info-card-value">3</div></div>
+      <div class="info-card" style="border-left-color:var(--green)"><div class="info-card-label">Mitigated</div><div class="info-card-value">2</div></div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>ID</th><th>Category</th><th>Description</th><th>Prob.</th><th>Impact</th><th>Rating</th><th>Mitigation</th><th>Owner</th><th>Status</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>R-001</strong></td>
+          <td>Data</td>
+          <td>340K orphaned customer records in Siebel with no owner mapping — risk of data loss or duplication post-migration</td>
+          <td>High</td>
+          <td>High</td>
+          <td><span class="badge badge-red">Critical</span></td>
+          <td>Data Quality Sprint (2 weeks) prior to final migration window; automated deduplication rules in migration pipeline</td>
+          <td>Yusuf Okonkwo</td>
+          <td><span class="badge badge-pending">Open</span></td>
+        </tr>
+        <tr>
+          <td><strong>R-002</strong></td>
+          <td>Resource</td>
+          <td>IntelliConnect vendor has indicated potential 3-week resource constraint starting Sprint 5; API completion may slip</td>
+          <td>Medium</td>
+          <td>High</td>
+          <td><span class="badge badge-amber">High</span></td>
+          <td>Escalation to IntelliConnect account executive; parallel resource sourcing via Salesforce partner network</td>
+          <td>Nathaniel Ashford</td>
+          <td><span class="badge badge-progress">Escalated</span></td>
+        </tr>
+        <tr>
+          <td><strong>R-003</strong></td>
+          <td>Technical</td>
+          <td>MuleSoft on-premises version 4.6.x known bug (MULE-19482) affecting large payload routing — patch not yet GA</td>
+          <td>Medium</td>
+          <td>Medium</td>
+          <td><span class="badge badge-progress">Medium</span></td>
+          <td>Applied MuleSoft engineering workaround (payload chunking < 50MB); monitoring open ticket with MuleSoft support</td>
+          <td>Yusuf Okonkwo</td>
+          <td><span class="badge badge-mitigated">Mitigated</span></td>
+        </tr>
+        <tr>
+          <td><strong>R-004</strong></td>
+          <td>Scope</td>
+          <td>Sales Operations requesting addition of CPQ module — not in original SOW; potential scope creep</td>
+          <td>High</td>
+          <td>Medium</td>
+          <td><span class="badge badge-amber">High</span></td>
+          <td>Formal CR raised (CR-2026-014); Change Board review scheduled 2026-04-29; budget impact assessed at $340K</td>
+          <td>Nathaniel Ashford</td>
+          <td><span class="badge badge-pending">Open</span></td>
+        </tr>
+        <tr>
+          <td><strong>R-005</strong></td>
+          <td>Compliance</td>
+          <td>GDPR right-to-erasure requests during migration window could corrupt migration state if not handled</td>
+          <td>Low</td>
+          <td>High</td>
+          <td><span class="badge badge-progress">Medium</span></td>
+          <td>Erasure request freeze policy agreed with DPO for 7-day migration window; compensating controls in migration script</td>
+          <td>Marcus Delacroix</td>
+          <td><span class="badge badge-mitigated">Mitigated</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 15.1 — Risk Register · Review dates per entry. Next risk review: 30 April 2026</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">16</div>
+      <div class="section-title-block">
+        <div class="section-title">Issue Log</div>
+        <div class="section-subtitle">Active and resolved issues with impact, ownership, and resolution</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>ID</th><th>Description</th><th>Impact</th><th>Raised</th><th>Owner</th><th>Status</th><th>Resolution</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>I-001</strong></td>
+          <td>Azure AD B2C tenant provisioning delayed 2 weeks due to TechNova IT internal change freeze</td>
+          <td>Sprint 3 SSO integration pushed by 8 days</td>
+          <td>10 March 2026</td>
+          <td>Brendan Mwangi (TechNova CIO)</td>
+          <td><span class="badge badge-done">Resolved</span></td>
+          <td>Emergency CAB approval secured; tenant provisioned ahead of revised schedule</td>
+        </tr>
+        <tr>
+          <td><strong>I-002</strong></td>
+          <td>Salesforce API Governor Limits hit during bulk migration dry run — 5,000 records/batch exceeded</td>
+          <td>Dry run aborted; migration script requires re-architecture</td>
+          <td>15 April 2026</td>
+          <td>Yusuf Okonkwo</td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+          <td>Bulk API v2 chunking strategy being implemented; ETA 2026-04-25</td>
+        </tr>
+        <tr>
+          <td><strong>I-003</strong></td>
+          <td>Business SME availability below 40% commitment in Sprint 3; 6 user stories returned without acceptance</td>
+          <td>6 stories deferred to Sprint 4 backlog; velocity reduced 22%</td>
+          <td>27 March 2026</td>
+          <td>Candice Ofoegbu</td>
+          <td><span class="badge badge-done">Resolved</span></td>
+          <td>Formal escalation to Dr. Ramasamy; dedicated SME calendar blocks enforced from Sprint 4</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 16.1 — Issue Log · 1 issue(s) open as of 27 April 2026</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">17</div>
+      <div class="section-title-block">
+        <div class="section-title">Quality Checklist</div>
+        <div class="section-subtitle">QA gate items, compliance checks, and training readiness</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>Category</th><th>Quality Item</th><th>Required</th><th>Status</th></tr></thead>
+      <tbody class="check-row">
+        
+        <tr>
+          <td><strong>Documentation</strong></td>
+          <td>Project Charter approved by Exec Sponsor</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-done">Done</span></td>
+        </tr>
+        <tr>
+          <td><strong>Documentation</strong></td>
+          <td>Solution Design Document signed off by Architecture Review Board</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-done">Done</span></td>
+        </tr>
+        <tr>
+          <td><strong>Documentation</strong></td>
+          <td>Data Dictionary v2.0 reviewed and approved</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-done">Done</span></td>
+        </tr>
+        <tr>
+          <td><strong>Documentation</strong></td>
+          <td>Test Strategy reviewed by QA Lead and Client</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-done">Done</span></td>
+        </tr>
+        <tr>
+          <td><strong>Documentation</strong></td>
+          <td>Go-Live Runbook and Rollback Plan approved</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>Technical</strong></td>
+          <td>All Salesforce configuration peer-reviewed before deployment to UAT</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-done">Done</span></td>
+        </tr>
+        <tr>
+          <td><strong>Technical</strong></td>
+          <td>API contracts validated against OpenAPI 3.0 specification</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-done">Done</span></td>
+        </tr>
+        <tr>
+          <td><strong>Technical</strong></td>
+          <td>Security penetration test completed and findings remediated (P1/P2)</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>Technical</strong></td>
+          <td>Performance test: 1,000 concurrent users at <2s response time</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>Technical</strong></td>
+          <td>Data migration reconciliation: >99.5% record count and field accuracy</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>Compliance</strong></td>
+          <td>GDPR Data Protection Impact Assessment (DPIA) completed</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-done">Done</span></td>
+        </tr>
+        <tr>
+          <td><strong>Compliance</strong></td>
+          <td>SOX dual-approval workflow verified for all financial data flows</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>Compliance</strong></td>
+          <td>Accessibility audit (WCAG 2.1 AA) on Analytics Hub</td>
+          <td style="text-align:center"><span class="check-icon">⬜</span></td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>Training</strong></td>
+          <td>Training materials reviewed and approved by business leads</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>Training</strong></td>
+          <td>Train-the-trainer sessions completed for 8 super-user champions</td>
+          <td style="text-align:center"><span class="check-icon">✅</span></td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 17.1 — Quality Gate Checklist · 7 of 15 items complete</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">18</div>
+      <div class="section-title-block">
+        <div class="section-title">Testing Summary</div>
+        <div class="section-subtitle">Test strategy, types, coverage, and defect summary</div>
+      </div>
+    </div>
+    <div class="exec-summary-box">
+      <p><strong>Test Strategy:</strong> Risk-based testing approach aligned to ISO 29119. Coverage tiers: Unit (dev-owned), Integration, System, Regression, UAT, Performance, Security, and Accessibility.</p>
+    </div>
+    <div class="info-grid-3">
+      <div class="info-card" style="border-left-color:var(--red)"><div class="info-card-label">P1 Critical Defects</div><div class="info-card-value">3</div></div>
+      <div class="info-card" style="border-left-color:var(--amber)"><div class="info-card-label">P2 Major Defects</div><div class="info-card-value">14</div></div>
+      <div class="info-card" style="border-left-color:var(--green)"><div class="info-card-label">Closed Defects</div><div class="info-card-value">71 / 89</div></div>
+    </div>
+    <h2>Test Types & Coverage</h2>
+    <table class="avoid-break">
+      <thead><tr><th>Test Type</th><th>Owner</th><th>Tool</th><th>Coverage</th><th>Status</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>Unit Testing</strong></td>
+          <td>Development Team</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Jest / Apex Tests</td>
+          <td>85% code coverage minimum</td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>System Integration Testing</strong></td>
+          <td>QA Lead</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Postman + Jira Zephyr</td>
+          <td>All 47 API endpoints; 218 test cases</td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>User Acceptance Testing</strong></td>
+          <td>Business SMEs + QA Lead</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Jira Zephyr + Excel</td>
+          <td>127 business scenarios; 3 business units</td>
+          <td><span class="badge badge-pending">Planned</span></td>
+        </tr>
+        <tr>
+          <td><strong>Regression Testing</strong></td>
+          <td>QA Lead</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Selenium WebDriver + GitHub Actions</td>
+          <td>Full smoke pack after every deployment</td>
+          <td><span class="badge badge-pending">Planned</span></td>
+        </tr>
+        <tr>
+          <td><strong>Performance Testing</strong></td>
+          <td>QA Lead</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Apache JMeter</td>
+          <td>1,000 concurrent users, 4-hour soak test</td>
+          <td><span class="badge badge-pending">Planned</span></td>
+        </tr>
+        <tr>
+          <td><strong>Security Penetration Testing</strong></td>
+          <td>TechNova InfoSec (external vendor)</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Burp Suite Pro, OWASP ZAP</td>
+          <td>OWASP Top 10, SANS 25</td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>Data Migration Testing</strong></td>
+          <td>QA Lead + Client DBA</td>
+          <td style="font-family:Consolas,'Courier New',monospace;font-size:7.5pt">Custom Python reconciliation scripts</td>
+          <td>100% record count; 99.5% field accuracy</td>
+          <td><span class="badge badge-pending">Planned</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">19</div>
+      <div class="section-title-block">
+        <div class="section-title">Acceptance Criteria</div>
+        <div class="section-subtitle">Formal acceptance criteria per deliverable — must be met for programme sign-off</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>ID</th><th>Deliverable</th><th>Acceptance Criterion</th><th>Verified By</th><th>Status</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>AC-001</strong></td>
+          <td>Salesforce CRM Configuration</td>
+          <td>All 127 UAT scenarios pass with zero P1 defects outstanding</td>
+          <td>QA Lead + Business SMEs</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>AC-002</strong></td>
+          <td>Data Migration</td>
+          <td>≥99.5% record count accuracy; ≥99.0% field-level accuracy; zero critical data losses</td>
+          <td>Client DBA + QA Lead</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>AC-003</strong></td>
+          <td>MuleSoft API Layer</td>
+          <td>All 47 API endpoints return correct responses per OpenAPI spec; <200ms p95 latency under 500 RPS</td>
+          <td>Solution Architect</td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>AC-004</strong></td>
+          <td>Analytics Hub</td>
+          <td>All 12 dashboards load in <3 seconds; data refreshes within 5-minute SLA; WCAG 2.1 AA compliant</td>
+          <td>QA Lead + TechNova Analytics Team</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>AC-005</strong></td>
+          <td>SSO & Access Management</td>
+          <td>All 1,680 users able to authenticate within 3 seconds; MFA enforced for all admin roles</td>
+          <td>TechNova IT Security</td>
+          <td><span class="badge badge-progress">In Progress</span></td>
+        </tr>
+        <tr>
+          <td><strong>AC-006</strong></td>
+          <td>Training & Readiness</td>
+          <td>≥80% of users score ≥75% on post-training assessment; all super-user champions certified</td>
+          <td>Change Manager</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>AC-007</strong></td>
+          <td>Legacy Decommission</td>
+          <td>14 legacy systems formally decommissioned; no active data writes to legacy after Go-Live+7</td>
+          <td>TechNova CIO</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><strong>AC-008</strong></td>
+          <td>Overall Programme</td>
+          <td>Budget variance ≤10%; schedule variance ≤15 days; formal acceptance signed by Exec Sponsor</td>
+          <td>Executive Sponsor</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 19.1 — Acceptance Criteria Register · 2 of 8 criteria in progress or complete</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">20</div>
+      <div class="section-title-block">
+        <div class="section-title">Communication Plan</div>
+        <div class="section-subtitle">Stakeholder communication frequency, format, and channel matrix</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>Audience</th><th>Format</th><th>Frequency</th><th>Owner</th><th>Channel</th><th>Distribution</th></tr></thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>Executive Steering Committee</strong></td>
+          <td>Steering Pack (PPT + PDF)</td>
+          <td>Bi-monthly</td>
+          <td>PM</td>
+          <td>In-person / Video</td>
+          <td style="font-size:7.5pt">Dr. Ramasamy, Brendan Mwangi, TechNova Board Rep</td>
+        </tr>
+        <tr>
+          <td><strong>Programme Core Team</strong></td>
+          <td>Weekly Status Report (PDF)</td>
+          <td>Weekly (Friday)</td>
+          <td>PM</td>
+          <td>Email + Confluence</td>
+          <td style="font-size:7.5pt">Full core team + PMO</td>
+        </tr>
+        <tr>
+          <td><strong>Sprint Team</strong></td>
+          <td>Daily Stand-up (15 min)</td>
+          <td>Daily</td>
+          <td>Delivery Lead</td>
+          <td>MS Teams</td>
+          <td style="font-size:7.5pt">All squad leads</td>
+        </tr>
+        <tr>
+          <td><strong>Business Stakeholders</strong></td>
+          <td>Sprint Review Demo</td>
+          <td>Bi-weekly</td>
+          <td>Delivery Lead</td>
+          <td>Video + Jira</td>
+          <td style="font-size:7.5pt">Business SMEs, Sales Ops, Service Ops</td>
+        </tr>
+        <tr>
+          <td><strong>End Users</strong></td>
+          <td>Change Newsletter</td>
+          <td>Monthly</td>
+          <td>Change Manager</td>
+          <td>Email + Intranet</td>
+          <td style="font-size:7.5pt">All 1,200 TechNova staff affected</td>
+        </tr>
+        <tr>
+          <td><strong>External Vendors</strong></td>
+          <td>Technical Workgroup Call</td>
+          <td>Weekly</td>
+          <td>Solution Architect</td>
+          <td>MS Teams</td>
+          <td style="font-size:7.5pt">IntelliConnect PM, Salesforce CSM, MuleSoft CSM</td>
+        </tr>
+        <tr>
+          <td><strong>Compliance / Audit</strong></td>
+          <td>Compliance Gate Report</td>
+          <td>Monthly</td>
+          <td>PM + Change Mgr</td>
+          <td>Formal email + SharePoint</td>
+          <td style="font-size:7.5pt">James Kowalski (Compliance), External Auditor</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="table-caption">Table 20.1 — Communication Plan · Governed by Change Manager (Marcus Delacroix)</p>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">21</div>
+      <div class="section-title-block">
+        <div class="section-title">Handover Notes</div>
+        <div class="section-subtitle">Knowledge transfer, operational readiness, and open items</div>
+      </div>
+    </div>
+    <h2>Knowledge Transfer Activities</h2>
+    <ul><li>12 Confluence spaces established with full runbooks, SOPs, and operational guides</li><li>4-week embedded handover period with TechNova IT team starting 2026-09-29</li><li>Shadow sessions completed: Salesforce Admin (x3), MuleSoft Ops (x2), Analytics (x2)</li><li>All custom code repositories transferred to TechNova GitHub Enterprise organisation</li><li>Salesforce admin credentials transferred via approved secrets management process</li></ul>
+    <h2>Operational Readiness</h2>
+    <ul><li>TechNova Salesforce Admin team (3 FTE) trained and certified (ADM 201)</li><li>MuleSoft operations runbook approved by TechNova IT Lead</li><li>Datadog monitoring dashboards and PagerDuty alerting configured for TechNova on-call</li><li>L1/L2 support desk scripts and escalation paths documented in Service Cloud Knowledge Base</li><li>Monthly performance review cadence established (first: 2026-10-28)</li></ul>
+    <h2>Open Items at Handover</h2>
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-text">
+        <ul style="margin:0;padding-left:16px">
+          <li>CPQ module scope decision pending Change Board (CR-2026-014) — 2026-04-29</li><li>Power BI Embedded licence renewal due 2026-09-30 — TechNova procurement to action</li><li>WCAG 2.1 AA remediation on Analytics Hub charts — estimated 3 dev-days</li><li>Salesforce Summer '26 upgrade compatibility review required by 2026-07-15</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">22</div>
+      <div class="section-title-block">
+        <div class="section-title">Approval Sign-off</div>
+        <div class="section-subtitle">Formal programme acceptance — signature required from all designated authorities</div>
+      </div>
+    </div>
+    <div class="callout callout-info">
+      <div class="callout-icon">📋</div>
+      <div class="callout-text">This document requires wet or digital signature from all approvers listed below before the programme can proceed to Go-Live. All signatures must be obtained no later than <strong>15 May 2026</strong>.</div>
+    </div>
+    
+    <div class="approval-box avoid-break">
+      <div class="approval-header">Executive Sponsor — TechNova Corporation</div>
+      <div class="approval-body">
+        <div>
+          <div class="approval-field-label">Full Name</div>
+          <div style="font-size:9pt;font-weight:600;padding-top:6px">Dr. Priya Ramasamy</div>
+        </div>
+        <div>
+          <div class="approval-field-label">Signature</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Date Signed</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Status</div>
+          <div style="padding-top:6px"><span class="badge badge-pending">Pending</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="approval-box avoid-break">
+      <div class="approval-header">Chief Information Officer — TechNova Corporation</div>
+      <div class="approval-body">
+        <div>
+          <div class="approval-field-label">Full Name</div>
+          <div style="font-size:9pt;font-weight:600;padding-top:6px">Brendan Mwangi</div>
+        </div>
+        <div>
+          <div class="approval-field-label">Signature</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Date Signed</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Status</div>
+          <div style="padding-top:6px"><span class="badge badge-pending">Pending</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="approval-box avoid-break">
+      <div class="approval-header">Programme Manager — Meridian Advisory Group</div>
+      <div class="approval-body">
+        <div>
+          <div class="approval-field-label">Full Name</div>
+          <div style="font-size:9pt;font-weight:600;padding-top:6px">Nathaniel Ashford</div>
+        </div>
+        <div>
+          <div class="approval-field-label">Signature</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Date Signed</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Status</div>
+          <div style="padding-top:6px"><span class="badge badge-pending">Pending</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="approval-box avoid-break">
+      <div class="approval-header">Engagement Partner — Meridian Advisory Group</div>
+      <div class="approval-body">
+        <div>
+          <div class="approval-field-label">Full Name</div>
+          <div style="font-size:9pt;font-weight:600;padding-top:6px">Victoria Osei-Mensah</div>
+        </div>
+        <div>
+          <div class="approval-field-label">Signature</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Date Signed</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Status</div>
+          <div style="padding-top:6px"><span class="badge badge-pending">Pending</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="approval-box avoid-break">
+      <div class="approval-header">Compliance Officer — TechNova Corporation</div>
+      <div class="approval-body">
+        <div>
+          <div class="approval-field-label">Full Name</div>
+          <div style="font-size:9pt;font-weight:600;padding-top:6px">James Kowalski</div>
+        </div>
+        <div>
+          <div class="approval-field-label">Signature</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Date Signed</div>
+          <div class="approval-field-line"></div>
+        </div>
+        <div>
+          <div class="approval-field-label">Status</div>
+          <div style="padding-top:6px"><span class="badge badge-pending">Pending</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+    
+  <div class="page-break section">
+    <div class="section-header">
+      <div class="section-number">A</div>
+      <div class="section-title-block">
+        <div class="section-title">Appendix A — Glossary</div>
+        <div class="section-subtitle">Definitions of key terms and acronyms used throughout this document</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+      <tbody>
+        <tr><td><strong>API</strong></td><td>Application Programming Interface — a set of protocols enabling software communication</td></tr><tr><td><strong>CRM</strong></td><td>Customer Relationship Management — software managing company interactions with customers</td></tr><tr><td><strong>DPIA</strong></td><td>Data Protection Impact Assessment — GDPR-mandated analysis of privacy risks</td></tr><tr><td><strong>RAID</strong></td><td>Risks, Assumptions, Issues, Dependencies — standard programme management log</td></tr><tr><td><strong>RACI</strong></td><td>Responsible, Accountable, Consulted, Informed — responsibility assignment matrix</td></tr><tr><td><strong>SOX</strong></td><td>Sarbanes-Oxley Act — US federal law governing financial data controls</td></tr><tr><td><strong>SOP</strong></td><td>Standard Operating Procedure — documented step-by-step process instruction</td></tr><tr><td><strong>SSO</strong></td><td>Single Sign-On — authentication allowing one login to access multiple systems</td></tr><tr><td><strong>T&M</strong></td><td>Time & Materials — billing model where client pays for actual hours and costs</td></tr><tr><td><strong>UAT</strong></td><td>User Acceptance Testing — end-user validation of system against business requirements</td></tr><tr><td><strong>WCAG</strong></td><td>Web Content Accessibility Guidelines — international accessibility standard</td></tr>
+      </tbody>
+    </table>
+    <div class="page-break">
+    <div class="section-header">
+      <div class="section-number">B</div>
+      <div class="section-title-block">
+        <div class="section-title">Appendix B — References</div>
+        <div class="section-subtitle">Source documents and references cited in this job card</div>
+      </div>
+    </div>
+    <table class="avoid-break">
+      <thead><tr><th>Reference</th><th>Description</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SOW-2026-0047</strong></td><td>Statement of Work — Phoenix CRM Modernisation</td><td>05 January 2026</td></tr><tr><td><strong>PHX-SDD-v2.1</strong></td><td>Solution Design Document v2.1</td><td>27 February 2026</td></tr><tr><td><strong>PHX-TS-v1.3</strong></td><td>Test Strategy Document v1.3</td><td>15 March 2026</td></tr><tr><td><strong>PHX-DM-PLAN-v1.0</strong></td><td>Data Migration Plan v1.0</td><td>28 March 2026</td></tr><tr><td><strong>PHX-DPIA-2026</strong></td><td>GDPR Data Protection Impact Assessment</td><td>10 February 2026</td></tr><tr><td><strong>PHX-SEC-RPT-001</strong></td><td>Penetration Test Interim Report</td><td>10 April 2026</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+    
+  <div class="doc-footer">
+    <span>MAG-JC-2026-0047 · v3.1 · CONFIDENTIAL</span>
+    <span>Meridian Advisory Group · TechNova Corporation</span>
+    <span>Generated 27 April 2026</span>
+  </div>
+  </div>
+</body>
+</html>
