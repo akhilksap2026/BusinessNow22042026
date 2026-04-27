@@ -235,6 +235,37 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ROWS_QK }),
   });
 
+  // Pull every project the user is currently allocated to and create a row
+  // for each one (skipping projects that already have a row). Lets the user
+  // start a week with one click instead of adding rows one at a time.
+  const importAllocationsMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/timesheets/import-allocations", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ userId, weekStart: weekStartStr }),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.error ?? `Import failed (${r.status})`);
+      }
+      return r.json() as Promise<{ imported: number; skipped: number }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ROWS_QK });
+      if (data.imported === 0 && data.skipped === 0) {
+        toast({ title: "No allocations for this week", description: "Ask your project manager if this seems wrong." });
+      } else if (data.imported === 0) {
+        toast({ title: "Already up to date", description: `All ${data.skipped} allocated project${data.skipped === 1 ? "" : "s"} already on your sheet.` });
+      } else {
+        toast({ title: `Added ${data.imported} project row${data.imported === 1 ? "" : "s"}`, description: data.skipped > 0 ? `${data.skipped} were already present.` : undefined });
+      }
+    },
+    onError: (e: any) => {
+      toast({ title: "Import failed", description: e.message ?? String(e), variant: "destructive" });
+    },
+  });
+
   const addRowMutation = useMutation({
     mutationFn: async (data: any) => {
       const r = await fetch("/api/timesheet-rows", { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(data) });
@@ -1235,6 +1266,16 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
             className="text-muted-foreground hover:text-foreground"
           >
             <Clock className="h-4 w-4 mr-1.5" /> Log Time
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => importAllocationsMutation.mutate()}
+            disabled={isLocked || importAllocationsMutation.isPending}
+            className="text-muted-foreground hover:text-foreground"
+            title="Add a row for every project you're allocated to this week"
+          >
+            <Plus className="h-4 w-4 mr-1.5" /> Import from Allocations
           </Button>
           {isLocked && timesheet?.status === "Submitted" && (
             <span className="ml-2 text-xs text-amber-600 font-medium">⏳ Awaiting approval — withdraw to make changes</span>

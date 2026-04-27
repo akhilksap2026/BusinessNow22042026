@@ -1,5 +1,5 @@
 import { authHeaders } from "@/lib/auth-headers";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
@@ -10,7 +10,7 @@ import {
   useGetCapacityOverview, useListUsers, useListProjects, useListResourceRequests, useUpdateResourceRequestStatus, getListResourceRequestsQueryKey,
   useGetUserSkills, useListSkills, useListAllocations,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -137,10 +137,41 @@ export default function Resources() {
   const [allUserSkills, setAllUserSkills] = useState<any[]>([]);
   const [showLowMatchMap, setShowLowMatchMap] = useState<Record<number, boolean>>({});
 
-  // Bulk-load all user skills once on mount for skill match scoring
-  useState(() => {
-    fetch("/api/user-skills").then(r => r.json()).then(setAllUserSkills).catch(() => {});
+  const fulfillRequest = fulfillRequestId
+    ? ((requests ?? []) as any[]).find((r: any) => r.id === fulfillRequestId)
+    : null;
+  const suggestQuery = useQuery<any[]>({
+    queryKey: ["resource-suggest", fulfillRequestId, fulfillRequest?.startDate, fulfillRequest?.endDate, fulfillRequest?.hoursPerWeek],
+    enabled: !!(assignDialogOpen && fulfillRequest),
+    queryFn: async () => {
+      const res = await fetch("/api/resources/suggest", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          projectId: fulfillRequest!.projectId,
+          startDate: fulfillRequest!.startDate,
+          endDate: fulfillRequest!.endDate,
+          hoursPerWeek: Number(fulfillRequest!.hoursPerWeek),
+          requiredSkills: fulfillRequest!.requiredSkills ?? [],
+          requiredSkillsWithLevel: fulfillRequest!.requiredSkillsWithLevel ?? [],
+          limit: 3,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to fetch suggestions");
+      return res.json();
+    },
+    staleTime: 30_000,
   });
+
+  // Bulk-load all user skills once on mount for skill match scoring
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/user-skills", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setAllUserSkills(d); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   function scoreCandidate(userId: number, req: any): { score: number; matched: number; total: number; details: { skillName: string; required: string; userLevel: string | null; meets: boolean }[] } {
     const skillsWithLevel: { skillId: number; skillName: string; competencyLevel: string }[] = req.requiredSkillsWithLevel ?? [];
@@ -829,6 +860,61 @@ export default function Resources() {
             <DialogDescription>Select a team member to assign. An allocation record will be automatically created on approval.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {fulfillRequest && (
+              <div className="rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/30 dark:to-transparent p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                    <CheckCircle className="h-3.5 w-3.5" /> AI Suggestions
+                  </p>
+                  <span className="text-[10px] text-muted-foreground">Top picks based on skills & capacity</span>
+                </div>
+                {suggestQuery.isLoading && (
+                  <p className="text-xs text-muted-foreground">Analyzing candidates…</p>
+                )}
+                {suggestQuery.isError && (
+                  <p className="text-xs text-red-600">Could not load AI suggestions.</p>
+                )}
+                {suggestQuery.data && suggestQuery.data.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No suitable candidates found.</p>
+                )}
+                {suggestQuery.data && suggestQuery.data.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {suggestQuery.data.map((s: any, i: number) => {
+                      const isSelected = assignUserId === String(s.userId);
+                      const isTop = i === 0;
+                      return (
+                        <button
+                          key={s.userId}
+                          onClick={() => setAssignUserId(String(s.userId))}
+                          className={`text-left rounded-md border p-2 transition-colors ${isSelected ? "border-indigo-500 bg-indigo-100/60 dark:bg-indigo-900/30" : "border-slate-200 bg-white dark:bg-slate-900 hover:border-indigo-300"}`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Avatar className="h-6 w-6 shrink-0"><AvatarFallback className="text-[9px]">{s.userInitials}</AvatarFallback></Avatar>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold truncate">{s.userName}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{s.role}</p>
+                            </div>
+                            {isTop && <Badge className="text-[9px] px-1 py-0 bg-indigo-600 hover:bg-indigo-600">Top</Badge>}
+                          </div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300">{s.compositeScore}</span>
+                            <span className="text-[9px] text-muted-foreground">match</span>
+                            {s.skillsRequired > 0 && (
+                              <span className="text-[9px] text-muted-foreground ml-auto">{s.skillsMatched}/{s.skillsRequired} skills</span>
+                            )}
+                          </div>
+                          <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc list-inside">
+                            {s.reasons.slice(0, 2).map((r: string, idx: number) => (
+                              <li key={idx} className="truncate">{r}</li>
+                            ))}
+                          </ul>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
             {(() => {
               const req = fulfillRequestId ? allRequests.find((r: any) => r.id === fulfillRequestId) : null;
               if (!req || !users) return null;

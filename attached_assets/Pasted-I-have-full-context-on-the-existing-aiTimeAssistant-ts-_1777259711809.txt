@@ -1,0 +1,52 @@
+I have full context on the existing aiTimeAssistant.ts route, the TimeLogAssistant component, and the getBlockingPriorWeek logic. Here is the concise Replit-ready prompt:
+
+Replit Prompt: Log Time Assistant — Pending Timesheet Gate
+File to modify: artifacts/api-server/src/routes/aiTimeAssistant.ts + packages/essnow/src/components/time-log-assistant.tsx
+
+What to build:
+When the TimeLogAssistant modal opens, before rendering any step (MODE, DAY_SELECT, etc.), run a pending timesheet audit for the current user and enforce a sequential resolution gate.
+
+Backend — add to aiTimeAssistant.ts:
+Add a new endpoint GET /api/ai/pending-timesheet-audit?userId=<id> that:
+
+Fetches all timesheets for the user from timesheetsTable.
+Filters to weeks where status is Draft, Submitted, or Rejected AND totalHours > 0 AND weekStart is before the current week.
+Returns them sorted oldest-first as:
+
+json{
+  "hasPendingBlockers": true,
+  "blockers": [
+    {
+      "weekStart": "2026-04-07",
+      "weekEnd": "2026-04-11",
+      "status": "Draft",
+      "totalHours": 22,
+      "rejectionNote": null
+    }
+  ]
+}
+Submitted weeks are informational only (not a hard blocker). Draft and Rejected are hard blockers.
+
+Frontend — modify TimeLogAssistant:
+Add a new step PENDING_AUDIT = -1 that runs before MODE.
+On modal open:
+
+Call the new audit endpoint.
+If hasPendingBlockers is false → proceed to MODE step as normal.
+If blockers exist → render a summary screen (before any other step) showing:
+
+⚠️ You have unresolved timesheets. Please resolve these before logging new time.
+
+Week          Status       Hours    Action
+07–11 Apr     ❌ Draft      22h     Complete & submit
+14–18 Apr     ⚠️ Rejected   38h     Review note & resubmit  
+21–25 Apr     🕐 Submitted  40h     Awaiting approval
+
+Show a "Resolve [week]" button for each Draft/Rejected week that navigates the user directly to that week's timesheet grid (use existing weekStart navigation).
+Block the "Log Time" button (which leads to MODE step) with tooltip: "Resolve your earlier timesheets first." — only re-enable once all Draft/Rejected blockers are gone.
+For Submitted weeks, display an informational row only — no block, no action button.
+Add a "Refresh" button that re-calls the audit endpoint so the user can re-check after submitting a week.
+
+Gate rule: If the user navigates directly to a date after a blocker week (via DAY_SELECT or natural language), check getBlockingPriorWeek() — already implemented in timesheet-grid.tsx — and surface the same block message conversationally: "I can't log time for [date] yet. Your timesheet for [week] is [Draft/Rejected] — let's fix that first."
+Persistence: Store the audit result in component state (not localStorage). Re-run the audit every time the modal opens fresh.
+Tone: All messaging must be constructive, not accusatory. Use: "Let's get you caught up", "This keeps your records accurate". Never: "You haven't submitted."

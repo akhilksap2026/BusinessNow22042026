@@ -4,6 +4,15 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+### Recent: April 27, 2026 — 6-item spec rollout
+
+1. **Mockup-sandbox removed** — `artifacts/mockup-sandbox` artifact removed from project; docs updated.
+2. **Bulk task updates** — `PATCH /api/tasks/bulk` accepts `{ ids[], updates }`; `project-phases.tsx` adds row-selection state, header "select all visible" checkbox, and a sticky bulk action bar (Status / Priority / Assignee / Unassign / Clear).
+3. **Timesheet "Import from Allocations"** — `POST /api/timesheets/import-allocations` finds allocations overlapping the week start/end and inserts one zero-hours line per project (dedupes against rows already in the timesheet). Hooked up in `timesheet-grid.tsx` footer.
+4. **Onboarding checklist** — `users.onboardingDismissed` boolean column + `PATCH /api/users/:id/onboarding-dismissed` (self-only). New `<OnboardingChecklist />` (admin-only) renders 4 step cards driven by real data (users>1, projects>0, allocations>0, ≥1 submitted timesheet) with deep links and a "Dismiss" button. Mounted in `dashboard.tsx`.
+5. **Document templates** — New `documentTemplatesTable` (id/name/description/documentType/content/createdByUserId/timestamps). `GET/POST/PATCH/DELETE /api/document-templates` (admin-only writes). `admin.tsx` gets a new **Document Templates** tab with `<DocumentTemplatesPanel />` (table + create/edit dialog + delete confirm). `project-documents.tsx` gets a **From Template** button that opens a picker dialog and applies the template (prefills name/type/content).
+6. **AI resource suggestions** — `POST /api/resources/suggest` returns ranked candidates with `compositeScore` (0.7×skill + 0.3×capacity, with overallocation/time-off penalties), `skillScore`, `capacityScore`, `reasons[]`, plus skill match details and forecasted utilization. `resources.tsx` Assign & Allocate dialog now shows a 3-card "AI Suggestions" panel (top match badged "Top"); clicking a card sets the assignee.
+
 ### Recent: Unified Collapsible Task Hierarchy (Apr 2026)
 - New shared module `artifacts/businessnow/src/components/task-tree.tsx`:
   - `<TreeToggle />` — accessible 24×24 expand/collapse control (ChevronRight/Down, Enter/Space, `aria-expanded`, spacer for leaves so columns align).
@@ -74,7 +83,7 @@ A full-stack Professional Services Automation (PSA) platform for KSAP Technology
 - **Files changed:** `artifacts/api-server/src/routes/timeEntries.ts`, `timesheets.ts`, `aiTimeAssistant.ts`; `artifacts/businessnow/src/components/timesheet-grid.tsx`, `time-log-assistant.tsx`.
 
 ### E2E pass (April 26 2026)
-- Verified all 5 workflows healthy (API Server, businessnow web, mockup-sandbox; the duplicate `artifacts/api-server: API Server` workflow fails on EADDRINUSE port 8080 — unavoidable: same server binds the port from the canonical workflow).
+- Verified workflows healthy (API Server, businessnow web; the duplicate `artifacts/api-server: API Server` workflow fails on EADDRINUSE port 8080 — unavoidable: same server binds the port from the canonical workflow). Mockup-sandbox artifact removed Apr 27 2026.
 - DB schema in sync: 65 tables present including `project_groups`, `task_status_definitions`; columns `accounts.is_internal` and `projects.project_group_id` confirmed.
 - Smoke-tested 33 GET endpoints with valid auth headers — all 200/expected. Validated POST `/api/projects` with `internalExternal:"Internal"` round-trips through DB and response correctly.
 - Fixed TS errors I introduced in the prior bundles: `parseInt(req.params.id)` → `parseInt(String(...))` in `projectGroups.ts`; missing `isInternal` on `setForm/setEditForm` in `accounts.tsx`; explicit `TaskStatusDefinition[]` typing + `queryKey` on `useListTaskStatusDefinitions` in `lib/task-status.ts`; `(user as any).isInternal` cast in `admin.tsx` (User type doesn't carry the field — only Account does).

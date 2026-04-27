@@ -70,8 +70,7 @@ workspace/
 │   └── api-client-react/    @workspace/api-client-react  ← generated React Query hooks
 ├── artifacts/
 │   ├── api-server/          @workspace/api-server  ← Express 5 (40 route files)
-│   ├── businessnow/         @workspace/businessnow ← React + Vite SPA (16 page files / 13 logical modules)
-│   └── mockup-sandbox/      @workspace/mockup-sandbox  ← Component preview env
+│   └── businessnow/         @workspace/businessnow ← React + Vite SPA (16 page files / 13 logical modules)
 ├── docs/                    ← This documentation suite
 └── scripts/                 ← Operational scripts (db, codegen, deploy)
 ```

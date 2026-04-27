@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq, and, inArray } from "drizzle-orm";
-import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable, timesheetMessagesTable, notificationPreferencesTable, usersTable } from "@workspace/db";
+import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable, timesheetMessagesTable, notificationPreferencesTable, usersTable, allocationsTable } from "@workspace/db";
 import { getGovernanceSettings, checkTimesheetStatusChangeable, checkTimesheetEditable } from "../lib/governance";
 import { requirePM } from "../middleware/rbac";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import {
   ListTimesheetsQueryParams,
   ListTimesheetsResponse,
@@ -381,6 +382,62 @@ router.post("/timesheet-rows", async (req, res): Promise<void> => {
   if (categoryId) data.categoryId = Number(categoryId);
   const [row] = await db.insert(timesheetRowsTable).values(data).returning();
   res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
+});
+
+// Bulk-import timesheet rows for a user from their active resource
+// allocations. The intent is to remove the manual row-creation step at the
+// start of each week: the planner has already told us which projects this
+// person is on, so we surface them as ready-to-fill rows. We compute the
+// week window from `weekStart` (YYYY-MM-DD) and pick allocations whose
+// (startDate..endDate) range overlaps that week. We dedupe against rows the
+// user already has (same project + no taskId/activity), so calling the
+// endpoint multiple times in the same week is safe and idempotent.
+router.post("/timesheets/import-allocations", async (req: AuthenticatedRequest, res): Promise<void> => {
+  const actorId = req.authUserId ?? 0;
+  const actorRole = req.authRole;
+  const requestedUserId = req.body?.userId !== undefined ? Number(req.body.userId) : actorId;
+  const isElevated = actorRole === "account_admin" || actorRole === "super_user";
+  if (requestedUserId !== actorId && !isElevated) {
+    res.status(403).json({ error: "Cannot import allocations for another user" });
+    return;
+  }
+  const userId = requestedUserId;
+  const weekStart = String(req.body?.weekStart ?? "");
+  if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) { res.status(400).json({ error: "weekStart must be YYYY-MM-DD" }); return; }
+
+  // Compute end of the timesheet week (inclusive, 6 days after start).
+  const start = new Date(`${weekStart}T00:00:00Z`);
+  const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const weekEnd = end.toISOString().slice(0, 10);
+
+  // Fetch all allocations for this user; filter overlap in JS so that string
+  // date comparisons stay simple (allocations.startDate/endDate are text).
+  const myAllocations = await db.select().from(allocationsTable).where(eq(allocationsTable.userId, userId));
+  const overlapping = myAllocations.filter(a => a.startDate <= weekEnd && a.endDate >= weekStart);
+
+  // Deduplicate by projectId so each project shows up once.
+  const projectIds = Array.from(new Set(overlapping.map(a => a.projectId).filter((v): v is number => typeof v === "number")));
+  if (projectIds.length === 0) { res.json({ imported: 0, skipped: 0 }); return; }
+
+  // Find existing project rows for this user so we don't duplicate. We treat
+  // a row as a "project row" when it has a projectId and no taskId — that's
+  // the granularity the import creates.
+  const existing = await db.select().from(timesheetRowsTable).where(eq(timesheetRowsTable.userId, userId));
+  const alreadyHaveProjectIds = new Set(
+    existing
+      .filter(r => r.projectId != null && r.taskId == null && !r.isNonProject)
+      .map(r => r.projectId!)
+  );
+
+  const toInsert = projectIds
+    .filter(pid => !alreadyHaveProjectIds.has(pid))
+    .map(pid => ({ userId, projectId: pid, isNonProject: false, billable: true }));
+
+  if (toInsert.length > 0) {
+    await db.insert(timesheetRowsTable).values(toInsert);
+  }
+  res.json({ imported: toInsert.length, skipped: projectIds.length - toInsert.length });
 });
 
 router.delete("/timesheet-rows/:id", async (req, res): Promise<void> => {

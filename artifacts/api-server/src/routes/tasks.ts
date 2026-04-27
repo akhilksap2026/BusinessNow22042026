@@ -287,6 +287,102 @@ router.patch("/tasks/reorder", requirePM, async (req, res): Promise<void> => {
   res.json({ updated });
 });
 
+// Bulk update: apply the same field changes to many tasks atomically.
+// Body: { taskIds: number[], updates: { status?, priority?, assigneeIds?, phaseId? } }
+// Returns { updated: number }. requirePM gates the endpoint.
+router.patch("/tasks/bulk", requirePM, async (req, res): Promise<void> => {
+  const taskIds = req.body?.taskIds;
+  const updates = req.body?.updates ?? {};
+  if (!Array.isArray(taskIds) || taskIds.length === 0 || !taskIds.every((n) => typeof n === "number")) {
+    res.status(400).json({ error: "taskIds must be a non-empty array of numbers" });
+    return;
+  }
+  if (!updates || typeof updates !== "object") {
+    res.status(400).json({ error: "updates must be an object" });
+    return;
+  }
+
+  // Whitelist fields
+  const setClause: Partial<typeof tasksTable.$inferInsert> = {};
+  if (typeof updates.status === "string") setClause.status = updates.status;
+  if (typeof updates.priority === "string") {
+    if (!["Critical", "High", "Medium", "Low"].includes(updates.priority)) {
+      res.status(400).json({ error: "priority must be Critical|High|Medium|Low" });
+      return;
+    }
+    setClause.priority = updates.priority;
+  }
+  if (Array.isArray(updates.assigneeIds)) {
+    if (!updates.assigneeIds.every((n: unknown) => typeof n === "number")) {
+      res.status(400).json({ error: "assigneeIds must be an array of numbers" });
+      return;
+    }
+    setClause.assigneeIds = updates.assigneeIds;
+  }
+  if (updates.phaseId !== undefined) {
+    if (updates.phaseId !== null && typeof updates.phaseId !== "number") {
+      res.status(400).json({ error: "phaseId must be a number or null" });
+      return;
+    }
+    setClause.phaseId = updates.phaseId;
+  }
+  if (Object.keys(setClause).length === 0) {
+    res.status(400).json({ error: "no recognized fields in updates" });
+    return;
+  }
+
+  // Verify every task exists. requirePM already gates PM access at the role
+  // level; we additionally confirm the targets resolve to real rows so a stray
+  // id doesn't silently no-op.
+  const existing = await db.select({ id: tasksTable.id, projectId: tasksTable.projectId })
+    .from(tasksTable)
+    .where(inArray(tasksTable.id, taskIds));
+  if (existing.length !== taskIds.length) {
+    const foundIds = new Set(existing.map((t) => t.id));
+    const missing = taskIds.filter((id: number) => !foundIds.has(id));
+    res.status(400).json({ error: `Task(s) not found: ${missing.join(", ")}` });
+    return;
+  }
+
+  // If phaseId is being set, ensure it points to a real phase in the same
+  // project (or is null).
+  if (setClause.phaseId != null) {
+    const projectIdSet = new Set(existing.map((t) => t.projectId));
+    if (projectIdSet.size > 1) {
+      res.status(400).json({ error: "Cannot move tasks across multiple projects to a single phase" });
+      return;
+    }
+    const projectId = [...projectIdSet][0]!;
+    const [phase] = await db.select()
+      .from(tasksTable)
+      .where(and(eq(tasksTable.id, setClause.phaseId), eq(tasksTable.projectId, projectId), eq(tasksTable.isPhase, true)))
+      .limit(1);
+    if (!phase) {
+      res.status(400).json({ error: `Phase ${setClause.phaseId} not found in project ${projectId}` });
+      return;
+    }
+  }
+
+  setClause.updatedAt = new Date();
+
+  const updated = await db.transaction(async (tx) => {
+    const result = await tx.update(tasksTable)
+      .set(setClause)
+      .where(inArray(tasksTable.id, taskIds))
+      .returning({ id: tasksTable.id });
+    return result.length;
+  });
+
+  await logAudit({
+    entityType: "task",
+    entityId: 0,
+    action: "updated",
+    description: `Bulk update applied to ${updated} task(s): ${Object.keys(setClause).filter(k => k !== "updatedAt").join(", ")}`,
+  });
+
+  res.json({ updated });
+});
+
 router.get("/tasks/:id", async (req, res): Promise<void> => {
   const role = (req.headers["x-user-role"] as string) ?? "Viewer";
   const params = GetTaskParams.safeParse(req.params);

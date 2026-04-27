@@ -49,6 +49,12 @@ export const usersTable = pgTable("users", {
   activeStatus: text("active_status").notNull().default("active"),
   timesheetApproverUserId: integer("timesheet_approver_user_id"),
   holidayCalendarId: integer("holiday_calendar_id"),
+  /**
+   * Per-user dismissal flag for the workspace setup checklist shown on the
+   * dashboard. Once an admin has acknowledged the checklist (or finished
+   * setting up) they can dismiss it and we stop showing it for them.
+   */
+  onboardingDismissed: boolean("onboarding_dismissed").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

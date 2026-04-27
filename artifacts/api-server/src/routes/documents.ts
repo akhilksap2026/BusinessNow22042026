@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, documentsTable, documentVersionsTable } from "@workspace/db";
+import { db, documentsTable, documentVersionsTable, documentTemplatesTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 
 const router = Router();
@@ -110,6 +110,71 @@ router.delete("/documents/:id", async (req, res) => {
   }
   await db.delete(documentVersionsTable).where(eq(documentVersionsTable.documentId, id));
   await db.delete(documentsTable).where(eq(documentsTable.id, id));
+  return res.status(204).send();
+});
+
+// ── Document templates (admin-managed, project-agnostic) ─────────────────
+//
+// Templates let admins seed reusable document content (SOWs, kickoff docs,
+// status report skeletons, etc.). When a PM creates a project document
+// they can pick a template, and the new document is initialised with the
+// template's content + documentType.
+function mapTemplate(row: typeof documentTemplatesTable.$inferSelect) {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    documentType: row.documentType,
+    content: row.content,
+    createdByUserId: row.createdByUserId,
+    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+    updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt,
+  };
+}
+
+router.get("/document-templates", async (_req, res) => {
+  const rows = await db.select().from(documentTemplatesTable).orderBy(desc(documentTemplatesTable.updatedAt));
+  return res.json(rows.map(mapTemplate));
+});
+
+router.post("/document-templates", async (req, res) => {
+  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  // Admins manage the template library — everyone else is read-only.
+  if (role !== "Admin" && role !== "account_admin") return res.status(403).json({ error: "Admin access required" });
+  const { name, description, documentType, content, createdByUserId } = req.body ?? {};
+  if (!name) return res.status(400).json({ error: "name required" });
+  const [row] = await db.insert(documentTemplatesTable).values({
+    name: String(name),
+    description: description ?? null,
+    documentType: documentType || "rich_text",
+    content: content ?? "",
+    createdByUserId: createdByUserId ? Number(createdByUserId) : null,
+  }).returning();
+  return res.status(201).json(mapTemplate(row));
+});
+
+router.patch("/document-templates/:id", async (req, res) => {
+  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  if (role !== "Admin" && role !== "account_admin") return res.status(403).json({ error: "Admin access required" });
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ error: "Invalid id" });
+  const { name, description, documentType, content } = req.body ?? {};
+  const updates: Partial<typeof documentTemplatesTable.$inferInsert> = { updatedAt: new Date() };
+  if (name !== undefined) updates.name = String(name);
+  if (description !== undefined) updates.description = description;
+  if (documentType !== undefined) updates.documentType = String(documentType);
+  if (content !== undefined) updates.content = content;
+  const [row] = await db.update(documentTemplatesTable).set(updates).where(eq(documentTemplatesTable.id, id)).returning();
+  if (!row) return res.status(404).json({ error: "Not found" });
+  return res.json(mapTemplate(row));
+});
+
+router.delete("/document-templates/:id", async (req, res) => {
+  const role = (req.headers["x-user-role"] as string) ?? "Viewer";
+  if (role !== "Admin" && role !== "account_admin") return res.status(403).json({ error: "Admin access required" });
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ error: "Invalid id" });
+  await db.delete(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
   return res.status(204).send();
 });
 

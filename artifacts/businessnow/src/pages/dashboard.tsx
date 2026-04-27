@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { authHeaders } from "@/lib/auth-headers";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
 
 type Period = "week" | "month" | "quarter" | "ytd";
 
@@ -189,6 +190,8 @@ export default function Dashboard() {
             </div>
           }
         />
+
+        <OnboardingChecklist />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiTile

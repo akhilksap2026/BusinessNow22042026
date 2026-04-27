@@ -33,3 +33,24 @@ export const documentVersionsTable = pgTable("document_versions", {
 export const insertDocumentVersionSchema = createInsertSchema(documentVersionsTable).omit({ id: true, createdAt: true });
 export type InsertDocumentVersion = z.infer<typeof insertDocumentVersionSchema>;
 export type DocumentVersion = typeof documentVersionsTable.$inferSelect;
+
+/**
+ * Reusable document templates managed by admins. When a PM creates a new
+ * document on a project they can pick a template and we copy its
+ * `content` + `documentType` into the new document. Templates themselves
+ * are global (no projectId).
+ */
+export const documentTemplatesTable = pgTable("document_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  documentType: text("document_type").notNull().default("rich_text"),
+  content: text("content"),
+  createdByUserId: integer("created_by_user_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertDocumentTemplateSchema = createInsertSchema(documentTemplatesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
+export type DocumentTemplate = typeof documentTemplatesTable.$inferSelect;

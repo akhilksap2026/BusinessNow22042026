@@ -71,7 +71,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TemplateEditor } from "@/components/template-editor";
@@ -362,6 +362,206 @@ function TaskStatusesAdminPanel() {
           </TableBody>
         </Table>
       </CardContent>
+    </Card>
+  );
+}
+
+type DocTemplateRow = {
+  id: number;
+  name: string;
+  description: string | null;
+  documentType: string;
+  content: string | null;
+  updatedAt: string;
+};
+
+/**
+ * Admin panel for managing reusable document templates.
+ * Lists templates, supports create / edit / delete via /api/document-templates.
+ */
+function DocumentTemplatesPanel() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: templates, isLoading } = useQuery<DocTemplateRow[]>({
+    queryKey: ["document-templates"],
+    queryFn: async () => {
+      const r = await fetch("/api/document-templates", { headers: authHeaders() });
+      if (!r.ok) throw new Error("Failed to load");
+      return r.json();
+    },
+  });
+
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<DocTemplateRow | null>(null);
+  const [form, setForm] = useState({ name: "", description: "", documentType: "rich_text", content: "" });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  function openCreate() {
+    setEditing(null);
+    setForm({ name: "", description: "", documentType: "rich_text", content: "" });
+    setEditorOpen(true);
+  }
+  function openEdit(t: DocTemplateRow) {
+    setEditing(t);
+    setForm({ name: t.name, description: t.description ?? "", documentType: t.documentType, content: t.content ?? "" });
+    setEditorOpen(true);
+  }
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const url = editing ? `/api/document-templates/${editing.id}` : "/api/document-templates";
+      const method = editing ? "PATCH" : "POST";
+      const r = await fetch(url, {
+        method,
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(form),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.error ?? `Save failed (${r.status})`);
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["document-templates"] });
+      toast({ title: editing ? "Template updated" : "Template created" });
+      setEditorOpen(false);
+    },
+    onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const r = await fetch(`/api/document-templates/${id}`, { method: "DELETE", headers: authHeaders() });
+      if (!r.ok) throw new Error(`Delete failed (${r.status})`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["document-templates"] });
+      toast({ title: "Template deleted" });
+      setConfirmDeleteId(null);
+    },
+    onError: (e: any) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> Document Templates</CardTitle>
+          <CardDescription>Reusable document content that PMs can pick from when creating a project document.</CardDescription>
+        </div>
+        <Button size="sm" onClick={openCreate} data-testid="button-new-document-template">
+          <Plus className="h-4 w-4 mr-2" /> New Template
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}</div>
+        ) : !templates?.length ? (
+          <div className="flex flex-col items-center py-12 text-muted-foreground gap-2">
+            <FileText className="h-10 w-10 opacity-30" />
+            <p className="text-sm">No document templates yet.</p>
+            <p className="text-xs">Create one and your team can use it on any project.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="w-32 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {templates.map(t => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-medium">{t.name}</TableCell>
+                  <TableCell><Badge variant="outline">{t.documentType}</Badge></TableCell>
+                  <TableCell className="text-sm text-muted-foreground max-w-xl truncate">{t.description ?? "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(t)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setConfirmDeleteId(t.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Template" : "New Template"}</DialogTitle>
+            <DialogDescription>{editing ? "Update the reusable template." : "Create a reusable document template."}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Template Name *</Label>
+              <Input
+                placeholder="e.g. Project Charter"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input
+                placeholder="What is this template for?"
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Document Type</Label>
+              <Select value={form.documentType} onValueChange={v => setForm(f => ({ ...f, documentType: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rich_text">Rich Text</SelectItem>
+                  <SelectItem value="spreadsheet">Spreadsheet</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="link">Link</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Default Content</Label>
+              <Textarea
+                rows={10}
+                placeholder="Default text/markdown that will be inserted when this template is used."
+                value={form.content}
+                onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditorOpen(false)}>Cancel</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>
+              {editing ? "Save Changes" : "Create Template"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmDeleteId} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete template?</DialogTitle>
+            <DialogDescription>This will not affect documents previously created from it.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => confirmDeleteId && deleteMutation.mutate(confirmDeleteId)} disabled={deleteMutation.isPending}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -1186,6 +1386,9 @@ export default function Admin() {
               <TabsTrigger value="templates" className="flex items-center gap-2">
                 <LayoutTemplate className="h-4 w-4" /> Project Templates
               </TabsTrigger>
+              <TabsTrigger value="documenttemplates" className="flex items-center gap-2" data-testid="tab-document-templates">
+                <FileText className="h-4 w-4" /> Document Templates
+              </TabsTrigger>
               <TabsTrigger value="skills" className="flex items-center gap-2">
                 <Cpu className="h-4 w-4" /> Skills Matrix
               </TabsTrigger>
@@ -1430,6 +1633,10 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="documenttemplates" className="m-0">
+            <DocumentTemplatesPanel />
           </TabsContent>
 
           <TabsContent value="skills" className="m-0 space-y-4">

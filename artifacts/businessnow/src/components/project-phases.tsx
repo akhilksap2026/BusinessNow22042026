@@ -209,6 +209,8 @@ interface SortableTaskRowProps {
   hourCols: { planned: boolean; estimate: boolean; actual: boolean; etc: boolean; eac: boolean };
   users: any[] | undefined;
   hoursByTaskId: Map<number, number>;
+  isSelected: boolean;
+  onToggleSelect: (id: number) => void;
   onToggleExpand: (id: number) => void;
   onOpenDetail: (id: number) => void;
   onCycleStatus: (task: any) => void;
@@ -221,7 +223,8 @@ function SortableTaskRow(props: SortableTaskRowProps) {
   const {
     node, isExpanded, hasChildren, totalEffort, ownLogged, totalLogged,
     totalPlanned, totalEstimate, totalActual, totalEtc, totalEac, hourCols,
-    users, onToggleExpand, onOpenDetail, onCycleStatus, onAddSubtask, onMoveTo, onDelete,
+    users, isSelected, onToggleSelect, onToggleExpand, onOpenDetail, onCycleStatus,
+    onAddSubtask, onMoveTo, onDelete,
   } = props;
   // Reference unused legacy props to satisfy noUnusedLocals; values are
   // surfaced through the new hour-column cells via the *Planned/Logged rollups.
@@ -258,6 +261,15 @@ function SortableTaskRow(props: SortableTaskRowProps) {
       >
         <GripVertical className="h-4 w-4" />
       </button>
+
+      {/* Bulk-select checkbox */}
+      <div className="w-5 shrink-0 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelect(task.id)}
+          aria-label={`Select ${task.name}`}
+        />
+      </div>
 
       {/* Expand / collapse toggle (shared component for cross-surface consistency) */}
       <div className="w-6 shrink-0 flex items-center justify-center">
@@ -448,6 +460,45 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const [taskDetailId, setTaskDetailId] = useState<number | null>(null);
   const [taskDetailOpen, setTaskDetailOpen] = useState(false);
 
+  // ── Bulk selection state ──────────────────────────────────────────────────
+  // Set of task ids the user has checked via the row checkboxes. When non-empty
+  // a contextual action bar appears so the PM can apply status/priority/
+  // assignee changes to many tasks at once via PATCH /api/tasks/bulk.
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  // Apply a bulk update via PATCH /api/tasks/bulk and refresh.
+  async function applyBulk(updates: { status?: string; priority?: string; assigneeIds?: number[]; phaseId?: number | null }) {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    try {
+      const res = await fetch("/api/tasks/bulk", {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ taskIds: ids, updates }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Bulk update failed (${res.status})`);
+      }
+      const data = await res.json();
+      await queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      const fieldName = Object.keys(updates)[0] ?? "field";
+      toast({ title: `${data.updated} ${data.updated === 1 ? "task" : "tasks"} updated`, description: `${fieldName} applied.` });
+      clearSelection();
+    } catch (e: any) {
+      toast({ title: "Bulk update failed", description: e.message ?? String(e), variant: "destructive" });
+    }
+  }
+
   // Reorder state
   const [pendingChanges, setPendingChanges] = useState<PendingMap>(new Map());
   const [changeHistory, setChangeHistory] = useState<PendingMap[]>([]);
@@ -488,6 +539,26 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
   const allIds = useMemo(() => allNodeIds(tree), [tree]);
   const visibleNodes = useMemo(() => flattenVisible(tree, expandedIds), [tree, expandedIds]);
   const visibleIds = useMemo(() => visibleNodes.map((n) => n.task.id), [visibleNodes]);
+
+  // ── Bulk selection helpers (depend on visibleNodes) ───────────────────────
+  // Status options for the bulk action bar — pulled from the dynamic task
+  // status definitions when available, with a sensible static fallback.
+  const bulkStatusOptions = useMemo(() => {
+    if (taskStatusDefs && taskStatusDefs.length > 0) return taskStatusDefs.map((s) => s.label);
+    return ["Not Started", "Started", "On Hold", "Completed"];
+  }, [taskStatusDefs]);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        for (const id of visibleIds) next.delete(id);
+      } else {
+        for (const id of visibleIds) next.add(id);
+      }
+      return next;
+    });
+  };
   const allExpanded = allIds.length > 0 && allIds.every((id) => expandedIds.has(id));
 
   // Initial expand: open all Phase nodes (top-level isPhase tasks) once tasks
@@ -979,12 +1050,63 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
         </div>
       </div>
 
+      {/* Bulk action bar — only when at least one row is selected */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-indigo-300 bg-indigo-50/70 dark:bg-indigo-950/30">
+          <span className="text-sm font-medium text-indigo-900 dark:text-indigo-200">
+            {selectedIds.size} {selectedIds.size === 1 ? "task" : "tasks"} selected
+          </span>
+          <div className="flex-1" />
+          {/* Status */}
+          <Select onValueChange={(value) => applyBulk({ status: value })}>
+            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="Status…" /></SelectTrigger>
+            <SelectContent>
+              {bulkStatusOptions.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Priority */}
+          <Select onValueChange={(value) => applyBulk({ priority: value })}>
+            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="Priority…" /></SelectTrigger>
+            <SelectContent>
+              {["Critical", "High", "Medium", "Low"].map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Assignee — sets to a single user (replaces existing) */}
+          <Select onValueChange={(value) => applyBulk({ assigneeIds: [Number(value)] })}>
+            <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Assign to…" /></SelectTrigger>
+            <SelectContent>
+              {(users ?? []).map((u: any) => (
+                <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => applyBulk({ assigneeIds: [] })}>
+            Unassign
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearSelection}>
+            <X className="h-3.5 w-3.5" />
+            Clear selection
+          </Button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="border rounded-md overflow-hidden">
         {/* Column headers */}
         <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
           <div className="w-5 shrink-0" />
-          <div className="w-5 shrink-0" />
+          <div className="w-5 shrink-0 flex items-center justify-center">
+            <Checkbox
+              checked={allVisibleSelected}
+              onCheckedChange={toggleSelectAllVisible}
+              aria-label="Select all visible tasks"
+            />
+          </div>
+          <div className="w-6 shrink-0" />
           <div className="flex-1">Name</div>
           <div className="w-28 shrink-0">Status</div>
           <div className="w-20 shrink-0">Priority</div>
@@ -1047,6 +1169,8 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
                       hourCols={hourCols}
                       users={users}
                       hoursByTaskId={hoursByTaskId}
+                      isSelected={selectedIds.has(node.task.id)}
+                      onToggleSelect={toggleSelect}
                       onToggleExpand={toggleExpand}
                       onOpenDetail={(id) => { setTaskDetailId(id); setTaskDetailOpen(true); }}
                       onCycleStatus={handleStatusCycle}

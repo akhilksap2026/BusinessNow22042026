@@ -172,6 +172,20 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   res.json(UpdateUserResponse.parse(mapUser(row)));
 });
 
+// Toggle the per-user dismissal flag for the dashboard onboarding checklist.
+// The user can only change their own flag (no admin escalation needed),
+// since this is purely a UI-affordance preference.
+router.patch("/users/:id/onboarding-dismissed", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const actor = Number(req.headers["x-user-id"] ?? 0);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!actor || actor !== id) { res.status(403).json({ error: "Can only update your own onboarding state" }); return; }
+  const dismissed = Boolean(req.body?.dismissed);
+  const [row] = await db.update(usersTable).set({ onboardingDismissed: dismissed } as any).where(eq(usersTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  res.json({ id: row.id, onboardingDismissed: (row as any).onboardingDismissed });
+});
+
 router.patch("/users/:id/secondary-roles", requireAdmin, async (req, res): Promise<void> => {
   const id = Number(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }

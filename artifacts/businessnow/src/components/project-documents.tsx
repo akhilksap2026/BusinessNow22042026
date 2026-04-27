@@ -3,7 +3,7 @@ import {
   useListDocuments, useCreateDocument, useUpdateDocument, useDeleteDocument, useListDocumentVersions,
   getListDocumentsQueryKey, getListDocumentVersionsQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +13,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, FileText, History, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, History, ChevronDown, ChevronUp, LayoutTemplate } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authHeaders } from "@/lib/auth-headers";
+
+type DocTemplate = {
+  id: number;
+  name: string;
+  description: string | null;
+  documentType: string;
+  content: string | null;
+};
 
 interface Props {
   projectId: number;
@@ -55,6 +64,48 @@ export function ProjectDocuments({ projectId }: Props) {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ name: "", spaceType: "shared", documentType: "rich_text" });
+
+  // Document templates picker — fetched only when the dialog is opened so we
+  // don't pay for the list on every project page load.
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const { data: templates, isLoading: isLoadingTemplates } = useQuery<DocTemplate[]>({
+    queryKey: ["document-templates"],
+    queryFn: async () => {
+      const r = await fetch("/api/document-templates", { headers: authHeaders() });
+      if (!r.ok) throw new Error(`Failed to load templates (${r.status})`);
+      return r.json();
+    },
+    enabled: templatePickerOpen,
+  });
+
+  // Apply a template: create a new document on this project pre-filled with
+  // the template's content + documentType, then open it for editing.
+  async function applyTemplate(t: DocTemplate) {
+    try {
+      const created = await createDoc.mutateAsync({
+        data: {
+          projectId,
+          name: t.name,
+          spaceType: "shared",
+          documentType: t.documentType,
+          content: t.content ?? "",
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey({ projectId }) });
+      toast({ title: "Document created from template", description: t.name });
+      setTemplatePickerOpen(false);
+      // Open the newly created doc in the viewer/editor.
+      const newId = (created as any)?.id;
+      if (newId) {
+        setViewDocId(newId);
+        setEditContent(t.content ?? "");
+        setEditName(t.name);
+        setShowVersions(false);
+      }
+    } catch {
+      toast({ title: "Failed to create from template", variant: "destructive" });
+    }
+  }
 
   const [viewDocId, setViewDocId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -128,9 +179,14 @@ export function ProjectDocuments({ projectId }: Props) {
             <CardTitle>Documents</CardTitle>
             <CardDescription>Project documents, notes, and attachments</CardDescription>
           </div>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> New Document
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setTemplatePickerOpen(true)}>
+              <LayoutTemplate className="h-4 w-4 mr-2" /> From Template
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" /> New Document
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -306,6 +362,53 @@ export function ProjectDocuments({ projectId }: Props) {
             <Button variant="destructive" onClick={() => deleteDocId && handleDelete(deleteDocId)} disabled={deleteDoc.isPending}>
               Delete Document
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={templatePickerOpen} onOpenChange={setTemplatePickerOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Create from Template</DialogTitle>
+            <DialogDescription>Pick a template to seed a new document. You can edit it after it's created.</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto -mx-6 px-6">
+            {isLoadingTemplates ? (
+              <div className="space-y-3 py-2">
+                {[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full rounded" />)}
+              </div>
+            ) : !templates?.length ? (
+              <div className="flex flex-col items-center py-10 text-muted-foreground gap-2">
+                <LayoutTemplate className="h-10 w-10 opacity-30" />
+                <p className="text-sm">No document templates yet.</p>
+                <p className="text-xs">An admin can create them in Admin → Document Templates.</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {templates.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="w-full text-left py-3 px-2 hover:bg-muted/40 rounded transition-colors flex items-start gap-3"
+                    onClick={() => applyTemplate(t)}
+                    disabled={createDoc.isPending}
+                    data-testid={`template-option-${t.id}`}
+                  >
+                    <LayoutTemplate className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium">{t.name}</div>
+                      {t.description && <div className="text-xs text-muted-foreground mt-0.5">{t.description}</div>}
+                      <div className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wide">
+                        {DOC_TYPE_LABELS[t.documentType] ?? t.documentType}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTemplatePickerOpen(false)}>Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

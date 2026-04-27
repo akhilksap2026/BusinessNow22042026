@@ -56,14 +56,6 @@ The Replit workspace runs everything through workflows. The two **active** workf
 
 Two **legacy artifact-scoped** workflows show up in the workflow list (`artifacts/api-server: API Server` and `artifacts/businessnow: web`) — these are auto-generated from the artifacts and do not start cleanly in this configuration. Ignore them; the two workflows above are the ones to use.
 
-A **mockup sandbox** workflow also exists for component prototyping:
-
-| Workflow | Command |
-|---|---|
-| `artifacts/mockup-sandbox: Component Preview Server` | `pnpm --filter @workspace/mockup-sandbox run dev` |
-
-Use it only when working with the canvas / mockup-sandbox skill. It is not part of the production app.
-
 ### Restarting workflows
 
 After any code or dependency change, restart the relevant workflow. From the chat interface use the workflow restart action; from a shell:
@@ -85,8 +77,7 @@ workspace/
 │   └── api-client-react/    ← generated React Query hooks (do not edit)
 ├── artifacts/
 │   ├── api-server/          ← Express 5 (40 route files in src/routes/)
-│   ├── businessnow/         ← React + Vite SPA (16 page files in src/pages/, 13 logical modules)
-│   └── mockup-sandbox/      ← isolated component preview env
+│   └── businessnow/         ← React + Vite SPA (16 page files in src/pages/, 13 logical modules)
 ├── scripts/                 ← operational scripts (db, codegen, deploy)
 ├── docs/                    ← this documentation suite
 └── replit.md                ← always-loaded project memory

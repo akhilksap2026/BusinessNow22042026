@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
 import { requirePM } from "../middleware/rbac";
-import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable, projectsTable } from "@workspace/db";
+import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable, projectsTable, userSkillsTable, skillsTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import {
   ListAllocationsResponse,
@@ -325,6 +325,180 @@ router.get("/resources/capacity", async (_req, res): Promise<void> => {
   });
 
   res.json(GetCapacityOverviewResponse.parse(capacity));
+});
+
+const PROFICIENCY_RANK: Record<string, number> = {
+  Trained: 1,
+  Independent: 2,
+  Lead: 3,
+  Expert: 4,
+};
+
+router.post("/resources/suggest", requirePM, async (req, res): Promise<void> => {
+  const body = req.body ?? {};
+  const hoursPerWeek = Number(body.hoursPerWeek ?? 0);
+  const startDate = String(body.startDate ?? "").slice(0, 10);
+  const endDate = String(body.endDate ?? "").slice(0, 10);
+  const limit = Math.min(50, Math.max(1, Number(body.limit ?? 10)));
+  const requiredSkillsWithLevel: { skillId?: number; skillName: string; competencyLevel: string }[] =
+    Array.isArray(body.requiredSkillsWithLevel) ? body.requiredSkillsWithLevel : [];
+  const requiredSkills: string[] = Array.isArray(body.requiredSkills) ? body.requiredSkills : [];
+  const excludeUserIds = new Set<number>(Array.isArray(body.excludeUserIds) ? body.excludeUserIds.map((n: any) => Number(n)) : []);
+
+  if (!startDate || !endDate || !hoursPerWeek || hoursPerWeek <= 0) {
+    res.status(400).json({ error: "startDate, endDate and positive hoursPerWeek are required" });
+    return;
+  }
+  if (startDate > endDate) {
+    res.status(400).json({ error: "startDate must be on or before endDate" });
+    return;
+  }
+
+  const allUsers = await db.select().from(usersTable);
+  const candidates = allUsers.filter(
+    u => u.isInternal !== false && (u.activeStatus ?? "active") === "active" && !excludeUserIds.has(u.id),
+  );
+  const candidateIds = new Set(candidates.map(u => u.id));
+
+  const activeProjects = await db.select({ id: projectsTable.id }).from(projectsTable).where(isNull(projectsTable.deletedAt));
+  const activeProjectIds = new Set(activeProjects.map(p => p.id));
+  const allAllocations = await db.select().from(allocationsTable);
+  const overlappingAllocs = allAllocations.filter(
+    a =>
+      a.userId !== null &&
+      candidateIds.has(a.userId) &&
+      activeProjectIds.has(a.projectId) &&
+      a.startDate <= endDate &&
+      a.endDate >= startDate,
+  );
+
+  const allUserSkills = await db.select().from(userSkillsTable);
+  const allSkills = await db.select().from(skillsTable);
+  const skillById = new Map(allSkills.map(s => [s.id, s]));
+  const skillsByUser = new Map<number, typeof allUserSkills>();
+  for (const us of allUserSkills) {
+    if (!candidateIds.has(us.userId)) continue;
+    const arr = skillsByUser.get(us.userId) ?? [];
+    arr.push(us);
+    skillsByUser.set(us.userId, arr);
+  }
+
+  const approvedTimeOff = await db
+    .select()
+    .from(timeOffRequestsTable)
+    .where(
+      and(
+        eq(timeOffRequestsTable.status, "Approved"),
+        lte(timeOffRequestsTable.startDate, endDate),
+        gte(timeOffRequestsTable.endDate, startDate),
+      ),
+    );
+
+  const hasSkillRequirements = requiredSkillsWithLevel.length > 0 || requiredSkills.length > 0;
+
+  function scoreSkills(userId: number): {
+    skillScore: number;
+    matched: number;
+    total: number;
+    details: { skillName: string; required: string; userLevel: string | null; meets: boolean }[];
+  } {
+    const userSkills = skillsByUser.get(userId) ?? [];
+    if (requiredSkillsWithLevel.length > 0) {
+      const details = requiredSkillsWithLevel.map(r => {
+        const us = userSkills.find(
+          x =>
+            (r.skillId !== undefined && x.skillId === r.skillId) ||
+            (skillById.get(x.skillId)?.name?.toLowerCase() === r.skillName.toLowerCase()),
+        );
+        const userLevel = us?.proficiencyLevel ?? null;
+        const userRank = userLevel ? PROFICIENCY_RANK[userLevel] ?? 0 : 0;
+        const reqRank = PROFICIENCY_RANK[r.competencyLevel] ?? 1;
+        const meets = userRank >= reqRank;
+        return { skillName: r.skillName, required: r.competencyLevel, userLevel, meets };
+      });
+      const matched = details.filter(d => d.meets).length;
+      const skillScore = (matched / requiredSkillsWithLevel.length) * 100;
+      return { skillScore, matched, total: requiredSkillsWithLevel.length, details };
+    }
+    if (requiredSkills.length > 0) {
+      const userSkillNames = userSkills
+        .map(us => skillById.get(us.skillId)?.name?.toLowerCase() ?? "")
+        .filter(Boolean);
+      const details = requiredSkills.map(s => {
+        const meets = userSkillNames.includes(s.toLowerCase());
+        return { skillName: s, required: "Independent", userLevel: meets ? "Independent" : null, meets };
+      });
+      const matched = details.filter(d => d.meets).length;
+      const skillScore = (matched / requiredSkills.length) * 100;
+      return { skillScore, matched, total: requiredSkills.length, details };
+    }
+    return { skillScore: 0, matched: 0, total: 0, details: [] };
+  }
+
+  const suggestions = candidates.map(u => {
+    const cap = u.capacity ?? 40;
+    const userAllocs = overlappingAllocs.filter(a => a.userId === u.id);
+    const allocatedHpw = userAllocs.reduce((s, a) => s + Number(a.hoursPerWeek ?? 0), 0);
+
+    const userTimeOff = approvedTimeOff.filter(t => t.userId === u.id);
+    const hasTimeOffOverlap = userTimeOff.length > 0;
+
+    const proposedHpw = allocatedHpw + hoursPerWeek;
+    const utilizationPct = cap > 0 ? Math.round((proposedHpw / cap) * 100) : 0;
+    const availableHpw = Math.max(0, cap - allocatedHpw);
+
+    let capacityScore = 0;
+    if (cap > 0) {
+      capacityScore = Math.max(0, Math.min(100, ((cap - proposedHpw) / cap) * 100 + 50));
+      if (proposedHpw > cap) capacityScore = Math.max(0, 50 - (proposedHpw - cap));
+    }
+
+    const skill = scoreSkills(u.id);
+
+    let composite = hasSkillRequirements
+      ? skill.skillScore * 0.7 + capacityScore * 0.3
+      : capacityScore;
+    if (utilizationPct > 100) composite -= 25;
+    if (hasTimeOffOverlap) composite -= 10;
+    composite = Math.max(0, Math.min(100, composite));
+
+    const reasons: string[] = [];
+    if (skill.total > 0) {
+      reasons.push(`Matches ${skill.matched}/${skill.total} required skill${skill.total === 1 ? "" : "s"}`);
+    }
+    if (availableHpw >= hoursPerWeek) {
+      reasons.push(`${availableHpw}h/wk available — fits the ${hoursPerWeek}h/wk request`);
+    } else if (utilizationPct > 100) {
+      reasons.push(`Will be ${utilizationPct}% allocated — over ${cap}h/wk capacity`);
+    } else {
+      reasons.push(`${availableHpw}h/wk available, ${utilizationPct}% utilization after assignment`);
+    }
+    if (hasTimeOffOverlap) reasons.push("Has approved time-off in this date range");
+
+    return {
+      userId: u.id,
+      userName: u.name,
+      userInitials: u.initials,
+      role: u.role,
+      department: u.department,
+      capacity: cap,
+      currentAllocatedHpw: allocatedHpw,
+      proposedAllocatedHpw: proposedHpw,
+      utilizationPct,
+      availableHpw,
+      hasTimeOffOverlap,
+      skillScore: Math.round(skill.skillScore),
+      skillsMatched: skill.matched,
+      skillsRequired: skill.total,
+      skillDetails: skill.details,
+      capacityScore: Math.round(capacityScore),
+      compositeScore: Math.round(composite),
+      reasons,
+    };
+  });
+
+  suggestions.sort((a, b) => b.compositeScore - a.compositeScore);
+  res.json(suggestions.slice(0, limit));
 });
 
 export default router;
