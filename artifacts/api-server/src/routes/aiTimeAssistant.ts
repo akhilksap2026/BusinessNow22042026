@@ -2,8 +2,9 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
 import {
   db, timeEntriesTable, allocationsTable, projectsTable, tasksTable,
-  timeSettingsTable, usersTable,
+  timeSettingsTable, usersTable, timesheetsTable,
 } from "@workspace/db";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 
 const router: IRouter = Router();
 
@@ -329,6 +330,91 @@ router.post("/ai/billable-anomaly-check", async (req, res): Promise<void> => {
     : undefined;
 
   res.json({ anomaly, billablePct, orgBillablePct, message });
+});
+
+// ─── Pending Timesheet Audit ──────────────────────────────────────────────────
+// GET /api/ai/pending-timesheet-audit?userId=
+// Surfaces unresolved timesheets from prior weeks so the Log Time Assistant can
+// nudge users to resolve them BEFORE adding new entries — without removing any
+// existing functionality. Draft and Rejected weeks are hard blockers (the user
+// must act on them to clear them); Submitted weeks are returned as informational
+// only (awaiting approval is not the user's fault and shouldn't block logging).
+router.get("/ai/pending-timesheet-audit", async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = Number(req.query.userId);
+  if (!userId || Number.isNaN(userId)) {
+    return res.status(400).json({ error: "userId required" });
+  }
+
+  // Self-only enforcement: only the user themselves (or an admin/PM) may audit.
+  const callerId = authReq.authUserId;
+  const callerRole = authReq.authRole;
+  const isPrivileged = callerRole === "account_admin" || callerRole === "super_user";
+  if (callerId !== userId && !isPrivileged) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  // Resolve current-week start (Mon, ISO yyyy-MM-dd). Use the configured
+  // weekStartDay so audit aligns with the org's week definition.
+  const settings = await db.select().from(timeSettingsTable).limit(1);
+  const wsd = settings[0]?.weekStartDay ?? 1;
+  const today = new Date();
+  // Compute Monday (or configured start) of current week in UTC-safe way.
+  const dayOfWeek = today.getUTCDay(); // 0..6 Sun..Sat
+  const diff = (dayOfWeek - wsd + 7) % 7;
+  const weekStartDate = new Date(today);
+  weekStartDate.setUTCDate(today.getUTCDate() - diff);
+  const yyyy = weekStartDate.getUTCFullYear();
+  const mm = String(weekStartDate.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(weekStartDate.getUTCDate()).padStart(2, "0");
+  const currentWeekStart = `${yyyy}-${mm}-${dd}`;
+
+  // Pull all of the user's timesheets and filter in JS for portability across
+  // weekStart formats (some legacy rows may carry full ISO).
+  const all = await db
+    .select()
+    .from(timesheetsTable)
+    .where(eq(timesheetsTable.userId, userId));
+
+  const HARD = new Set(["Draft", "Rejected"]);
+  const RELEVANT = new Set(["Draft", "Submitted", "Rejected"]);
+
+  const blockers = all
+    .map((ts) => {
+      const ws = (ts.weekStart || "").slice(0, 10);
+      return { ...ts, weekStart: ws };
+    })
+    .filter((ts) => RELEVANT.has(ts.status))
+    .filter((ts) => Number(ts.totalHours ?? 0) > 0)
+    .filter((ts) => ts.weekStart < currentWeekStart)
+    .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+    .map((ts) => {
+      // Compute weekEnd = weekStart + 6 days, ISO format.
+      const start = new Date(`${ts.weekStart}T00:00:00Z`);
+      const end = new Date(start);
+      end.setUTCDate(start.getUTCDate() + 6);
+      const we = `${end.getUTCFullYear()}-${String(end.getUTCMonth() + 1).padStart(2, "0")}-${String(end.getUTCDate()).padStart(2, "0")}`;
+      return {
+        weekStart: ts.weekStart,
+        weekEnd: we,
+        status: ts.status,
+        totalHours: Number(ts.totalHours ?? 0),
+        rejectionNote: ts.rejectionNote ?? null,
+        isHardBlocker: HARD.has(ts.status),
+      };
+    });
+
+  const hasPendingBlockers = blockers.some((b) => b.isHardBlocker);
+  const hardCount = blockers.filter((b) => b.isHardBlocker).length;
+  const submittedCount = blockers.filter((b) => !b.isHardBlocker).length;
+
+  res.json({
+    hasPendingBlockers,
+    hardCount,
+    submittedCount,
+    currentWeekStart,
+    blockers,
+  });
 });
 
 export default router;

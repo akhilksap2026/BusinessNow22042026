@@ -1,0 +1,218 @@
+You are working on BusinessNow PSA — a TypeScript monorepo (Express API + React frontend).
+The codebase has a four-canonical-role RBAC model (account_admin, super_user, collaborator, customer)
+in `artifacts/api-server/src/constants/roles.ts` and `constants/permissions.ts`.
+The migration from legacy title-case role strings ("Admin", "PM", "Super User", etc.) to canonical
+roles is incomplete. Fix issues incrementally in the order below. After EACH step, run:
+  - `npm run typecheck` in `artifacts/api-server`
+  - `npm run build` in `artifacts/api-server`
+Do NOT change database schema. Do NOT change API contracts. Do NOT change existing test assertions —
+only add new tests. Always use `resolveRole()` from `constants/roles.ts` when comparing role strings.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — Fix activeRole default and logout reset [CRITICAL-3]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/businessnow/src/contexts/current-user.tsx
+
+1a. Change the default context value:
+    activeRole: "Admin"  →  activeRole: "collaborator"
+    availableRoles: ["Admin"]  →  availableRoles: ["collaborator"]
+
+1b. Change the useState initializer:
+    return localStorage.getItem("activeRole") ?? "Admin"
+    →
+    return localStorage.getItem("activeRole") ?? "collaborator"
+
+1c. In the logout handler, change:
+    setActiveRole("Admin")
+    →
+    localStorage.removeItem("activeRole");
+    setActiveRole("collaborator");
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — Fix hardcoded x-user-role in fetch calls [CRITICAL-4]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Files: artifacts/businessnow/src/pages/admin.tsx
+       artifacts/businessnow/src/pages/resources.tsx
+
+Find all fetch/apiRequest calls that contain:
+  headers: { "Content-Type": "application/json", "x-user-role": "PM" }
+or any hardcoded "x-user-role" value.
+
+Replace with the helper from lib/auth-headers.ts:
+  import { getAuthHeaders } from "@/lib/auth-headers";
+  headers: getAuthHeaders()
+
+Do not add a new import if it already exists. Verify no other page hardcodes x-user-role.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — Fix requireCostRateAccess [CRITICAL-2]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/api-server/src/middleware/rbac.ts
+
+Replace:
+  export const requireCostRateAccess = requireAnyRole("Admin", "Finance", "PM");
+
+With:
+  import { requirePermission } from "../constants/permissions";
+  export const requireCostRateAccess = requirePermission("financials.viewCostRates");
+
+This is safe because the permission matrix already has:
+  "financials.viewCostRates": { account_admin: true, super_user: false, collaborator: false, customer: false }
+Verify this is correct in constants/permissions.ts before applying the change.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — Replace hardcoded legacy strings in route handlers [CRITICAL-1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+In each file listed, remove local PM_ROLES sets and isAdmin/isPM checks that use
+raw legacy string comparisons. Replace with resolveRole() from constants/roles.ts.
+
+4a. artifacts/api-server/src/routes/taskDetails.ts
+    Remove: const PM_ROLES = new Set(["Admin", "PM", "Super User"]);
+            function isPMRole(role: string) { return PM_ROLES.has(role); }
+    Replace isPMRole(role) usages with:
+            import { resolveRole, hasRole } from "../constants/roles";
+            hasRole(role, "super_user")  // true for super_user AND account_admin
+
+4b. artifacts/api-server/src/routes/tasks.ts
+    Same as 4a.
+
+4c. artifacts/api-server/src/routes/resourceRequests.ts
+    Replace:
+      const isAdmin = callerRole === "Admin" || callerRole === "Super User";
+    With:
+      import { resolveRole } from "../constants/roles";
+      const isAdmin = resolveRole(callerRole) === "account_admin" || resolveRole(callerRole) === "super_user";
+
+4d. artifacts/api-server/src/routes/savedViews.ts
+    Replace:
+      return role === "Admin" || role === "Super User";
+    With:
+      import { resolveRole, hasRole } from "../constants/roles";
+      return hasRole(role, "super_user");
+
+4e. artifacts/api-server/src/routes/timesheets.ts
+    Replace all: role === "Admin" | role === "Super User" | etc.
+    With: hasRole(role, "super_user") or hasRole(role, "account_admin") as appropriate.
+    Also fix the DB query:
+      await db.select().from(usersTable).where(eq(usersTable.role, "Admin"))
+    With:
+      await db.select().from(usersTable).where(
+        inArray(usersTable.role, ["Admin", "account_admin"])
+      )
+    (This handles both legacy and canonical role values in the DB)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — Fix documents.ts to use middleware and correct fallback [HIGH-1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/api-server/src/routes/documents.ts
+
+5a. Replace PRIVILEGED_ROLES and isPrivileged() with:
+      import { resolveRole } from "../constants/roles";
+      const isPrivileged = (role: string) => resolveRole(role) !== "collaborator" && resolveRole(role) !== "customer";
+
+5b. Replace all fallbacks:
+      (req.headers["x-user-role"] as string) ?? "Viewer"
+    With:
+      (req.headers["x-user-role"] as string) ?? "collaborator"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6 — Fix governance.ts date-lock role comparison [MEDIUM-1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/api-server/src/lib/governance.ts
+
+In the rolesFromCsv() function, after parsing, resolve each entry:
+  import { resolveRole } from "../constants/roles";
+  function rolesFromCsv(csv: string): string[] {
+    return csv.split(",").map(r => r.trim()).filter(Boolean).map(resolveRole);
+  }
+
+Then resolve the inbound userRole before the includes() check:
+  const canonical = resolveRole(userRole);
+  if (allowedRoles.includes(canonical)) { ... }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7 — Fix client-side role checks in components [HIGH-3, MEDIUM-3, MEDIUM-5]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7a. artifacts/businessnow/src/components/task-detail-sheet.tsx (task note delete)
+    Replace:
+      ["Admin", "PM", "Super User"].includes(currentUser?.role ?? "")
+    With:
+      import { hasRole } from "@/lib/roles";
+      hasRole(activeRole, "super_user")
+    (activeRole comes from useCurrentUser())
+
+7b. artifacts/businessnow/src/pages/project-detail.tsx
+    Replace:
+      const isPM = ["Admin", "PM", "Super User"].includes(viewerRole);
+    With:
+      import { hasRole } from "@/lib/roles";
+      const isPM = hasRole(viewerRole, "super_user");
+
+7c. artifacts/businessnow/src/components/tracked-time-tab.tsx
+    Change prop default:
+      viewerRole = "PM"  →  viewerRole = "collaborator"
+    Update callers to pass activeRole from useCurrentUser().
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 8 — Fix role-selector-modal localStorage reads [MEDIUM-4]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/businessnow/src/components/role-selector-modal.tsx
+
+Remove all direct localStorage.getItem("activeRole") calls.
+Use activeRole from useCurrentUser() and a hasPickedRole boolean:
+  const { activeRole, availableRoles, switchRole } = useCurrentUser();
+  const hasPickedRole = !!activeRole && activeRole !== "collaborator"; // or a dedicated flag
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 9 — Add Resource Manager to LEGACY_ROLE_MAP [HIGH-5]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/api-server/src/constants/roles.ts
+
+Add to LEGACY_ROLE_MAP:
+  "Resource Manager": "super_user",
+
+Also add to the frontend copy:
+  artifacts/businessnow/src/lib/roles.ts (same map location)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 10 — Add secondaryRoles validation [LOW-2]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/api-server/src/routes/users.ts (PATCH /users/:id/secondary-roles)
+
+After the Array.isArray check, add:
+  import { LEGACY_ROLE_MAP } from "../constants/roles";
+  const validRoles = Object.keys(LEGACY_ROLE_MAP);
+  const invalid = secondaryRoles.filter((r: string) => !validRoles.includes(r));
+  if (invalid.length > 0) {
+    res.status(400).json({ error: `Unknown roles: ${invalid.join(", ")}` });
+    return;
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 11 — Add ceiling-enforcement tests [LOW-4]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/api-server/tests/permissions.test.ts
+
+Add the following test cases:
+  // Ceiling: collaborator at account cannot exceed collaborator at project
+  expect(canOnProjectFor("collaborator", "admin", "project.delete")).toBe(false);
+  expect(canOnProjectFor("collaborator", "admin", "phase.create")).toBe(false);
+  // customer at account is always customer at project
+  expect(canOnProjectFor("customer", "admin", "task.create")).toBe(false);
+  // account_admin always gets admin project ceiling
+  expect(canOnProjectFor("account_admin", null, "project.delete")).toBe(true);
+  // JSDoc fix: customer cannot task.create
+  expect(canOnProject("customer", "task.create")).toBe(false);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 12 — Fix JSDoc typo [LOW-1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: artifacts/api-server/src/constants/permissions.ts
+
+In the canOnProject JSDoc, fix:
+  // canOnProject("customer", "task.create")     // true
+To:
+  // canOnProject("customer", "task.create")     // false
+
+After all steps, run the full test suite:
+  cd artifacts/api-server && npm test

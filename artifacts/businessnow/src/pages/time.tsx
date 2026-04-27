@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { authHeaders } from "@/lib/auth-headers";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
@@ -65,6 +66,25 @@ export default function TimeTracking() {
     queryKey: ["time-settings"],
     queryFn: async () => { const r = await fetch("/api/time-settings", { headers: authHeaders() }); return r.json(); },
   });
+
+  // Read deep-link `?weekStart=YYYY-MM-DD` so the Pending Timesheet Gate (and
+  // any future caller) can land the user directly on a specific week.
+  const [routerLocation] = useLocation();
+  const initialWeekStartFromUrl = (() => {
+    try {
+      const search = typeof window !== "undefined" ? window.location.search : "";
+      const params = new URLSearchParams(search);
+      const ws = params.get("weekStart");
+      if (ws && /^\d{4}-\d{2}-\d{2}$/.test(ws)) return ws;
+    } catch { /* noop */ }
+    return undefined;
+  })();
+  // Tab state (controlled) so deep-links can force the timesheet tab.
+  const [activeTab, setActiveTab] = useState<string>("timesheet");
+  useEffect(() => {
+    if (initialWeekStartFromUrl) setActiveTab("timesheet");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routerLocation]);
 
   const [requestOpen, setRequestOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -417,7 +437,7 @@ export default function TimeTracking() {
           </Card>
         </div>
 
-        <Tabs defaultValue="timesheet" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="timesheet">Timesheet</TabsTrigger>
             <TabsTrigger value="approvals" className="flex items-center gap-2">
@@ -442,7 +462,7 @@ export default function TimeTracking() {
           </TabsList>
 
           <TabsContent value="timesheet" className="m-0">
-            <TimesheetGrid userId={currentUserId} weekStartDay={timeSettings?.weekStartDay ?? 1} />
+            <TimesheetGrid userId={currentUserId} weekStartDay={timeSettings?.weekStartDay ?? 1} initialWeekStart={initialWeekStartFromUrl} />
           </TabsContent>
 
           <TabsContent value="approvals" className="m-0">

@@ -80,10 +80,21 @@ function rowKey(projectId?: number | null, taskId?: number | null, activityName?
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; weekStartDay?: number }) {
+export function TimesheetGrid({ userId, weekStartDay = 1, initialWeekStart }: { userId: number; weekStartDay?: number; initialWeekStart?: string }) {
   const wsd = (weekStartDay as 0 | 1);
 
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: wsd }));
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
+    // If a deep-link weekStart is provided (e.g. from the Pending Timesheet Gate),
+    // start the grid on that week so the user lands directly on the unresolved
+    // timesheet. Falls back to the current week.
+    if (initialWeekStart) {
+      try {
+        const parsed = parseISO(initialWeekStart);
+        if (!isNaN(parsed.getTime())) return startOfWeek(parsed, { weekStartsOn: wsd });
+      } catch { /* fall through */ }
+    }
+    return startOfWeek(new Date(), { weekStartsOn: wsd });
+  });
   const [initialised, setInitialised] = useState(false);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -276,9 +287,19 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
   });
 
   // ─── Initialise to latest week ──────────────────────────────────────────────
+  // When a deep-link `initialWeekStart` is provided (e.g. from the Pending
+  // Timesheet Gate's "Resolve this week" button), respect that and skip the
+  // auto-jump-to-latest behavior — otherwise the gate's deep-link is silently
+  // overwritten the moment timesheet data finishes loading.
 
   useEffect(() => {
     if (initialised) return;
+    if (initialWeekStart) {
+      // Honor the deep-link: we already seeded `currentWeekStart` from it in
+      // useState; just mark initialised so this effect never overwrites it.
+      setInitialised(true);
+      return;
+    }
     let latestDate: string | null = null;
     if (allUserTimesheets && allUserTimesheets.length > 0) {
       const sorted = [...allUserTimesheets].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
@@ -290,7 +311,45 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     if (!latestDate) return;
     setCurrentWeekStart(startOfWeek(parseISO(latestDate), { weekStartsOn: wsd }));
     setInitialised(true);
-  }, [allUserTimesheets, allUserEntries, initialised, wsd]);
+  }, [allUserTimesheets, allUserEntries, initialised, wsd, initialWeekStart]);
+
+  // If the parent supplies a new initialWeekStart while the grid is mounted
+  // (e.g. user clicks Resolve while already on /time), jump to that week.
+  // When the prop transitions from a value back to undefined (user navigates
+  // from /time?weekStart=X to plain /time), fall back to the user's latest
+  // week of activity — same heuristic as the initial-load effect above.
+  useEffect(() => {
+    if (initialWeekStart) {
+      try {
+        const parsed = parseISO(initialWeekStart);
+        if (isNaN(parsed.getTime())) return;
+        const target = startOfWeek(parsed, { weekStartsOn: wsd });
+        if (format(target, "yyyy-MM-dd") !== format(currentWeekStart, "yyyy-MM-dd")) {
+          setCurrentWeekStart(target);
+          setInitialised(true);
+        }
+      } catch { /* noop */ }
+      return;
+    }
+    // initialWeekStart was cleared — recompute latest week from data so the
+    // grid doesn't get stuck on a stale deep-linked week after the user
+    // navigates back to plain /time without a remount.
+    let latestDate: string | null = null;
+    if (allUserTimesheets && allUserTimesheets.length > 0) {
+      const sorted = [...allUserTimesheets].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+      latestDate = sorted[0].weekStart;
+    } else if (allUserEntries && allUserEntries.length > 0) {
+      const sorted = [...allUserEntries].sort((a, b) => b.date.localeCompare(a.date));
+      latestDate = sorted[0].date;
+    }
+    const fallback = latestDate
+      ? startOfWeek(parseISO(latestDate), { weekStartsOn: wsd })
+      : startOfWeek(new Date(), { weekStartsOn: wsd });
+    if (format(fallback, "yyyy-MM-dd") !== format(currentWeekStart, "yyyy-MM-dd")) {
+      setCurrentWeekStart(fallback);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialWeekStart, wsd, allUserTimesheets, allUserEntries]);
 
   // ─── Week columns ────────────────────────────────────────────────────────────
 

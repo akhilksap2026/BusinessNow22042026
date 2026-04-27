@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { format, startOfWeek, addDays } from "date-fns";
+import { useLocation } from "wouter";
 import { authHeaders } from "@/lib/auth-headers";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -73,11 +74,29 @@ interface TimeLogAssistantProps {
 }
 
 const STEPS = {
+  PENDING_AUDIT: -1, // Pending Timesheet Gate (runs on modal open before MODE)
   MODE: 0, DAY_SELECT: 1, PROJECT: 2, TASK: 3, HOURS: 4,
   OVERRUN: 45, CATEGORY: 5, COMMENT: 6, DAY_SUMMARY: 7, REVIEW: 8,
   NL: 9,      // Natural language input
   SUGGEST: 10, // Auto-suggest review
 };
+
+// ─── Pending Timesheet Audit types ────────────────────────────────────────────
+interface PendingAuditBlocker {
+  weekStart: string;
+  weekEnd: string;
+  status: "Draft" | "Submitted" | "Rejected";
+  totalHours: number;
+  rejectionNote: string | null;
+  isHardBlocker: boolean;
+}
+interface PendingAuditResponse {
+  hasPendingBlockers: boolean;
+  hardCount: number;
+  submittedCount: number;
+  currentWeekStart: string;
+  blockers: PendingAuditBlocker[];
+}
 
 export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
   const { currentUser } = useCurrentUser();
@@ -118,6 +137,69 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
   // ── Auto-suggest mode state ────────────────────────────────────────────────
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestEntries, setSuggestEntries] = useState<PendingEntry[]>([]);
+
+  // ── Pending Timesheet Audit (Pending Timesheet Gate) ──────────────────────
+  // Runs every time the modal opens. If the user has any Draft or Rejected
+  // timesheets from prior weeks (with hours > 0), we show a resolution screen
+  // BEFORE letting them log new time. Submitted weeks are surfaced as
+  // informational only — awaiting approval doesn't block new logging.
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [audit, setAudit] = useState<PendingAuditResponse | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
+  const [, navigate] = useLocation();
+
+  // Versioned audit fetch — guards against stale responses from a previous
+  // open/close cycle landing after a fresh open and overwriting newer state.
+  // Each call increments the token; only the latest token's response is applied.
+  const auditTokenRef = useRef(0);
+  const auditAbortRef = useRef<AbortController | null>(null);
+
+  async function runAudit() {
+    if (!userId) return;
+    // Cancel any in-flight request from a previous invocation.
+    if (auditAbortRef.current) {
+      try { auditAbortRef.current.abort(); } catch { /* noop */ }
+    }
+    const controller = new AbortController();
+    auditAbortRef.current = controller;
+    const myToken = ++auditTokenRef.current;
+
+    setAuditLoading(true);
+    setAuditError(null);
+    try {
+      const r = await fetch(`/api/ai/pending-timesheet-audit?userId=${userId}`, {
+        headers: authHeaders(),
+        signal: controller.signal,
+      });
+      // Stale response — a newer runAudit() has been started since.
+      if (myToken !== auditTokenRef.current) return;
+      if (!r.ok) {
+        setAuditError("We couldn't check your prior timesheets. You can continue, or refresh to retry.");
+        setAudit(null);
+        return;
+      }
+      const data: PendingAuditResponse = await r.json();
+      if (myToken !== auditTokenRef.current) return;
+      setAudit(data);
+    } catch (e: any) {
+      if (myToken !== auditTokenRef.current) return;
+      if (e?.name === "AbortError") return; // intentional cancel
+      setAuditError("We couldn't reach the audit service. You can continue, or refresh to retry.");
+      setAudit(null);
+    } finally {
+      if (myToken === auditTokenRef.current) setAuditLoading(false);
+    }
+  }
+
+  function handleResolveBlocker(weekStart: string) {
+    onClose();
+    // Defer navigation slightly so the sheet animation can begin closing.
+    setTimeout(() => navigate(`/time?weekStart=${weekStart}`), 50);
+  }
+
+  function handleProceedPastAudit() {
+    setStep(STEPS.MODE);
+  }
 
   const currentDay = selectedDays[currentDayIdx] ?? today;
 
@@ -188,9 +270,47 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Modal is closing — abort any in-flight audit so it doesn't dangle.
+      // The token guard already prevents stale-state writes, but cancelling
+      // also frees the network resource and silences the request promptly.
+      if (auditAbortRef.current) {
+        try { auditAbortRef.current.abort(); } catch { /* noop */ }
+        auditAbortRef.current = null;
+      }
+      return;
+    }
     reset();
+    // Pending Timesheet Gate: re-audit on every open. Start at PENDING_AUDIT
+    // (loading state) and route to MODE only if the audit clears.
+    setStep(STEPS.PENDING_AUDIT);
+    setAudit(null);
+    runAudit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // On full unmount, also cancel any in-flight audit.
+  useEffect(() => {
+    return () => {
+      if (auditAbortRef.current) {
+        try { auditAbortRef.current.abort(); } catch { /* noop */ }
+        auditAbortRef.current = null;
+      }
+    };
+  }, []);
+
+  // Once the audit completes, auto-advance to MODE if there are no hard
+  // blockers. Submitted-only weeks are informational and do not block.
+  useEffect(() => {
+    if (!open) return;
+    if (step !== STEPS.PENDING_AUDIT) return;
+    if (auditLoading) return;
+    if (auditError) return; // surface error, let user proceed manually
+    if (audit && !audit.hasPendingBlockers && audit.submittedCount === 0) {
+      setStep(STEPS.MODE);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audit, auditLoading, auditError, step, open]);
 
   function handleSelectMode(m: "today" | "week") {
     setMode(m);
@@ -559,7 +679,7 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
             <Sparkles className="h-5 w-5 text-indigo-500" />
             <SheetTitle className="text-base font-semibold">Log Time with Assistant</SheetTitle>
           </div>
-          {step !== STEPS.MODE && step !== STEPS.REVIEW && (
+          {step !== STEPS.MODE && step !== STEPS.REVIEW && step !== STEPS.PENDING_AUDIT && (
             <div className="mt-2">
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                 <span>{stepLabels[step]}</span>
@@ -574,6 +694,126 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+          {/* STEP -1: PENDING TIMESHEET GATE */}
+          {step === STEPS.PENDING_AUDIT && (
+            <div className="space-y-4">
+              {auditLoading && (
+                <div className="flex items-center gap-2 py-12 justify-center text-muted-foreground text-sm">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Checking your prior timesheets…
+                </div>
+              )}
+
+              {!auditLoading && auditError && (
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-3 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-800 dark:text-amber-200">{auditError}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={runAudit}>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5" /> Refresh
+                    </Button>
+                    <Button className="flex-1" onClick={handleProceedPastAudit}>
+                      Continue anyway <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {!auditLoading && !auditError && audit && (
+                <>
+                  {audit.hasPendingBlockers ? (
+                    <div className="rounded-lg border border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 p-3 flex items-start gap-2">
+                      <Sparkles className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold text-foreground">Let's get you caught up first</div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          You have {audit.hardCount} prior {audit.hardCount === 1 ? "week" : "weeks"} that {audit.hardCount === 1 ? "needs" : "need"} your attention before logging more time. A quick action on each will keep your records accurate.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-3 flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold text-foreground">You're all set</div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          No prior weeks need action. {audit.submittedCount > 0 ? `${audit.submittedCount} submitted ${audit.submittedCount === 1 ? "week is" : "weeks are"} awaiting approval (informational).` : "You can start logging time."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {audit.blockers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Prior weeks
+                      </p>
+                      {audit.blockers.map((b) => {
+                        const ws = format(new Date(b.weekStart + "T00:00:00"), "MMM d");
+                        const we = format(new Date(b.weekEnd + "T00:00:00"), "MMM d, yyyy");
+                        const tone = b.status === "Rejected"
+                          ? { ring: "border-red-200", bg: "bg-red-50 dark:bg-red-950/20", icon: <AlertTriangle className="h-4 w-4 text-red-500" />, label: "Rejected" }
+                          : b.status === "Draft"
+                          ? { ring: "border-amber-200", bg: "bg-amber-50 dark:bg-amber-950/20", icon: <Pencil className="h-4 w-4 text-amber-600" />, label: "Draft (not submitted)" }
+                          : { ring: "border-slate-200", bg: "bg-slate-50 dark:bg-slate-950/20", icon: <Clock className="h-4 w-4 text-slate-500" />, label: "Submitted (awaiting approval)" };
+                        return (
+                          <div key={b.weekStart} className={cn("rounded-lg border p-3 space-y-2", tone.ring, tone.bg)}>
+                            <div className="flex items-start gap-2">
+                              <div className="mt-0.5 shrink-0">{tone.icon}</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium">Week of {ws} – {we}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {tone.label} · {b.totalHours}h logged
+                                </div>
+                                {b.rejectionNote && (
+                                  <div className="text-xs italic text-red-700 dark:text-red-300 mt-1">
+                                    &ldquo;{b.rejectionNote}&rdquo;
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {b.isHardBlocker && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => handleResolveBlocker(b.weekStart)}
+                              >
+                                Resolve this week <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={runAudit} disabled={auditLoading}>
+                      <Loader2 className={cn("h-3.5 w-3.5 mr-1.5", auditLoading && "animate-spin")} /> Refresh
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={handleProceedPastAudit}
+                      disabled={audit.hasPendingBlockers}
+                      title={audit.hasPendingBlockers ? "Resolve the blocked weeks above to continue" : ""}
+                    >
+                      Log Time <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {audit.hasPendingBlockers && (
+                    <p className="text-[11px] text-muted-foreground text-center">
+                      Resolve the {audit.hardCount === 1 ? "week above" : "weeks above"} to continue. Submitted weeks don't block you.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {/* STEP 0: MODE */}
           {step === STEPS.MODE && (
@@ -1123,7 +1363,7 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
         </div>
 
         {/* Back button */}
-        {step !== STEPS.MODE && step !== STEPS.REVIEW && (
+        {step !== STEPS.MODE && step !== STEPS.REVIEW && step !== STEPS.PENDING_AUDIT && (
           <div className="border-t px-6 py-3 flex items-center">
             <button
               onClick={() => {
