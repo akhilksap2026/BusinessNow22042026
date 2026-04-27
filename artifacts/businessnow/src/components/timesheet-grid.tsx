@@ -205,11 +205,12 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
 
   // ─── Pending-prior-week guard ───────────────────────────────────────────────
   // Rule: a user cannot log time on a date if any earlier week has a timesheet
-  // in a "pending" status with hours > 0. The earlier week must be cleared
-  // (submitted + approved) before later dates can receive new entries.
-  // Statuses considered pending: Draft (not yet submitted), Submitted (awaiting
-  // approval), Rejected (needs rework). Approved is the only terminal/cleared state.
-  const PENDING_STATUSES = new Set(["Draft", "Submitted", "Rejected"]);
+  // that has NOT yet been submitted (and has hours > 0). Submission — not
+  // approval — is the criterion: once the user has submitted the prior week,
+  // they may begin logging on later weeks even while approval is still pending.
+  // Statuses considered blocking: Draft (not yet submitted), Rejected (returned
+  // for changes — effectively unsubmitted). Submitted and Approved are cleared.
+  const PENDING_STATUSES = new Set(["Draft", "Rejected"]);
   function normalizeWeekStart(s: string): string {
     // Accept either yyyy-MM-dd or full ISO; collapse to yyyy-MM-dd for safe lex compare.
     try { return format(parseISO(s), "yyyy-MM-dd"); } catch { return s.slice(0, 10); }
@@ -560,7 +561,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
       if (blocker) {
         toast({
           title: "Earlier timesheet pending",
-          description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time for later dates.`,
+          description: `Submit the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time for later dates. Approval is not required.`,
           variant: "destructive",
         });
         return;
@@ -643,7 +644,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
       if (blocker) {
         toast({
           title: "Earlier timesheet pending",
-          description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time.`,
+          description: `Submit the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time. Approval is not required.`,
           variant: "destructive",
         });
         return;
@@ -701,7 +702,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
     if (blocker) {
       toast({
         title: "Earlier timesheet pending",
-        description: `Submit and get approval for the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time for ${values.date}.`,
+        description: `Submit the week of ${blocker.weekStart} (currently ${blocker.status}) before logging new time for ${values.date}. Approval is not required.`,
         variant: "destructive",
       });
       return;
@@ -904,11 +905,11 @@ export function TimesheetGrid({ userId, weekStartDay = 1 }: { userId: number; we
           <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
           <div>
             <div className="font-medium text-amber-900 dark:text-amber-200">
-              Earlier timesheet is pending — new entries blocked
+              Earlier timesheet not yet submitted — new entries blocked
             </div>
             <div className="text-amber-800 dark:text-amber-300/90 mt-0.5">
               The week of <span className="font-mono">{currentWeekBlocker.weekStart}</span> is currently <span className="font-medium">{currentWeekBlocker.status}</span>.
-              Submit and have it approved before logging time on later dates.
+              Submit it before logging time on later dates — you don't need to wait for approval.
             </div>
           </div>
         </div>
