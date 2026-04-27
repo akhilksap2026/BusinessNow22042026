@@ -20,19 +20,7 @@ type = "image"
 title = "Cover Page Preview"
 
 [[outputs]]
-id = "h9Z6NjliML9H0YGIGkLw1"
-uri = "file://job-card-generator/output/job-card.pdf"
+id = "Ol3tyMeBv81Cz93OFCYcq"
+uri = "file://prd-generator/output/prd.pdf"
 type = "pdf"
-title = "Job Card — PDF (185 KB)"
-
-[[outputs]]
-id = "_e1sZiJavvDI261PVZSGM"
-uri = "file://job-card-generator/output/job-card.docx"
-type = "word_document"
-title = "Job Card — DOCX / Word (33 KB)"
-
-[[outputs]]
-id = "jaAP4pHmpzoacJxojI8s2"
-uri = "file://job-card-generator/output/job-card.md"
-type = "text"
-title = "Job Card — Markdown (35 KB)"
+title = "BusinessNow PSA — Product Requirements Document (PDF)"
