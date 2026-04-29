@@ -30,3 +30,9 @@ id = "Ac0gtGejuxkcWL_6b_wXH"
 uri = "file://prd-generator/output/email-to-dan.md"
 type = "text"
 title = "Email to Dan — BusinessNow PSA glimpse"
+
+[[outputs]]
+id = "bArES25Zk2bhaUbscixKs"
+uri = "file://claude_audit_dump.md"
+type = "text"
+title = "BusinessNow PSA — SaaS Audit Dump"

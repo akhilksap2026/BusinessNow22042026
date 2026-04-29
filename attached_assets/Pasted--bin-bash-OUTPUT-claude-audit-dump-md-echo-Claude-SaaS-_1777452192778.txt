@@ -1,0 +1,159 @@
+#!/bin/bash
+
+OUTPUT="claude_audit_dump.md"
+echo "# Claude SaaS Audit Dump" > $OUTPUT
+echo "Generated: $(date)" >> $OUTPUT
+echo "" >> $OUTPUT
+
+# ─── 1. PROJECT BRIEF (edit these manually) ───
+cat >> $OUTPUT << 'BRIEF'
+## Product Brief
+- **App Name:** [YOUR APP NAME]
+- **What it does:** [1-2 sentence description]
+- **Target users / roles:** [e.g. Admin, Manager, Member, Viewer]
+- **Core workflows:** [e.g. Create project → assign team → track tasks → export report]
+- **Closest competitors:** [e.g. Linear, Asana, Monday.com]
+- **Pricing model:** [e.g. Freemium, seat-based, usage-based]
+- **Tech stack:** [e.g. React + Node + PostgreSQL]
+BRIEF
+echo "" >> $OUTPUT
+
+# ─── 2. DIRECTORY STRUCTURE ───
+echo "## Directory Structure" >> $OUTPUT
+echo '```' >> $OUTPUT
+find . -not -path '*/node_modules/*' -not -path '*/.git/*' \
+       -not -path '*/.cache/*' -not -path '*/dist/*' \
+       -not -path '*/build/*' -not -path '*/__pycache__/*' \
+       | sort | head -200 >> $OUTPUT
+echo '```' >> $OUTPUT
+echo "" >> $OUTPUT
+
+# ─── 3. PACKAGE / DEPENDENCY FILES ───
+echo "## Dependencies" >> $OUTPUT
+for f in package.json requirements.txt Pipfile pyproject.toml go.mod Gemfile; do
+  if [ -f "$f" ]; then
+    echo "### $f" >> $OUTPUT
+    echo '```' >> $OUTPUT
+    cat "$f" >> $OUTPUT
+    echo '```' >> $OUTPUT
+    echo "" >> $OUTPUT
+  fi
+done
+
+# ─── 4. ENVIRONMENT VARIABLES (keys only, no values) ───
+echo "## Environment Variables (keys only)" >> $OUTPUT
+echo '```' >> $OUTPUT
+for f in .env .env.example .env.sample .env.local; do
+  if [ -f "$f" ]; then
+    grep -v '^#' "$f" | grep '=' | cut -d'=' -f1 >> $OUTPUT
+  fi
+done
+echo '```' >> $OUTPUT
+echo "" >> $OUTPUT
+
+# ─── 5. ROUTES / API ENDPOINTS ───
+echo "## API Routes" >> $OUTPUT
+echo '```' >> $OUTPUT
+# Node/Express
+grep -rn "router\.\(get\|post\|put\|patch\|delete\)\|app\.\(get\|post\|put\|patch\|delete\)" \
+  --include="*.js" --include="*.ts" \
+  --exclude-dir=node_modules --exclude-dir=dist \
+  . 2>/dev/null | head -100 >> $OUTPUT
+# Python/Flask/FastAPI
+grep -rn "@app\.route\|@router\.\|@bp\.route" \
+  --include="*.py" . 2>/dev/null | head -100 >> $OUTPUT
+echo '```' >> $OUTPUT
+echo "" >> $OUTPUT
+
+# ─── 6. AUTH & RBAC LOGIC ───
+echo "## Auth & RBAC Logic" >> $OUTPUT
+for pattern in "middleware" "auth" "permission" "role" "guard" "policy" "rbac" "acl"; do
+  FILES=$(find . -not -path '*/node_modules/*' -not -path '*/.git/*' \
+    \( -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rb" \) \
+    | xargs grep -li "$pattern" 2>/dev/null | head -5)
+  for f in $FILES; do
+    echo "### $f" >> $OUTPUT
+    echo '```' >> $OUTPUT
+    cat "$f" >> $OUTPUT
+    echo '```' >> $OUTPUT
+    echo "" >> $OUTPUT
+  done
+done
+
+# ─── 7. DATABASE SCHEMA ───
+echo "## Database Schema" >> $OUTPUT
+echo '```' >> $OUTPUT
+# SQL migration files
+find . -not -path '*/node_modules/*' \
+  \( -name "*.sql" -o -name "*migration*" -o -name "*schema*" \) \
+  | head -10 | while read f; do
+    echo "--- $f ---"
+    cat "$f"
+  done >> $OUTPUT 2>/dev/null
+# Prisma schema
+[ -f "prisma/schema.prisma" ] && cat "prisma/schema.prisma" >> $OUTPUT
+# Drizzle
+find . -name "schema.ts" -not -path '*/node_modules/*' | head -3 | xargs cat 2>/dev/null >> $OUTPUT
+# SQLAlchemy / Django models
+grep -rn "class.*Model\|db\.Column\|models\." \
+  --include="*.py" . 2>/dev/null | head -80 >> $OUTPUT
+echo '```' >> $OUTPUT
+echo "" >> $OUTPUT
+
+# ─── 8. FRONTEND PAGES & ROUTES ───
+echo "## Frontend Pages & Routes" >> $OUTPUT
+echo '```' >> $OUTPUT
+# React Router / Next.js pages
+find . -not -path '*/node_modules/*' -not -path '*/.git/*' \
+  \( -path "*/pages/*" -o -path "*/app/*" -o -path "*/routes/*" -o -path "*/views/*" \) \
+  \( -name "*.jsx" -o -name "*.tsx" -o -name "*.vue" -o -name "*.svelte" \) \
+  | sort >> $OUTPUT
+echo '```' >> $OUTPUT
+echo "" >> $OUTPUT
+
+# ─── 9. KEY FRONTEND COMPONENTS ───
+echo "## Key Frontend Components" >> $OUTPUT
+COMPONENT_DIRS="src/components components src/views"
+for dir in $COMPONENT_DIRS; do
+  if [ -d "$dir" ]; then
+    find "$dir" -not -path '*/node_modules/*' \
+      \( -name "*.jsx" -o -name "*.tsx" -o -name "*.vue" \) \
+      | head -30 | while read f; do
+        echo "### $f" >> $OUTPUT
+        echo '```' >> $OUTPUT
+        head -80 "$f" >> $OUTPUT   # first 80 lines per component
+        echo '```' >> $OUTPUT
+        echo "" >> $OUTPUT
+      done
+  fi
+done
+
+# ─── 10. MULTI-TENANCY & BILLING SIGNALS ───
+echo "## Multi-Tenancy & Billing Signals" >> $OUTPUT
+echo '```' >> $OUTPUT
+grep -rn "tenant\|organization\|workspace\|subscription\|stripe\|billing\|plan\|tier" \
+  --include="*.js" --include="*.ts" --include="*.py" \
+  --exclude-dir=node_modules --exclude-dir=dist \
+  . 2>/dev/null | grep -v "node_modules" | head -60 >> $OUTPUT
+echo '```' >> $OUTPUT
+echo "" >> $OUTPUT
+
+# ─── 11. ERROR HANDLING & LOGGING ───
+echo "## Error Handling & Logging" >> $OUTPUT
+echo '```' >> $OUTPUT
+grep -rn "console\.error\|logger\.\|logging\.\|Sentry\|rollbar\|catch\s*(err\|catch\s*(e[^a-z]" \
+  --include="*.js" --include="*.ts" --include="*.py" \
+  --exclude-dir=node_modules \
+  . 2>/dev/null | head -40 >> $OUTPUT
+echo '```' >> $OUTPUT
+echo "" >> $OUTPUT
+
+# ─── DONE ───
+echo ""
+echo "✅ Audit dump complete: $OUTPUT"
+echo "📁 File size: $(wc -l < $OUTPUT) lines"
+echo ""
+echo "Next steps:"
+echo "  1. Open $OUTPUT and fill in the Product Brief section at the top"
+echo "  2. Upload $OUTPUT + screenshots of key UI screens to Claude"
+echo "  3. Ask: 'Perform a full SaaS audit covering UI/UX, RBAC, workflows, and market readiness'"
