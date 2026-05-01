@@ -36,3 +36,9 @@ id = "bArES25Zk2bhaUbscixKs"
 uri = "file://claude_audit_dump.md"
 type = "text"
 title = "BusinessNow PSA — SaaS Audit Dump"
+
+[[outputs]]
+id = "6C9Qk1lgX4fO4gutywT4D"
+uri = "file://prd-generator/output/sitemap.md"
+type = "text"
+title = "BusinessNow PSA — Site Map"
