@@ -48,3 +48,9 @@ id = "6fXS4ZbzF2h0jfJ9nha1O"
 uri = "file://prd-generator/output/brd.md"
 type = "text"
 title = "BusinessNow PSA — Business Requirements Document"
+
+[[outputs]]
+id = "LF8LW4kE6azrkjLj_KJFf"
+uri = "file://prd-generator/output/brd.docx"
+type = "word_document"
+title = "BusinessNow PSA — Business Requirements Document (Word)"
