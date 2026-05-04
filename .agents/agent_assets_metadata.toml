@@ -42,3 +42,9 @@ id = "6C9Qk1lgX4fO4gutywT4D"
 uri = "file://prd-generator/output/sitemap.md"
 type = "text"
 title = "BusinessNow PSA — Site Map"
+
+[[outputs]]
+id = "6fXS4ZbzF2h0jfJ9nha1O"
+uri = "file://prd-generator/output/brd.md"
+type = "text"
+title = "BusinessNow PSA — Business Requirements Document"
