@@ -4,6 +4,9 @@
   "private": true,
   "dependencies": {
     "html-to-docx": "^1.8.0",
+    "pdfkit": "^0.18.0",
+    "puppeteer": "^24.42.0",
+    "puppeteer-core": "^24.42.0",
     "sharp": "^0.33.5"
   }
 }
