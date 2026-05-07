@@ -3,6 +3,8 @@ modules = ["nodejs-20", "web", "bash", "postgresql-16"]
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
+run = ["bash", "-c", "NODE_ENV=production node --enable-source-maps artifacts/api-server/dist/index.mjs"]
+build = ["bash", "-c", "PORT=5000 BASE_PATH=/ NODE_ENV=production pnpm --filter @workspace/businessnow run build && pnpm --filter @workspace/api-server run build"]
 
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
@@ -76,6 +78,10 @@ externalPort = 80
 [[ports]]
 localPort = 8082
 externalPort = 3002
+
+[[ports]]
+localPort = 8090
+externalPort = 3001
 
 [[ports]]
 localPort = 23582

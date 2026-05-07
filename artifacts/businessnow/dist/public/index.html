@@ -8,10 +8,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-wGA7_rP3.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-Em-akKo-.css">
+    <script type="module" crossorigin src="/assets/index-DkhXCXcp.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CQWJfj-e.css">
   </head>
   <body>
+    <script>
+      /* Screenshot-session bootstrap — sets auth from URL params so headless
+         tools can capture authenticated pages without interactive login.
+         Usage: append ?ss=1 (optionally &uid=N&role=ROLE) to any route.
+         This block runs before React mounts so CurrentUserProvider rehydrates. */
+      (function () {
+        var p = new URLSearchParams(window.location.search);
+        if (p.get('ss') === '1') {
+          var uid  = p.get('uid')  || '1';
+          var role = p.get('role') || 'account_admin';
+          localStorage.setItem('activeUserId', uid);
+          localStorage.setItem('activeRole',   role);
+        }
+      })();
+    </script>
     <div id="root"></div>
   </body>
 </html>
