@@ -66,3 +66,9 @@ id = "53Gx1KXJGZT8H7gW005uu"
 uri = "file://prd-generator/output/blueprint.pdf"
 type = "pdf"
 title = "BusinessNow PSA – Frontend Blueprint Document"
+
+[[outputs]]
+id = "jip7zvBE5zldBGI_Uo-_9"
+uri = "file://BRD.md"
+type = "text"
+title = "BusinessNow PSA — Module-wise Business Requirements Document"
