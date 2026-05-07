@@ -1,0 +1,1 @@
+{"version":3,"file":"projectSummary.d.ts","sourceRoot":"","sources":["../../../src/generated/types/projectSummary.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,cAAc;IAC7B,SAAS,EAAE,MAAM,CAAC;IAClB,iBAAiB,EAAE,MAAM,CAAC;IAC1B,gBAAgB,EAAE,MAAM,CAAC;IACzB,aAAa,EAAE,MAAM,CAAC;IACtB,cAAc,EAAE,MAAM,CAAC;IACvB,aAAa,EAAE,MAAM,CAAC;IACtB,QAAQ,EAAE,MAAM,CAAC;CAClB"}

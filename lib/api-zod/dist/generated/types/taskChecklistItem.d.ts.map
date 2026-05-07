@@ -1,0 +1,1 @@
+{"version":3,"file":"taskChecklistItem.d.ts","sourceRoot":"","sources":["../../../src/generated/types/taskChecklistItem.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,iBAAiB;IAChC,EAAE,EAAE,MAAM,CAAC;IACX,MAAM,EAAE,MAAM,CAAC;IACf,IAAI,EAAE,MAAM,CAAC;IACb,SAAS,EAAE,OAAO,CAAC;IACnB,KAAK,EAAE,MAAM,CAAC;IACd,SAAS,EAAE,MAAM,CAAC;CACnB"}

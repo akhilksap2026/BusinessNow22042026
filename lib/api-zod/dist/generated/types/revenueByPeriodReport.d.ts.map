@@ -1,0 +1,1 @@
+{"version":3,"file":"revenueByPeriodReport.d.ts","sourceRoot":"","sources":["../../../src/generated/types/revenueByPeriodReport.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,gCAAgC,EAAE,MAAM,oCAAoC,CAAC;AAE3F,MAAM,WAAW,qBAAqB;IACpC,OAAO,EAAE,gCAAgC,EAAE,CAAC;IAC5C,eAAe,EAAE,MAAM,CAAC;IACxB,OAAO,EAAE,MAAM,EAAE,CAAC;CACnB"}

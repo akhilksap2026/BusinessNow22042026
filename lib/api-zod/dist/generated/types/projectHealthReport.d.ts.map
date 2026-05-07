@@ -1,0 +1,1 @@
+{"version":3,"file":"projectHealthReport.d.ts","sourceRoot":"","sources":["../../../src/generated/types/projectHealthReport.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,+BAA+B,EAAE,MAAM,mCAAmC,CAAC;AAEzF,MAAM,WAAW,mBAAmB;IAClC,OAAO,EAAE,MAAM,CAAC;IAChB,MAAM,EAAE,MAAM,CAAC;IACf,QAAQ,EAAE,MAAM,CAAC;IACjB,SAAS,EAAE,MAAM,CAAC;IAClB,QAAQ,EAAE,+BAA+B,EAAE,CAAC;CAC7C"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"listAuditLogParams.d.ts","sourceRoot":"","sources":["../../../src/generated/types/listAuditLogParams.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,MAAM,kBAAkB,GAAG;IAC/B,UAAU,CAAC,EAAE,MAAM,CAAC;IACpB,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,KAAK,CAAC,EAAE,MAAM,CAAC;CAChB,CAAC"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"burnDownReport.d.ts","sourceRoot":"","sources":["../../../src/generated/types/burnDownReport.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,4BAA4B,EAAE,MAAM,gCAAgC,CAAC;AAEnF,MAAM,WAAW,cAAc;IAC7B,SAAS,EAAE,MAAM,CAAC;IAClB,WAAW,EAAE,MAAM,CAAC;IACpB,UAAU,EAAE,MAAM,CAAC;IACnB,cAAc,EAAE,MAAM,CAAC;IACvB,UAAU,EAAE,4BAA4B,EAAE,CAAC;CAC5C"}

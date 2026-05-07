@@ -1,0 +1,1 @@
+{"version":3,"file":"taxCode.d.ts","sourceRoot":"","sources":["../../../src/generated/types/taxCode.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,OAAO;IACtB,EAAE,EAAE,MAAM,CAAC;IACX,IAAI,EAAE,MAAM,CAAC;IACb,IAAI,EAAE,MAAM,CAAC;IACb,WAAW,CAAC,EAAE,MAAM,GAAG,IAAI,CAAC;IAC5B,SAAS,EAAE,OAAO,CAAC;IACnB,QAAQ,EAAE,MAAM,CAAC;IACjB,SAAS,EAAE,MAAM,CAAC;CACnB"}

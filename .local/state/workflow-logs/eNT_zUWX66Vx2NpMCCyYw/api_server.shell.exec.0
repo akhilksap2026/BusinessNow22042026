@@ -1,0 +1,5427 @@
+
+> @workspace/api-server@0.0.0 dev /home/runner/workspace/artifacts/api-server
+> export NODE_ENV=development && pnpm run build && pnpm run start
+
+
+> @workspace/api-server@0.0.0 build /home/runner/workspace/artifacts/api-server
+> node ./build.mjs
+
+
+  [37mdist/[0m[1mindex.mjs[0m                       [33m2.8mb ⚠️[0m
+  [37mdist/[0m[1mpino-worker.mjs[0m               [36m153.4kb[0m
+  [37mdist/[0m[1mpino-file.mjs[0m                 [36m142.1kb[0m
+  [37mdist/[0m[1mpino-pretty.mjs[0m               [36m114.6kb[0m
+  [37mdist/[0m[1mthread-stream-worker.mjs[0m        [36m7.3kb[0m
+  [37mdist/[0m[1mindex.mjs.map[0m                   [36m4.8mb[0m
+  [37mdist/[0m[1mpino-worker.mjs.map[0m           [36m256.9kb[0m
+  [37mdist/[0m[1mpino-file.mjs.map[0m             [36m229.0kb[0m
+  [37mdist/[0m[1mpino-pretty.mjs.map[0m           [36m203.9kb[0m
+  [37mdist/[0m[1mthread-stream-worker.mjs.map[0m   [36m12.0kb[0m
+
+⚡ [32mDone in 839ms[0m
+
+> @workspace/api-server@0.0.0 start /home/runner/workspace/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+
+[06:25:18.216] [32mINFO[39m (358): [36mServer listening[39m
+    [35mport[39m: 8080
+[06:25:34.392] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 1,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 42
+[06:25:34.639] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 2,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:25:34.727] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 3,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 14
+[06:25:34.732] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 7,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4
+[06:25:34.735] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 4,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 17
+[06:25:34.743] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 6,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 22
+[06:25:34.756] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 5,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 36
+[06:25:34.900] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 8,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3
+[06:25:34.990] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 9,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:25:34.995] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 10,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[06:25:34.996] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 12,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:25:34.996] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 11,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 8
+[06:25:34.999] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 13,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:25:35.160] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 14,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:25:35.228] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 15,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:25:35.234] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 16,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:26:06.448] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 18,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 23
+[06:26:06.451] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 20,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 23
+[06:26:06.453] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 17,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 34
+[06:26:06.455] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 19,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 29
+[06:26:06.457] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 21,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 29
+[06:26:06.458] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 22,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 25
+[06:26:06.714] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 23,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:26:06.721] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 25,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:26:06.726] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 26,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:26:06.727] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 24,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:26:06.729] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 27,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:26:06.731] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 28,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[06:26:06.959] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 29,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:26:06.994] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 30,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:26:34.747] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 31,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[06:26:34.991] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 32,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:27:06.751] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 33,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:27:06.753] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 35,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:27:06.754] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 36,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:27:06.759] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 37,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[06:27:06.761] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 38,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 20
+[06:27:06.762] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 34,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 27
+[06:27:06.993] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 39,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:27:06.995] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 40,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:27:06.997] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 41,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:27:07.004] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 42,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:27:07.005] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 43,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:27:07.043] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 44,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:27:07.243] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 45,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[06:27:07.249] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 46,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:27:35.067] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 47,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:27:35.310] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 48,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:28:35.369] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 49,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 13
+[06:28:35.676] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 50,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:28:39.361] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 51,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:28:39.366] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 52,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:28:39.371] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 54,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:28:39.380] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 53,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:28:39.381] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 56,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:28:39.382] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 55,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[06:28:39.612] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 57,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:28:39.613] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 58,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:28:39.621] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 59,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:28:39.628] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 60,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:28:39.630] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 61,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:28:39.632] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 62,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:28:39.853] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 63,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:28:39.854] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 64,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:29:36.374] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 65,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:29:36.630] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 66,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:30:03.018] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 68,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:30:03.019] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 69,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:30:03.026] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 72,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[06:30:03.027] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 70,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 24
+[06:30:03.027] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 71,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 23
+[06:30:03.028] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 67,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 31
+[06:30:03.304] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 74,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[06:30:03.304] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 75,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:30:03.308] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 76,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[06:30:03.310] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 73,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:30:03.311] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 78,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:30:03.312] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 77,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:30:03.544] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 79,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:30:03.557] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 80,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:30:37.375] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 81,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:30:37.670] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 82,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:31:32.156] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 83,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:31:32.159] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 85,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:31:32.161] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 86,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:31:32.161] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 88,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:31:32.167] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 87,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 23
+[06:31:32.169] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 84,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 29
+[06:31:32.400] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 89,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:31:32.406] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 90,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:31:32.407] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 91,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:31:32.409] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 92,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:31:32.413] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 94,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:31:32.418] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 93,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[06:31:32.647] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 95,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:31:32.650] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 96,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:31:38.348] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 97,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:31:38.593] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 98,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:32:39.368] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 99,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[06:32:39.604] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 100,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:33:24.636] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 104,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 13
+[06:33:24.638] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 102,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:33:24.641] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 103,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:33:24.643] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 101,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 24
+[06:33:24.647] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 106,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:33:24.647] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 105,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:33:24.882] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 107,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:33:24.892] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 108,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:33:24.896] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 110,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:33:24.900] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 109,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[06:33:24.906] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 111,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:33:24.909] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 112,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:33:25.129] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 113,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:33:25.137] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 114,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:33:39.649] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 115,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:33:39.893] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 116,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:34:40.363] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 117,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:34:40.608] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 118,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:35:31.742] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 120,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:35:31.745] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 119,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[06:35:31.746] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 121,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[06:35:31.748] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 122,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[06:35:31.749] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 124,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 19
+[06:35:31.753] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 123,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 24
+[06:35:31.994] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 125,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:35:31.997] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 126,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:35:31.998] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 127,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:35:31.999] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 128,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:35:32.002] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 130,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:35:32.006] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 129,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:35:32.241] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 131,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:35:32.244] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 132,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:35:40.670] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 133,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:35:41.011] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 134,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:36:41.075] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 135,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:36:41.336] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 136,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:37:42.489] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 137,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 23
+[06:37:42.742] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 138,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:38:43.571] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 139,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 87
+[06:38:43.828] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 140,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:39:44.387] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 141,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:39:44.635] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 142,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:40:45.379] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 143,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 13
+[06:40:45.650] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 144,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:41:46.381] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 145,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[06:41:46.640] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 146,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:42:47.378] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 147,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 13
+[06:42:47.633] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 148,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:43:47.682] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 149,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[06:43:47.956] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 150,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:44:45.903] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 152,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 140
+[06:44:45.918] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 156,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 152
+[06:44:45.919] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 154,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 155
+[06:44:45.919] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 151,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 209
+[06:44:45.926] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 155,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 161
+[06:44:45.927] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 153,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 163
+[06:44:46.166] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 157,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[06:44:46.167] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 158,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:44:46.179] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 161,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:44:46.180] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 159,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[06:44:46.181] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 160,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[06:44:46.183] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 162,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:44:46.414] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 163,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:44:46.423] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 164,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:44:48.446] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 165,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 55
+[06:44:48.706] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 166,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:45:21.268] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 168,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 72
+[06:45:21.279] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 169,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 49
+[06:45:21.281] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 171,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 48
+[06:45:21.283] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 167,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 93
+[06:45:21.286] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 172,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 53
+[06:45:21.289] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 170,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 58
+[06:45:21.510] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 173,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:45:21.532] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 174,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:45:21.535] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 175,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:45:21.537] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 176,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:45:21.542] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 177,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:45:21.547] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 178,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:45:21.826] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 179,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:45:21.834] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 180,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:45:48.763] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 181,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:45:49.022] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 182,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[06:46:20.311] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 183,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:46:20.319] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 184,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:46:20.326] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 186,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:46:20.329] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 188,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:46:20.333] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 185,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 15
+[06:46:20.340] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 187,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:46:20.561] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 189,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:46:20.567] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 190,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[06:46:20.579] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 191,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:46:20.579] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 192,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:46:20.583] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 193,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:46:20.591] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 194,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:46:20.809] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 195,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:46:20.809] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 196,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:46:49.372] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 197,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:46:49.623] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 198,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:47:50.374] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 199,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[06:47:50.624] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 200,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:48:48.072] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 202,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:48:48.073] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 203,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:48:48.076] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 201,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 22
+[06:48:48.078] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 205,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:48:48.079] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 204,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 20
+[06:48:48.080] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 206,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 19
+[06:48:48.314] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 207,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:48:48.315] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 208,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:48:48.321] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 209,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:48:48.323] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 210,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:48:48.328] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 211,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:48:48.333] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 212,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:48:48.559] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 213,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:48:48.559] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 214,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:48:50.662] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 215,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:48:50.974] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 216,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:49:20.339] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 217,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:49:20.342] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 218,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:49:20.346] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 219,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[06:49:20.353] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 220,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 27
+[06:49:20.366] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 222,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 31
+[06:49:20.368] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 221,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 34
+[06:49:20.581] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 223,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:49:20.587] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 224,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:49:20.592] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 225,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:49:20.592] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 226,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:49:20.624] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 227,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:49:20.631] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 228,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:49:20.826] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 229,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:49:20.832] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 230,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:49:50.957] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 231,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[06:49:51.245] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 232,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:50:51.376] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 233,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:50:52.347] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 234,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:51:00.801] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 235,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[06:51:00.805] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 236,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 15
+[06:51:00.809] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 238,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 15
+[06:51:00.809] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 237,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:51:00.812] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 240,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[06:51:00.813] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 239,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:51:01.042] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 241,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:51:01.050] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 243,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:51:01.054] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 242,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:51:01.059] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 244,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:51:01.060] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 245,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:51:01.062] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 246,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:51:01.282] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 247,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:51:01.297] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 248,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:51:34.138] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 251,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 15
+[06:51:34.139] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 250,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:51:34.144] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 252,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 19
+[06:51:34.145] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 249,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 23
+[06:51:34.146] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 253,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 19
+[06:51:34.146] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 254,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:51:34.380] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 255,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:51:34.385] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 256,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:51:34.395] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 257,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:51:34.402] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 258,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[06:51:34.402] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 259,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:51:34.435] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 260,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:51:34.620] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 261,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:51:34.625] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 262,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:51:52.426] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 263,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 13
+[06:51:53.354] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 264,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:52:07.287] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 265,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:52:07.288] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 266,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:52:07.289] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 268,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:52:07.291] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 269,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:52:07.296] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 270,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 22
+[06:52:07.297] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 267,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 26
+[06:52:07.529] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 271,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:52:07.534] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 272,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:52:07.535] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 273,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:52:07.538] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 274,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:52:07.544] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 275,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:52:07.555] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 276,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:52:07.769] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 277,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:52:07.780] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 278,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:52:53.376] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 279,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:52:54.356] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 280,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:53:09.420] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 281,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 31
+[06:53:09.424] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 286,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 24
+[06:53:09.432] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 283,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 40
+[06:53:09.433] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 282,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 42
+[06:53:09.434] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 285,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 38
+[06:53:09.446] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 284,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 52
+[06:53:09.657] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 287,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:53:09.678] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 288,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:53:09.685] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 289,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:53:09.689] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 290,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:53:09.691] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 291,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:53:09.693] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 292,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:53:09.906] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 293,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:53:09.927] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 294,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:53:15.832] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 295,
+      "method": "GET",
+      "url": "/api/rate-cards"
+    }
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 3
+[06:53:16.000] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 297,
+      "method": "GET",
+      "url": "/api/accounts"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 167
+[06:53:16.065] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 299,
+      "method": "GET",
+      "url": "/api/projects"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 229
+[06:53:16.070] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 298,
+      "method": "GET",
+      "url": "/api/saved-views"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 234
+[06:53:16.101] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 296,
+      "method": "GET",
+      "url": "/api/project-templates"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 270
+[06:53:17.112] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 300,
+      "method": "GET",
+      "url": "/api/rate-cards"
+    }
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 3
+[06:53:54.372] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 301,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[06:53:55.352] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 302,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:54:55.375] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 303,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:54:56.357] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 304,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[06:55:56.379] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 305,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:55:57.369] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 306,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:56:14.668] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 307,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[06:56:14.676] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 308,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[06:56:14.680] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 309,
+      "method": "GET",
+      "url": "/api/projects"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:56:14.681] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 311,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:56:14.684] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 312,
+      "method": "GET",
+      "url": "/api/saved-views"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:56:14.689] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 310,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[06:56:14.908] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 313,
+      "method": "GET",
+      "url": "/api/accounts"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:56:14.919] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 314,
+      "method": "GET",
+      "url": "/api/rate-cards"
+    }
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 1
+[06:56:14.926] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 316,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:56:14.933] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 318,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:56:14.935] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 317,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:56:14.942] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 315,
+      "method": "GET",
+      "url": "/api/project-templates"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 22
+[06:56:15.149] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 319,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:56:15.161] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 320,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:56:16.175] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 321,
+      "method": "GET",
+      "url": "/api/rate-cards"
+    }
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 1
+[06:56:23.610] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 322,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[06:56:23.617] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 323,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:56:23.617] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 324,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[06:56:23.617] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 325,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[06:56:23.619] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 326,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:56:57.384] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 327,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:56:58.365] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 328,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:57:02.613] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 329,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:57:02.619] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 330,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 20
+[06:57:02.625] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 333,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[06:57:02.630] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 332,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 26
+[06:57:02.630] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 331,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 27
+[06:57:02.631] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 334,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 20
+[06:57:02.854] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 335,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:57:02.874] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 336,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:57:02.877] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 337,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:57:02.891] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 338,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:57:02.892] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 339,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:57:02.895] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 340,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:57:03.162] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 341,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:57:03.164] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 342,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:57:58.373] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 343,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:57:59.361] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 344,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:58:59.390] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 345,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[06:59:00.359] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 346,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:59:48.956] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 349,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 13
+[06:59:48.957] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 348,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:59:48.958] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 347,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[06:59:48.961] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 350,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[06:59:48.964] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 351,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[06:59:48.965] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 352,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[06:59:49.197] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 353,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:59:49.198] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 354,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[06:59:49.205] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 355,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[06:59:49.209] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 356,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:59:49.211] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 357,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:59:49.212] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 358,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[06:59:49.441] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 359,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[06:59:49.442] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 360,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:00:00.372] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 361,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:00:01.348] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 362,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:01:01.374] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 363,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:01:02.354] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 364,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:01:21.344] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 365,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:01:21.344] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 367,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[07:01:21.345] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 368,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[07:01:21.348] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 369,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:01:21.349] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 370,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:01:21.350] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 366,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 22
+[07:01:21.588] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 371,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:01:21.593] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 373,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[07:01:21.594] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 374,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:01:21.594] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 372,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[07:01:21.596] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 375,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[07:01:21.597] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 376,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:01:21.831] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 377,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[07:01:21.833] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 378,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:02:02.381] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 379,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:02:03.359] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 380,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:03:03.414] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 381,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:03:04.353] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 382,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:04:04.374] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 383,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:04:05.360] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 384,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:05:05.380] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 385,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[07:05:06.365] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 386,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:05:31.406] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 387,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[07:05:31.412] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 388,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:05:31.415] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 391,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:05:31.421] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 389,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[07:05:31.425] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 392,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[07:05:31.426] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 390,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 15
+[07:05:31.646] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 393,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:05:31.653] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 394,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:05:31.662] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 395,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[07:05:31.668] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 396,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:05:31.675] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 397,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:05:31.679] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 398,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:05:31.885] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 399,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:05:31.894] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 400,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:06:06.409] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 401,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:06:07.358] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 402,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:07:07.386] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 403,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:07:08.354] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 404,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:07:52.817] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 408,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[07:07:52.817] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 406,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[07:07:52.823] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 407,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[07:07:52.825] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 405,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 25
+[07:07:52.825] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 409,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:07:52.826] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 410,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:07:53.057] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 411,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:07:53.061] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 412,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:07:53.061] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 413,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:07:53.067] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 414,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:07:53.070] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 415,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:07:53.071] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 416,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:07:53.301] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 417,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:07:53.305] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 418,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[07:08:08.388] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 419,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[07:08:09.354] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 420,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:08:35.318] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 421,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:08:35.321] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 424,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:08:35.322] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 423,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 19
+[07:08:35.328] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 425,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 20
+[07:08:35.329] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 426,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 19
+[07:08:35.330] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 422,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 28
+[07:08:35.559] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 427,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:08:35.562] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 428,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:08:35.571] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 430,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:08:35.575] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 429,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[07:08:35.578] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 431,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:08:35.585] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 432,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:08:35.802] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 433,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:08:35.809] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 434,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:09:09.377] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 435,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[07:09:10.367] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 436,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:10:10.383] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 437,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:10:11.349] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 438,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:11:11.406] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 439,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[07:11:12.357] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 440,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:11:57.203] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 443,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[07:11:57.205] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 442,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 15
+[07:11:57.210] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 446,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[07:11:57.210] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 444,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 19
+[07:11:57.213] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 441,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 29
+[07:11:57.213] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 445,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 21
+[07:11:57.442] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 447,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:11:57.442] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 448,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:11:57.448] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 449,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:11:57.450] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 450,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:11:57.454] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 451,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:11:57.459] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 452,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:11:57.682] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 453,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:11:57.685] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 454,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:12:12.377] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 455,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[07:12:13.365] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 456,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:12:38.492] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 457,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 20
+[07:12:38.493] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 458,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:12:38.496] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 459,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:12:38.497] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 461,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[07:12:38.497] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 460,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:12:38.501] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 462,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:12:38.736] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 463,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:12:38.740] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 465,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:12:38.745] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 464,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 8
+[07:12:38.747] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 466,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:12:38.747] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 467,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:12:38.749] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 468,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:12:38.977] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 470,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:12:38.977] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 469,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:13:13.376] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 471,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:13:14.366] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 472,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:13:44.680] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 473,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[07:13:44.683] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 474,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[07:13:44.685] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 477,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[07:13:44.685] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 476,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 17
+[07:13:44.688] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 478,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 16
+[07:13:44.690] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 475,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 24
+[07:13:44.921] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 479,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:13:44.926] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 480,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:13:44.931] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 481,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:13:44.938] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 482,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:13:44.944] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 484,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:13:44.947] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 483,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[07:13:45.165] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 485,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:13:45.171] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 486,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:14:14.380] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 487,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[07:14:15.369] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 488,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:15:16.093] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 489,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[07:15:16.394] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 490,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:16:17.382] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 491,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[07:16:17.628] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 492,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:17:18.377] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 493,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[07:17:18.619] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 494,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:18:19.375] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 495,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[07:18:19.642] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 496,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:27:31.002] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 497,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[07:27:31.018] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 498,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[07:27:31.028] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 499,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[07:27:31.031] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 500,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[07:27:31.038] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 501,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:27:31.045] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 502,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[07:27:31.279] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 503,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:27:31.281] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 504,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[07:27:31.282] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 506,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:27:31.283] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 505,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 6
+[07:27:31.289] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 507,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:27:31.298] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 508,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:27:31.565] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 509,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:27:31.568] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 510,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:27:31.577] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 511,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[07:27:31.580] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 512,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:28:32.388] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 513,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[07:28:33.378] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 514,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:29:33.391] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 515,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:29:34.369] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 516,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:30:34.411] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 517,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:30:35.372] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 518,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:31:35.401] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 519,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[07:31:36.373] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 520,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:32:36.411] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 521,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[07:32:37.376] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 522,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:33:29.616] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 523,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 15
+[07:33:29.862] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 524,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:33:30.113] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 525,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:33:30.361] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 526,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:33:30.608] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 527,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:33:30.611] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 528,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:33:30.639] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 529,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:33:30.646] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 530,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 5
+[07:33:30.669] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 531,
+      "method": "GET",
+      "url": "/api/dashboard/activity"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 3
+[07:33:30.678] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 532,
+      "method": "GET",
+      "url": "/api/reports/project-health"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 11
+[07:33:30.850] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 533,
+      "method": "GET",
+      "url": "/api/dashboard/cr-impact"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 4
+[07:33:30.854] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 534,
+      "method": "GET",
+      "url": "/api/invoices"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:33:30.878] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 535,
+      "method": "GET",
+      "url": "/api/notifications"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:33:30.886] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 536,
+      "method": "GET",
+      "url": "/api/users"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:33:37.393] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 537,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 2
+[07:33:38.380] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 538,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1
+[07:34:38.415] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 539,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 10
+[07:34:39.372] [32mINFO[39m (358): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 540,
+      "method": "GET",
+      "url": "/api/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 1

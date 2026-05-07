@@ -1,0 +1,1 @@
+{"version":3,"file":"createProjectGroupBody.d.ts","sourceRoot":"","sources":["../../../src/generated/types/createProjectGroupBody.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,sBAAsB;IACrC,IAAI,EAAE,MAAM,CAAC;IACb,gBAAgB;IAChB,KAAK,CAAC,EAAE,MAAM,GAAG,IAAI,CAAC;IACtB,SAAS,CAAC,EAAE,MAAM,CAAC;CACpB"}

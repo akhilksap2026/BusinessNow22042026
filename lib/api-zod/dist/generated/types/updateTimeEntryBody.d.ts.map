@@ -1,0 +1,1 @@
+{"version":3,"file":"updateTimeEntryBody.d.ts","sourceRoot":"","sources":["../../../src/generated/types/updateTimeEntryBody.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,mBAAmB;IAClC,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,QAAQ,CAAC,EAAE,OAAO,CAAC;IACnB,QAAQ,CAAC,EAAE,OAAO,CAAC;IACnB,gBAAgB;IAChB,MAAM,CAAC,EAAE,MAAM,GAAG,IAAI,CAAC;CACxB"}

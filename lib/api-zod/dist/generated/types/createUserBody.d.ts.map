@@ -1,0 +1,1 @@
+{"version":3,"file":"createUserBody.d.ts","sourceRoot":"","sources":["../../../src/generated/types/createUserBody.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,cAAc;IAC7B,IAAI,EAAE,MAAM,CAAC;IACb,IAAI,EAAE,MAAM,CAAC;IACb,KAAK,EAAE,MAAM,CAAC;IACd,QAAQ,EAAE,MAAM,CAAC;IACjB,UAAU,EAAE,MAAM,CAAC;IACnB,QAAQ,EAAE,MAAM,CAAC;IACjB,MAAM,CAAC,EAAE,MAAM,EAAE,CAAC;CACnB"}
