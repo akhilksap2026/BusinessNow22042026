@@ -72,3 +72,9 @@ id = "jip7zvBE5zldBGI_Uo-_9"
 uri = "file://BRD.md"
 type = "text"
 title = "BusinessNow PSA — Module-wise Business Requirements Document"
+
+[[outputs]]
+id = "3lMpLpG77z64lH_Lr8H8F"
+uri = "file://BRD.pdf"
+type = "pdf"
+title = "BusinessNow PSA — Business Requirements Document (PDF)"
