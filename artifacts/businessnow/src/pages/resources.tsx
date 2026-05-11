@@ -120,6 +120,100 @@ export default function Resources() {
   const queryClient = useQueryClient();
   const updateStatus = useUpdateResourceRequestStatus();
 
+  // ── Bulk Edit state ───────────────────────────────────────────────────────
+  const { data: allAllocations } = useListAllocations();
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<number>>(new Set());
+  interface BulkEdit { newResourceId?: number; newStartDate?: string; newEndDate?: string; newHoursPerWeek?: number }
+  const [bulkEdits, setBulkEdits] = useState<Map<number, BulkEdit>>(new Map());
+  interface BulkPreviewItem { allocationId: number; projectId: number; role: string; resource: { before: { id: number | null; name: string }; after: { id: number | null; name: string } }; capacityImpact: { before: { hoursPerWeek: number; startDate: string; endDate: string; resourceCapacity: number | null }; after: { hoursPerWeek: number; startDate: string; endDate: string; resourceCapacity: number | null } } }
+  const [bulkPreview, setBulkPreview] = useState<BulkPreviewItem[] | null>(null);
+  const [bulkPreviewLoading, setBulkPreviewLoading] = useState(false);
+  const [bulkApplying, setBulkApplying] = useState(false);
+
+  const namedAllocations = (allAllocations ?? []).filter((a: any) => a.userId != null);
+
+  function toggleBulkSelect(id: number) {
+    setBulkSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function setBulkField(id: number, field: keyof BulkEdit, value: string | number | undefined) {
+    setBulkEdits(prev => {
+      const next = new Map(prev);
+      const cur = next.get(id) ?? {};
+      if (value === undefined || value === "") {
+        const updated = { ...cur };
+        delete (updated as any)[field];
+        Object.keys(updated).length ? next.set(id, updated) : next.delete(id);
+      } else {
+        next.set(id, { ...cur, [field]: value });
+      }
+      return next;
+    });
+  }
+
+  function buildBulkPayload() {
+    return [...bulkSelectedIds].map(id => {
+      const edit = bulkEdits.get(id) ?? {};
+      return { allocationId: id, ...edit };
+    }).filter(u => Object.keys(u).length > 1); // must have at least one real change
+  }
+
+  async function handleBulkPreview() {
+    const payload = buildBulkPayload();
+    if (!payload.length) { toast({ title: "Select allocations and make at least one change to preview.", variant: "destructive" }); return; }
+    setBulkPreviewLoading(true);
+    try {
+      const res = await fetch("/api/allocations/bulk-preview", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ updates: payload }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast({ title: json.error ?? "Preview failed", variant: "destructive" }); return; }
+      setBulkPreview(json.previews);
+    } catch {
+      toast({ title: "Preview request failed", variant: "destructive" });
+    } finally {
+      setBulkPreviewLoading(false);
+    }
+  }
+
+  async function handleBulkApply() {
+    const payload = buildBulkPayload();
+    if (!payload.length) return;
+    setBulkApplying(true);
+    try {
+      const res = await fetch("/api/allocations/bulk-update", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ updates: payload }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        const detail = json.error === "over_allocation"
+          ? `Over-allocation detected on allocation #${json.allocationId} (first conflict: ${json.firstOverlapDate}). No changes were saved.`
+          : (json.error ?? "Bulk update failed");
+        toast({ title: detail, variant: "destructive" });
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["all-allocations"] });
+      toast({ title: `${json.updated?.length ?? payload.length} allocation(s) updated successfully.` });
+      setBulkEditOpen(false);
+      setBulkSelectedIds(new Set());
+      setBulkEdits(new Map());
+      setBulkPreview(null);
+    } catch {
+      toast({ title: "Bulk update failed", variant: "destructive" });
+    } finally {
+      setBulkApplying(false);
+    }
+  }
+
   // ── Placeholder Fulfill state ──────────────────────────────────────────────
   const [fulfillPlaceholderData, setFulfillPlaceholderData] = useState<PlaceholderAllocInfo | null>(null);
   const [fulfillPlaceholderForm, setFulfillPlaceholderForm] = useState({
@@ -535,6 +629,12 @@ export default function Resources() {
           </TabsContent>
 
           <TabsContent value="heatmap" className="m-0">
+            <div className="flex justify-end mb-2">
+              <Button variant="outline" size="sm" onClick={() => { setBulkEditOpen(true); setBulkPreview(null); }}>
+                <LayoutList className="h-4 w-4 mr-1.5" />
+                Bulk Edit Allocations
+              </Button>
+            </div>
             <UtilisationHeatmap onFulfill={openFulfillPlaceholder} />
           </TabsContent>
 
@@ -1114,6 +1214,190 @@ export default function Resources() {
           })()}
         </SheetContent>
       </Sheet>
+
+      {/* ── Bulk Edit Allocations Dialog ──────────────────────────────────── */}
+      <Dialog open={bulkEditOpen} onOpenChange={o => { if (!o) { setBulkEditOpen(false); setBulkPreview(null); } }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Bulk Edit Allocations</DialogTitle>
+            <DialogDescription>
+              Check allocations to edit, fill in new values, then Preview before applying. All changes apply together or not at all.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* ── Step 1: selection + edit table ── */}
+          {!bulkPreview && (
+            <div className="flex-1 overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8"></TableHead>
+                    <TableHead>Resource</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead>New Resource</TableHead>
+                    <TableHead>New Start</TableHead>
+                    <TableHead>New End</TableHead>
+                    <TableHead>New h/wk</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {namedAllocations.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No named allocations found</TableCell></TableRow>
+                  )}
+                  {namedAllocations.map((a: any) => {
+                    const checked = bulkSelectedIds.has(a.id);
+                    const edit = bulkEdits.get(a.id) ?? {};
+                    const currentUser = (users ?? []).find((u: any) => u.id === a.userId);
+                    const project = (projects ?? []).find((p: any) => p.id === a.projectId);
+                    return (
+                      <TableRow key={a.id} className={checked ? "bg-indigo-50/40" : ""}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleBulkSelect(a.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 cursor-pointer"
+                          />
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">{currentUser?.name ?? `User #${a.userId}`}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{a.role ?? "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{project?.name ?? `#${a.projectId}`}</TableCell>
+                        <TableCell>
+                          <Select
+                            disabled={!checked}
+                            value={edit.newResourceId !== undefined ? String(edit.newResourceId) : ""}
+                            onValueChange={v => setBulkField(a.id, "newResourceId", v ? parseInt(v) : undefined)}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-36"><SelectValue placeholder="Unchanged" /></SelectTrigger>
+                            <SelectContent>
+                              {(users ?? []).filter((u: any) => u.isActive !== 0).map((u: any) => (
+                                <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="date"
+                            disabled={!checked}
+                            className="h-7 text-xs w-32"
+                            value={edit.newStartDate ?? ""}
+                            placeholder={a.startDate}
+                            onChange={e => setBulkField(a.id, "newStartDate", e.target.value || undefined)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="date"
+                            disabled={!checked}
+                            className="h-7 text-xs w-32"
+                            value={edit.newEndDate ?? ""}
+                            placeholder={a.endDate}
+                            onChange={e => setBulkField(a.id, "newEndDate", e.target.value || undefined)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min={1}
+                            disabled={!checked}
+                            className="h-7 text-xs w-20"
+                            value={edit.newHoursPerWeek !== undefined ? edit.newHoursPerWeek : ""}
+                            placeholder={String(a.hoursPerWeek ?? "")}
+                            onChange={e => setBulkField(a.id, "newHoursPerWeek", e.target.value ? parseFloat(e.target.value) : undefined)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* ── Step 2: preview result ── */}
+          {bulkPreview && (
+            <div className="flex-1 overflow-auto space-y-2">
+              <p className="text-sm font-medium text-muted-foreground mb-2">{bulkPreview.length} allocation(s) will be changed. Review below then confirm.</p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Alloc #</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Resource</TableHead>
+                    <TableHead>Start</TableHead>
+                    <TableHead>End</TableHead>
+                    <TableHead>h/wk</TableHead>
+                    <TableHead>Capacity impact</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bulkPreview.map(p => {
+                    const resourceChanged = p.resource.before.id !== p.resource.after.id;
+                    const startChanged = p.capacityImpact.before.startDate !== p.capacityImpact.after.startDate;
+                    const endChanged = p.capacityImpact.before.endDate !== p.capacityImpact.after.endDate;
+                    const hoursChanged = p.capacityImpact.before.hoursPerWeek !== p.capacityImpact.after.hoursPerWeek;
+                    const cap = p.capacityImpact.after.resourceCapacity;
+                    const afterHpw = p.capacityImpact.after.hoursPerWeek;
+                    const utilPct = cap && cap > 0 ? Math.round((afterHpw / cap) * 100) : null;
+                    return (
+                      <TableRow key={p.allocationId}>
+                        <TableCell className="text-xs font-mono text-muted-foreground">#{p.allocationId}</TableCell>
+                        <TableCell className="text-xs">{p.role ?? "—"}</TableCell>
+                        <TableCell className="text-xs">
+                          {resourceChanged
+                            ? <span><span className="line-through text-muted-foreground">{p.resource.before.name}</span> → <span className="font-medium">{p.resource.after.name}</span></span>
+                            : p.resource.after.name}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {startChanged
+                            ? <span><span className="line-through text-muted-foreground">{p.capacityImpact.before.startDate}</span> → <span className="font-medium">{p.capacityImpact.after.startDate}</span></span>
+                            : p.capacityImpact.after.startDate}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {endChanged
+                            ? <span><span className="line-through text-muted-foreground">{p.capacityImpact.before.endDate}</span> → <span className="font-medium">{p.capacityImpact.after.endDate}</span></span>
+                            : p.capacityImpact.after.endDate}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {hoursChanged
+                            ? <span><span className="line-through text-muted-foreground">{p.capacityImpact.before.hoursPerWeek}h</span> → <span className="font-medium">{p.capacityImpact.after.hoursPerWeek}h</span></span>
+                            : `${p.capacityImpact.after.hoursPerWeek}h`}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {utilPct != null
+                            ? <span className={utilPct >= 100 ? "text-red-600 font-semibold" : utilPct >= 80 ? "text-amber-600" : "text-green-700"}>{utilPct}% of {cap}h cap</span>
+                            : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 pt-2 border-t">
+            {bulkPreview ? (
+              <>
+                <Button variant="outline" onClick={() => setBulkPreview(null)}>Back to Edit</Button>
+                <Button onClick={handleBulkApply} disabled={bulkApplying}>
+                  {bulkApplying ? "Applying…" : `Confirm ${bulkPreview.length} Change(s)`}
+                </Button>
+              </>
+            ) : (
+              <>
+                <span className="text-xs text-muted-foreground mr-auto">{bulkSelectedIds.size} selected</span>
+                <Button variant="outline" onClick={() => setBulkEditOpen(false)}>Cancel</Button>
+                <Button onClick={handleBulkPreview} disabled={bulkPreviewLoading || bulkSelectedIds.size === 0}>
+                  {bulkPreviewLoading ? "Previewing…" : "Preview Changes"}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Fulfill Placeholder Dialog ─────────────────────────────────────── */}
       <Dialog open={!!fulfillPlaceholderData} onOpenChange={o => !o && setFulfillPlaceholderData(null)}>

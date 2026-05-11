@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, gte, lte, isNull, inArray, ne } from "drizzle-orm";
 import { requirePM } from "../middleware/rbac";
 import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable, projectsTable, userSkillsTable, skillsTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
@@ -287,6 +287,222 @@ router.post("/allocations/preview", requirePM, async (req, res): Promise<void> =
     isOverAllocated: afterUsedHours > availableHours,
     affectedWeeks,
   });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/allocations/bulk-preview  — read-only, returns before/after per item
+// Body: { updates: [{ allocationId, newResourceId?, newStartDate?, newEndDate?, newHoursPerWeek? }] }
+// ---------------------------------------------------------------------------
+router.post("/allocations/bulk-preview", requirePM, async (req, res): Promise<void> => {
+  const updates: Array<{
+    allocationId: number;
+    newResourceId?: number | null;
+    newStartDate?: string;
+    newEndDate?: string;
+    newHoursPerWeek?: number;
+  }> = req.body?.updates;
+  if (!Array.isArray(updates) || updates.length === 0) {
+    res.status(400).json({ error: "updates must be a non-empty array" });
+    return;
+  }
+
+  const allocIds = updates.map(u => Number(u.allocationId)).filter(id => !isNaN(id));
+  const allocations = allocIds.length > 0
+    ? await db.select().from(allocationsTable).where(inArray(allocationsTable.id, allocIds))
+    : [];
+
+  // Collect all userId values to look up names + capacities
+  const userIds = new Set<number>();
+  for (const a of allocations) if (a.userId != null) userIds.add(a.userId);
+  for (const u of updates) if (u.newResourceId != null) userIds.add(u.newResourceId);
+
+  const userRows = userIds.size > 0
+    ? await db.select({ id: usersTable.id, name: usersTable.name, capacity: usersTable.capacity })
+        .from(usersTable).where(inArray(usersTable.id, [...userIds]))
+    : [];
+  const userMap = new Map(userRows.map(u => [u.id, u]));
+
+  const previews = updates.map(upd => {
+    const alloc = allocations.find(a => a.id === Number(upd.allocationId));
+    if (!alloc) return null;
+
+    const beforeUserId = alloc.userId ?? null;
+    const afterUserId = upd.newResourceId !== undefined ? (upd.newResourceId ?? null) : beforeUserId;
+    const beforeUser = beforeUserId != null ? (userMap.get(beforeUserId) ?? null) : null;
+    const afterUser = afterUserId != null ? (userMap.get(afterUserId) ?? null) : null;
+
+    return {
+      allocationId: alloc.id,
+      projectId: alloc.projectId,
+      role: alloc.role,
+      resource: {
+        before: { id: beforeUserId, name: beforeUser?.name ?? "Placeholder" },
+        after: { id: afterUserId, name: afterUser?.name ?? "Placeholder" },
+      },
+      capacityImpact: {
+        before: {
+          hoursPerWeek: Number(alloc.hoursPerWeek),
+          startDate: alloc.startDate,
+          endDate: alloc.endDate,
+          resourceCapacity: beforeUser?.capacity ?? null,
+        },
+        after: {
+          hoursPerWeek: upd.newHoursPerWeek ?? Number(alloc.hoursPerWeek),
+          startDate: upd.newStartDate ?? alloc.startDate,
+          endDate: upd.newEndDate ?? alloc.endDate,
+          resourceCapacity: afterUser?.capacity ?? null,
+        },
+      },
+    };
+  }).filter(Boolean);
+
+  res.json({ previews });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/allocations/bulk-update — transactional apply; 409 on over-allocation
+// Body: same shape as bulk-preview.
+// ---------------------------------------------------------------------------
+router.post("/allocations/bulk-update", requirePM, async (req, res): Promise<void> => {
+  const updates: Array<{
+    allocationId: number;
+    newResourceId?: number | null;
+    newStartDate?: string;
+    newEndDate?: string;
+    newHoursPerWeek?: number;
+  }> = req.body?.updates;
+  if (!Array.isArray(updates) || updates.length === 0) {
+    res.status(400).json({ error: "updates must be a non-empty array" });
+    return;
+  }
+
+  const actorUserId = Number(req.headers["x-user-id"] ?? 0) || undefined;
+  const allocIds = updates.map(u => Number(u.allocationId)).filter(id => !isNaN(id));
+  const allocations = allocIds.length > 0
+    ? await db.select().from(allocationsTable).where(inArray(allocationsTable.id, allocIds))
+    : [];
+
+  // ── Per-resource over-allocation check (before any writes) ────────────────
+  // Helper: working days Mon–Fri in [start, end] excluding holidays
+  function workingDays(start: string, end: string, holidaySet: Set<string>): string[] {
+    const days: string[] = [];
+    const cur = new Date(`${start}T00:00:00Z`);
+    const fin = new Date(`${end}T00:00:00Z`);
+    while (cur <= fin) {
+      const dow = cur.getUTCDay();
+      const iso = cur.toISOString().slice(0, 10);
+      if (dow !== 0 && dow !== 6 && !holidaySet.has(iso)) days.push(iso);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return days;
+  }
+
+  for (const upd of updates) {
+    const alloc = allocations.find(a => a.id === Number(upd.allocationId));
+    if (!alloc) { res.status(404).json({ error: `Allocation ${upd.allocationId} not found` }); return; }
+
+    // Only hard allocations with a named user are checked
+    if (alloc.isSoftAllocation || !alloc.userId) continue;
+
+    const targetUserId = upd.newResourceId !== undefined ? (upd.newResourceId ?? null) : alloc.userId;
+    if (!targetUserId) continue; // moving to placeholder — skip guard
+
+    const newStart = upd.newStartDate ?? alloc.startDate;
+    const newEnd = upd.newEndDate ?? alloc.endDate;
+    const newHpw = upd.newHoursPerWeek ?? Number(alloc.hoursPerWeek);
+    const newHpd = newHpw / 5;
+
+    const [targetUser, rivals, holidays] = await Promise.all([
+      db.select({ capacity: usersTable.capacity }).from(usersTable).where(eq(usersTable.id, targetUserId)).then(r => r[0] ?? null),
+      // All OTHER hard allocations for the target user overlapping the proposed range
+      db.select({ id: allocationsTable.id, startDate: allocationsTable.startDate, endDate: allocationsTable.endDate, hoursPerDay: allocationsTable.hoursPerDay })
+        .from(allocationsTable)
+        .where(and(
+          eq(allocationsTable.userId, targetUserId),
+          eq(allocationsTable.isSoftAllocation, false),
+          ne(allocationsTable.id, alloc.id), // exclude self so we don't double-count
+          lte(allocationsTable.startDate, newEnd),
+          gte(allocationsTable.endDate, newStart),
+        )),
+      db.select({ date: holidayDatesTable.date })
+        .from(holidayDatesTable)
+        .where(and(gte(holidayDatesTable.date, newStart), lte(holidayDatesTable.date, newEnd))),
+    ]);
+
+    if (!targetUser) { res.status(404).json({ error: `User ${targetUserId} not found` }); return; }
+    const dailyCap = targetUser.capacity / 5;
+    const hSet = new Set(holidays.map(h => h.date));
+    const days = workingDays(newStart, newEnd, hSet);
+
+    const overlapDay = days.find(day => {
+      const existingHpd = rivals
+        .filter(r => r.startDate <= day && r.endDate >= day)
+        .reduce((s, r) => s + Number(r.hoursPerDay), 0);
+      return existingHpd + newHpd > dailyCap;
+    });
+
+    if (overlapDay) {
+      res.status(409).json({
+        error: "over_allocation",
+        allocationId: alloc.id,
+        resourceId: targetUserId,
+        firstOverlapDate: overlapDay,
+      });
+      return;
+    }
+  }
+
+  // ── All checks passed — apply transactionally ─────────────────────────────
+  const updatedRows: ReturnType<typeof mapAllocation>[] = [];
+  await db.transaction(async (tx) => {
+    for (const upd of updates) {
+      const alloc = allocations.find(a => a.id === Number(upd.allocationId))!;
+      const updateData: Record<string, unknown> = { updatedAt: new Date() };
+
+      if (upd.newResourceId !== undefined) updateData.userId = upd.newResourceId ?? null;
+      if (upd.newStartDate !== undefined) updateData.startDate = upd.newStartDate;
+      if (upd.newEndDate !== undefined) updateData.endDate = upd.newEndDate;
+
+      // Recompute derived hours fields when any dimension changed
+      if (upd.newHoursPerWeek !== undefined || upd.newStartDate !== undefined || upd.newEndDate !== undefined) {
+        const hpw = upd.newHoursPerWeek ?? Number(alloc.hoursPerWeek);
+        const start = upd.newStartDate ?? alloc.startDate;
+        const end = upd.newEndDate ?? alloc.endDate;
+        const hpd = hpw / 5;
+        const days = workingDays(start, end, new Set());
+        updateData.hoursPerWeek = String(hpw);
+        updateData.hoursPerDay = String(hpd);
+        updateData.totalHours = String(Math.round(days.length * hpd * 100) / 100);
+      }
+
+      const [row] = await tx.update(allocationsTable)
+        .set(updateData as any)
+        .where(eq(allocationsTable.id, alloc.id))
+        .returning();
+      updatedRows.push(mapAllocation(row));
+    }
+  });
+
+  // Audit each change outside the transaction (fire-and-forget)
+  for (const upd of updates) {
+    const before = allocations.find(a => a.id === Number(upd.allocationId));
+    if (!before) continue;
+    await logAudit({
+      entityType: "allocation",
+      entityId: before.id,
+      action: "updated",
+      actorUserId,
+      description: `Bulk update: allocation ${before.id}` +
+        (upd.newResourceId !== undefined ? ` — resource ${before.userId} → ${upd.newResourceId}` : "") +
+        (upd.newStartDate ? ` — start ${before.startDate} → ${upd.newStartDate}` : "") +
+        (upd.newEndDate ? ` — end ${before.endDate} → ${upd.newEndDate}` : "") +
+        (upd.newHoursPerWeek !== undefined ? ` — ${before.hoursPerWeek}h/wk → ${upd.newHoursPerWeek}h/wk` : ""),
+      previousValue: { userId: before.userId, startDate: before.startDate, endDate: before.endDate, hoursPerWeek: before.hoursPerWeek },
+      newValue: { userId: upd.newResourceId ?? before.userId, startDate: upd.newStartDate ?? before.startDate, endDate: upd.newEndDate ?? before.endDate, hoursPerWeek: upd.newHoursPerWeek ?? before.hoursPerWeek },
+    });
+  }
+
+  res.json({ updated: updatedRows });
 });
 
 router.post("/allocations", requirePM, async (req, res): Promise<void> => {

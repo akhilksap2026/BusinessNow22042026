@@ -54085,6 +54085,11 @@ var init_projects = __esm({
       autoAllocate: boolean("auto_allocate").notNull().default(false),
       opportunityId: integer("opportunity_id"),
       projectGroupId: integer("project_group_id"),
+      // Budget governance: set to true automatically when the project is published
+      // (draft → active). While locked, PATCH /projects/:id rejects budget field
+      // changes with 403 budget_locked. Account Admin can unlock via
+      // PATCH /projects/:id/unlock-budget.
+      budgetLocked: boolean("budget_locked").notNull().default(false),
       deletedAt: timestamp("deleted_at", { withTimezone: true }),
       createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
@@ -54655,6 +54660,10 @@ var init_allocations = __esm({
       source: text("source").notNull().default("manual"),
       isTimesheetApprover: boolean("is_timesheet_approver").notNull().default(false),
       isLeaveApprover: boolean("is_leave_approver").notNull().default(false),
+      // Lifecycle status. NULL = normal. 'at_risk' is set automatically when an
+      // approved time-off request overlaps this allocation.  Additional values may
+      // be added in future without a migration (text column, not a pg enum).
+      status: text("status"),
       // Over-allocation override: set to true when a PM/admin bypasses the capacity guard.
       isOverride: boolean("is_override").notNull().default(false),
       overrideReason: text("override_reason"),
@@ -60132,6 +60141,7 @@ var GetProjectResponse = objectType({
   isAdminProject: numberType().optional(),
   opportunityId: numberType().nullish(),
   projectGroupId: numberType().nullish(),
+  budgetLocked: booleanType().optional(),
   deletedAt: stringType().nullish(),
   createdAt: stringType(),
   updatedAt: stringType(),
@@ -60176,6 +60186,7 @@ var UpdateProjectResponse = objectType({
   isAdminProject: numberType().optional(),
   opportunityId: numberType().nullish(),
   projectGroupId: numberType().nullish(),
+  budgetLocked: booleanType().optional(),
   deletedAt: stringType().nullish(),
   createdAt: stringType(),
   updatedAt: stringType(),
@@ -60671,11 +60682,12 @@ var ListAllocationsResponseItem = objectType({
 var ListAllocationsResponse = arrayType(ListAllocationsResponseItem);
 var CreateAllocationBody = objectType({
   projectId: numberType(),
-  userId: numberType(),
+  userId: numberType().nullable().optional(),
+  placeholderRole: stringType().optional(),
   startDate: stringType(),
   endDate: stringType(),
   hoursPerWeek: numberType(),
-  role: stringType()
+  role: stringType().optional()
 });
 var UpdateAllocationParams = objectType({
   id: coerce.number()
@@ -63209,6 +63221,16 @@ router4.patch("/projects/:id", requirePM, async (req, res) => {
     res.status(409).json({ error: "Project is deleted; restore it before editing." });
     return;
   }
+  const BUDGET_FIELDS = ["budget", "budgetedHours", "budgetCurrency"];
+  const bodyAny = parsed.data;
+  if (existing.budgetLocked && BUDGET_FIELDS.some((f) => f in bodyAny)) {
+    res.status(403).json({
+      error: "budget_locked",
+      message: "Budget is locked. Raise a Change Order to modify the budget.",
+      changeOrderUrl: `/projects/${existing.id}?tab=changes`
+    });
+    return;
+  }
   const incomingStatus = parsed.data.status;
   const isStatusChange = incomingStatus !== void 0 && incomingStatus !== existing.status;
   if (isStatusChange) {
@@ -63246,7 +63268,11 @@ router4.patch("/projects/:id", requirePM, async (req, res) => {
     res.status(400).json({ error: "dueDate must be on or after startDate" });
     return;
   }
-  const [row] = await db.update(projectsTable).set(parsed.data).where(eq(projectsTable.id, params.data.id)).returning();
+  const updatePayload = { ...parsed.data };
+  if (isStatusChange && normaliseStatus(existing.status) === "draft" && normaliseStatus(incomingStatus) === "active") {
+    updatePayload.budgetLocked = true;
+  }
+  const [row] = await db.update(projectsTable).set(updatePayload).where(eq(projectsTable.id, params.data.id)).returning();
   if (!row) {
     res.status(404).json({ error: "Project not found" });
     return;
@@ -63255,6 +63281,33 @@ router4.patch("/projects/:id", requirePM, async (req, res) => {
     await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
   }
   res.json(UpdateProjectResponse.parse(mapProject(row)));
+});
+router4.patch("/projects/:id/unlock-budget", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
+  if (!reason) {
+    res.status(400).json({ error: "reason is required to unlock the budget" });
+    return;
+  }
+  const [row] = await db.update(projectsTable).set({ budgetLocked: false }).where(eq(projectsTable.id, id)).returning();
+  if (!row) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+  await logAudit({
+    entityType: "project",
+    entityId: id,
+    action: "updated",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || void 0,
+    description: `Budget unlocked: ${reason}`,
+    previousValue: { budgetLocked: true },
+    newValue: { budgetLocked: false, reason }
+  });
+  res.json(mapProject(row));
 });
 router4.delete("/projects/:id", requirePM, async (req, res) => {
   const params = DeleteProjectParams.safeParse(req.params);
@@ -66098,6 +66151,157 @@ router12.post("/allocations/preview", requirePM, async (req, res) => {
     affectedWeeks
   });
 });
+router12.post("/allocations/bulk-preview", requirePM, async (req, res) => {
+  const updates = req.body?.updates;
+  if (!Array.isArray(updates) || updates.length === 0) {
+    res.status(400).json({ error: "updates must be a non-empty array" });
+    return;
+  }
+  const allocIds = updates.map((u) => Number(u.allocationId)).filter((id) => !isNaN(id));
+  const allocations = allocIds.length > 0 ? await db.select().from(allocationsTable).where(inArray(allocationsTable.id, allocIds)) : [];
+  const userIds = /* @__PURE__ */ new Set();
+  for (const a of allocations) if (a.userId != null) userIds.add(a.userId);
+  for (const u of updates) if (u.newResourceId != null) userIds.add(u.newResourceId);
+  const userRows = userIds.size > 0 ? await db.select({ id: usersTable.id, name: usersTable.name, capacity: usersTable.capacity }).from(usersTable).where(inArray(usersTable.id, [...userIds])) : [];
+  const userMap = new Map(userRows.map((u) => [u.id, u]));
+  const previews = updates.map((upd) => {
+    const alloc = allocations.find((a) => a.id === Number(upd.allocationId));
+    if (!alloc) return null;
+    const beforeUserId = alloc.userId ?? null;
+    const afterUserId = upd.newResourceId !== void 0 ? upd.newResourceId ?? null : beforeUserId;
+    const beforeUser = beforeUserId != null ? userMap.get(beforeUserId) ?? null : null;
+    const afterUser = afterUserId != null ? userMap.get(afterUserId) ?? null : null;
+    return {
+      allocationId: alloc.id,
+      projectId: alloc.projectId,
+      role: alloc.role,
+      resource: {
+        before: { id: beforeUserId, name: beforeUser?.name ?? "Placeholder" },
+        after: { id: afterUserId, name: afterUser?.name ?? "Placeholder" }
+      },
+      capacityImpact: {
+        before: {
+          hoursPerWeek: Number(alloc.hoursPerWeek),
+          startDate: alloc.startDate,
+          endDate: alloc.endDate,
+          resourceCapacity: beforeUser?.capacity ?? null
+        },
+        after: {
+          hoursPerWeek: upd.newHoursPerWeek ?? Number(alloc.hoursPerWeek),
+          startDate: upd.newStartDate ?? alloc.startDate,
+          endDate: upd.newEndDate ?? alloc.endDate,
+          resourceCapacity: afterUser?.capacity ?? null
+        }
+      }
+    };
+  }).filter(Boolean);
+  res.json({ previews });
+});
+router12.post("/allocations/bulk-update", requirePM, async (req, res) => {
+  const updates = req.body?.updates;
+  if (!Array.isArray(updates) || updates.length === 0) {
+    res.status(400).json({ error: "updates must be a non-empty array" });
+    return;
+  }
+  const actorUserId = Number(req.headers["x-user-id"] ?? 0) || void 0;
+  const allocIds = updates.map((u) => Number(u.allocationId)).filter((id) => !isNaN(id));
+  const allocations = allocIds.length > 0 ? await db.select().from(allocationsTable).where(inArray(allocationsTable.id, allocIds)) : [];
+  function workingDays2(start, end, holidaySet) {
+    const days = [];
+    const cur = /* @__PURE__ */ new Date(`${start}T00:00:00Z`);
+    const fin = /* @__PURE__ */ new Date(`${end}T00:00:00Z`);
+    while (cur <= fin) {
+      const dow = cur.getUTCDay();
+      const iso = cur.toISOString().slice(0, 10);
+      if (dow !== 0 && dow !== 6 && !holidaySet.has(iso)) days.push(iso);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return days;
+  }
+  for (const upd of updates) {
+    const alloc = allocations.find((a) => a.id === Number(upd.allocationId));
+    if (!alloc) {
+      res.status(404).json({ error: `Allocation ${upd.allocationId} not found` });
+      return;
+    }
+    if (alloc.isSoftAllocation || !alloc.userId) continue;
+    const targetUserId = upd.newResourceId !== void 0 ? upd.newResourceId ?? null : alloc.userId;
+    if (!targetUserId) continue;
+    const newStart = upd.newStartDate ?? alloc.startDate;
+    const newEnd = upd.newEndDate ?? alloc.endDate;
+    const newHpw = upd.newHoursPerWeek ?? Number(alloc.hoursPerWeek);
+    const newHpd = newHpw / 5;
+    const [targetUser, rivals, holidays] = await Promise.all([
+      db.select({ capacity: usersTable.capacity }).from(usersTable).where(eq(usersTable.id, targetUserId)).then((r) => r[0] ?? null),
+      // All OTHER hard allocations for the target user overlapping the proposed range
+      db.select({ id: allocationsTable.id, startDate: allocationsTable.startDate, endDate: allocationsTable.endDate, hoursPerDay: allocationsTable.hoursPerDay }).from(allocationsTable).where(and(
+        eq(allocationsTable.userId, targetUserId),
+        eq(allocationsTable.isSoftAllocation, false),
+        ne(allocationsTable.id, alloc.id),
+        // exclude self so we don't double-count
+        lte(allocationsTable.startDate, newEnd),
+        gte(allocationsTable.endDate, newStart)
+      )),
+      db.select({ date: holidayDatesTable.date }).from(holidayDatesTable).where(and(gte(holidayDatesTable.date, newStart), lte(holidayDatesTable.date, newEnd)))
+    ]);
+    if (!targetUser) {
+      res.status(404).json({ error: `User ${targetUserId} not found` });
+      return;
+    }
+    const dailyCap = targetUser.capacity / 5;
+    const hSet = new Set(holidays.map((h) => h.date));
+    const days = workingDays2(newStart, newEnd, hSet);
+    const overlapDay = days.find((day) => {
+      const existingHpd = rivals.filter((r) => r.startDate <= day && r.endDate >= day).reduce((s, r) => s + Number(r.hoursPerDay), 0);
+      return existingHpd + newHpd > dailyCap;
+    });
+    if (overlapDay) {
+      res.status(409).json({
+        error: "over_allocation",
+        allocationId: alloc.id,
+        resourceId: targetUserId,
+        firstOverlapDate: overlapDay
+      });
+      return;
+    }
+  }
+  const updatedRows = [];
+  await db.transaction(async (tx) => {
+    for (const upd of updates) {
+      const alloc = allocations.find((a) => a.id === Number(upd.allocationId));
+      const updateData = { updatedAt: /* @__PURE__ */ new Date() };
+      if (upd.newResourceId !== void 0) updateData.userId = upd.newResourceId ?? null;
+      if (upd.newStartDate !== void 0) updateData.startDate = upd.newStartDate;
+      if (upd.newEndDate !== void 0) updateData.endDate = upd.newEndDate;
+      if (upd.newHoursPerWeek !== void 0 || upd.newStartDate !== void 0 || upd.newEndDate !== void 0) {
+        const hpw = upd.newHoursPerWeek ?? Number(alloc.hoursPerWeek);
+        const start = upd.newStartDate ?? alloc.startDate;
+        const end = upd.newEndDate ?? alloc.endDate;
+        const hpd = hpw / 5;
+        const days = workingDays2(start, end, /* @__PURE__ */ new Set());
+        updateData.hoursPerWeek = String(hpw);
+        updateData.hoursPerDay = String(hpd);
+        updateData.totalHours = String(Math.round(days.length * hpd * 100) / 100);
+      }
+      const [row] = await tx.update(allocationsTable).set(updateData).where(eq(allocationsTable.id, alloc.id)).returning();
+      updatedRows.push(mapAllocation(row));
+    }
+  });
+  for (const upd of updates) {
+    const before = allocations.find((a) => a.id === Number(upd.allocationId));
+    if (!before) continue;
+    await logAudit({
+      entityType: "allocation",
+      entityId: before.id,
+      action: "updated",
+      actorUserId,
+      description: `Bulk update: allocation ${before.id}` + (upd.newResourceId !== void 0 ? ` \u2014 resource ${before.userId} \u2192 ${upd.newResourceId}` : "") + (upd.newStartDate ? ` \u2014 start ${before.startDate} \u2192 ${upd.newStartDate}` : "") + (upd.newEndDate ? ` \u2014 end ${before.endDate} \u2192 ${upd.newEndDate}` : "") + (upd.newHoursPerWeek !== void 0 ? ` \u2014 ${before.hoursPerWeek}h/wk \u2192 ${upd.newHoursPerWeek}h/wk` : ""),
+      previousValue: { userId: before.userId, startDate: before.startDate, endDate: before.endDate, hoursPerWeek: before.hoursPerWeek },
+      newValue: { userId: upd.newResourceId ?? before.userId, startDate: upd.newStartDate ?? before.startDate, endDate: upd.newEndDate ?? before.endDate, hoursPerWeek: upd.newHoursPerWeek ?? before.hoursPerWeek }
+    });
+  }
+  res.json({ updated: updatedRows });
+});
 router12.post("/allocations", requirePM, async (req, res) => {
   const parsed = CreateAllocationBody.safeParse(req.body);
   if (!parsed.success) {
@@ -66107,6 +66311,11 @@ router12.post("/allocations", requirePM, async (req, res) => {
   const validationError = validateAllocationCore({ ...parsed.data, ...req.body });
   if (validationError) {
     res.status(400).json({ error: validationError });
+    return;
+  }
+  const roleLabel = typeof req.body.placeholderRole === "string" ? req.body.placeholderRole.trim() : "";
+  if (!parsed.data.userId && !roleLabel) {
+    res.status(400).json({ error: "roleLabel is required when resourceId is null" });
     return;
   }
   const isSoftAllocation = req.body.isSoftAllocation === true || req.body.isSoftAllocation === "true";
@@ -66189,6 +66398,10 @@ router12.post("/allocations", requirePM, async (req, res) => {
   const overrideReason = isOverride ? req.body.overrideReason.trim() : null;
   const insertVals = {
     ...parsed.data,
+    // Auto-fill role from roleLabel for placeholder allocations
+    role: parsed.data.role ?? (roleLabel || "Placeholder"),
+    placeholderRole: roleLabel || parsed.data.placeholderRole || null,
+    userId: parsed.data.userId ?? null,
     isSoftAllocation,
     placeholderId,
     isOverride: !!isOverride,
@@ -66293,6 +66506,89 @@ router12.delete("/allocations/:id", requirePM, async (req, res) => {
     });
   }
   res.sendStatus(204);
+});
+router12.get("/resources/heatmap-capacity", async (req, res) => {
+  const weekCount = Math.min(52, Math.max(1, parseInt(String(req.query.weekCount ?? "12"), 10) || 12));
+  let weekStartDate;
+  if (req.query.weekStart && /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.weekStart))) {
+    weekStartDate = /* @__PURE__ */ new Date(`${req.query.weekStart}T00:00:00Z`);
+    const dow = weekStartDate.getUTCDay();
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    weekStartDate.setUTCDate(weekStartDate.getUTCDate() + diffToMon);
+  } else {
+    const now = /* @__PURE__ */ new Date();
+    const dow = now.getUTCDay();
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    weekStartDate = new Date(now);
+    weekStartDate.setUTCDate(now.getUTCDate() + diffToMon);
+    weekStartDate.setUTCHours(0, 0, 0, 0);
+  }
+  const weeks = [];
+  for (let i = 0; i < weekCount; i++) {
+    const wStart = new Date(weekStartDate);
+    wStart.setUTCDate(weekStartDate.getUTCDate() + i * 7);
+    const wEnd = new Date(wStart);
+    wEnd.setUTCDate(wStart.getUTCDate() + 6);
+    weeks.push({ start: wStart.toISOString().slice(0, 10), end: wEnd.toISOString().slice(0, 10) });
+  }
+  const rangeStart = weeks[0].start;
+  const rangeEnd = weeks[weeks.length - 1].end;
+  const allUsers = await db.select().from(usersTable);
+  const users = allUsers.filter((u) => u.isInternal !== false);
+  const allHolidays = await db.select().from(holidayDatesTable).where(and(gte(holidayDatesTable.date, rangeStart), lte(holidayDatesTable.date, rangeEnd)));
+  const holidaysByCalendar = /* @__PURE__ */ new Map();
+  for (const h of allHolidays) {
+    if (!holidaysByCalendar.has(h.calendarId)) holidaysByCalendar.set(h.calendarId, /* @__PURE__ */ new Set());
+    holidaysByCalendar.get(h.calendarId).add(h.date);
+  }
+  const allTimeOffs = await db.select().from(timeOffRequestsTable).where(and(
+    eq(timeOffRequestsTable.status, "Approved"),
+    lte(timeOffRequestsTable.startDate, rangeEnd),
+    gte(timeOffRequestsTable.endDate, rangeStart)
+  ));
+  const timeOffByUser = /* @__PURE__ */ new Map();
+  for (const t of allTimeOffs) {
+    if (!timeOffByUser.has(t.userId)) timeOffByUser.set(t.userId, []);
+    timeOffByUser.get(t.userId).push({ startDate: t.startDate, endDate: t.endDate });
+  }
+  const result = users.map((u) => {
+    const dailyCap = u.capacity / 5;
+    const userHolidays = u.holidayCalendarId != null ? holidaysByCalendar.get(u.holidayCalendarId) ?? /* @__PURE__ */ new Set() : /* @__PURE__ */ new Set();
+    const timeOffSet = /* @__PURE__ */ new Set();
+    for (const t of timeOffByUser.get(u.id) ?? []) {
+      const cur = /* @__PURE__ */ new Date(`${t.startDate}T00:00:00Z`);
+      const fin = /* @__PURE__ */ new Date(`${t.endDate}T00:00:00Z`);
+      while (cur <= fin) {
+        const iso = cur.toISOString().slice(0, 10);
+        if (iso >= rangeStart && iso <= rangeEnd) timeOffSet.add(iso);
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+    const weekData = weeks.map((w) => {
+      let workingDays2 = 0, holidayDays = 0, timeOffDays = 0;
+      const cur = /* @__PURE__ */ new Date(`${w.start}T00:00:00Z`);
+      const fin = /* @__PURE__ */ new Date(`${w.end}T00:00:00Z`);
+      while (cur <= fin) {
+        const dow = cur.getUTCDay();
+        const iso = cur.toISOString().slice(0, 10);
+        if (dow !== 0 && dow !== 6) {
+          workingDays2++;
+          if (userHolidays.has(iso)) holidayDays++;
+          else if (timeOffSet.has(iso)) timeOffDays++;
+        }
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+      const availableDays = Math.max(0, workingDays2 - holidayDays - timeOffDays);
+      return {
+        weekStart: w.start,
+        availableHours: Math.round(availableDays * dailyCap * 100) / 100,
+        timeOffHours: Math.round(timeOffDays * dailyCap * 100) / 100,
+        holidayHours: Math.round(holidayDays * dailyCap * 100) / 100
+      };
+    });
+    return { userId: u.id, weeks: weekData };
+  });
+  res.json(result);
 });
 router12.get("/resources/capacity", async (_req, res) => {
   const allUsers = await db.select().from(usersTable);
@@ -68696,6 +68992,42 @@ var revenueEntries_default = router20;
 var import_express22 = __toESM(require_express2(), 1);
 init_src();
 init_drizzle_orm();
+
+// src/lib/timeOffAllocationConflict.ts
+init_drizzle_orm();
+init_src();
+async function checkTimeOffAllocationConflicts(opts) {
+  const { resourceUserId, startDate, endDate } = opts;
+  const conflicts = await db.select({
+    id: allocationsTable.id,
+    projectId: allocationsTable.projectId
+  }).from(allocationsTable).where(and(
+    eq(allocationsTable.userId, resourceUserId),
+    eq(allocationsTable.isSoftAllocation, false),
+    lte(allocationsTable.startDate, endDate),
+    gte(allocationsTable.endDate, startDate)
+  ));
+  if (conflicts.length === 0) return;
+  const [resourceUser] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, resourceUserId));
+  const resourceName = resourceUser?.name ?? `User #${resourceUserId}`;
+  for (const alloc of conflicts) {
+    const [project] = await db.select({ id: projectsTable.id, name: projectsTable.name, ownerId: projectsTable.ownerId }).from(projectsTable).where(eq(projectsTable.id, alloc.projectId));
+    if (!project?.ownerId) continue;
+    await Promise.all([
+      db.insert(notificationsTable).values({
+        type: "leave_allocation_conflict",
+        message: `${resourceName}'s approved leave (${startDate}\u2013${endDate}) overlaps their allocation on ${project.name}. Please review staffing.`,
+        userId: project.ownerId,
+        entityType: "allocation",
+        entityId: String(alloc.id),
+        read: false
+      }),
+      db.update(allocationsTable).set({ status: "at_risk" }).where(eq(allocationsTable.id, alloc.id))
+    ]);
+  }
+}
+
+// src/routes/timeOff.ts
 var router21 = (0, import_express22.Router)();
 function mapTimeOff(r) {
   return {
@@ -68797,6 +69129,12 @@ router21.patch("/time-off-requests/:id", requirePM, async (req, res) => {
       });
     } catch {
     }
+    checkTimeOffAllocationConflicts({
+      resourceUserId: row.userId,
+      startDate: row.startDate,
+      endDate: row.endDate
+    }).catch(() => {
+    });
   }
   res.json(mapTimeOff(row));
 });
