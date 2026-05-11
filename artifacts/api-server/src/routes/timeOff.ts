@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, timeOffRequestsTable, holidayCalendarsTable, holidayDatesTable, notificationsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { checkTimeOffAllocationConflicts } from "../lib/timeOffAllocationConflict";
 import { requirePM } from "../middleware/rbac";
 import {
   ListTimeOffRequestsQueryParams,
@@ -112,6 +113,13 @@ router.patch("/time-off-requests/:id", requirePM, async (req, res): Promise<void
         read: false,
       } as any);
     } catch {}
+    // Check for overlapping hard allocations and alert affected PMs.
+    // Errors are swallowed — conflict detection must never block the response.
+    checkTimeOffAllocationConflicts({
+      resourceUserId: row.userId,
+      startDate: row.startDate,
+      endDate: row.endDate,
+    }).catch(() => {});
   }
   res.json(mapTimeOff(row));
 });

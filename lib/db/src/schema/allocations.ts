@@ -21,6 +21,10 @@ export const allocationsTable = pgTable("allocations", {
   source: text("source").notNull().default("manual"),
   isTimesheetApprover: boolean("is_timesheet_approver").notNull().default(false),
   isLeaveApprover: boolean("is_leave_approver").notNull().default(false),
+  // Lifecycle status. NULL = normal. 'at_risk' is set automatically when an
+  // approved time-off request overlaps this allocation.  Additional values may
+  // be added in future without a migration (text column, not a pg enum).
+  status: text("status"),
   // Over-allocation override: set to true when a PM/admin bypasses the capacity guard.
   isOverride: boolean("is_override").notNull().default(false),
   overrideReason: text("override_reason"),
