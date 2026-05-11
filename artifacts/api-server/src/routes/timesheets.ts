@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, inArray } from "drizzle-orm";
 import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable, timesheetMessagesTable, notificationPreferencesTable, usersTable, allocationsTable } from "@workspace/db";
 import { getGovernanceSettings, checkTimesheetStatusChangeable, checkTimesheetEditable } from "../lib/governance";
+import { checkEffortOverrun } from "../lib/effortOverrunCheck";
 import { requirePM } from "../middleware/rbac";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import { checkProjectNotClosed } from "../lib/closedProjectGuard";
@@ -214,6 +215,9 @@ router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void
     .returning();
   await notifyUsers([existing.userId], "timesheet_approved",
     `Your timesheet for the week of ${existing.weekStart} has been approved.`, existing.id);
+  // Check for effort overruns across every task referenced by this timesheet.
+  // Errors are swallowed — overrun detection must never block the approve response.
+  checkEffortOverrun(params.data.id).catch(() => {});
   res.json(ApproveTimesheetResponse.parse(mapTimesheet(row)));
 });
 

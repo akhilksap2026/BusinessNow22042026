@@ -54241,6 +54241,9 @@ var init_tasks = __esm({
       privateNotes: text("private_notes"),
       isPhase: boolean("is_phase").notNull().default(false),
       sortOrder: integer("sort_order").notNull().default(0),
+      // Effort overrun alert: set to now() the first time actual hours cross
+      // OVERRUN_ALERT_THRESHOLD × plannedHours.  NULL = not yet alerted.
+      overrunAlertSentAt: timestamp("overrun_alert_sent_at", { withTimezone: true }),
       createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
     });
@@ -54655,6 +54658,10 @@ var init_allocations = __esm({
       // Over-allocation override: set to true when a PM/admin bypasses the capacity guard.
       isOverride: boolean("is_override").notNull().default(false),
       overrideReason: text("override_reason"),
+      // Skill requirement (optional). When set, POST /api/allocations validates the
+      // resource has the required skill at or above the numeric proficiency level (1–5).
+      requiredSkillId: integer("required_skill_id"),
+      requiredProficiencyLevel: integer("required_proficiency_level"),
       createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
     });
@@ -64883,6 +64890,53 @@ var import_express8 = __toESM(require_express2(), 1);
 init_drizzle_orm();
 init_src();
 init_governance();
+
+// src/lib/effortOverrunCheck.ts
+init_drizzle_orm();
+init_src();
+var OVERRUN_ALERT_THRESHOLD = 0.9;
+async function checkEffortOverrun(timesheetId) {
+  const entryRows = await db.selectDistinct({ taskId: timeEntriesTable.taskId }).from(timeEntriesTable).where(and(
+    eq(timeEntriesTable.timesheetId, timesheetId),
+    isNotNull(timeEntriesTable.taskId)
+  ));
+  const taskIds = entryRows.map((r) => r.taskId).filter((id) => id !== null && id !== void 0);
+  if (taskIds.length === 0) return;
+  for (const taskId of taskIds) {
+    const [task] = await db.select({
+      id: tasksTable.id,
+      name: tasksTable.name,
+      plannedHours: tasksTable.plannedHours,
+      overrunAlertSentAt: tasksTable.overrunAlertSentAt,
+      projectId: tasksTable.projectId
+    }).from(tasksTable).where(eq(tasksTable.id, taskId));
+    if (!task) continue;
+    const plannedHours = Number(task.plannedHours ?? 0);
+    if (plannedHours <= 0) continue;
+    if (task.overrunAlertSentAt !== null) continue;
+    const [sumRow] = await db.select({
+      total: sql`COALESCE(SUM(${timeEntriesTable.hours}), 0)`
+    }).from(timeEntriesTable).where(eq(timeEntriesTable.taskId, taskId));
+    const actualHours = Number(sumRow?.total ?? 0);
+    if (actualHours < plannedHours * OVERRUN_ALERT_THRESHOLD) continue;
+    const [project] = await db.select({ ownerId: projectsTable.ownerId }).from(projectsTable).where(eq(projectsTable.id, task.projectId));
+    if (!project?.ownerId) continue;
+    const pct = Math.round(actualHours / plannedHours * 100);
+    await Promise.all([
+      db.insert(notificationsTable).values({
+        type: "effort_overrun",
+        message: `Task '${task.name}' has consumed ${pct}% of its planned ${plannedHours}h budget.`,
+        userId: project.ownerId,
+        entityType: "task",
+        entityId: String(taskId),
+        read: false
+      }),
+      db.update(tasksTable).set({ overrunAlertSentAt: /* @__PURE__ */ new Date() }).where(eq(tasksTable.id, taskId))
+    ]);
+  }
+}
+
+// src/routes/timesheets.ts
 var router8 = (0, import_express8.Router)();
 function mapTimesheet(t) {
   return {
@@ -65105,6 +65159,8 @@ router8.post("/timesheets/:id/approve", requirePM, async (req, res) => {
     `Your timesheet for the week of ${existing.weekStart} has been approved.`,
     existing.id
   );
+  checkEffortOverrun(params.data.id).catch(() => {
+  });
   res.json(ApproveTimesheetResponse.parse(mapTimesheet(row)));
 });
 router8.post("/timesheets/:id/unapprove", async (req, res) => {
@@ -66084,6 +66140,50 @@ router12.post("/allocations", requirePM, async (req, res) => {
       return;
     }
   }
+  const requiredSkillId = req.body.requiredSkillId ? Number(req.body.requiredSkillId) : null;
+  const requiredProficiencyLevel = req.body.requiredProficiencyLevel ? Number(req.body.requiredProficiencyLevel) : null;
+  if (requiredSkillId && parsed.data.userId) {
+    const PROFICIENCY_RANK2 = {
+      beginner: 1,
+      novice: 1,
+      intermediate: 2,
+      advanced: 3,
+      proficient: 4,
+      expert: 5,
+      master: 5
+    };
+    const rankOf = (level) => level ? PROFICIENCY_RANK2[level.toLowerCase()] ?? 0 : 0;
+    const [[skill], [userSkill]] = await Promise.all([
+      db.select({ id: skillsTable.id, name: skillsTable.name }).from(skillsTable).where(eq(skillsTable.id, requiredSkillId)),
+      db.select({ proficiencyLevel: userSkillsTable.proficiencyLevel }).from(userSkillsTable).where(and(
+        eq(userSkillsTable.userId, parsed.data.userId),
+        eq(userSkillsTable.skillId, requiredSkillId)
+      ))
+    ]);
+    const resourceLevelText = userSkill?.proficiencyLevel ?? null;
+    const resourceRank = rankOf(resourceLevelText);
+    const requiredRank = requiredProficiencyLevel ?? 1;
+    if (resourceRank < requiredRank) {
+      const skillOverrideReason = typeof req.body.skillOverrideReason === "string" ? req.body.skillOverrideReason.trim() : "";
+      if (!skillOverrideReason) {
+        res.status(422).json({
+          error: "skill_mismatch",
+          resourceId: parsed.data.userId,
+          requiredSkill: skill?.name ?? String(requiredSkillId),
+          requiredLevel: requiredRank,
+          resourceLevel: resourceLevelText
+        });
+        return;
+      }
+      await logAudit({
+        entityType: "allocation",
+        entityId: parsed.data.userId,
+        action: "updated",
+        actorUserId: Number(req.headers["x-user-id"]) || void 0,
+        description: `Skill requirement overridden: skill "${skill?.name ?? requiredSkillId}" requires level ${requiredRank}, resource is "${resourceLevelText ?? "none"}". Reason: ${skillOverrideReason}`
+      });
+    }
+  }
   const placeholderId = req.body.placeholderId ?? null;
   const isOverride = !isSoftAllocation && parsed.data.userId && String(req.body?.forceOverride ?? "").toLowerCase() === "true" && typeof req.body?.overrideReason === "string" && req.body.overrideReason.trim().length > 0;
   const overrideReason = isOverride ? req.body.overrideReason.trim() : null;
@@ -66098,7 +66198,9 @@ router12.post("/allocations", requirePM, async (req, res) => {
     totalHours: String(computed.totalHours),
     methodValue: computed.methodValue !== null ? String(computed.methodValue) : null,
     percentOfCapacity: computed.percentOfCapacity !== null ? String(computed.percentOfCapacity) : null,
-    allocationMethod: computed.allocationMethod
+    allocationMethod: computed.allocationMethod,
+    requiredSkillId: requiredSkillId ?? null,
+    requiredProficiencyLevel: requiredProficiencyLevel ?? null
   };
   const [row] = await db.insert(allocationsTable).values(insertVals).returning();
   res.status(201).json(mapAllocation(row));

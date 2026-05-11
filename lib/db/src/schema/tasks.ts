@@ -28,6 +28,9 @@ export const tasksTable = pgTable("tasks", {
   privateNotes: text("private_notes"),
   isPhase: boolean("is_phase").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
+  // Effort overrun alert: set to now() the first time actual hours cross
+  // OVERRUN_ALERT_THRESHOLD × plannedHours.  NULL = not yet alerted.
+  overrunAlertSentAt: timestamp("overrun_alert_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
