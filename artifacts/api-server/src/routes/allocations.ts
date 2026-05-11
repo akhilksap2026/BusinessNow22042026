@@ -133,6 +133,162 @@ router.get("/allocations", async (req, res): Promise<void> => {
   res.json(ListAllocationsResponse.parse(rows.map(mapAllocation)));
 });
 
+// ---------------------------------------------------------------------------
+// POST /api/allocations/preview  — read-only capacity impact preview
+// Must be declared BEFORE POST /allocations to avoid Express routing to
+// the wrong handler.
+// ---------------------------------------------------------------------------
+router.post("/allocations/preview", requirePM, async (req, res): Promise<void> => {
+  // Reuse the same compute + validation path as the real create route,
+  // but never touch the database for writes.
+  const userId = req.body.userId ? Number(req.body.userId) : null;
+  const startDate = String(req.body.startDate ?? "");
+  const endDate = String(req.body.endDate ?? "");
+  if (!userId || !startDate || !endDate || endDate < startDate) {
+    res.status(400).json({ error: "userId, startDate, endDate (startDate ≤ endDate) required" });
+    return;
+  }
+
+  const computeRes = await computeAllocationFields({
+    startDate,
+    endDate,
+    allocationMethod: req.body.allocationMethod ?? "hours_per_week",
+    methodValue: req.body.methodValue,
+    hoursPerWeek: req.body.hoursPerWeek,
+    userId,
+  });
+  if (!computeRes.ok) { res.status(400).json({ error: computeRes.error }); return; }
+  const { hoursPerDay, hoursPerWeek, totalHours } = computeRes.value;
+
+  // Fetch reference data in parallel (same queries as the guard helper).
+  const [user, existingAllocs, holidays, approvedTimeOffs] = await Promise.all([
+    db.select({ id: usersTable.id, capacity: usersTable.capacity })
+      .from(usersTable).where(eq(usersTable.id, userId))
+      .then(r => r[0] ?? null),
+    db.select({
+      id: allocationsTable.id,
+      startDate: allocationsTable.startDate,
+      endDate: allocationsTable.endDate,
+      hoursPerDay: allocationsTable.hoursPerDay,
+    })
+      .from(allocationsTable)
+      .where(and(
+        eq(allocationsTable.userId, userId),
+        eq(allocationsTable.isSoftAllocation, false),
+        lte(allocationsTable.startDate, endDate),
+        gte(allocationsTable.endDate, startDate),
+      )),
+    db.select({ date: holidayDatesTable.date })
+      .from(holidayDatesTable)
+      .where(and(gte(holidayDatesTable.date, startDate), lte(holidayDatesTable.date, endDate))),
+    db.select({ startDate: timeOffRequestsTable.startDate, endDate: timeOffRequestsTable.endDate })
+      .from(timeOffRequestsTable)
+      .where(and(
+        eq(timeOffRequestsTable.userId, userId),
+        eq(timeOffRequestsTable.status, "Approved"),
+        lte(timeOffRequestsTable.startDate, endDate),
+        gte(timeOffRequestsTable.endDate, startDate),
+      )),
+  ]);
+
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const dailyCap = user.capacity / 5;
+  const holidaySet = new Set(holidays.map(h => h.date));
+
+  // Build time-off date set (limited to the requested range).
+  const timeOffSet = new Set<string>();
+  for (const t of approvedTimeOffs) {
+    const cur = new Date(`${t.startDate}T00:00:00Z`);
+    const fin = new Date(`${t.endDate}T00:00:00Z`);
+    while (cur <= fin) {
+      const iso = cur.toISOString().slice(0, 10);
+      if (iso >= startDate && iso <= endDate) timeOffSet.add(iso);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+  }
+
+  // Helper: working days in [s, e] excluding holidays + time-off.
+  function availableWorkDays(s: string, e: string): string[] {
+    const days: string[] = [];
+    const cur = new Date(`${s}T00:00:00Z`);
+    const fin = new Date(`${e}T00:00:00Z`);
+    while (cur <= fin) {
+      const dow = cur.getUTCDay();
+      const iso = cur.toISOString().slice(0, 10);
+      if (dow !== 0 && dow !== 6 && !holidaySet.has(iso) && !timeOffSet.has(iso)) days.push(iso);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return days;
+  }
+
+  const workDays = availableWorkDays(startDate, endDate);
+  const availableHours = workDays.length * dailyCap;
+
+  // Committed hours from existing hard allocations in the range.
+  const currentUsedHours = existingAllocs.reduce((sum, a) => {
+    const days = availableWorkDays(
+      a.startDate > startDate ? a.startDate : startDate,
+      a.endDate < endDate ? a.endDate : endDate,
+    );
+    return sum + days.length * Number(a.hoursPerDay);
+  }, 0);
+
+  const afterUsedHours = currentUsedHours + totalHours;
+  const utilisationPct = availableHours > 0 ? Math.round((afterUsedHours / availableHours) * 100) : 0;
+
+  // Build per-ISO-week breakdown: iterate weeks in the range (Mon start).
+  const affectedWeeks: { week: string; usedHours: number; availableHours: number }[] = [];
+  {
+    // Find first Monday on or before startDate.
+    const rangeStart = new Date(`${startDate}T00:00:00Z`);
+    const dow = rangeStart.getUTCDay(); // 0=Sun
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    const weekCur = new Date(rangeStart);
+    weekCur.setUTCDate(weekCur.getUTCDate() + diffToMon);
+    const rangeEnd = new Date(`${endDate}T00:00:00Z`);
+
+    while (weekCur <= rangeEnd) {
+      const weekSun = new Date(weekCur);
+      weekSun.setUTCDate(weekCur.getUTCDate() + 6);
+      const wStart = weekCur.toISOString().slice(0, 10);
+      const wEnd = weekSun.toISOString().slice(0, 10);
+
+      // Overlap with our allocation range.
+      const overlapStart = wStart < startDate ? startDate : wStart;
+      const overlapEnd = wEnd > endDate ? endDate : wEnd;
+      if (overlapStart <= overlapEnd) {
+        const wDays = availableWorkDays(overlapStart, overlapEnd);
+        const wAvail = wDays.length * dailyCap;
+        const wExisting = existingAllocs.reduce((s, a) => {
+          const aStart = a.startDate > overlapStart ? a.startDate : overlapStart;
+          const aEnd = a.endDate < overlapEnd ? a.endDate : overlapEnd;
+          if (aStart > aEnd) return s;
+          return s + availableWorkDays(aStart, aEnd).length * Number(a.hoursPerDay);
+        }, 0);
+        const wNew = wDays.length * hoursPerDay;
+        affectedWeeks.push({
+          week: wStart,
+          usedHours: Math.round((wExisting + wNew) * 100) / 100,
+          availableHours: Math.round(wAvail * 100) / 100,
+        });
+      }
+      weekCur.setUTCDate(weekCur.getUTCDate() + 7);
+    }
+  }
+
+  res.json({
+    resourceId: userId,
+    currentUsedHours: Math.round(currentUsedHours * 100) / 100,
+    currentAvailableHours: Math.round(Math.max(0, availableHours - currentUsedHours) * 100) / 100,
+    afterUsedHours: Math.round(afterUsedHours * 100) / 100,
+    afterAvailableHours: Math.round(Math.max(0, availableHours - afterUsedHours) * 100) / 100,
+    utilisationPct,
+    isOverAllocated: afterUsedHours > availableHours,
+    affectedWeeks,
+  });
+});
+
 router.post("/allocations", requirePM, async (req, res): Promise<void> => {
   const parsed = CreateAllocationBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }

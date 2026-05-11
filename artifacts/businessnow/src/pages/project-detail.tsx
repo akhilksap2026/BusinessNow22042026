@@ -492,6 +492,20 @@ export default function ProjectDetail() {
   const [editAllocId, setEditAllocId] = useState<number | null>(null);
   const [deleteAllocId, setDeleteAllocId] = useState<number | null>(null);
 
+  // Capacity impact preview — populated by POST /api/allocations/preview.
+  type AllocPreview = {
+    resourceId: number;
+    currentUsedHours: number;
+    currentAvailableHours: number;
+    afterUsedHours: number;
+    afterAvailableHours: number;
+    utilisationPct: number;
+    isOverAllocated: boolean;
+    affectedWeeks: { week: string; usedHours: number; availableHours: number }[];
+  };
+  const [allocPreview, setAllocPreview] = useState<AllocPreview | null>(null);
+  const [allocPreviewLoading, setAllocPreviewLoading] = useState(false);
+
   // Allocation input methods. Persist last-used choice so the form opens
   // with the user's preferred method next time.
   type AllocMethod = "hours_per_day" | "percentage_capacity" | "total_hours";
@@ -518,6 +532,40 @@ export default function ProjectDetail() {
     isTimesheetApprover: false,
     isLeaveApprover: false,
   });
+
+  // Debounced preview fetch: fires 400 ms after userId/dates/hours change.
+  // Cleared immediately when userId is empty or dialog closes.
+  useEffect(() => {
+    if (!allocForm.userId || !allocForm.startDate || !allocForm.endDate) {
+      setAllocPreview(null);
+      return;
+    }
+    setAllocPreviewLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const d = deriveAllocFields(allocForm.method, allocForm.methodValue, allocForm.startDate, allocForm.endDate);
+        const resp = await fetch("/api/allocations/preview", {
+          method: "POST",
+          headers: { ...authHeaders(), "content-type": "application/json" },
+          body: JSON.stringify({
+            userId: parseInt(allocForm.userId),
+            projectId: parseInt(allocForm.projectId) || projectId,
+            startDate: allocForm.startDate,
+            endDate: allocForm.endDate,
+            allocationMethod: allocForm.method,
+            methodValue: parseFloat(allocForm.methodValue) || 0,
+            hoursPerWeek: d.hoursPerWeek,
+            role: allocForm.role || "Developer",
+            isSoftAllocation: allocForm.isSoftAllocation,
+          }),
+        });
+        if (resp.ok) setAllocPreview(await resp.json());
+        else setAllocPreview(null);
+      } catch { setAllocPreview(null); }
+      finally { setAllocPreviewLoading(false); }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [allocForm.userId, allocForm.startDate, allocForm.endDate, allocForm.method, allocForm.methodValue]);
 
   // Project list for the (editable) Project field on the allocation dialog.
   // Defaults to the current project; user can re-target the allocation to
@@ -1940,7 +1988,7 @@ export default function ProjectDetail() {
         </Tabs>
       </div>
 
-      <Dialog open={allocDialogOpen} onOpenChange={(open) => { setAllocDialogOpen(open); if (!open) setEditAllocId(null); }}>
+      <Dialog open={allocDialogOpen} onOpenChange={(open) => { setAllocDialogOpen(open); if (!open) { setEditAllocId(null); setAllocPreview(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editAllocId ? "Edit Allocation" : "Add Allocation"}</DialogTitle>
@@ -1970,6 +2018,41 @@ export default function ProjectDetail() {
                   {users?.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name} — {u.role}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {/* Capacity impact indicator — informational only, save always enabled */}
+              {allocForm.userId && (
+                <div className="mt-1.5 flex items-center gap-2 text-xs">
+                  {allocPreviewLoading ? (
+                    <span className="text-muted-foreground animate-pulse">Checking capacity…</span>
+                  ) : allocPreview ? (
+                    <>
+                      <span className="text-muted-foreground">Utilisation after:</span>
+                      <span className={
+                        allocPreview.utilisationPct >= 100 ? "font-semibold text-red-500"
+                        : allocPreview.utilisationPct >= 85 ? "font-semibold text-amber-500"
+                        : "font-semibold text-green-600"
+                      }>
+                        {allocPreview.utilisationPct}%
+                      </span>
+                      <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden flex-shrink-0">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            allocPreview.isOverAllocated ? "bg-red-500"
+                            : allocPreview.utilisationPct >= 85 ? "bg-amber-500"
+                            : "bg-green-500"
+                          }`}
+                          style={{ width: `${Math.min(100, allocPreview.utilisationPct)}%` }}
+                        />
+                      </div>
+                      <span className="text-muted-foreground">
+                        ({allocPreview.afterUsedHours}h used of {(allocPreview.afterUsedHours + allocPreview.afterAvailableHours).toFixed(1)}h available)
+                      </span>
+                      {allocPreview.isOverAllocated && (
+                        <span className="text-red-500 font-medium">⚠ over capacity</span>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Role *</Label>

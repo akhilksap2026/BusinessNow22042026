@@ -54652,6 +54652,9 @@ var init_allocations = __esm({
       source: text("source").notNull().default("manual"),
       isTimesheetApprover: boolean("is_timesheet_approver").notNull().default(false),
       isLeaveApprover: boolean("is_leave_approver").notNull().default(false),
+      // Over-allocation override: set to true when a PM/admin bypasses the capacity guard.
+      isOverride: boolean("is_override").notNull().default(false),
+      overrideReason: text("override_reason"),
       createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
     });
@@ -63109,6 +63112,16 @@ async function logAudit(opts) {
 
 // src/routes/projects.ts
 var router4 = (0, import_express4.Router)();
+var ALLOWED_TRANSITIONS = {
+  draft: ["active"],
+  active: ["on_hold", "completed", "cancelled"],
+  on_hold: ["active", "cancelled"],
+  completed: [],
+  cancelled: []
+};
+function normaliseStatus(s) {
+  return s.toLowerCase().replace(/\s+/g, "_");
+}
 function mapProject(p) {
   return {
     ...p,
@@ -63125,6 +63138,9 @@ router4.get("/projects", async (req, res) => {
   const conditions = [isNull(projectsTable.deletedAt)];
   if (qp.success && qp.data.status) conditions.push(eq(projectsTable.status, qp.data.status));
   if (qp.success && qp.data.accountId) conditions.push(eq(projectsTable.accountId, qp.data.accountId));
+  if (typeof req.query.context === "string" && req.query.context === "timesheet") {
+    conditions.push(ne(projectsTable.status, "draft"));
+  }
   const rows = await db.select({ project: projectsTable, accountName: accountsTable.name, accountDomain: accountsTable.domain, ownerName: usersTable.name }).from(projectsTable).leftJoin(accountsTable, eq(projectsTable.accountId, accountsTable.id)).leftJoin(usersTable, eq(projectsTable.ownerId, usersTable.id)).where(and(...conditions));
   res.json(ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain, ownerName }) => ({
     ...mapProject(project),
@@ -63186,6 +63202,38 @@ router4.patch("/projects/:id", requirePM, async (req, res) => {
     res.status(409).json({ error: "Project is deleted; restore it before editing." });
     return;
   }
+  const incomingStatus = parsed.data.status;
+  const isStatusChange = incomingStatus !== void 0 && incomingStatus !== existing.status;
+  if (isStatusChange) {
+    const reason = typeof req.body.statusChangeReason === "string" ? req.body.statusChangeReason.trim() : "";
+    if (!reason) {
+      res.status(400).json({ error: "reason_required" });
+      return;
+    }
+    const fromKey = normaliseStatus(existing.status);
+    const toKey = normaliseStatus(incomingStatus);
+    const allowed = ALLOWED_TRANSITIONS[fromKey];
+    if (allowed !== void 0 && !allowed.includes(toKey)) {
+      res.status(422).json({
+        error: "invalid_transition",
+        from: existing.status,
+        to: incomingStatus,
+        allowed: allowed.map((k) => k)
+        // return matrix keys as-is
+      });
+      return;
+    }
+    const actorUserId = Number(req.headers["x-user-id"] ?? 0) || void 0;
+    await logAudit({
+      entityType: "project",
+      entityId: existing.id,
+      action: "status_changed",
+      actorUserId,
+      description: `Status changed from "${existing.status}" to "${incomingStatus}": ${reason}`,
+      previousValue: { status: existing.status },
+      newValue: { status: incomingStatus, reason }
+    });
+  }
   const merged = { ...existing, ...parsed.data };
   if (merged.startDate && merged.dueDate && new Date(merged.dueDate) < new Date(merged.startDate)) {
     res.status(400).json({ error: "dueDate must be on or after startDate" });
@@ -63196,7 +63244,9 @@ router4.patch("/projects/:id", requirePM, async (req, res) => {
     res.status(404).json({ error: "Project not found" });
     return;
   }
-  await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
+  if (!isStatusChange) {
+    await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
+  }
   res.json(UpdateProjectResponse.parse(mapProject(row)));
 });
 router4.delete("/projects/:id", requirePM, async (req, res) => {
@@ -64223,6 +64273,41 @@ var users_default = router6;
 var import_express7 = __toESM(require_express2(), 1);
 init_drizzle_orm();
 init_src();
+
+// src/lib/closedProjectGuard.ts
+init_drizzle_orm();
+init_src();
+init_roles2();
+async function checkProjectNotClosed(projectId, req) {
+  if (!projectId) return null;
+  const [project] = await db.select({ id: projectsTable.id, status: projectsTable.status, name: projectsTable.name }).from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) return null;
+  if (project.status !== "completed") return null;
+  const overrideHeader = String(req.headers["x-admin-override"] ?? "").toLowerCase();
+  const rawRole = String(req.headers["x-user-role"] ?? "");
+  const role = resolveRole(rawRole);
+  const actorUserId = Number(req.headers["x-user-id"] ?? 0) || void 0;
+  if (overrideHeader === "true" && role === "account_admin") {
+    await logAudit({
+      entityType: "project",
+      entityId: project.id,
+      action: "admin_override_closed_project",
+      actorUserId,
+      description: `Admin override: entry permitted on completed project "${project.name}"`,
+      previousValue: { status: "completed" }
+    });
+    return null;
+  }
+  return {
+    status: 403,
+    body: {
+      error: "project_closed",
+      message: "This project is closed. No new time entries are allowed."
+    }
+  };
+}
+
+// src/routes/timeEntries.ts
 init_governance();
 var router7 = (0, import_express7.Router)();
 function getWeekStart(date6) {
@@ -64466,6 +64551,11 @@ router7.post("/time-entries", async (req, res) => {
       res.status(400).json({ error: "Cannot log time on a parent task. Log against an individual child task." });
       return;
     }
+  }
+  const closedBlock = await checkProjectNotClosed(data.projectId ?? null, req);
+  if (closedBlock) {
+    res.status(closedBlock.status).json(closedBlock.body);
+    return;
   }
   if (!data.projectId) {
     data.projectId = null;
@@ -65205,6 +65295,13 @@ router8.post("/timesheet-rows", async (req, res) => {
     res.status(400).json({ error: "userId required" });
     return;
   }
+  if (projectId) {
+    const closedBlock = await checkProjectNotClosed(Number(projectId), req);
+    if (closedBlock) {
+      res.status(closedBlock.status).json(closedBlock.body);
+      return;
+    }
+  }
   const data = { userId: Number(userId), isNonProject: !!isNonProject, billable: isNonProject ? false : !!billable };
   if (projectId) data.projectId = Number(projectId);
   if (taskId) data.taskId = Number(taskId);
@@ -65624,6 +65721,113 @@ var rateCards_default = router11;
 var import_express12 = __toESM(require_express2(), 1);
 init_drizzle_orm();
 init_src();
+
+// src/lib/overAllocationGuard.ts
+init_drizzle_orm();
+init_src();
+init_roles2();
+function workingDaysInRange(start, end, holidaySet) {
+  const days = [];
+  const cur = /* @__PURE__ */ new Date(`${start}T00:00:00Z`);
+  const fin = /* @__PURE__ */ new Date(`${end}T00:00:00Z`);
+  while (cur <= fin) {
+    const dow = cur.getUTCDay();
+    const iso = cur.toISOString().slice(0, 10);
+    if (dow !== 0 && dow !== 6 && !holidaySet.has(iso)) days.push(iso);
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return days;
+}
+async function checkOverAllocation(input, req) {
+  const { userId, startDate, endDate, hoursPerDay, totalHours } = input;
+  const [user, existingAllocations, holidays, approvedTimeOffs] = await Promise.all([
+    db.select({ id: usersTable.id, capacity: usersTable.capacity }).from(usersTable).where(eq(usersTable.id, userId)).then((rows) => rows[0] ?? null),
+    // Existing hard (non-soft) allocations for this user that overlap the range.
+    db.select({
+      id: allocationsTable.id,
+      startDate: allocationsTable.startDate,
+      endDate: allocationsTable.endDate,
+      hoursPerDay: allocationsTable.hoursPerDay
+    }).from(allocationsTable).where(
+      and(
+        eq(allocationsTable.userId, userId),
+        eq(allocationsTable.isSoftAllocation, false),
+        lte(allocationsTable.startDate, endDate),
+        gte(allocationsTable.endDate, startDate)
+      )
+    ),
+    // Public holidays that fall inside the range.
+    db.select({ date: holidayDatesTable.date }).from(holidayDatesTable).where(and(gte(holidayDatesTable.date, startDate), lte(holidayDatesTable.date, endDate))),
+    // Approved time-off for this user overlapping the range.
+    db.select({ startDate: timeOffRequestsTable.startDate, endDate: timeOffRequestsTable.endDate }).from(timeOffRequestsTable).where(
+      and(
+        eq(timeOffRequestsTable.userId, userId),
+        eq(timeOffRequestsTable.status, "Approved"),
+        lte(timeOffRequestsTable.startDate, endDate),
+        gte(timeOffRequestsTable.endDate, startDate)
+      )
+    )
+  ]);
+  if (!user) return null;
+  const dailyCapacity = user.capacity / 5;
+  const holidaySet = new Set(holidays.map((h) => h.date));
+  const timeOffSet = /* @__PURE__ */ new Set();
+  for (const t of approvedTimeOffs) {
+    const cur = /* @__PURE__ */ new Date(`${t.startDate}T00:00:00Z`);
+    const fin = /* @__PURE__ */ new Date(`${t.endDate}T00:00:00Z`);
+    while (cur <= fin) {
+      const iso = cur.toISOString().slice(0, 10);
+      if (iso >= startDate && iso <= endDate) timeOffSet.add(iso);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+  }
+  const workingDays2 = workingDaysInRange(startDate, endDate, holidaySet).filter((d) => !timeOffSet.has(d));
+  const availableHours = workingDays2.length * dailyCapacity;
+  const overlapDates = [];
+  for (const day of workingDays2) {
+    const existingHours = existingAllocations.filter((a) => a.startDate <= day && a.endDate >= day).reduce((s, a) => s + Number(a.hoursPerDay), 0);
+    if (existingHours + hoursPerDay > dailyCapacity) {
+      overlapDates.push(day);
+    }
+  }
+  if (overlapDates.length === 0) return null;
+  const existingTotalCommitted = existingAllocations.reduce((s, a) => {
+    const overlapStart = a.startDate > startDate ? a.startDate : startDate;
+    const overlapEnd = a.endDate < endDate ? a.endDate : endDate;
+    const days = workingDaysInRange(overlapStart, overlapEnd, holidaySet).filter((d) => !timeOffSet.has(d));
+    return s + days.length * Number(a.hoursPerDay);
+  }, 0);
+  const overrideFlag = String(req.body?.forceOverride ?? "").toLowerCase();
+  const overrideReason = typeof req.body?.overrideReason === "string" ? req.body.overrideReason.trim() : "";
+  const rawRole = String(req.headers["x-user-role"] ?? "");
+  const role = resolveRole(rawRole);
+  const actorUserId = Number(req.headers["x-user-id"] ?? 0) || void 0;
+  const canOverride = (role === "account_admin" || role === "super_user") && overrideFlag === "true" && overrideReason.length > 0;
+  if (canOverride) {
+    await logAudit({
+      entityType: "allocation",
+      entityId: userId,
+      action: "over_allocation_override",
+      actorUserId,
+      description: `Over-allocation override for user ${userId} (${overlapDates.length} day(s) over capacity): ${overrideReason}`,
+      previousValue: { availableHours, committedHours: existingTotalCommitted },
+      newValue: { requestedHours: totalHours, overlapDates }
+    });
+    return null;
+  }
+  return {
+    status: 409,
+    body: {
+      error: "over_allocation",
+      resourceId: userId,
+      availableHours: Math.round(availableHours * 100) / 100,
+      requestedHours: Math.round(totalHours * 100) / 100,
+      overlapDates
+    }
+  };
+}
+
+// src/routes/allocations.ts
 var router12 = (0, import_express12.Router)();
 function mapAllocation(a) {
   return {
@@ -65637,7 +65841,7 @@ function mapAllocation(a) {
     updatedAt: a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt
   };
 }
-function workingDaysInRange(startDate, endDate) {
+function workingDaysInRange2(startDate, endDate) {
   let d = /* @__PURE__ */ new Date(startDate + "T00:00:00Z");
   const end = /* @__PURE__ */ new Date(endDate + "T00:00:00Z");
   let n = 0;
@@ -65650,7 +65854,7 @@ function workingDaysInRange(startDate, endDate) {
 }
 var SUPPORTED_METHODS = /* @__PURE__ */ new Set(["total_hours", "hours_per_day", "hours_per_week", "percentage_capacity", "hours"]);
 async function computeAllocationFields(input) {
-  const days = Math.max(1, workingDaysInRange(input.startDate, input.endDate));
+  const days = Math.max(1, workingDaysInRange2(input.startDate, input.endDate));
   const rawMethod = input.allocationMethod ?? "hours_per_week";
   if (!SUPPORTED_METHODS.has(rawMethod)) {
     return { ok: false, error: `Unsupported allocationMethod "${rawMethod}". Supported: total_hours, hours_per_day, hours_per_week, percentage_capacity` };
@@ -65712,6 +65916,132 @@ router12.get("/allocations", async (req, res) => {
   const rows = conditions.length ? await db.select().from(allocationsTable).where(and(...conditions)) : await db.select().from(allocationsTable);
   res.json(ListAllocationsResponse.parse(rows.map(mapAllocation)));
 });
+router12.post("/allocations/preview", requirePM, async (req, res) => {
+  const userId = req.body.userId ? Number(req.body.userId) : null;
+  const startDate = String(req.body.startDate ?? "");
+  const endDate = String(req.body.endDate ?? "");
+  if (!userId || !startDate || !endDate || endDate < startDate) {
+    res.status(400).json({ error: "userId, startDate, endDate (startDate \u2264 endDate) required" });
+    return;
+  }
+  const computeRes = await computeAllocationFields({
+    startDate,
+    endDate,
+    allocationMethod: req.body.allocationMethod ?? "hours_per_week",
+    methodValue: req.body.methodValue,
+    hoursPerWeek: req.body.hoursPerWeek,
+    userId
+  });
+  if (!computeRes.ok) {
+    res.status(400).json({ error: computeRes.error });
+    return;
+  }
+  const { hoursPerDay, hoursPerWeek, totalHours } = computeRes.value;
+  const [user, existingAllocs, holidays, approvedTimeOffs] = await Promise.all([
+    db.select({ id: usersTable.id, capacity: usersTable.capacity }).from(usersTable).where(eq(usersTable.id, userId)).then((r) => r[0] ?? null),
+    db.select({
+      id: allocationsTable.id,
+      startDate: allocationsTable.startDate,
+      endDate: allocationsTable.endDate,
+      hoursPerDay: allocationsTable.hoursPerDay
+    }).from(allocationsTable).where(and(
+      eq(allocationsTable.userId, userId),
+      eq(allocationsTable.isSoftAllocation, false),
+      lte(allocationsTable.startDate, endDate),
+      gte(allocationsTable.endDate, startDate)
+    )),
+    db.select({ date: holidayDatesTable.date }).from(holidayDatesTable).where(and(gte(holidayDatesTable.date, startDate), lte(holidayDatesTable.date, endDate))),
+    db.select({ startDate: timeOffRequestsTable.startDate, endDate: timeOffRequestsTable.endDate }).from(timeOffRequestsTable).where(and(
+      eq(timeOffRequestsTable.userId, userId),
+      eq(timeOffRequestsTable.status, "Approved"),
+      lte(timeOffRequestsTable.startDate, endDate),
+      gte(timeOffRequestsTable.endDate, startDate)
+    ))
+  ]);
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  const dailyCap = user.capacity / 5;
+  const holidaySet = new Set(holidays.map((h) => h.date));
+  const timeOffSet = /* @__PURE__ */ new Set();
+  for (const t of approvedTimeOffs) {
+    const cur = /* @__PURE__ */ new Date(`${t.startDate}T00:00:00Z`);
+    const fin = /* @__PURE__ */ new Date(`${t.endDate}T00:00:00Z`);
+    while (cur <= fin) {
+      const iso = cur.toISOString().slice(0, 10);
+      if (iso >= startDate && iso <= endDate) timeOffSet.add(iso);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+  }
+  function availableWorkDays(s, e) {
+    const days = [];
+    const cur = /* @__PURE__ */ new Date(`${s}T00:00:00Z`);
+    const fin = /* @__PURE__ */ new Date(`${e}T00:00:00Z`);
+    while (cur <= fin) {
+      const dow = cur.getUTCDay();
+      const iso = cur.toISOString().slice(0, 10);
+      if (dow !== 0 && dow !== 6 && !holidaySet.has(iso) && !timeOffSet.has(iso)) days.push(iso);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return days;
+  }
+  const workDays = availableWorkDays(startDate, endDate);
+  const availableHours = workDays.length * dailyCap;
+  const currentUsedHours = existingAllocs.reduce((sum2, a) => {
+    const days = availableWorkDays(
+      a.startDate > startDate ? a.startDate : startDate,
+      a.endDate < endDate ? a.endDate : endDate
+    );
+    return sum2 + days.length * Number(a.hoursPerDay);
+  }, 0);
+  const afterUsedHours = currentUsedHours + totalHours;
+  const utilisationPct = availableHours > 0 ? Math.round(afterUsedHours / availableHours * 100) : 0;
+  const affectedWeeks = [];
+  {
+    const rangeStart = /* @__PURE__ */ new Date(`${startDate}T00:00:00Z`);
+    const dow = rangeStart.getUTCDay();
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    const weekCur = new Date(rangeStart);
+    weekCur.setUTCDate(weekCur.getUTCDate() + diffToMon);
+    const rangeEnd = /* @__PURE__ */ new Date(`${endDate}T00:00:00Z`);
+    while (weekCur <= rangeEnd) {
+      const weekSun = new Date(weekCur);
+      weekSun.setUTCDate(weekCur.getUTCDate() + 6);
+      const wStart = weekCur.toISOString().slice(0, 10);
+      const wEnd = weekSun.toISOString().slice(0, 10);
+      const overlapStart = wStart < startDate ? startDate : wStart;
+      const overlapEnd = wEnd > endDate ? endDate : wEnd;
+      if (overlapStart <= overlapEnd) {
+        const wDays = availableWorkDays(overlapStart, overlapEnd);
+        const wAvail = wDays.length * dailyCap;
+        const wExisting = existingAllocs.reduce((s, a) => {
+          const aStart = a.startDate > overlapStart ? a.startDate : overlapStart;
+          const aEnd = a.endDate < overlapEnd ? a.endDate : overlapEnd;
+          if (aStart > aEnd) return s;
+          return s + availableWorkDays(aStart, aEnd).length * Number(a.hoursPerDay);
+        }, 0);
+        const wNew = wDays.length * hoursPerDay;
+        affectedWeeks.push({
+          week: wStart,
+          usedHours: Math.round((wExisting + wNew) * 100) / 100,
+          availableHours: Math.round(wAvail * 100) / 100
+        });
+      }
+      weekCur.setUTCDate(weekCur.getUTCDate() + 7);
+    }
+  }
+  res.json({
+    resourceId: userId,
+    currentUsedHours: Math.round(currentUsedHours * 100) / 100,
+    currentAvailableHours: Math.round(Math.max(0, availableHours - currentUsedHours) * 100) / 100,
+    afterUsedHours: Math.round(afterUsedHours * 100) / 100,
+    afterAvailableHours: Math.round(Math.max(0, availableHours - afterUsedHours) * 100) / 100,
+    utilisationPct,
+    isOverAllocated: afterUsedHours > availableHours,
+    affectedWeeks
+  });
+});
 router12.post("/allocations", requirePM, async (req, res) => {
   const parsed = CreateAllocationBody.safeParse(req.body);
   if (!parsed.success) {
@@ -65737,11 +66067,32 @@ router12.post("/allocations", requirePM, async (req, res) => {
     return;
   }
   const computed = computeRes.value;
+  if (!isSoftAllocation && parsed.data.userId) {
+    const overAllocBlock = await checkOverAllocation(
+      {
+        userId: parsed.data.userId,
+        startDate: parsed.data.startDate,
+        endDate: parsed.data.endDate,
+        hoursPerDay: computed.hoursPerDay,
+        hoursPerWeek: computed.hoursPerWeek,
+        totalHours: computed.totalHours
+      },
+      req
+    );
+    if (overAllocBlock) {
+      res.status(overAllocBlock.status).json(overAllocBlock.body);
+      return;
+    }
+  }
   const placeholderId = req.body.placeholderId ?? null;
+  const isOverride = !isSoftAllocation && parsed.data.userId && String(req.body?.forceOverride ?? "").toLowerCase() === "true" && typeof req.body?.overrideReason === "string" && req.body.overrideReason.trim().length > 0;
+  const overrideReason = isOverride ? req.body.overrideReason.trim() : null;
   const insertVals = {
     ...parsed.data,
     isSoftAllocation,
     placeholderId,
+    isOverride: !!isOverride,
+    overrideReason,
     hoursPerWeek: String(computed.hoursPerWeek),
     hoursPerDay: String(computed.hoursPerDay),
     totalHours: String(computed.totalHours),
@@ -66209,8 +66560,10 @@ router14.get("/reports/utilization", requirePermission("reports.view"), async (_
   res.json(GetUtilizationReportResponse.parse({ averageUtilization, byUser, byMonth }));
 });
 router14.get("/reports/revenue", requirePermission("reports.view"), requireFinance, async (_req, res) => {
-  const invoices = await db.select().from(invoicesTable);
-  const projects = await db.select().from(projectsTable);
+  const allInvoices = await db.select().from(invoicesTable);
+  const projects = await db.select().from(projectsTable).where(ne(projectsTable.status, "draft"));
+  const projectIdSet = new Set(projects.map((p) => p.id));
+  const invoices = allInvoices.filter((inv) => projectIdSet.has(inv.projectId));
   const totalRevenue = invoices.filter((i) => i.status === "Paid").reduce((s, i) => s + Number(i.total), 0);
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const now = /* @__PURE__ */ new Date();
@@ -66270,7 +66623,7 @@ router14.get("/reports/project-health", requirePermission("reports.view"), async
   res.json(GetProjectHealthReportResponse.parse({ onTrack, atRisk, offTrack, completed, projects: projectList }));
 });
 router14.get("/reports/budget-vs-actuals", requirePermission("reports.view"), requireFinance, async (_req, res) => {
-  const projects = await db.select().from(projectsTable);
+  const projects = await db.select().from(projectsTable).where(ne(projectsTable.status, "draft"));
   const invoices = await db.select().from(invoicesTable);
   const projectList = projects.map((p) => {
     const budget = Number(p.budget);
@@ -66574,7 +66927,8 @@ router14.get("/reports/capacity-planning", requirePermission("reports.view"), as
   const [users, allocations, projects, holidays, timeOffs] = await Promise.all([
     db.select().from(usersTable),
     db.select().from(allocationsTable),
-    db.select().from(projectsTable),
+    // Draft project isolation: drafts are excluded from capacity-planning forecasts.
+    db.select().from(projectsTable).where(ne(projectsTable.status, "draft")),
     db.select().from(holidayDatesTable),
     db.select().from(timeOffRequestsTable).where(eq(timeOffRequestsTable.status, "Approved"))
   ]);
