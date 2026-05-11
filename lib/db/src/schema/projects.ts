@@ -26,6 +26,11 @@ export const projectsTable = pgTable("projects", {
   autoAllocate: boolean("auto_allocate").notNull().default(false),
   opportunityId: integer("opportunity_id"),
   projectGroupId: integer("project_group_id"),
+  // Budget governance: set to true automatically when the project is published
+  // (draft → active). While locked, PATCH /projects/:id rejects budget field
+  // changes with 403 budget_locked. Account Admin can unlock via
+  // PATCH /projects/:id/unlock-budget.
+  budgetLocked: boolean("budget_locked").notNull().default(false),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

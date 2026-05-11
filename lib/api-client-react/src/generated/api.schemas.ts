@@ -98,6 +98,7 @@ export interface Project {
   isAdminProject?: number;
   opportunityId?: number | null;
   projectGroupId?: number | null;
+  budgetLocked?: boolean;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;

@@ -122,6 +122,23 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
   }
 
   // -------------------------------------------------------------------------
+  // Budget lock guard
+  // -------------------------------------------------------------------------
+  // While budgetLocked = true, any attempt to change monetary/hours budget
+  // fields is rejected with 403. Non-budget fields pass through unchanged.
+  // Account Admin can unlock via PATCH /projects/:id/unlock-budget.
+  const BUDGET_FIELDS = ["budget", "budgetedHours", "budgetCurrency"] as const;
+  const bodyAny = parsed.data as any;
+  if ((existing as any).budgetLocked && BUDGET_FIELDS.some(f => f in bodyAny)) {
+    res.status(403).json({
+      error: "budget_locked",
+      message: "Budget is locked. Raise a Change Order to modify the budget.",
+      changeOrderUrl: `/projects/${existing.id}?tab=changes`,
+    });
+    return;
+  }
+
+  // -------------------------------------------------------------------------
   // Lifecycle state machine guard
   // -------------------------------------------------------------------------
   const incomingStatus = (parsed.data as any).status as string | undefined;
@@ -170,12 +187,55 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
     res.status(400).json({ error: "dueDate must be on or after startDate" });
     return;
   }
-  const [row] = await db.update(projectsTable).set(parsed.data as any).where(eq(projectsTable.id, params.data.id)).returning();
+  // Auto-lock budget when publishing (draft → active).
+  const updatePayload: any = { ...(parsed.data as any) };
+  if (isStatusChange
+      && normaliseStatus(existing.status) === "draft"
+      && normaliseStatus(incomingStatus!) === "active") {
+    updatePayload.budgetLocked = true;
+  }
+  const [row] = await db.update(projectsTable).set(updatePayload).where(eq(projectsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
   if (!isStatusChange) {
     await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
   }
   res.json(UpdateProjectResponse.parse(mapProject(row)));
+});
+
+// ---------------------------------------------------------------------------
+// Budget unlock (Account Admin only)
+// ---------------------------------------------------------------------------
+// Clears budgetLocked so direct budget edits are permitted again.
+// A reason is mandatory and written to the audit log.
+// NOTE: must be registered before the generic PATCH /projects/:id so Express
+// does not swallow ":id/unlock-budget" as a param match (different method +
+// extra path segment — no conflict in practice, but keep the order explicit).
+router.patch("/projects/:id/unlock-budget", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const reason = typeof (req.body as any).reason === "string"
+    ? ((req.body as any).reason as string).trim()
+    : "";
+  if (!reason) {
+    res.status(400).json({ error: "reason is required to unlock the budget" });
+    return;
+  }
+  const [row] = await db
+    .update(projectsTable)
+    .set({ budgetLocked: false } as any)
+    .where(eq(projectsTable.id, id))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Project not found" }); return; }
+  await logAudit({
+    entityType: "project",
+    entityId: id,
+    action: "updated",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+    description: `Budget unlocked: ${reason}`,
+    previousValue: { budgetLocked: true },
+    newValue: { budgetLocked: false, reason },
+  });
+  res.json(mapProject(row));
 });
 
 router.delete("/projects/:id", requirePM, async (req, res): Promise<void> => {

@@ -3842,6 +3842,13 @@ components:
           type: string
         updatedAt:
           type: string
+        budgetLocked:
+          type: boolean
+          description: >
+            True when the budget is locked (auto-set on draft→active transition).
+            While locked, PATCH /projects/:id rejects budget field changes with
+            403 budget_locked. Account Admin can unlock via
+            PATCH /projects/:id/unlock-budget.
         companyName:
           type: ["string", "null"]
         accountDomain:
