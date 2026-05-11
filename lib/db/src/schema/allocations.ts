@@ -24,6 +24,10 @@ export const allocationsTable = pgTable("allocations", {
   // Over-allocation override: set to true when a PM/admin bypasses the capacity guard.
   isOverride: boolean("is_override").notNull().default(false),
   overrideReason: text("override_reason"),
+  // Skill requirement (optional). When set, POST /api/allocations validates the
+  // resource has the required skill at or above the numeric proficiency level (1–5).
+  requiredSkillId: integer("required_skill_id"),
+  requiredProficiencyLevel: integer("required_proficiency_level"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

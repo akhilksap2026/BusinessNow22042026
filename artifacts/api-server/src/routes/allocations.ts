@@ -327,6 +327,68 @@ router.post("/allocations", requirePM, async (req, res): Promise<void> => {
     }
   }
 
+  // ── Skill validation (fires only when requiredSkillId is supplied) ─────────
+  // Skip entirely when no skill requirement is specified — no change to existing
+  // behaviour for callers that omit this field.
+  const requiredSkillId = req.body.requiredSkillId ? Number(req.body.requiredSkillId) : null;
+  const requiredProficiencyLevel = req.body.requiredProficiencyLevel
+    ? Number(req.body.requiredProficiencyLevel)
+    : null;
+
+  if (requiredSkillId && parsed.data.userId) {
+    // Numeric rank for text proficiency levels stored in user_skills.
+    const PROFICIENCY_RANK: Record<string, number> = {
+      beginner: 1, novice: 1,
+      intermediate: 2,
+      advanced: 3,
+      proficient: 4,
+      expert: 5, master: 5,
+    };
+    const rankOf = (level: string | null | undefined): number =>
+      level ? (PROFICIENCY_RANK[level.toLowerCase()] ?? 0) : 0;
+
+    const [[skill], [userSkill]] = await Promise.all([
+      db.select({ id: skillsTable.id, name: skillsTable.name })
+        .from(skillsTable).where(eq(skillsTable.id, requiredSkillId)),
+      db.select({ proficiencyLevel: userSkillsTable.proficiencyLevel })
+        .from(userSkillsTable)
+        .where(and(
+          eq(userSkillsTable.userId, parsed.data.userId),
+          eq(userSkillsTable.skillId, requiredSkillId),
+        )),
+    ]);
+
+    const resourceLevelText = userSkill?.proficiencyLevel ?? null;
+    const resourceRank = rankOf(resourceLevelText);
+    const requiredRank = requiredProficiencyLevel ?? 1;
+
+    if (resourceRank < requiredRank) {
+      const skillOverrideReason = typeof req.body.skillOverrideReason === "string"
+        ? req.body.skillOverrideReason.trim()
+        : "";
+
+      if (!skillOverrideReason) {
+        res.status(422).json({
+          error: "skill_mismatch",
+          resourceId: parsed.data.userId,
+          requiredSkill: skill?.name ?? String(requiredSkillId),
+          requiredLevel: requiredRank,
+          resourceLevel: resourceLevelText,
+        });
+        return;
+      }
+
+      // Override granted — log it and continue.
+      await logAudit({
+        entityType: "allocation",
+        entityId: parsed.data.userId,
+        action: "updated",
+        actorUserId: Number(req.headers["x-user-id"]) || undefined,
+        description: `Skill requirement overridden: skill "${skill?.name ?? requiredSkillId}" requires level ${requiredRank}, resource is "${resourceLevelText ?? "none"}". Reason: ${skillOverrideReason}`,
+      });
+    }
+  }
+
   const placeholderId = req.body.placeholderId ?? null;
   // Mark as an override row when the guard was bypassed via forceOverride.
   const isOverride = !isSoftAllocation && parsed.data.userId
@@ -349,6 +411,8 @@ router.post("/allocations", requirePM, async (req, res): Promise<void> => {
     methodValue: computed.methodValue !== null ? String(computed.methodValue) : null,
     percentOfCapacity: computed.percentOfCapacity !== null ? String(computed.percentOfCapacity) : null,
     allocationMethod: computed.allocationMethod,
+    requiredSkillId: requiredSkillId ?? null,
+    requiredProficiencyLevel: requiredProficiencyLevel ?? null,
   };
   const [row] = await db.insert(allocationsTable).values(insertVals).returning();
   res.status(201).json(mapAllocation(row));
