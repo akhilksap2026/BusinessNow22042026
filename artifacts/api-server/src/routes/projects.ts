@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, asc, isNull, isNotNull, inArray, ne } from "drizzle-orm";
 import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
+import { checkOutOfRangeAllocations } from "../lib/outOfRangeAllocationCheck";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
   ListProjectsResponse,
@@ -199,6 +200,20 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
   if (!isStatusChange) {
     await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
   }
+
+  // ── Out-of-range allocation detection (fire-and-forget) ──────────────────
+  // Runs only when the project timeline actually changed and the project has a PM.
+  const dateChanged = ("startDate" in (parsed.data as any)) || ("dueDate" in (parsed.data as any));
+  if (dateChanged && row.ownerId) {
+    checkOutOfRangeAllocations({
+      projectId: row.id,
+      projectName: row.name,
+      newStartDate: row.startDate,
+      newDueDate: row.dueDate,
+      pmUserId: row.ownerId,
+    }).catch(() => {});
+  }
+
   res.json(UpdateProjectResponse.parse(mapProject(row)));
 });
 

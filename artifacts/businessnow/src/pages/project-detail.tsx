@@ -1216,6 +1216,21 @@ export default function ProjectDetail() {
                   </Button>
                 </div>
               </CardHeader>
+              {/* ── Out-of-range banner ──────────────────────────────────── */}
+              {(() => {
+                const reviewAllocs = (allocations as any[] ?? []).filter((a: any) => a.status === "needs_review");
+                if (!reviewAllocs.length) return null;
+                return (
+                  <div className="mx-6 mt-4 flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                    <div>
+                      <span className="font-semibold">{reviewAllocs.length} allocation{reviewAllocs.length === 1 ? "" : "s"} outside the project timeline.</span>
+                      {" "}The project start or end date was updated, and the highlighted allocation{reviewAllocs.length === 1 ? "" : "s"} below no longer fit within it.
+                      {" "}Edit each allocation to bring it back in range or remove it.
+                    </div>
+                  </div>
+                );
+              })()}
               <CardContent>
                 {isLoadingAllocations ? (
                   <div className="space-y-4">
@@ -1243,14 +1258,20 @@ export default function ProjectDetail() {
                     <TableBody>
                       {allocations?.map(allocation => {
                         const user = getUser(allocation.userId);
+                        const needsReview = (allocation as any).status === "needs_review";
                         return (
-                          <TableRow key={allocation.id}>
+                          <TableRow key={allocation.id} className={needsReview ? "bg-amber-50/60" : ""}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-8 w-8">
                                   <AvatarFallback>{user?.initials ?? "?"}</AvatarFallback>
                                 </Avatar>
                                 <span>{user?.name ?? (allocation.userId ? `User ${allocation.userId}` : "Unassigned")}</span>
+                                {needsReview && (
+                                  <span title="Outside project timeline — needs review" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-amber-300 bg-amber-50 text-[10px] font-semibold text-amber-700">
+                                    <AlertTriangle className="h-3 w-3" /> Review
+                                  </span>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>{allocation.role}</TableCell>
