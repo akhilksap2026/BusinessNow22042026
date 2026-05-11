@@ -111,6 +111,71 @@ export default function ProjectDetail() {
   const createBudgetEntry = useCreateProjectBudgetEntry();
   const [budgetHistoryOpen, setBudgetHistoryOpen] = useState(false);
   const [budgetEntryDialogOpen, setBudgetEntryDialogOpen] = useState(false);
+
+  // ── Asset bookings ────────────────────────────────────────────────────────
+  const { data: orgAssets, isLoading: isLoadingAssets } = useQuery<any[]>({
+    queryKey: ["assets"],
+    queryFn: () => fetch("/api/assets", { headers: authHeaders() }).then(r => r.json()),
+  });
+  const { data: projectAssetBookings, isLoading: isLoadingBookings, refetch: refetchBookings } = useQuery<any[]>({
+    queryKey: ["asset-bookings", projectId],
+    queryFn: () => fetch(`/api/asset-bookings?projectId=${projectId}`, { headers: authHeaders() }).then(r => r.json()),
+    enabled: !!projectId,
+  });
+  const [bookAssetOpen, setBookAssetOpen] = useState(false);
+  const [bookAssetForm, setBookAssetForm] = useState({ assetId: "", startDate: "", endDate: "" });
+  const [bookAssetSubmitting, setBookAssetSubmitting] = useState(false);
+
+  async function handleBookAsset() {
+    if (!bookAssetForm.assetId || !bookAssetForm.startDate || !bookAssetForm.endDate) return;
+    setBookAssetSubmitting(true);
+    try {
+      const res = await fetch("/api/asset-bookings", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          assetId: parseInt(bookAssetForm.assetId, 10),
+          projectId,
+          startDate: bookAssetForm.startDate,
+          endDate: bookAssetForm.endDate,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        if (json.error === "asset_unavailable") {
+          toast({ title: "Asset unavailable — it is already booked for the selected dates.", variant: "destructive" });
+        } else {
+          toast({ title: json.error ?? "Failed to book asset", variant: "destructive" });
+        }
+        return;
+      }
+      toast({ title: "Asset booked successfully." });
+      setBookAssetOpen(false);
+      setBookAssetForm({ assetId: "", startDate: "", endDate: "" });
+      refetchBookings();
+    } catch {
+      toast({ title: "Failed to book asset", variant: "destructive" });
+    } finally {
+      setBookAssetSubmitting(false);
+    }
+  }
+
+  async function handleCancelBooking(bookingId: number) {
+    try {
+      const res = await fetch(`/api/asset-bookings/${bookingId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        toast({ title: "Failed to cancel booking", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Booking cancelled." });
+      refetchBookings();
+    } catch {
+      toast({ title: "Failed to cancel booking", variant: "destructive" });
+    }
+  }
   const emptyBudgetEntryForm = {
     entryDate: new Date().toISOString().slice(0, 10),
     type: "Adjustment",
@@ -1296,6 +1361,65 @@ export default function ProjectDetail() {
                           </TableRow>
                         );
                       })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ── Assets sub-section ─────────────────────────────────────── */}
+            <Card className="mt-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Assets</CardTitle>
+                  <CardDescription>Non-human resources booked for this project</CardDescription>
+                </div>
+                {isPM && (
+                  <Button size="sm" onClick={() => { setBookAssetForm({ assetId: "", startDate: "", endDate: "" }); setBookAssetOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" /> Book Asset
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {isLoadingBookings ? (
+                  <div className="space-y-2">{[1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+                ) : !projectAssetBookings?.length ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <Briefcase className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm font-medium">No assets booked</p>
+                    <p className="text-xs mt-1">Book an environment, device, or other shared resource for this project.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Asset</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Start</TableHead>
+                        <TableHead>End</TableHead>
+                        <TableHead>Booked by</TableHead>
+                        {isPM && <TableHead className="w-12" />}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {projectAssetBookings.map((b: any) => (
+                        <TableRow key={b.id}>
+                          <TableCell className="font-medium">{b.assetName ?? `Asset #${b.assetId}`}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">{b.assetType ?? "—"}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">{new Date(b.startDate + "T00:00:00").toLocaleDateString()}</TableCell>
+                          <TableCell className="text-sm">{new Date(b.endDate + "T00:00:00").toLocaleDateString()}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{b.bookedByName ?? "—"}</TableCell>
+                          {isPM && (
+                            <TableCell>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => handleCancelBooking(b.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 )}
@@ -2732,6 +2856,65 @@ export default function ProjectDetail() {
         projectStartDate={project.startDate ?? undefined}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) })}
       />
+
+      {/* ── Book Asset Dialog ────────────────────────────────────────────── */}
+      <Dialog open={bookAssetOpen} onOpenChange={setBookAssetOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Book Asset</DialogTitle>
+            <DialogDescription>Reserve a shared resource for this project. You will see a conflict error if the asset is already fully booked for the selected dates.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Asset</Label>
+              {isLoadingAssets ? (
+                <Skeleton className="h-9 w-full" />
+              ) : (
+                <Select value={bookAssetForm.assetId} onValueChange={v => setBookAssetForm(f => ({ ...f, assetId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select an asset…" /></SelectTrigger>
+                  <SelectContent>
+                    {(orgAssets ?? []).map((a: any) => (
+                      <SelectItem key={a.id} value={String(a.id)}>
+                        {a.name} <span className="text-muted-foreground text-xs ml-1">({a.type})</span>
+                      </SelectItem>
+                    ))}
+                    {(orgAssets ?? []).length === 0 && (
+                      <SelectItem value="" disabled>No assets configured</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={bookAssetForm.startDate}
+                  onChange={e => setBookAssetForm(f => ({ ...f, startDate: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={bookAssetForm.endDate}
+                  onChange={e => setBookAssetForm(f => ({ ...f, endDate: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBookAssetOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleBookAsset}
+              disabled={bookAssetSubmitting || !bookAssetForm.assetId || !bookAssetForm.startDate || !bookAssetForm.endDate}
+            >
+              {bookAssetSubmitting ? "Booking…" : "Confirm Booking"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

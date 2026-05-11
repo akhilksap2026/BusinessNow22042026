@@ -31,3 +31,4 @@ export * from "./savedViews";
 export * from "./taskStatusDefinitions";
 export * from "./projectGroups";
 export * from "./contracts";
+export * from "./assets";

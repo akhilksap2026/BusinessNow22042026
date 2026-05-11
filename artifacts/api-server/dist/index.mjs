@@ -20488,27 +20488,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router44;
+    module.exports = Router45;
     module.exports.Route = Route;
-    function Router44(options) {
-      if (!(this instanceof Router44)) {
-        return new Router44(options);
+    function Router45(options) {
+      if (!(this instanceof Router45)) {
+        return new Router45(options);
       }
       const opts = options || {};
-      function router42(req, res, next) {
-        router42.handle(req, res, next);
+      function router43(req, res, next) {
+        router43.handle(req, res, next);
       }
-      Object.setPrototypeOf(router42, this);
-      router42.caseSensitive = opts.caseSensitive;
-      router42.mergeParams = opts.mergeParams;
-      router42.params = {};
-      router42.strict = opts.strict;
-      router42.stack = [];
-      return router42;
+      Object.setPrototypeOf(router43, this);
+      router43.caseSensitive = opts.caseSensitive;
+      router43.mergeParams = opts.mergeParams;
+      router43.params = {};
+      router43.strict = opts.strict;
+      router43.stack = [];
+      return router43;
     }
-    Router44.prototype = function() {
+    Router45.prototype = function() {
     };
-    Router44.prototype.param = function param2(name2, fn) {
+    Router45.prototype.param = function param2(name2, fn) {
       if (!name2) {
         throw new TypeError("argument name is required");
       }
@@ -20528,7 +20528,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router44.prototype.handle = function handle(req, res, callback) {
+    Router45.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20655,7 +20655,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router44.prototype.use = function use(handler) {
+    Router45.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20688,7 +20688,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router44.prototype.route = function route(path2) {
+    Router45.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20703,7 +20703,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router44.prototype[method] = function(path2) {
+      Router45.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20886,13 +20886,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router44 = require_router();
+    var Router45 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router42 = null;
+      var router43 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20901,13 +20901,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router42 === null) {
-            router42 = new Router44({
+          if (router43 === null) {
+            router43 = new Router45({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router42;
+          return router43;
         }
       });
     };
@@ -20978,15 +20978,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router42 = this.router;
+      var router43 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router42.use(path2, fn2);
+          return router43.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router42.use(path2, function mounted_app(req, res, next) {
+        router43.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23513,7 +23513,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router44 = require_router();
+    var Router45 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23535,8 +23535,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router44.Route;
-    exports.Router = Router44;
+    exports.Route = Router45.Route;
+    exports.Router = Router45;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -55359,6 +55359,35 @@ var init_contracts = __esm({
   }
 });
 
+// ../../lib/db/src/schema/assets.ts
+var assetsTable, assetBookingsTable, insertAssetSchema, insertAssetBookingSchema;
+var init_assets = __esm({
+  "../../lib/db/src/schema/assets.ts"() {
+    "use strict";
+    init_pg_core();
+    init_drizzle_zod();
+    assetsTable = pgTable("assets", {
+      id: serial("id").primaryKey(),
+      name: text("name").notNull(),
+      type: text("type").notNull(),
+      capacity: integer("capacity").notNull().default(1),
+      orgId: integer("org_id"),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    });
+    assetBookingsTable = pgTable("asset_bookings", {
+      id: serial("id").primaryKey(),
+      assetId: integer("asset_id").notNull(),
+      projectId: integer("project_id").notNull(),
+      startDate: text("start_date").notNull(),
+      endDate: text("end_date").notNull(),
+      bookedById: integer("booked_by_id").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    });
+    insertAssetSchema = createInsertSchema(assetsTable).omit({ id: true, createdAt: true });
+    insertAssetBookingSchema = createInsertSchema(assetBookingsTable).omit({ id: true, createdAt: true });
+  }
+});
+
 // ../../lib/db/src/schema/index.ts
 var schema_exports = {};
 __export(schema_exports, {
@@ -55367,6 +55396,8 @@ __export(schema_exports, {
   accountsTable: () => accountsTable,
   activityDefaultsTable: () => activityDefaultsTable,
   allocationsTable: () => allocationsTable,
+  assetBookingsTable: () => assetBookingsTable,
+  assetsTable: () => assetsTable,
   auditLogTable: () => auditLogTable,
   baselinesTable: () => baselinesTable,
   billingSchedulesTable: () => billingSchedulesTable,
@@ -55391,6 +55422,8 @@ __export(schema_exports, {
   insertAccountSchema: () => insertAccountSchema,
   insertActivityDefaultSchema: () => insertActivityDefaultSchema,
   insertAllocationSchema: () => insertAllocationSchema,
+  insertAssetBookingSchema: () => insertAssetBookingSchema,
+  insertAssetSchema: () => insertAssetSchema,
   insertAuditLogSchema: () => insertAuditLogSchema,
   insertBaselineSchema: () => insertBaselineSchema,
   insertBillingScheduleSchema: () => insertBillingScheduleSchema,
@@ -55536,6 +55569,7 @@ var init_schema2 = __esm({
     init_taskStatusDefinitions();
     init_projectGroups();
     init_contracts();
+    init_assets();
   }
 });
 
@@ -55547,6 +55581,8 @@ __export(src_exports, {
   accountsTable: () => accountsTable,
   activityDefaultsTable: () => activityDefaultsTable,
   allocationsTable: () => allocationsTable,
+  assetBookingsTable: () => assetBookingsTable,
+  assetsTable: () => assetsTable,
   auditLogTable: () => auditLogTable,
   baselinesTable: () => baselinesTable,
   billingSchedulesTable: () => billingSchedulesTable,
@@ -55572,6 +55608,8 @@ __export(src_exports, {
   insertAccountSchema: () => insertAccountSchema,
   insertActivityDefaultSchema: () => insertActivityDefaultSchema,
   insertAllocationSchema: () => insertAllocationSchema,
+  insertAssetBookingSchema: () => insertAssetBookingSchema,
+  insertAssetSchema: () => insertAssetSchema,
   insertAuditLogSchema: () => insertAuditLogSchema,
   insertBaselineSchema: () => insertBaselineSchema,
   insertBillingScheduleSchema: () => insertBillingScheduleSchema,
@@ -55892,7 +55930,7 @@ var init_governance = __esm({
 });
 
 // src/app.ts
-var import_express44 = __toESM(require_express2(), 1);
+var import_express45 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
@@ -55900,7 +55938,7 @@ import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 
 // src/routes/index.ts
-var import_express43 = __toESM(require_express2(), 1);
+var import_express44 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -63129,6 +63167,40 @@ async function logAudit(opts) {
   }
 }
 
+// src/lib/outOfRangeAllocationCheck.ts
+init_drizzle_orm();
+init_src();
+async function checkOutOfRangeAllocations(opts) {
+  try {
+    const { projectId, projectName, newStartDate, newDueDate, pmUserId } = opts;
+    const outOfRange = await db.select({ id: allocationsTable.id }).from(allocationsTable).where(and(
+      eq(allocationsTable.projectId, projectId),
+      eq(allocationsTable.isSoftAllocation, false),
+      or(
+        gt(allocationsTable.endDate, newDueDate),
+        lt(allocationsTable.startDate, newStartDate)
+      )
+    ));
+    if (outOfRange.length === 0) return;
+    const ids = outOfRange.map((r) => r.id);
+    await Promise.all(
+      ids.map(
+        (id) => db.update(allocationsTable).set({ status: "needs_review" }).where(eq(allocationsTable.id, id))
+      )
+    );
+    const fmt = (d) => (/* @__PURE__ */ new Date(`${d}T00:00:00Z`)).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    await db.insert(notificationsTable).values({
+      type: "out_of_range_allocation",
+      message: `${ids.length} allocation${ids.length === 1 ? "" : "s"} on "${projectName}" fall outside the updated timeline (${fmt(newStartDate)}\u2013${fmt(newDueDate)}). Please review the Team tab.`,
+      userId: pmUserId,
+      entityType: "project",
+      entityId: String(projectId),
+      read: false
+    });
+  } catch {
+  }
+}
+
 // src/routes/projects.ts
 var router4 = (0, import_express4.Router)();
 var ALLOWED_TRANSITIONS = {
@@ -63279,6 +63351,17 @@ router4.patch("/projects/:id", requirePM, async (req, res) => {
   }
   if (!isStatusChange) {
     await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
+  }
+  const dateChanged = "startDate" in parsed.data || "dueDate" in parsed.data;
+  if (dateChanged && row.ownerId) {
+    checkOutOfRangeAllocations({
+      projectId: row.id,
+      projectName: row.name,
+      newStartDate: row.startDate,
+      newDueDate: row.dueDate,
+      pmUserId: row.ownerId
+    }).catch(() => {
+    });
   }
   res.json(UpdateProjectResponse.parse(mapProject(row)));
 });
@@ -71600,11 +71683,135 @@ router37.delete("/contracts/:id", requirePM, async (req, res) => {
 });
 var contracts_default = router37;
 
-// src/routes/aiTimeAssistant.ts
+// src/routes/assets.ts
 var import_express40 = __toESM(require_express2(), 1);
 init_drizzle_orm();
 init_src();
+init_v4();
 var router38 = (0, import_express40.Router)();
+function mapAsset(r) {
+  return {
+    ...r,
+    createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt
+  };
+}
+function mapBooking(r) {
+  return {
+    ...r,
+    createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt
+  };
+}
+var CreateAssetBody = external_exports2.object({
+  name: external_exports2.string().min(1).max(200),
+  type: external_exports2.string().min(1).max(80),
+  capacity: external_exports2.number().int().positive().optional(),
+  orgId: external_exports2.number().int().positive().nullable().optional()
+});
+router38.get("/assets", requirePM, async (_req, res) => {
+  const rows = await db.select().from(assetsTable).orderBy(assetsTable.name);
+  res.json(rows.map(mapAsset));
+});
+router38.post("/assets", requireAdmin, async (req, res) => {
+  const parsed = CreateAssetBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [row] = await db.insert(assetsTable).values({
+    name: parsed.data.name,
+    type: parsed.data.type,
+    capacity: parsed.data.capacity ?? 1,
+    orgId: parsed.data.orgId ?? null
+  }).returning();
+  res.status(201).json(mapAsset(row));
+});
+var CreateBookingBody = external_exports2.object({
+  assetId: external_exports2.number().int().positive(),
+  projectId: external_exports2.number().int().positive(),
+  startDate: external_exports2.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endDate: external_exports2.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+});
+router38.get("/asset-bookings", requirePM, async (req, res) => {
+  const projectId = req.query.projectId ? parseInt(String(req.query.projectId), 10) : null;
+  const assetId = req.query.assetId ? parseInt(String(req.query.assetId), 10) : null;
+  let rows = await db.select({
+    booking: assetBookingsTable,
+    assetName: assetsTable.name,
+    assetType: assetsTable.type,
+    projectName: projectsTable.name,
+    bookedByName: usersTable.name
+  }).from(assetBookingsTable).leftJoin(assetsTable, eq(assetBookingsTable.assetId, assetsTable.id)).leftJoin(projectsTable, eq(assetBookingsTable.projectId, projectsTable.id)).leftJoin(usersTable, eq(assetBookingsTable.bookedById, usersTable.id)).orderBy(assetBookingsTable.startDate);
+  if (projectId && !isNaN(projectId)) {
+    rows = rows.filter((r) => r.booking.projectId === projectId);
+  }
+  if (assetId && !isNaN(assetId)) {
+    rows = rows.filter((r) => r.booking.assetId === assetId);
+  }
+  res.json(rows.map((r) => ({
+    ...mapBooking(r.booking),
+    assetName: r.assetName ?? null,
+    assetType: r.assetType ?? null,
+    projectName: r.projectName ?? null,
+    bookedByName: r.bookedByName ?? null
+  })));
+});
+router38.post("/asset-bookings", requirePM, async (req, res) => {
+  const parsed = CreateBookingBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { assetId, projectId, startDate, endDate } = parsed.data;
+  if (endDate < startDate) {
+    res.status(400).json({ error: "endDate must be on or after startDate" });
+    return;
+  }
+  const bookedById = Number(req.headers["x-user-id"] ?? 0) || 0;
+  const [asset] = await db.select().from(assetsTable).where(eq(assetsTable.id, assetId));
+  if (!asset) {
+    res.status(404).json({ error: `Asset ${assetId} not found` });
+    return;
+  }
+  const [project] = await db.select({ id: projectsTable.id }).from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) {
+    res.status(404).json({ error: `Project ${projectId} not found` });
+    return;
+  }
+  const overlapping = await db.select().from(assetBookingsTable).where(and(
+    eq(assetBookingsTable.assetId, assetId),
+    lte(assetBookingsTable.startDate, endDate),
+    gte(assetBookingsTable.endDate, startDate)
+  ));
+  if (overlapping.length >= asset.capacity) {
+    res.status(409).json({
+      error: "asset_unavailable",
+      conflictingBookings: overlapping.map(mapBooking)
+    });
+    return;
+  }
+  const [row] = await db.insert(assetBookingsTable).values({ assetId, projectId, startDate, endDate, bookedById }).returning();
+  res.status(201).json(mapBooking(row));
+});
+router38.delete("/asset-bookings/:id", requirePM, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const [row] = await db.delete(assetBookingsTable).where(eq(assetBookingsTable.id, id)).returning();
+  if (!row) {
+    res.status(404).json({ error: "Booking not found" });
+    return;
+  }
+  res.status(204).end();
+});
+var assets_default = router38;
+
+// src/routes/aiTimeAssistant.ts
+var import_express41 = __toESM(require_express2(), 1);
+init_drizzle_orm();
+init_src();
+var router39 = (0, import_express41.Router)();
 async function callClaude(prompt, maxTokens = 200, jsonMode = false) {
   const baseUrl = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
   const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
@@ -71635,7 +71842,7 @@ async function callClaude(prompt, maxTokens = 200, jsonMode = false) {
     return null;
   }
 }
-router38.post("/ai/time-comment-suggestion", async (req, res) => {
+router39.post("/ai/time-comment-suggestion", async (req, res) => {
   const { projectName, taskName, categoryName } = req.body ?? {};
   const contextParts = [
     projectName ? `Project: ${projectName}` : null,
@@ -71646,7 +71853,7 @@ router38.post("/ai/time-comment-suggestion", async (req, res) => {
   const suggestion = await callClaude(prompt, 60);
   res.json({ suggestion });
 });
-router38.post("/ai/timesheet-assist", async (req, res) => {
+router39.post("/ai/timesheet-assist", async (req, res) => {
   const { userId, message, weekStart } = req.body ?? {};
   if (!userId || !message) {
     res.status(400).json({ error: "userId and message are required" });
@@ -71732,7 +71939,7 @@ Rules:
     res.json({ reply: raw.slice(0, 300), entries: [], warnings: [] });
   }
 });
-router38.get("/ai/timesheet-suggestions", async (req, res) => {
+router39.get("/ai/timesheet-suggestions", async (req, res) => {
   const userId = req.query.userId ? Number(req.query.userId) : null;
   const weekStart = req.query.weekStart ? String(req.query.weekStart) : null;
   if (!userId || !weekStart) {
@@ -71825,7 +72032,7 @@ router38.get("/ai/timesheet-suggestions", async (req, res) => {
   }
   res.json({ suggestions, weekDates, dailyCapacity: dailyHours });
 });
-router38.post("/ai/billable-anomaly-check", async (req, res) => {
+router39.post("/ai/billable-anomaly-check", async (req, res) => {
   const { userId, weekStart } = req.body ?? {};
   if (!userId || !weekStart) {
     res.status(400).json({ error: "userId and weekStart required" });
@@ -71854,7 +72061,7 @@ router38.post("/ai/billable-anomaly-check", async (req, res) => {
   const message = anomaly ? `Your billable hours are ${billablePct}% this week, which is significantly below the team average of ${orgBillablePct}%. Please review your entries to ensure billable work is coded correctly.` : void 0;
   res.json({ anomaly, billablePct, orgBillablePct, message });
 });
-router38.get("/ai/pending-timesheet-audit", async (req, res) => {
+router39.get("/ai/pending-timesheet-audit", async (req, res) => {
   const authReq = req;
   const userId = Number(req.query.userId);
   if (!userId || Number.isNaN(userId)) {
@@ -71908,12 +72115,12 @@ router38.get("/ai/pending-timesheet-audit", async (req, res) => {
     blockers
   });
 });
-var aiTimeAssistant_default = router38;
+var aiTimeAssistant_default = router39;
 
 // src/routes/adminPortfolio.ts
-var import_express41 = __toESM(require_express2(), 1);
+var import_express42 = __toESM(require_express2(), 1);
 init_src();
-var router39 = (0, import_express41.Router)();
+var router40 = (0, import_express42.Router)();
 function healthToBucket(h) {
   if (h === "On Track") return "Green";
   if (h === "At Risk") return "Amber";
@@ -71928,7 +72135,7 @@ function daysBetween(fromIso, toIso) {
   const t = typeof toIso === "string" ? new Date(toIso) : toIso;
   return Math.max(0, Math.floor((t.getTime() - f.getTime()) / 864e5));
 }
-router39.get("/admin/portfolio-summary", requirePM, async (_req, res) => {
+router40.get("/admin/portfolio-summary", requirePM, async (_req, res) => {
   const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   const now = /* @__PURE__ */ new Date();
   const [projects, accounts, users, allocations, invoices, changeOrders, resourceRequests, tasks] = await Promise.all([
@@ -72144,13 +72351,13 @@ router39.get("/admin/portfolio-summary", requirePM, async (_req, res) => {
     budgetAlerts
   });
 });
-var adminPortfolio_default = router39;
+var adminPortfolio_default = router40;
 
 // src/routes/authLogin.ts
-var import_express42 = __toESM(require_express2(), 1);
+var import_express43 = __toESM(require_express2(), 1);
 init_src();
-var router40 = (0, import_express42.Router)();
-router40.get("/auth/users-for-login", async (_req, res) => {
+var router41 = (0, import_express43.Router)();
+router41.get("/auth/users-for-login", async (_req, res) => {
   const rows = await db.select({
     id: usersTable.id,
     name: usersTable.name,
@@ -72172,7 +72379,7 @@ router40.get("/auth/users-for-login", async (_req, res) => {
   }));
   res.json(visible);
 });
-var authLogin_default = router40;
+var authLogin_default = router41;
 
 // src/middleware/roleClaim.ts
 init_drizzle_orm();
@@ -72234,52 +72441,53 @@ async function verifyRoleClaim(req, res, next) {
 }
 
 // src/routes/index.ts
-var router41 = (0, import_express43.Router)();
-router41.use(health_default);
-router41.use(authLogin_default);
-router41.use(denyCustomerRole);
-router41.use(verifyRoleClaim);
-router41.use(dashboard_default);
-router41.use(accounts_default);
-router41.use(projects_default);
-router41.use(tasks_default);
-router41.use(users_default);
-router41.use(timeEntries_default);
-router41.use(timesheets_default);
-router41.use(invoiceLineItems_default);
-router41.use(invoices_default);
-router41.use(rateCards_default);
-router41.use(allocations_default);
-router41.use(placeholders_default);
-router41.use(reports_default);
-router41.use(notifications_default);
-router41.use(resourceRequests_default);
-router41.use(projectTemplates_default);
-router41.use(csat_default);
-router41.use(billingSchedules_default);
-router41.use(revenueEntries_default);
-router41.use(timeOff_default);
-router41.use(skills_default);
-router41.use(taskStatusDefinitions_default);
-router41.use(taskDetails_default);
-router41.use(adminSettings_default);
-router41.use(customFields_default);
-router41.use(auditLog_default);
-router41.use(documents_default);
-router41.use(savedViewsRouter);
-router41.use(forms_default);
-router41.use(prospects_default);
-router41.use(opportunities_default);
-router41.use(changeOrders_default);
-router41.use(taskDependencies_default);
-router41.use(baselines_default);
-router41.use(csatSurveys_default);
-router41.use(projectUpdatesRouter);
-router41.use(projectGroups_default);
-router41.use(contracts_default);
-router41.use(aiTimeAssistant_default);
-router41.use(adminPortfolio_default);
-var routes_default = router41;
+var router42 = (0, import_express44.Router)();
+router42.use(health_default);
+router42.use(authLogin_default);
+router42.use(denyCustomerRole);
+router42.use(verifyRoleClaim);
+router42.use(dashboard_default);
+router42.use(accounts_default);
+router42.use(projects_default);
+router42.use(tasks_default);
+router42.use(users_default);
+router42.use(timeEntries_default);
+router42.use(timesheets_default);
+router42.use(invoiceLineItems_default);
+router42.use(invoices_default);
+router42.use(rateCards_default);
+router42.use(allocations_default);
+router42.use(placeholders_default);
+router42.use(reports_default);
+router42.use(notifications_default);
+router42.use(resourceRequests_default);
+router42.use(projectTemplates_default);
+router42.use(csat_default);
+router42.use(billingSchedules_default);
+router42.use(revenueEntries_default);
+router42.use(timeOff_default);
+router42.use(skills_default);
+router42.use(taskStatusDefinitions_default);
+router42.use(taskDetails_default);
+router42.use(adminSettings_default);
+router42.use(customFields_default);
+router42.use(auditLog_default);
+router42.use(documents_default);
+router42.use(savedViewsRouter);
+router42.use(forms_default);
+router42.use(prospects_default);
+router42.use(opportunities_default);
+router42.use(changeOrders_default);
+router42.use(taskDependencies_default);
+router42.use(baselines_default);
+router42.use(csatSurveys_default);
+router42.use(projectUpdatesRouter);
+router42.use(projectGroups_default);
+router42.use(contracts_default);
+router42.use(assets_default);
+router42.use(aiTimeAssistant_default);
+router42.use(adminPortfolio_default);
+var routes_default = router42;
 
 // src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
@@ -72300,7 +72508,7 @@ var logger = (0, import_pino.default)({
 });
 
 // src/app.ts
-var app = (0, import_express44.default)();
+var app = (0, import_express45.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -72321,8 +72529,8 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express44.default.json());
-app.use(import_express44.default.urlencoded({ extended: true }));
+app.use(import_express45.default.json());
+app.use(import_express45.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 if (process.env["NODE_ENV"] === "production") {
   const __dirname2 = path.dirname(fileURLToPath(import.meta.url));
@@ -72333,7 +72541,7 @@ if (process.env["NODE_ENV"] === "production") {
   const staticDir = candidates.find((p) => existsSync(p));
   if (staticDir) {
     logger.info({ staticDir }, "Serving frontend static files");
-    app.use(import_express44.default.static(staticDir));
+    app.use(import_express45.default.static(staticDir));
     app.get(/^\/(?!api\/).*/, (_req, res) => {
       res.sendFile(path.join(staticDir, "index.html"));
     });

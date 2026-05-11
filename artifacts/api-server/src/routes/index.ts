@@ -38,6 +38,7 @@ import csatSurveysRouter from "./csatSurveys";
 import { projectUpdatesRouter } from "./projectUpdates";
 import projectGroupsRouter from "./projectGroups";
 import contractsRouter from "./contracts";
+import assetsRouter from "./assets";
 import aiTimeAssistantRouter from "./aiTimeAssistant";
 import adminPortfolioRouter from "./adminPortfolio";
 import authLoginRouter from "./authLogin";
@@ -97,6 +98,7 @@ router.use(csatSurveysRouter);
 router.use(projectUpdatesRouter);
 router.use(projectGroupsRouter);
 router.use(contractsRouter);
+router.use(assetsRouter);
 router.use(aiTimeAssistantRouter);
 router.use(adminPortfolioRouter);
 
