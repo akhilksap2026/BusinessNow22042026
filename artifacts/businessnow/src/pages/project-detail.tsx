@@ -87,6 +87,11 @@ export default function ProjectDetail() {
   const [editProjectForm, setEditProjectForm] = useState<{ name: string; status: string; health: string; budget: string; description: string; autoAllocate: boolean }>({
     name: "", status: "", health: "", budget: "", description: "", autoAllocate: false,
   });
+  // Status-change reason modal state
+  const [statusReasonOpen, setStatusReasonOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState("");
+  const [statusChangeReason, setStatusChangeReason] = useState("");
+  const [statusChangeError, setStatusChangeError] = useState<string | null>(null);
 
   const emptyCoForm = {
     title: "", description: "", amount: "", additionalHours: "",
@@ -272,10 +277,14 @@ export default function ProjectDetail() {
       description: project.description ?? "",
       autoAllocate: !!(project as any).autoAllocate,
     });
+    setStatusChangeReason("");
+    setStatusChangeError(null);
     setEditProjectOpen(true);
   }
 
   async function handleSaveProject() {
+    setStatusChangeError(null);
+    const statusChanged = editProjectForm.status !== project?.status;
     try {
       await updateProject.mutateAsync({
         id: projectId,
@@ -286,13 +295,24 @@ export default function ProjectDetail() {
           budget: parseFloat(editProjectForm.budget) || project?.budget,
           description: editProjectForm.description,
           autoAllocate: editProjectForm.autoAllocate,
+          ...(statusChanged && statusChangeReason.trim()
+            ? { statusChangeReason: statusChangeReason.trim() }
+            : {}),
         } as any,
       });
       queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
       toast({ title: "Project updated" });
+      setStatusChangeReason("");
       setEditProjectOpen(false);
-    } catch {
-      toast({ title: "Failed to update project", variant: "destructive" });
+    } catch (err: any) {
+      if (err?.status === 422 && err?.data?.error === "invalid_transition") {
+        const allowed: string[] = err.data.allowed ?? [];
+        setStatusChangeError(
+          `This status change is not allowed. Permitted next states: ${allowed.length ? allowed.join(", ") : "none"}.`
+        );
+      } else {
+        toast({ title: "Failed to update project", variant: "destructive" });
+      }
     }
   }
 
@@ -2220,7 +2240,23 @@ export default function ProjectDetail() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Status</Label>
-                <Select value={editProjectForm.status} onValueChange={v => setEditProjectForm(f => ({ ...f, status: v }))}>
+                <Select
+                  value={editProjectForm.status}
+                  onValueChange={v => {
+                    if (v !== project?.status) {
+                      // Intercept: status is changing — collect reason first
+                      setPendingStatus(v);
+                      setStatusChangeReason("");
+                      setStatusChangeError(null);
+                      setStatusReasonOpen(true);
+                    } else {
+                      // Reverting to current status — no reason needed
+                      setEditProjectForm(f => ({ ...f, status: v }));
+                      setStatusChangeReason("");
+                      setStatusChangeError(null);
+                    }
+                  }}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["Not Started", "Started", "At Risk", "Completed", "On Hold"].map(s => (
@@ -2228,6 +2264,9 @@ export default function ProjectDetail() {
                     ))}
                   </SelectContent>
                 </Select>
+                {statusChangeError && (
+                  <p className="text-xs text-destructive mt-1">{statusChangeError}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Health</Label>
@@ -2275,6 +2314,72 @@ export default function ProjectDetail() {
             <Button variant="outline" onClick={() => setEditProjectOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveProject} disabled={!editProjectForm.name || updateProject.isPending}>
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Status Change Reason Modal ─────────────────────────────────────── */}
+      <Dialog
+        open={statusReasonOpen}
+        onOpenChange={open => {
+          if (!open) {
+            // Dismissed without confirming — keep form status at current server value
+            setStatusReasonOpen(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reason for Status Change</DialogTitle>
+            <DialogDescription>
+              Please provide a reason before changing the project status.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-md bg-muted px-3 py-2 text-sm">
+              Changing status from{" "}
+              <span className="font-medium text-foreground">{project?.status}</span>
+              {" "}to{" "}
+              <span className="font-medium text-foreground">{pendingStatus}</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="status-change-reason">
+                Reason <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="status-change-reason"
+                placeholder="Describe why the status is changing (min. 10 characters)"
+                value={statusChangeReason}
+                onChange={e => setStatusChangeReason(e.target.value)}
+                rows={3}
+              />
+              {statusChangeReason.length > 0 && statusChangeReason.length < 10 && (
+                <p className="text-xs text-destructive">
+                  Reason must be at least 10 characters ({10 - statusChangeReason.length} more needed).
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Cancel — do not commit the pending status to the form
+                setStatusReasonOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={statusChangeReason.trim().length < 10}
+              onClick={() => {
+                // Confirm — commit the pending status and reason to form state
+                setEditProjectForm(f => ({ ...f, status: pendingStatus }));
+                setStatusReasonOpen(false);
+              }}
+            >
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
