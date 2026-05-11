@@ -42,6 +42,7 @@ import assetsRouter from "./assets";
 import aiTimeAssistantRouter from "./aiTimeAssistant";
 import adminPortfolioRouter from "./adminPortfolio";
 import authLoginRouter from "./authLogin";
+import costEntriesRouter from "./costEntries";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
 
@@ -101,5 +102,6 @@ router.use(contractsRouter);
 router.use(assetsRouter);
 router.use(aiTimeAssistantRouter);
 router.use(adminPortfolioRouter);
+router.use(costEntriesRouter);
 
 export default router;

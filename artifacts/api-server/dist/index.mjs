@@ -20488,27 +20488,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router45;
+    module.exports = Router46;
     module.exports.Route = Route;
-    function Router45(options) {
-      if (!(this instanceof Router45)) {
-        return new Router45(options);
+    function Router46(options) {
+      if (!(this instanceof Router46)) {
+        return new Router46(options);
       }
       const opts = options || {};
-      function router43(req, res, next) {
-        router43.handle(req, res, next);
+      function router44(req, res, next) {
+        router44.handle(req, res, next);
       }
-      Object.setPrototypeOf(router43, this);
-      router43.caseSensitive = opts.caseSensitive;
-      router43.mergeParams = opts.mergeParams;
-      router43.params = {};
-      router43.strict = opts.strict;
-      router43.stack = [];
-      return router43;
+      Object.setPrototypeOf(router44, this);
+      router44.caseSensitive = opts.caseSensitive;
+      router44.mergeParams = opts.mergeParams;
+      router44.params = {};
+      router44.strict = opts.strict;
+      router44.stack = [];
+      return router44;
     }
-    Router45.prototype = function() {
+    Router46.prototype = function() {
     };
-    Router45.prototype.param = function param2(name2, fn) {
+    Router46.prototype.param = function param2(name2, fn) {
       if (!name2) {
         throw new TypeError("argument name is required");
       }
@@ -20528,7 +20528,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router45.prototype.handle = function handle(req, res, callback) {
+    Router46.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20655,7 +20655,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router45.prototype.use = function use(handler) {
+    Router46.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20688,7 +20688,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router45.prototype.route = function route(path2) {
+    Router46.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20703,7 +20703,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router45.prototype[method] = function(path2) {
+      Router46.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20886,13 +20886,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router45 = require_router();
+    var Router46 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router43 = null;
+      var router44 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20901,13 +20901,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router43 === null) {
-            router43 = new Router45({
+          if (router44 === null) {
+            router44 = new Router46({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router43;
+          return router44;
         }
       });
     };
@@ -20978,15 +20978,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router43 = this.router;
+      var router44 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router43.use(path2, fn2);
+          return router44.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router43.use(path2, function mounted_app(req, res, next) {
+        router44.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23513,7 +23513,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router45 = require_router();
+    var Router46 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23535,8 +23535,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router45.Route;
-    exports.Router = Router45;
+    exports.Route = Router46.Route;
+    exports.Router = Router46;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -54523,7 +54523,7 @@ var init_invoices = __esm({
 });
 
 // ../../lib/db/src/schema/financials.ts
-var taxCodesTable, insertTaxCodeSchema, invoiceLineItemsTable, insertInvoiceLineItemSchema, billingSchedulesTable, insertBillingScheduleSchema, revenueEntriesTable, insertRevenueEntrySchema, budgetEntriesTable, insertBudgetEntrySchema;
+var taxCodesTable, insertTaxCodeSchema, invoiceLineItemsTable, insertInvoiceLineItemSchema, billingSchedulesTable, insertBillingScheduleSchema, revenueEntriesTable, insertRevenueEntrySchema, budgetEntriesTable, insertBudgetEntrySchema, COST_CATEGORIES, costEntriesTable, insertCostEntrySchema;
 var init_financials = __esm({
   "../../lib/db/src/schema/financials.ts"() {
     "use strict";
@@ -54609,6 +54609,22 @@ var init_financials = __esm({
       })
     );
     insertBudgetEntrySchema = createInsertSchema(budgetEntriesTable).omit({ id: true, createdAt: true });
+    COST_CATEGORIES = ["labour", "vendor", "overhead", "travel", "other"];
+    costEntriesTable = pgTable("cost_entries", {
+      id: serial("id").primaryKey(),
+      projectId: integer("project_id").notNull(),
+      entryDate: text("entry_date").notNull(),
+      description: text("description").notNull(),
+      amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+      /** Labour | Vendor | Overhead | Travel | Other — nullable for legacy rows */
+      costCategory: text("cost_category"),
+      /** Optional external reference used for idempotent import/duplicate detection */
+      externalTransactionId: text("external_transaction_id"),
+      notes: text("notes"),
+      createdByUserId: integer("created_by_user_id"),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    });
+    insertCostEntrySchema = createInsertSchema(costEntriesTable).omit({ id: true, createdAt: true });
   }
 });
 
@@ -55396,6 +55412,7 @@ var init_assets = __esm({
 // ../../lib/db/src/schema/index.ts
 var schema_exports = {};
 __export(schema_exports, {
+  COST_CATEGORIES: () => COST_CATEGORIES,
   PROJECT_ROLES: () => PROJECT_ROLES,
   SAVED_VIEW_ENTITIES: () => SAVED_VIEW_ENTITIES,
   accountsTable: () => accountsTable,
@@ -55410,6 +55427,7 @@ __export(schema_exports, {
   changeOrdersTable: () => changeOrdersTable,
   companySettingsTable: () => companySettingsTable,
   contractsTable: () => contractsTable,
+  costEntriesTable: () => costEntriesTable,
   csatResponsesTable: () => csatResponsesTable,
   csatSurveysTable: () => csatSurveysTable,
   customFieldDefinitionsTable: () => customFieldDefinitionsTable,
@@ -55436,6 +55454,7 @@ __export(schema_exports, {
   insertChangeOrderSchema: () => insertChangeOrderSchema,
   insertCompanySettingsSchema: () => insertCompanySettingsSchema,
   insertContractSchema: () => insertContractSchema,
+  insertCostEntrySchema: () => insertCostEntrySchema,
   insertCsatResponseSchema: () => insertCsatResponseSchema,
   insertCsatSurveySchema: () => insertCsatSurveySchema,
   insertCustomFieldDefinitionSchema: () => insertCustomFieldDefinitionSchema,
@@ -55581,6 +55600,7 @@ var init_schema2 = __esm({
 // ../../lib/db/src/index.ts
 var src_exports = {};
 __export(src_exports, {
+  COST_CATEGORIES: () => COST_CATEGORIES,
   PROJECT_ROLES: () => PROJECT_ROLES,
   SAVED_VIEW_ENTITIES: () => SAVED_VIEW_ENTITIES,
   accountsTable: () => accountsTable,
@@ -55595,6 +55615,7 @@ __export(src_exports, {
   changeOrdersTable: () => changeOrdersTable,
   companySettingsTable: () => companySettingsTable,
   contractsTable: () => contractsTable,
+  costEntriesTable: () => costEntriesTable,
   csatResponsesTable: () => csatResponsesTable,
   csatSurveysTable: () => csatSurveysTable,
   customFieldDefinitionsTable: () => customFieldDefinitionsTable,
@@ -55622,6 +55643,7 @@ __export(src_exports, {
   insertChangeOrderSchema: () => insertChangeOrderSchema,
   insertCompanySettingsSchema: () => insertCompanySettingsSchema,
   insertContractSchema: () => insertContractSchema,
+  insertCostEntrySchema: () => insertCostEntrySchema,
   insertCsatResponseSchema: () => insertCsatResponseSchema,
   insertCsatSurveySchema: () => insertCsatSurveySchema,
   insertCustomFieldDefinitionSchema: () => insertCustomFieldDefinitionSchema,
@@ -57279,7 +57301,7 @@ var require_node_cron = __commonJS({
 });
 
 // src/app.ts
-var import_express45 = __toESM(require_express2(), 1);
+var import_express46 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
@@ -57287,7 +57309,7 @@ import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 
 // src/routes/index.ts
-var import_express44 = __toESM(require_express2(), 1);
+var import_express45 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -73900,6 +73922,87 @@ router41.get("/auth/users-for-login", async (_req, res) => {
 });
 var authLogin_default = router41;
 
+// src/routes/costEntries.ts
+var import_express44 = __toESM(require_express2(), 1);
+init_src();
+init_drizzle_orm();
+var router42 = (0, import_express44.Router)();
+var CreateCostEntryBody = external_exports.object({
+  projectId: external_exports.number().int().positive(),
+  entryDate: external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/, "entryDate must be YYYY-MM-DD"),
+  description: external_exports.string().min(1, "description is required"),
+  amount: external_exports.union([external_exports.number(), external_exports.string()]).transform((v) => Number(v)),
+  costCategory: external_exports.enum(COST_CATEGORIES, {
+    message: `costCategory must be one of: ${COST_CATEGORIES.join(", ")}`
+  }),
+  externalTransactionId: external_exports.string().optional(),
+  notes: external_exports.string().optional()
+});
+function mapEntry3(r) {
+  return {
+    ...r,
+    amount: Number(r.amount),
+    createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt
+  };
+}
+router42.get("/cost-entries", async (req, res) => {
+  const projectId = req.query.projectId ? parseInt(String(req.query.projectId), 10) : NaN;
+  const categoryFilter = typeof req.query.costCategory === "string" ? req.query.costCategory : void 0;
+  let rows = await db.select().from(costEntriesTable).orderBy(sql`${costEntriesTable.entryDate} DESC`, sql`${costEntriesTable.id} DESC`);
+  if (!isNaN(projectId)) rows = rows.filter((r) => r.projectId === projectId);
+  if (categoryFilter) rows = rows.filter((r) => r.costCategory === categoryFilter);
+  res.json(rows.map(mapEntry3));
+});
+router42.post("/cost-entries", requirePM, async (req, res) => {
+  const parsed = CreateCostEntryBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { projectId, entryDate, description, amount, costCategory, externalTransactionId, notes } = parsed.data;
+  if (externalTransactionId) {
+    const [dupe] = await db.select({ id: costEntriesTable.id }).from(costEntriesTable).where(
+      and(
+        eq(costEntriesTable.projectId, projectId),
+        eq(costEntriesTable.externalTransactionId, externalTransactionId),
+        eq(costEntriesTable.entryDate, entryDate),
+        sql`ROUND(${costEntriesTable.amount}::numeric, 2) = ROUND(${amount}::numeric, 2)`
+      )
+    );
+    if (dupe) {
+      res.status(409).json({ error: "duplicate_cost_entry", existingId: dupe.id });
+      return;
+    }
+  }
+  const createdByUserId = Number(req.headers["x-user-id"]) || null;
+  const [row] = await db.insert(costEntriesTable).values({
+    projectId,
+    entryDate,
+    description,
+    amount: String(amount),
+    costCategory: costCategory ?? null,
+    externalTransactionId: externalTransactionId ?? null,
+    notes: notes ?? null,
+    createdByUserId
+  }).returning();
+  res.status(201).json(mapEntry3(row));
+});
+router42.delete("/cost-entries/:id", requirePM, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const [existing] = await db.select({ id: costEntriesTable.id }).from(costEntriesTable).where(eq(costEntriesTable.id, id));
+  if (!existing) {
+    res.status(404).json({ error: "Cost entry not found" });
+    return;
+  }
+  await db.delete(costEntriesTable).where(eq(costEntriesTable.id, id));
+  res.sendStatus(204);
+});
+var costEntries_default = router42;
+
 // src/middleware/roleClaim.ts
 init_drizzle_orm();
 init_src();
@@ -73960,53 +74063,54 @@ async function verifyRoleClaim(req, res, next) {
 }
 
 // src/routes/index.ts
-var router42 = (0, import_express44.Router)();
-router42.use(health_default);
-router42.use(authLogin_default);
-router42.use(denyCustomerRole);
-router42.use(verifyRoleClaim);
-router42.use(dashboard_default);
-router42.use(accounts_default);
-router42.use(projects_default);
-router42.use(tasks_default);
-router42.use(users_default);
-router42.use(timeEntries_default);
-router42.use(timesheets_default);
-router42.use(invoiceLineItems_default);
-router42.use(invoices_default);
-router42.use(rateCards_default);
-router42.use(allocations_default);
-router42.use(placeholders_default);
-router42.use(reports_default);
-router42.use(notifications_default);
-router42.use(resourceRequests_default);
-router42.use(projectTemplates_default);
-router42.use(csat_default);
-router42.use(billingSchedules_default);
-router42.use(revenueEntries_default);
-router42.use(timeOff_default);
-router42.use(skills_default);
-router42.use(taskStatusDefinitions_default);
-router42.use(taskDetails_default);
-router42.use(adminSettings_default);
-router42.use(customFields_default);
-router42.use(auditLog_default);
-router42.use(documents_default);
-router42.use(savedViewsRouter);
-router42.use(forms_default);
-router42.use(prospects_default);
-router42.use(opportunities_default);
-router42.use(changeOrders_default);
-router42.use(taskDependencies_default);
-router42.use(baselines_default);
-router42.use(csatSurveys_default);
-router42.use(projectUpdatesRouter);
-router42.use(projectGroups_default);
-router42.use(contracts_default);
-router42.use(assets_default);
-router42.use(aiTimeAssistant_default);
-router42.use(adminPortfolio_default);
-var routes_default = router42;
+var router43 = (0, import_express45.Router)();
+router43.use(health_default);
+router43.use(authLogin_default);
+router43.use(denyCustomerRole);
+router43.use(verifyRoleClaim);
+router43.use(dashboard_default);
+router43.use(accounts_default);
+router43.use(projects_default);
+router43.use(tasks_default);
+router43.use(users_default);
+router43.use(timeEntries_default);
+router43.use(timesheets_default);
+router43.use(invoiceLineItems_default);
+router43.use(invoices_default);
+router43.use(rateCards_default);
+router43.use(allocations_default);
+router43.use(placeholders_default);
+router43.use(reports_default);
+router43.use(notifications_default);
+router43.use(resourceRequests_default);
+router43.use(projectTemplates_default);
+router43.use(csat_default);
+router43.use(billingSchedules_default);
+router43.use(revenueEntries_default);
+router43.use(timeOff_default);
+router43.use(skills_default);
+router43.use(taskStatusDefinitions_default);
+router43.use(taskDetails_default);
+router43.use(adminSettings_default);
+router43.use(customFields_default);
+router43.use(auditLog_default);
+router43.use(documents_default);
+router43.use(savedViewsRouter);
+router43.use(forms_default);
+router43.use(prospects_default);
+router43.use(opportunities_default);
+router43.use(changeOrders_default);
+router43.use(taskDependencies_default);
+router43.use(baselines_default);
+router43.use(csatSurveys_default);
+router43.use(projectUpdatesRouter);
+router43.use(projectGroups_default);
+router43.use(contracts_default);
+router43.use(assets_default);
+router43.use(aiTimeAssistant_default);
+router43.use(adminPortfolio_default);
+router43.use(costEntries_default);
+var routes_default = router43;
 
 // src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
@@ -74027,7 +74131,7 @@ var logger = (0, import_pino.default)({
 });
 
 // src/app.ts
-var app = (0, import_express45.default)();
+var app = (0, import_express46.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -74048,8 +74152,8 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express45.default.json());
-app.use(import_express45.default.urlencoded({ extended: true }));
+app.use(import_express46.default.json());
+app.use(import_express46.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 if (process.env["NODE_ENV"] === "production") {
   const __dirname2 = path.dirname(fileURLToPath(import.meta.url));
@@ -74060,7 +74164,7 @@ if (process.env["NODE_ENV"] === "production") {
   const staticDir = candidates.find((p) => existsSync(p));
   if (staticDir) {
     logger.info({ staticDir }, "Serving frontend static files");
-    app.use(import_express45.default.static(staticDir));
+    app.use(import_express46.default.static(staticDir));
     app.get(/^\/(?!api\/).*/, (_req, res) => {
       res.sendFile(path.join(staticDir, "index.html"));
     });

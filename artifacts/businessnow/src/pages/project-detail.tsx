@@ -112,6 +112,59 @@ export default function ProjectDetail() {
   const [budgetHistoryOpen, setBudgetHistoryOpen] = useState(false);
   const [budgetEntryDialogOpen, setBudgetEntryDialogOpen] = useState(false);
 
+  // ── Cost entries ──────────────────────────────────────────────────────────
+  const [costCategoryFilter, setCostCategoryFilter] = useState<string>("all");
+  const [costEntryDialogOpen, setCostEntryDialogOpen] = useState(false);
+  const [costEntrySubmitting, setCostEntrySubmitting] = useState(false);
+  const emptyCostEntryForm = { entryDate: "", description: "", amount: "", costCategory: "", externalTransactionId: "", notes: "" };
+  const [costEntryForm, setCostEntryForm] = useState(emptyCostEntryForm);
+
+  const { data: costEntries, refetch: refetchCostEntries } = useQuery<any[]>({
+    queryKey: ["cost-entries", projectId],
+    queryFn: () => fetch(`/api/cost-entries?projectId=${projectId}`, { headers: authHeaders() }).then(r => r.json()),
+    enabled: !!projectId,
+  });
+
+  async function handleAddCostEntry() {
+    if (!costEntryForm.entryDate || !costEntryForm.description || !costEntryForm.amount || !costEntryForm.costCategory) {
+      toast({ title: "Please fill in all required fields", variant: "destructive" }); return;
+    }
+    setCostEntrySubmitting(true);
+    try {
+      const body: any = {
+        projectId,
+        entryDate:   costEntryForm.entryDate,
+        description: costEntryForm.description.trim(),
+        amount:      parseFloat(costEntryForm.amount),
+        costCategory: costEntryForm.costCategory,
+        notes:       costEntryForm.notes || undefined,
+        externalTransactionId: costEntryForm.externalTransactionId || undefined,
+      };
+      const res = await fetch("/api/cost-entries", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(body),
+      });
+      if (res.status === 409) {
+        const err = await res.json();
+        toast({ title: "Duplicate entry", description: `This cost entry already exists (id ${err.existingId}).`, variant: "destructive" }); return;
+      }
+      if (!res.ok) { toast({ title: "Failed to add cost entry", variant: "destructive" }); return; }
+      await refetchCostEntries();
+      toast({ title: "Cost entry added" });
+      setCostEntryDialogOpen(false);
+      setCostEntryForm(emptyCostEntryForm);
+    } finally {
+      setCostEntrySubmitting(false);
+    }
+  }
+
+  async function handleDeleteCostEntry(id: number) {
+    if (!confirm("Delete this cost entry?")) return;
+    await fetch(`/api/cost-entries/${id}`, { method: "DELETE", headers: authHeaders() });
+    refetchCostEntries();
+  }
+
   // ── Asset bookings ────────────────────────────────────────────────────────
   const { data: orgAssets, isLoading: isLoadingAssets } = useQuery<any[]>({
     queryKey: ["assets"],
@@ -1609,6 +1662,92 @@ export default function ProjectDetail() {
               )}
             </Card>
 
+            {/* ── Cost Entries ──────────────────────────────────────────────── */}
+            {(() => {
+              const COST_CATS = ["labour", "vendor", "overhead", "travel", "other"] as const;
+              const labelFor = (cat: string | null) =>
+                cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : "Uncategorised";
+              const filtered = (costEntries ?? []).filter(
+                e => costCategoryFilter === "all" || e.costCategory === costCategoryFilter,
+              );
+              const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
+              return (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <div>
+                      <CardTitle>Cost Entries</CardTitle>
+                      <CardDescription>Actual project expenses by category.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select value={costCategoryFilter} onValueChange={setCostCategoryFilter}>
+                        <SelectTrigger className="h-8 w-[140px] text-xs">
+                          <SelectValue placeholder="All categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All categories</SelectItem>
+                          {COST_CATS.map(c => (
+                            <SelectItem key={c} value={c}>{labelFor(c)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {isPM && (
+                        <Button size="sm" variant="outline" onClick={() => { setCostEntryForm(emptyCostEntryForm); setCostEntryDialogOpen(true); }}>
+                          <Plus className="h-4 w-4 mr-1" /> Add Entry
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {filtered.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-muted-foreground">
+                        No cost entries{costCategoryFilter !== "all" ? " for this category" : ""}. Click &quot;Add Entry&quot; to record an expense.
+                      </p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Notes</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            {isPM && <TableHead />}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filtered.map((e: any) => (
+                            <TableRow key={e.id}>
+                              <TableCell className="whitespace-nowrap text-sm">{e.entryDate}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{labelFor(e.costCategory)}</Badge>
+                              </TableCell>
+                              <TableCell className="max-w-[240px] truncate" title={e.description}>{e.description}</TableCell>
+                              <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground" title={e.notes ?? ""}>
+                                {e.notes || <span className="text-muted-foreground/50">—</span>}
+                              </TableCell>
+                              <TableCell className="text-right font-mono">{formatCurrency(Number(e.amount))}</TableCell>
+                              {isPM && (
+                                <TableCell className="text-right">
+                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteCostEntry(e.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                          <TableRow className="border-t-2">
+                            <TableCell colSpan={isPM ? 4 : 4} className="font-semibold">Total</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{formatCurrency(total)}</TableCell>
+                            {isPM && <TableCell />}
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
             {/* Tracked Time — full editable table */}
             <TrackedTimeTab projectId={projectId} viewerRole={viewerRole} />
           </TabsContent>
@@ -1702,6 +1841,68 @@ export default function ProjectDetail() {
               </Card>
             )}
           </TabsContent>
+
+          {/* ── Add Cost Entry Dialog ────────────────────────────────────────── */}
+          <Dialog open={costEntryDialogOpen} onOpenChange={setCostEntryDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add Cost Entry</DialogTitle>
+                <DialogDescription>Record an actual project expense. Category is required.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ce-date">Date *</Label>
+                    <Input id="ce-date" type="date" value={costEntryForm.entryDate}
+                      onChange={e => setCostEntryForm(f => ({ ...f, entryDate: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ce-amount">Amount *</Label>
+                    <Input id="ce-amount" type="number" min="0" step="0.01" placeholder="0.00"
+                      value={costEntryForm.amount}
+                      onChange={e => setCostEntryForm(f => ({ ...f, amount: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ce-cat">Category *</Label>
+                  <Select value={costEntryForm.costCategory} onValueChange={v => setCostEntryForm(f => ({ ...f, costCategory: v }))}>
+                    <SelectTrigger id="ce-cat">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(["labour", "vendor", "overhead", "travel", "other"] as const).map(c => (
+                        <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ce-desc">Description *</Label>
+                  <Input id="ce-desc" placeholder="e.g. AWS Invoice May 2026"
+                    value={costEntryForm.description}
+                    onChange={e => setCostEntryForm(f => ({ ...f, description: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ce-ext">External Transaction ID <span className="text-muted-foreground text-xs">(optional — enables duplicate guard)</span></Label>
+                  <Input id="ce-ext" placeholder="e.g. INV-2026-0042"
+                    value={costEntryForm.externalTransactionId}
+                    onChange={e => setCostEntryForm(f => ({ ...f, externalTransactionId: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ce-notes">Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                  <Textarea id="ce-notes" rows={2} placeholder="Additional context…"
+                    value={costEntryForm.notes}
+                    onChange={e => setCostEntryForm(f => ({ ...f, notes: e.target.value }))} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCostEntryDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleAddCostEntry} disabled={costEntrySubmitting}>
+                  {costEntrySubmitting ? "Saving…" : "Add Entry"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* ── Add Budget Entry Dialog ─────────────────────────────────────── */}
           <Dialog open={budgetEntryDialogOpen} onOpenChange={setBudgetEntryDialogOpen}>

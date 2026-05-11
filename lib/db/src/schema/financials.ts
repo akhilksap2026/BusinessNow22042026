@@ -103,3 +103,34 @@ export const budgetEntriesTable = pgTable(
 export const insertBudgetEntrySchema = createInsertSchema(budgetEntriesTable).omit({ id: true, createdAt: true });
 export type InsertBudgetEntry = z.infer<typeof insertBudgetEntrySchema>;
 export type BudgetEntry = typeof budgetEntriesTable.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Cost / Expense Entries
+// ---------------------------------------------------------------------------
+// `costCategory` is nullable in the database so that rows imported before this
+// column existed are not rejected. The API layer requires the field on all new
+// inserts (validated via Zod). Existing null rows are displayed as
+// "Uncategorised" in the UI (Rule 4).
+// ---------------------------------------------------------------------------
+
+export const COST_CATEGORIES = ["labour", "vendor", "overhead", "travel", "other"] as const;
+export type CostCategory = (typeof COST_CATEGORIES)[number];
+
+export const costEntriesTable = pgTable("cost_entries", {
+  id:                    serial("id").primaryKey(),
+  projectId:             integer("project_id").notNull(),
+  entryDate:             text("entry_date").notNull(),
+  description:           text("description").notNull(),
+  amount:                numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  /** Labour | Vendor | Overhead | Travel | Other — nullable for legacy rows */
+  costCategory:          text("cost_category"),
+  /** Optional external reference used for idempotent import/duplicate detection */
+  externalTransactionId: text("external_transaction_id"),
+  notes:                 text("notes"),
+  createdByUserId:       integer("created_by_user_id"),
+  createdAt:             timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertCostEntrySchema = createInsertSchema(costEntriesTable).omit({ id: true, createdAt: true });
+export type InsertCostEntry = z.infer<typeof insertCostEntrySchema>;
+export type CostEntry = typeof costEntriesTable.$inferSelect;
