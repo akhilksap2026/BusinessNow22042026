@@ -32,6 +32,11 @@ export const resourceRequestsTable = pgTable("resource_requests", {
   fulfilledByUserId: integer("fulfilled_by_user_id"),
   rejectionReason: text("rejection_reason"),
   blockedReason: text("blocked_reason"),
+  // Approval routing: Resource Manager assigned to handle this request
+  assignedToUserId: integer("assigned_to_user_id"),
+  // Alternative fulfillment proposal
+  alternativeResourceId: integer("alternative_resource_id"),
+  alternativeReason: text("alternative_reason"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

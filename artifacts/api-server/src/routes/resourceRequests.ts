@@ -186,6 +186,107 @@ router.patch("/resource-requests/:id/status", requirePM, async (req, res): Promi
   res.json(mapRR(row));
 });
 
+// ─── Action endpoint (new approval-routing actions) ──────────────────────────
+// POST /api/resource-requests/:id/action
+// Actions: in_review | propose_alternative | reject | accept_alternative | decline_alternative
+router.post("/resource-requests/:id/action", requirePM, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  const { action, assignedToUserId, alternativeResourceId, alternativeReason, rejectionReason } = req.body ?? {};
+
+  if (!action) { res.status(400).json({ error: "action is required" }); return; }
+
+  const [existing] = await db.select().from(resourceRequestsTable).where(eq(resourceRequestsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+  const actorId = Number(req.headers["x-user-id"] ?? 0);
+
+  // Self-approval guard for RM-side actions
+  if ((action === "propose_alternative" || action === "reject") && actorId && actorId === existing.requestedByUserId) {
+    res.status(403).json({ error: "You cannot perform this action on a request you submitted." });
+    return;
+  }
+
+  let updates: Record<string, any> = { updatedAt: new Date() };
+  let notifyMsg: string | null = null;
+  let notifyType: string = "project_alert";
+
+  if (action === "in_review") {
+    updates.status = "In Review";
+    if (assignedToUserId) updates.assignedToUserId = assignedToUserId;
+    notifyMsg = `Your resource request for "${existing.role}" is now In Review.${assignedToUserId ? "" : ""}`;
+
+  } else if (action === "propose_alternative") {
+    if (!alternativeResourceId) { res.status(400).json({ error: "alternativeResourceId is required" }); return; }
+    if (!alternativeReason)     { res.status(400).json({ error: "alternativeReason is required" }); return; }
+    updates.status = "Alternative Proposed";
+    updates.alternativeResourceId = alternativeResourceId;
+    updates.alternativeReason = alternativeReason;
+    notifyMsg = `An alternative resource has been proposed for your "${existing.role}" request on project #${existing.projectId}. Please review and Accept or Decline.`;
+    notifyType = "task_assigned";
+
+  } else if (action === "reject") {
+    if (!rejectionReason?.trim()) { res.status(400).json({ error: "rejectionReason is required" }); return; }
+    updates.status = "Rejected";
+    updates.rejectionReason = rejectionReason;
+    notifyMsg = `Your resource request for "${existing.role}" on project #${existing.projectId} was rejected. Reason: ${rejectionReason}`;
+
+  } else if (action === "accept_alternative") {
+    if (!existing.alternativeResourceId) { res.status(422).json({ error: "No alternative resource on this request" }); return; }
+    updates.status = "Fulfilled";
+    updates.fulfilledByUserId = existing.alternativeResourceId;
+    updates.assignedUserId = existing.alternativeResourceId;
+
+    // Auto-create allocation for the alternative resource
+    try {
+      const hpw = Number(existing.hoursPerWeek);
+      const days = workingDaysBetween(existing.startDate, existing.endDate);
+      const hpd = Math.round((hpw / 5) * 100) / 100;
+      const totalHours = Math.round(hpd * days * 100) / 100;
+      await db.insert(allocationsTable).values({
+        projectId: existing.projectId,
+        userId: existing.alternativeResourceId,
+        startDate: existing.startDate,
+        endDate: existing.endDate,
+        hoursPerWeek: String(hpw),
+        hoursPerDay: String(hpd),
+        totalHours: String(totalHours),
+        allocationMethod: existing.allocationMethod ?? "hours_per_week",
+        methodValue: String(hpw),
+        role: existing.role,
+        isSoftAllocation: false,
+      } as any);
+    } catch (e) {
+      console.error("Auto-allocation (alternative accept) failed:", e);
+    }
+    notifyMsg = null; // PM is the one accepting, no need to notify themselves
+
+  } else if (action === "decline_alternative") {
+    updates.status = "Pending";
+    updates.alternativeResourceId = null;
+    updates.alternativeReason = null;
+    notifyMsg = null; // PM declined; RM will see it revert to Open
+
+  } else {
+    res.status(400).json({ error: `Unknown action: ${action}` }); return;
+  }
+
+  const [row] = await db.update(resourceRequestsTable).set(updates).where(eq(resourceRequestsTable.id, id)).returning();
+
+  // Notify requester (fire-and-forget)
+  if (notifyMsg && row) {
+    db.insert(notificationsTable).values({
+      type: notifyType,
+      message: notifyMsg,
+      userId: row.requestedByUserId,
+      projectId: row.projectId,
+      entityType: "resource_request",
+      entityId: String(row.id),
+    }).catch(e => console.error("Notification send failed:", e));
+  }
+
+  res.json(mapRR(row));
+});
+
 // ─── Comments (approver ↔ requester chat) ────────────────────────────────────
 
 router.get("/resource-requests/:id/comments", async (req, res): Promise<void> => {

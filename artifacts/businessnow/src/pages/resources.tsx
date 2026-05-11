@@ -24,7 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SavedViewsBar } from "@/components/saved-views-bar";
 import { type FieldDef, type FilterValue, EMPTY_FILTER, evaluateFilters } from "@/lib/filter-evaluator";
 
-const REQUEST_STATUSES = ["Pending", "Approved", "Blocked", "Rejected", "Fulfilled", "Cancelled"];
+const REQUEST_STATUSES = ["Pending", "In Review", "Alternative Proposed", "Approved", "Blocked", "Rejected", "Fulfilled", "Cancelled"];
 
 const REQUEST_FIELDS: FieldDef[] = [
   { id: "status", label: "Status", type: "enum", options: REQUEST_STATUSES.map(s => ({ value: s, label: s })) },
@@ -273,6 +273,16 @@ export default function Resources() {
   const [blockReason, setBlockReason] = useState("");
   const [blockRequestId, setBlockRequestId] = useState<number | null>(null);
   const [ignoreSoft, setIgnoreSoft] = useState(false);
+  // ── Propose Alternative state ─────────────────────────────────────────────
+  const [proposeAltOpen, setProposeAltOpen] = useState(false);
+  const [proposeAltRequestId, setProposeAltRequestId] = useState<number | null>(null);
+  const [proposeAltResourceId, setProposeAltResourceId] = useState<string>("");
+  const [proposeAltReason, setProposeAltReason] = useState<string>("");
+  const [proposeAltSubmitting, setProposeAltSubmitting] = useState(false);
+  const [inReviewSubmitting, setInReviewSubmitting] = useState<number | null>(null);
+  const [acceptAltSubmitting, setAcceptAltSubmitting] = useState<number | null>(null);
+  const [declineAltSubmitting, setDeclineAltSubmitting] = useState<number | null>(null);
+
   const [openChatId, setOpenChatId] = useState<number | null>(null);
   const [chatMessages, setChatMessages] = useState<Record<number, any[]>>({});
   const [chatInput, setChatInput] = useState("");
@@ -482,6 +492,90 @@ export default function Resources() {
     }
   }
 
+  async function handleMarkInReview(id: number) {
+    setInReviewSubmitting(id);
+    try {
+      const res = await fetch(`/api/resource-requests/${id}/action`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ action: "in_review" }),
+      });
+      if (!res.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
+      toast({ title: "Request marked as In Review" });
+    } catch {
+      toast({ title: "Failed to update request", variant: "destructive" });
+    } finally {
+      setInReviewSubmitting(null);
+    }
+  }
+
+  async function handleProposeAlternative() {
+    if (!proposeAltRequestId) return;
+    setProposeAltSubmitting(true);
+    try {
+      const res = await fetch(`/api/resource-requests/${proposeAltRequestId}/action`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          action: "propose_alternative",
+          alternativeResourceId: parseInt(proposeAltResourceId),
+          alternativeReason: proposeAltReason,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast({ title: json.error ?? "Failed to propose alternative", variant: "destructive" }); return; }
+      queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
+      toast({ title: "Alternative proposed — PM has been notified" });
+      setProposeAltOpen(false);
+      setProposeAltRequestId(null);
+      setProposeAltResourceId("");
+      setProposeAltReason("");
+    } catch {
+      toast({ title: "Failed to propose alternative", variant: "destructive" });
+    } finally {
+      setProposeAltSubmitting(false);
+    }
+  }
+
+  async function handleAcceptAlternative(id: number) {
+    setAcceptAltSubmitting(id);
+    try {
+      const res = await fetch(`/api/resource-requests/${id}/action`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ action: "accept_alternative" }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast({ title: json.error ?? "Failed to accept", variant: "destructive" }); return; }
+      queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["all-allocations"] });
+      toast({ title: "Alternative accepted — allocation created" });
+    } catch {
+      toast({ title: "Failed to accept alternative", variant: "destructive" });
+    } finally {
+      setAcceptAltSubmitting(null);
+    }
+  }
+
+  async function handleDeclineAlternative(id: number) {
+    setDeclineAltSubmitting(id);
+    try {
+      const res = await fetch(`/api/resource-requests/${id}/action`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ action: "decline_alternative" }),
+      });
+      if (!res.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
+      toast({ title: "Alternative declined — request reverted to Open" });
+    } catch {
+      toast({ title: "Failed to decline alternative", variant: "destructive" });
+    } finally {
+      setDeclineAltSubmitting(null);
+    }
+  }
+
   return (
     <Layout>
       <div className="space-y-4">
@@ -668,7 +762,7 @@ export default function Resources() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["all","Pending","Approved","Blocked","Rejected","Fulfilled","Cancelled"].map(s => (
+                  {["all","Pending","In Review","Alternative Proposed","Approved","Blocked","Rejected","Fulfilled","Cancelled"].map(s => (
                     <SelectItem key={s} value={s}>{s === "all" ? "All statuses" : s}</SelectItem>
                   ))}
                 </SelectContent>
@@ -708,6 +802,8 @@ export default function Resources() {
                 const cardBorder = req.status === "Pending" ? "border-amber-200 dark:border-amber-800"
                   : req.status === "Blocked" ? "border-red-300 dark:border-red-800"
                   : req.status === "Approved" ? "border-blue-200 dark:border-blue-800"
+                  : req.status === "In Review" ? "border-purple-200 dark:border-purple-800"
+                  : req.status === "Alternative Proposed" ? "border-orange-300 dark:border-orange-700"
                   : "";
 
                 const hasStructuredSkills = (req.requiredSkillsWithLevel ?? []).length > 0;
@@ -771,12 +867,28 @@ export default function Resources() {
 
                         <div className="flex flex-col gap-2 shrink-0">
                           {req.status === "Pending" && (
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
+                              <Button size="sm" variant="outline" className="border-purple-500 text-purple-600 hover:bg-purple-50" onClick={() => handleMarkInReview(req.id)} disabled={inReviewSubmitting === req.id}>
+                                <Clock className="h-3.5 w-3.5 mr-1" /> In Review
+                              </Button>
                               <Button size="sm" variant="outline" className="border-green-500 text-green-600 hover:bg-green-50" onClick={() => handleApprove(req.id)} disabled={updateStatus.isPending}>
                                 <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
                               </Button>
                               <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50" onClick={() => { setBlockRequestId(req.id); setBlockDialogOpen(true); }}>
                                 <Ban className="h-3.5 w-3.5 mr-1" /> Block
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-red-500 text-red-600 hover:bg-red-50" onClick={() => { setSelectedRequestId(req.id); setRejectDialogOpen(true); }}>
+                                <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                              </Button>
+                            </div>
+                          )}
+                          {req.status === "In Review" && (
+                            <div className="flex flex-wrap gap-2">
+                              <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50" onClick={() => { setProposeAltRequestId(req.id); setProposeAltResourceId(""); setProposeAltReason(""); setProposeAltOpen(true); }}>
+                                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Propose Alternative
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-green-500 text-green-600 hover:bg-green-50" onClick={() => handleApprove(req.id)} disabled={updateStatus.isPending}>
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
                               </Button>
                               <Button size="sm" variant="outline" className="border-red-500 text-red-600 hover:bg-red-50" onClick={() => { setSelectedRequestId(req.id); setRejectDialogOpen(true); }}>
                                 <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
@@ -926,6 +1038,54 @@ export default function Resources() {
                         );
                       })()}
 
+                      {/* Alternative proposal card — shown when status is Alternative Proposed */}
+                      {req.status === "Alternative Proposed" && req.alternativeResourceId && (() => {
+                        const altUser = getUser(req.alternativeResourceId);
+                        return (
+                          <div className="border border-orange-300 rounded-lg p-3 bg-orange-50 dark:bg-orange-950/20 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <RefreshCw className="h-4 w-4 text-orange-600" />
+                              <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">Alternative Resource Proposed</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs bg-orange-100 text-orange-700">
+                                  {altUser?.name?.split(" ").map((n: string) => n[0]).join("") ?? "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">{altUser?.name ?? `User #${req.alternativeResourceId}`}</p>
+                                {altUser?.role && <p className="text-xs text-muted-foreground">{altUser.role}</p>}
+                              </div>
+                            </div>
+                            {req.alternativeReason && (
+                              <p className="text-sm text-muted-foreground italic">"{req.alternativeReason}"</p>
+                            )}
+                            <div className="flex gap-2 pt-1">
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() => handleAcceptAlternative(req.id)}
+                                disabled={acceptAltSubmitting === req.id}
+                              >
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                {acceptAltSubmitting === req.id ? "Accepting…" : "Accept — Create Allocation"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-400 text-red-600 hover:bg-red-50"
+                                onClick={() => handleDeclineAlternative(req.id)}
+                                disabled={declineAltSubmitting === req.id}
+                              >
+                                <XCircle className="h-3.5 w-3.5 mr-1" />
+                                {declineAltSubmitting === req.id ? "Declining…" : "Decline — Reopen"}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {/* Chat thread */}
                       {isChatOpen && (
                         <div className="border rounded-lg p-3 space-y-2 bg-white dark:bg-slate-950">
@@ -971,6 +1131,53 @@ export default function Resources() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Propose Alternative dialog */}
+      <Dialog open={proposeAltOpen} onOpenChange={setProposeAltOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Propose Alternative Resource</DialogTitle>
+            <DialogDescription>
+              Select a different team member to fulfill this request and provide a reason. The requesting PM will be notified and can Accept or Decline.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label>Alternative Resource</Label>
+              <Select value={proposeAltResourceId} onValueChange={setProposeAltResourceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a team member…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(users ?? []).filter((u: any) => u.isActive !== 0).map((u: any) => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.name} <span className="text-muted-foreground text-xs ml-1">— {u.role}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Reason for Alternative</Label>
+              <Textarea
+                placeholder="Explain why the originally requested resource cannot be allocated, and why this alternative is a good fit…"
+                value={proposeAltReason}
+                onChange={e => setProposeAltReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProposeAltOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleProposeAlternative}
+              disabled={proposeAltSubmitting || !proposeAltResourceId || !proposeAltReason.trim()}
+            >
+              {proposeAltSubmitting ? "Proposing…" : "Propose Alternative"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Reject dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
