@@ -19,6 +19,27 @@ import {
 
 const router: IRouter = Router();
 
+// ---------------------------------------------------------------------------
+// Project lifecycle state machine
+// ---------------------------------------------------------------------------
+// Canonical keys are lowercase with underscores. Both the currentStatus from
+// the DB and the incoming newStatus are normalised before the lookup so legacy
+// TitleCase / spaced values ("On Hold", "Completed", …) are handled gracefully.
+// statuses not present as keys (e.g. legacy "Not Started") are treated as
+// unrestricted — the guard is a no-op for those rows.
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  draft:     ["active"],
+  active:    ["on_hold", "completed", "cancelled"],
+  on_hold:   ["active", "cancelled"],
+  completed: [],
+  cancelled: [],
+};
+
+/** Normalise any status string to the lowercase_underscore key used in ALLOWED_TRANSITIONS. */
+function normaliseStatus(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, "_");
+}
+
 function mapProject(p: typeof projectsTable.$inferSelect) {
   return {
     ...p,
@@ -99,6 +120,49 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
     res.status(409).json({ error: "Project is deleted; restore it before editing." });
     return;
   }
+
+  // -------------------------------------------------------------------------
+  // Lifecycle state machine guard
+  // -------------------------------------------------------------------------
+  const incomingStatus = (parsed.data as any).status as string | undefined;
+  const isStatusChange = incomingStatus !== undefined && incomingStatus !== existing.status;
+  if (isStatusChange) {
+    // Rule 3: statusChangeReason is mandatory for any status transition.
+    const reason = typeof (req.body as any).statusChangeReason === "string"
+      ? ((req.body as any).statusChangeReason as string).trim()
+      : "";
+    if (!reason) {
+      res.status(400).json({ error: "reason_required" });
+      return;
+    }
+
+    // Rule 2: enforce the allowed-transition matrix.
+    const fromKey = normaliseStatus(existing.status);
+    const toKey = normaliseStatus(incomingStatus);
+    const allowed = ALLOWED_TRANSITIONS[fromKey]; // undefined = legacy status → no restriction
+    if (allowed !== undefined && !allowed.includes(toKey)) {
+      res.status(422).json({
+        error: "invalid_transition",
+        from: existing.status,
+        to: incomingStatus,
+        allowed: allowed.map(k => k),   // return matrix keys as-is
+      });
+      return;
+    }
+
+    // Rule 4: write the reason + actor + timestamp to the audit log.
+    const actorUserId = Number(req.headers["x-user-id"] ?? 0) || undefined;
+    await logAudit({
+      entityType: "project",
+      entityId: existing.id,
+      action: "status_changed",
+      actorUserId,
+      description: `Status changed from "${existing.status}" to "${incomingStatus}": ${reason}`,
+      previousValue: { status: existing.status },
+      newValue: { status: incomingStatus, reason },
+    });
+  }
+
   // Cross-field guard against the merged value, so PATCH-only-startDate or
   // PATCH-only-dueDate cannot create an inverted range.
   const merged = { ...existing, ...(parsed.data as any) };
@@ -108,7 +172,9 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
   }
   const [row] = await db.update(projectsTable).set(parsed.data as any).where(eq(projectsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
-  await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
+  if (!isStatusChange) {
+    await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
+  }
   res.json(UpdateProjectResponse.parse(mapProject(row)));
 });
 
