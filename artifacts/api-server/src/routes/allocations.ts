@@ -3,6 +3,7 @@ import { eq, and, gte, lte, isNull } from "drizzle-orm";
 import { requirePM } from "../middleware/rbac";
 import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable, projectsTable, userSkillsTable, skillsTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
+import { checkOverAllocation } from "../lib/overAllocationGuard";
 import {
   ListAllocationsResponse,
   ListAllocationsQueryParams,
@@ -148,11 +149,44 @@ router.post("/allocations", requirePM, async (req, res): Promise<void> => {
   });
   if (!computeRes.ok) { res.status(400).json({ error: computeRes.error }); return; }
   const computed = computeRes.value;
+
+  // ── Over-allocation guard (hard allocations only, named users only) ───────
+  // Soft allocations are excluded per spec ("Do NOT change soft allocation logic").
+  // Placeholder rows (no userId) are also excluded — no user to check capacity for.
+  if (!isSoftAllocation && parsed.data.userId) {
+    const overAllocBlock = await checkOverAllocation(
+      {
+        userId: parsed.data.userId,
+        startDate: parsed.data.startDate,
+        endDate: parsed.data.endDate,
+        hoursPerDay: computed.hoursPerDay,
+        hoursPerWeek: computed.hoursPerWeek,
+        totalHours: computed.totalHours,
+      },
+      req,
+    );
+    if (overAllocBlock) {
+      res.status(overAllocBlock.status).json(overAllocBlock.body);
+      return;
+    }
+  }
+
   const placeholderId = req.body.placeholderId ?? null;
+  // Mark as an override row when the guard was bypassed via forceOverride.
+  const isOverride = !isSoftAllocation && parsed.data.userId
+    && String(req.body?.forceOverride ?? "").toLowerCase() === "true"
+    && typeof req.body?.overrideReason === "string"
+    && (req.body.overrideReason as string).trim().length > 0;
+  const overrideReason = isOverride
+    ? (req.body.overrideReason as string).trim()
+    : null;
+
   const insertVals: any = {
     ...parsed.data,
     isSoftAllocation,
     placeholderId,
+    isOverride: !!isOverride,
+    overrideReason,
     hoursPerWeek: String(computed.hoursPerWeek),
     hoursPerDay: String(computed.hoursPerDay),
     totalHours: String(computed.totalHours),
