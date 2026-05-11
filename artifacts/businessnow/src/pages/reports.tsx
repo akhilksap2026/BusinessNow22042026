@@ -57,6 +57,124 @@ const STATUS_COLORS: Record<string, string> = {
   "In Progress": "#7c3aed", "Started": "#7c3aed", "Completed": "#10b981", "Not Started": "#94a3b8", "On Hold": "#f59e0b",
 };
 
+// ─── Skill Supply vs Demand Report ──────────────────────────────────────────
+function SkillSupplyDemandReport() {
+  const year = new Date().getFullYear();
+  const [fromDate, setFromDate] = useState(`${year}-01-01`);
+  const [toDate,   setToDate]   = useState(`${year}-12-31`);
+  const [sortDir,  setSortDir]  = useState<"asc" | "desc">("asc");
+
+  const { data: rows = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/reports/skill-supply-demand", fromDate, toDate],
+    queryFn: () =>
+      fetch(`/api/reports/skill-supply-demand?fromDate=${fromDate}&toDate=${toDate}`, {
+        headers: authHeaders(),
+      }).then(r => r.json()),
+  });
+
+  const sorted = useMemo(
+    () => [...rows].sort((a, b) => sortDir === "asc" ? a.gap - b.gap : b.gap - a.gap),
+    [rows, sortDir],
+  );
+
+  function handleExport() {
+    downloadCSV(
+      "skill-supply-demand.csv",
+      sorted.map(r => ({
+        Skill: r.skillName,
+        "Demand Hours": r.demandHours,
+        "Supply Hours": r.supplyHours,
+        Gap: r.gap,
+        Status: r.surplusOrDeficit,
+      })),
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 flex-wrap">
+        <div>
+          <CardTitle>Skill Supply vs Demand</CardTitle>
+          <CardDescription>
+            Hours demanded by allocations vs. available supply from resources with proficiency ≥ Advanced
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Input
+            type="date"
+            value={fromDate}
+            onChange={e => setFromDate(e.target.value)}
+            className="w-[148px] h-8 text-sm"
+          />
+          <span className="text-muted-foreground text-sm">to</span>
+          <Input
+            type="date"
+            value={toDate}
+            onChange={e => setToDate(e.target.value)}
+            className="w-[148px] h-8 text-sm"
+          />
+          <Button size="sm" variant="outline" className="gap-2" onClick={handleExport}>
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+          </div>
+        ) : !sorted.length ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No skill data found. Add skills in Admin → Skills Matrix to see supply/demand here.
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-muted-foreground">
+                <th className="pb-2 font-medium">Skill</th>
+                <th className="pb-2 font-medium text-right">Demand Hours</th>
+                <th className="pb-2 font-medium text-right">Supply Hours</th>
+                <th
+                  className="pb-2 font-medium text-right cursor-pointer select-none hover:text-foreground transition-colors"
+                  onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+                >
+                  Gap {sortDir === "asc" ? "↑" : "↓"}
+                </th>
+                <th className="pb-2 font-medium text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(row => (
+                <tr key={row.skillId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="py-3 font-medium">{row.skillName}</td>
+                  <td className="py-3 text-right tabular-nums">{row.demandHours.toLocaleString()}</td>
+                  <td className="py-3 text-right tabular-nums">{row.supplyHours.toLocaleString()}</td>
+                  <td className={`py-3 text-right tabular-nums font-medium ${
+                    row.gap < 0 ? "text-red-600" : row.gap > 0 ? "text-green-600" : "text-muted-foreground"
+                  }`}>
+                    {row.gap > 0 ? "+" : ""}{row.gap.toLocaleString()}
+                  </td>
+                  <td className="py-3 text-right">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      row.surplusOrDeficit === "Deficit"
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
+                        : row.surplusOrDeficit === "Surplus"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                    }`}>
+                      {row.surplusOrDeficit}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function StarRating({ rating }: { rating: number | null }) {
   if (rating === null) return <span className="text-muted-foreground text-xs">—</span>;
   return (
@@ -1202,6 +1320,7 @@ export default function Reports() {
               <TabsTrigger value="revenue">Revenue</TabsTrigger>
               <TabsTrigger value="utilization">Utilization</TabsTrigger>
               <TabsTrigger value="health">Project Health</TabsTrigger>
+              <TabsTrigger value="skill-supply-demand" className="flex items-center gap-1.5"><Filter className="h-3.5 w-3.5" /> Skill Supply vs Demand</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1383,6 +1502,10 @@ export default function Reports() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="skill-supply-demand" className="m-0">
+            <SkillSupplyDemandReport />
           </TabsContent>
         </Tabs>
       </div>

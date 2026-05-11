@@ -67694,6 +67694,61 @@ router14.get("/reports/timesheet-submissions", requirePermission("reports.view")
   });
   res.json({ from: fromStr, to: toStr, view, weeks, rows });
 });
+router14.get("/reports/skill-supply-demand", requirePermission("reports.view"), async (req, res) => {
+  const fromDate = req.query.fromDate ? String(req.query.fromDate) : null;
+  const toDate = req.query.toDate ? String(req.query.toDate) : null;
+  const [allSkills, allUserSkills, allUsers, allAllocations] = await Promise.all([
+    db.select().from(skillsTable),
+    db.select().from(userSkillsTable),
+    db.select({ id: usersTable.id, capacity: usersTable.capacity }).from(usersTable),
+    db.select().from(allocationsTable)
+  ]);
+  const PROFICIENCY_RANK2 = {
+    beginner: 1,
+    independent: 2,
+    advanced: 3,
+    expert: 4
+  };
+  function overlapWeeks(s1, e1, from, to) {
+    const start = from && from > s1 ? from : s1;
+    const end = to && to < e1 ? to : e1;
+    if (start > end) return 0;
+    const ms = (/* @__PURE__ */ new Date(end + "T23:59:59Z")).getTime() - (/* @__PURE__ */ new Date(start + "T00:00:00Z")).getTime();
+    return Math.max(0, ms / (7 * 864e5));
+  }
+  const windowStart = fromDate ?? "2000-01-01";
+  const windowEnd = toDate ?? "2099-12-31";
+  const windowWeeks = Math.max(
+    0,
+    ((/* @__PURE__ */ new Date(windowEnd + "T23:59:59Z")).getTime() - (/* @__PURE__ */ new Date(windowStart + "T00:00:00Z")).getTime()) / (7 * 864e5)
+  );
+  const result = allSkills.filter((s) => s.isActive).map((skill) => {
+    const demandHours = allAllocations.filter((a) => a.requiredSkillId === skill.id).reduce((sum2, a) => {
+      const weeks = overlapWeeks(a.startDate, a.endDate, fromDate, toDate);
+      return sum2 + weeks * Number(a.hoursPerWeek);
+    }, 0);
+    const qualifiedUserIds = new Set(
+      allUserSkills.filter(
+        (us) => us.skillId === skill.id && (PROFICIENCY_RANK2[us.proficiencyLevel.toLowerCase()] ?? 0) >= 3
+      ).map((us) => us.userId)
+    );
+    const supplyHours = [...qualifiedUserIds].reduce((sum2, uid) => {
+      const user = allUsers.find((u) => u.id === uid);
+      return sum2 + windowWeeks * (user?.capacity ?? 40);
+    }, 0);
+    const gap = supplyHours - demandHours;
+    const surplusOrDeficit = gap < -0.01 ? "Deficit" : gap > 0.01 ? "Surplus" : "Balanced";
+    return {
+      skillId: skill.id,
+      skillName: skill.name,
+      demandHours: Math.round(demandHours * 10) / 10,
+      supplyHours: Math.round(supplyHours * 10) / 10,
+      gap: Math.round(gap * 10) / 10,
+      surplusOrDeficit
+    };
+  });
+  res.json(result);
+});
 router14.post("/reports/export-async", requirePermission("reports.view"), async (req, res) => {
   const { reportType, filters, deliveryEmail } = req.body ?? {};
   if (!reportType || typeof reportType !== "string") {

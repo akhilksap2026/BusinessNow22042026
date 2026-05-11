@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable, timesheetsTable } from "@workspace/db";
+import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable, timesheetsTable, skillsTable, userSkillsTable } from "@workspace/db";
 import { eq, and, isNull, ne } from "drizzle-orm";
 import {
   GetUtilizationReportResponse,
@@ -896,6 +896,85 @@ router.get("/reports/timesheet-submissions", requirePermission("reports.view"), 
   });
 
   res.json({ from: fromStr, to: toStr, view, weeks, rows });
+});
+
+// ─── Skill Supply vs Demand ──────────────────────────────────────────────────
+router.get("/reports/skill-supply-demand", requirePermission("reports.view"), async (req, res): Promise<void> => {
+  const fromDate = req.query.fromDate ? String(req.query.fromDate) : null;
+  const toDate   = req.query.toDate   ? String(req.query.toDate)   : null;
+
+  const [allSkills, allUserSkills, allUsers, allAllocations] = await Promise.all([
+    db.select().from(skillsTable),
+    db.select().from(userSkillsTable),
+    db.select({ id: usersTable.id, capacity: usersTable.capacity }).from(usersTable),
+    db.select().from(allocationsTable),
+  ]);
+
+  // Proficiency rank map (text → numeric, mirrors the constant in allocations route)
+  const PROFICIENCY_RANK: Record<string, number> = {
+    beginner: 1,
+    independent: 2,
+    advanced: 3,
+    expert: 4,
+  };
+
+  // Overlap in weeks between two date ranges; either bound may be null (open-ended)
+  function overlapWeeks(s1: string, e1: string, from: string | null, to: string | null): number {
+    const start = from && from > s1 ? from : s1;
+    const end   = to   && to   < e1 ? to   : e1;
+    if (start > end) return 0;
+    const ms = new Date(end + "T23:59:59Z").getTime() - new Date(start + "T00:00:00Z").getTime();
+    return Math.max(0, ms / (7 * 86400000));
+  }
+
+  // Total weeks in the report window (for supply calc)
+  const windowStart = fromDate ?? "2000-01-01";
+  const windowEnd   = toDate   ?? "2099-12-31";
+  const windowWeeks = Math.max(0,
+    (new Date(windowEnd + "T23:59:59Z").getTime() - new Date(windowStart + "T00:00:00Z").getTime())
+    / (7 * 86400000)
+  );
+
+  const result = allSkills
+    .filter(s => s.isActive)
+    .map(skill => {
+      // Demand: allocations that require this skill, clipped to the date window
+      const demandHours = allAllocations
+        .filter(a => a.requiredSkillId === skill.id)
+        .reduce((sum, a) => {
+          const weeks = overlapWeeks(a.startDate, a.endDate, fromDate, toDate);
+          return sum + weeks * Number(a.hoursPerWeek);
+        }, 0);
+
+      // Supply: users who hold this skill at proficiency >= 3 (Advanced / Expert)
+      const qualifiedUserIds = new Set(
+        allUserSkills
+          .filter(us =>
+            us.skillId === skill.id &&
+            (PROFICIENCY_RANK[us.proficiencyLevel.toLowerCase()] ?? 0) >= 3
+          )
+          .map(us => us.userId)
+      );
+      const supplyHours = [...qualifiedUserIds].reduce((sum, uid) => {
+        const user = allUsers.find(u => u.id === uid);
+        return sum + windowWeeks * (user?.capacity ?? 40);
+      }, 0);
+
+      const gap = supplyHours - demandHours;
+      const surplusOrDeficit =
+        gap < -0.01 ? "Deficit" : gap > 0.01 ? "Surplus" : "Balanced";
+
+      return {
+        skillId: skill.id,
+        skillName: skill.name,
+        demandHours: Math.round(demandHours * 10) / 10,
+        supplyHours: Math.round(supplyHours * 10) / 10,
+        gap: Math.round(gap * 10) / 10,
+        surplusOrDeficit,
+      };
+    });
+
+  res.json(result);
 });
 
 // ─── Async CSV Export Stub ───────────────────────────────────────────────────
