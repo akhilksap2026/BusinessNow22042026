@@ -294,6 +294,14 @@ router.post("/allocations", requirePM, async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const validationError = validateAllocationCore({ ...parsed.data, ...req.body });
   if (validationError) { res.status(400).json({ error: validationError }); return; }
+
+  // Placeholder allocation: when userId is null, roleLabel (placeholderRole) is required.
+  const roleLabel = typeof req.body.placeholderRole === "string" ? req.body.placeholderRole.trim() : "";
+  if (!parsed.data.userId && !roleLabel) {
+    res.status(400).json({ error: "roleLabel is required when resourceId is null" });
+    return;
+  }
+
   const isSoftAllocation = req.body.isSoftAllocation === true || req.body.isSoftAllocation === "true";
   const computeRes = await computeAllocationFields({
     startDate: parsed.data.startDate,
@@ -401,6 +409,10 @@ router.post("/allocations", requirePM, async (req, res): Promise<void> => {
 
   const insertVals: any = {
     ...parsed.data,
+    // Auto-fill role from roleLabel for placeholder allocations
+    role: parsed.data.role ?? (roleLabel || "Placeholder"),
+    placeholderRole: roleLabel || parsed.data.placeholderRole || null,
+    userId: parsed.data.userId ?? null,
     isSoftAllocation,
     placeholderId,
     isOverride: !!isOverride,

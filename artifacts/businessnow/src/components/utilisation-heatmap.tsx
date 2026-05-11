@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, addWeeks, startOfWeek, endOfWeek } from "date-fns";
 
@@ -26,14 +27,24 @@ function cellColor(pct: number): string {
   return "bg-red-200 border-red-300 text-red-800 font-bold";
 }
 
+export interface PlaceholderAllocInfo {
+  id: number;
+  placeholderRole: string;
+  startDate: string;
+  endDate: string;
+  projectId: number;
+  hoursPerWeek: number;
+}
+
 interface UtilisationHeatmapProps {
   userId?: number;
   weekCount?: number;
   fromDate?: Date;
   compact?: boolean;
+  onFulfill?: (alloc: PlaceholderAllocInfo) => void;
 }
 
-export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact = false }: UtilisationHeatmapProps) {
+export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact = false, onFulfill }: UtilisationHeatmapProps) {
   const { data: users, isLoading: loadingUsers } = useListUsers();
   const { data: allAllocations, isLoading: loadingAllocs } = useQuery<any[]>({
     queryKey: ["all-allocations"],
@@ -102,6 +113,21 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
       </TooltipProvider>
     );
   }
+
+  // Placeholder rows: allocations with no userId and a placeholderRole label.
+  // Only shown in the full (non-compact) heatmap, and only when not filtering by userId.
+  const placeholderAllocs: PlaceholderAllocInfo[] = userId
+    ? []
+    : (allAllocations ?? [])
+        .filter((a: any) => !a.userId && a.placeholderRole)
+        .map((a: any) => ({
+          id: a.id,
+          placeholderRole: a.placeholderRole as string,
+          startDate: a.startDate,
+          endDate: a.endDate,
+          projectId: a.projectId,
+          hoursPerWeek: Number(a.hoursPerWeek ?? 0),
+        }));
 
   return (
     <TooltipProvider>
@@ -190,6 +216,62 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
                   </tr>
                 );
               })}
+
+              {/* ── Placeholder (unassigned) rows ─────────────────────────────────── */}
+              {placeholderAllocs.map(alloc => (
+                <tr key={`ph-${alloc.id}`} className="hover:bg-slate-50/50">
+                  <td className="sticky left-0 bg-background border-b border-dashed border-slate-200 px-3 py-2 z-10">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center shrink-0">
+                          <span className="text-[10px] text-slate-400 font-bold">?</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-xs text-slate-500 italic">
+                            {alloc.placeholderRole} — Unassigned
+                          </p>
+                          <p className="text-[10px] text-slate-400">{alloc.hoursPerWeek}h/wk</p>
+                        </div>
+                      </div>
+                      {onFulfill && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-[10px] px-2 shrink-0 border-dashed"
+                          onClick={() => onFulfill(alloc)}
+                        >
+                          Fulfill
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                  {weeks.map(week => {
+                    const aStart = new Date(alloc.startDate + "T00:00:00");
+                    const aEnd = new Date(alloc.endDate + "T00:00:00");
+                    const overlaps = !(aEnd < week.start || aStart > week.end);
+                    return (
+                      <Tooltip key={week.label}>
+                        <TooltipTrigger asChild>
+                          <td className={`border border-dashed border-slate-100 px-2 py-2 text-center cursor-default ${overlaps ? "bg-slate-50" : ""}`}>
+                            {overlaps ? (
+                              <span className="text-slate-400 text-[10px]">{alloc.hoursPerWeek}h</span>
+                            ) : (
+                              <span className="text-slate-200">—</span>
+                            )}
+                          </td>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="font-medium">{alloc.placeholderRole} — Unassigned</p>
+                          {overlaps
+                            ? <p>{alloc.hoursPerWeek}h/wk · {alloc.startDate} → {alloc.endDate}</p>
+                            : <p>No allocation this week</p>
+                          }
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </CardContent>

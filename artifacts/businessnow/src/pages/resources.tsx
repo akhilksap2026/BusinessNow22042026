@@ -1,5 +1,7 @@
 import { authHeaders } from "@/lib/auth-headers";
 import { useState, useMemo, useEffect } from "react";
+import { useCurrentUser } from "@/contexts/current-user";
+import { type PlaceholderAllocInfo } from "@/components/utilisation-heatmap";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import { UtilisationHeatmap } from "@/components/utilisation-heatmap";
@@ -38,6 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 const PROFICIENCY_RANK: Record<string, number> = { "Needs Help": 1, "Independent": 2, "Can Lead": 3 };
@@ -108,6 +111,7 @@ function MatchScoreBadge({ score, total }: { score: number; total: number }) {
 }
 
 export default function Resources() {
+  const { currentUser } = useCurrentUser();
   const { data: capacity, isLoading } = useGetCapacityOverview();
   const { data: requests, isLoading: isLoadingRequests } = useListResourceRequests();
   const { data: projects } = useListProjects();
@@ -115,6 +119,53 @@ export default function Resources() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const updateStatus = useUpdateResourceRequestStatus();
+
+  // ── Placeholder Fulfill state ──────────────────────────────────────────────
+  const [fulfillPlaceholderData, setFulfillPlaceholderData] = useState<PlaceholderAllocInfo | null>(null);
+  const [fulfillPlaceholderForm, setFulfillPlaceholderForm] = useState({
+    startDate: "", endDate: "", hoursPerWeek: "40", priority: "Medium", notes: "",
+  });
+  const [fulfillPlaceholderSubmitting, setFulfillPlaceholderSubmitting] = useState(false);
+
+  function openFulfillPlaceholder(alloc: PlaceholderAllocInfo) {
+    setFulfillPlaceholderData(alloc);
+    setFulfillPlaceholderForm({
+      startDate: alloc.startDate,
+      endDate: alloc.endDate,
+      hoursPerWeek: String(alloc.hoursPerWeek),
+      priority: "Medium",
+      notes: "",
+    });
+  }
+
+  async function handleFulfillPlaceholder() {
+    if (!fulfillPlaceholderData || !currentUser) return;
+    setFulfillPlaceholderSubmitting(true);
+    try {
+      const res = await fetch("/api/resource-requests", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          projectId: fulfillPlaceholderData.projectId,
+          requestedByUserId: currentUser.id,
+          role: fulfillPlaceholderData.placeholderRole,
+          startDate: fulfillPlaceholderForm.startDate,
+          endDate: fulfillPlaceholderForm.endDate,
+          hoursPerWeek: parseFloat(fulfillPlaceholderForm.hoursPerWeek) || 40,
+          priority: fulfillPlaceholderForm.priority,
+          notes: fulfillPlaceholderForm.notes || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
+      toast({ title: "Resource request submitted" });
+      setFulfillPlaceholderData(null);
+    } catch {
+      toast({ title: "Failed to submit resource request", variant: "destructive" });
+    } finally {
+      setFulfillPlaceholderSubmitting(false);
+    }
+  }
 
   const [capacitySearch, setCapacitySearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
@@ -484,7 +535,7 @@ export default function Resources() {
           </TabsContent>
 
           <TabsContent value="heatmap" className="m-0">
-            <UtilisationHeatmap />
+            <UtilisationHeatmap onFulfill={openFulfillPlaceholder} />
           </TabsContent>
 
           <TabsContent value="projects-timeline" className="m-0">
@@ -746,7 +797,7 @@ export default function Resources() {
 
                                     {hasAnySkills && sm.details.length > 0 && (
                                       <div className="flex flex-wrap gap-1">
-                                        {sm.details.map(d => (
+                                        {sm.details.map((d: any) => (
                                           <span key={d.skillName} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${d.meets ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-600 border-red-200"}`}>
                                             {d.meets ? "✓" : "✗"} {d.skillName}
                                             {d.userLevel ? <ProficiencyLabel level={d.userLevel} /> : <span className="opacity-60">—</span>}
@@ -1063,6 +1114,98 @@ export default function Resources() {
           })()}
         </SheetContent>
       </Sheet>
+
+      {/* ── Fulfill Placeholder Dialog ─────────────────────────────────────── */}
+      <Dialog open={!!fulfillPlaceholderData} onOpenChange={o => !o && setFulfillPlaceholderData(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Fulfill Placeholder Slot</DialogTitle>
+            <DialogDescription>
+              Submit a resource request for this unassigned role. It will appear in the Resource Requests tab for review.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Role</Label>
+              <Input value={fulfillPlaceholderData?.placeholderRole ?? ""} readOnly className="bg-muted" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Project</Label>
+              <Input
+                value={
+                  projects?.find((p: any) => p.id === fulfillPlaceholderData?.projectId)?.name
+                  ?? `Project #${fulfillPlaceholderData?.projectId}`
+                }
+                readOnly
+                className="bg-muted"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={fulfillPlaceholderForm.startDate}
+                  onChange={e => setFulfillPlaceholderForm(f => ({ ...f, startDate: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={fulfillPlaceholderForm.endDate}
+                  onChange={e => setFulfillPlaceholderForm(f => ({ ...f, endDate: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hours / Week</Label>
+              <Input
+                type="number"
+                min={1}
+                value={fulfillPlaceholderForm.hoursPerWeek}
+                onChange={e => setFulfillPlaceholderForm(f => ({ ...f, hoursPerWeek: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Priority</Label>
+              <Select
+                value={fulfillPlaceholderForm.priority}
+                onValueChange={v => setFulfillPlaceholderForm(f => ({ ...f, priority: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Low", "Medium", "High"].map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Notes</Label>
+              <Textarea
+                value={fulfillPlaceholderForm.notes}
+                onChange={e => setFulfillPlaceholderForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Additional context for the request…"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFulfillPlaceholderData(null)}>Cancel</Button>
+            <Button
+              onClick={handleFulfillPlaceholder}
+              disabled={
+                fulfillPlaceholderSubmitting
+                || !fulfillPlaceholderForm.startDate
+                || !fulfillPlaceholderForm.endDate
+              }
+            >
+              {fulfillPlaceholderSubmitting ? "Submitting…" : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

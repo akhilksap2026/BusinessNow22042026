@@ -1013,11 +1013,12 @@ export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);
  */
 export const CreateAllocationBody = zod.object({
   projectId: zod.number(),
-  userId: zod.number(),
+  userId: zod.number().nullable().optional(),
+  placeholderRole: zod.string().optional(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
-  role: zod.string(),
+  role: zod.string().optional(),
 });
 
 /**
