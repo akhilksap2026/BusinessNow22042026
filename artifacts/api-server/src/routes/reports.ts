@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable, timesheetsTable } from "@workspace/db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, ne } from "drizzle-orm";
 import {
   GetUtilizationReportResponse,
   GetRevenueReportResponse,
@@ -130,8 +130,13 @@ router.get("/reports/utilization", requirePermission("reports.view"), async (_re
 });
 
 router.get("/reports/revenue", requirePermission("reports.view"), requireFinance, async (_req, res): Promise<void> => {
-  const invoices = await db.select().from(invoicesTable);
-  const projects = await db.select().from(projectsTable);
+  const allInvoices = await db.select().from(invoicesTable);
+  // Draft project isolation: drafts are excluded from ALL financial forecasting aggregations
+  // (totalRevenue, byMonth, byProject, byAccount). We pre-filter invoices to non-draft
+  // project IDs once so every downstream aggregate is consistent.
+  const projects = await db.select().from(projectsTable).where(ne(projectsTable.status, "draft"));
+  const projectIdSet = new Set(projects.map(p => p.id));
+  const invoices = allInvoices.filter(inv => projectIdSet.has(inv.projectId));
 
   const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + Number(i.total), 0);
 
@@ -201,7 +206,8 @@ router.get("/reports/project-health", requirePermission("reports.view"), async (
 });
 
 router.get("/reports/budget-vs-actuals", requirePermission("reports.view"), requireFinance, async (_req, res): Promise<void> => {
-  const projects = await db.select().from(projectsTable);
+  // Draft project isolation: drafts are excluded from financial forecasting aggregations.
+  const projects = await db.select().from(projectsTable).where(ne(projectsTable.status, "draft"));
   const invoices = await db.select().from(invoicesTable);
 
   const projectList = projects.map(p => {
@@ -563,7 +569,8 @@ router.get("/reports/capacity-planning", requirePermission("reports.view"), asyn
   const [users, allocations, projects, holidays, timeOffs] = await Promise.all([
     db.select().from(usersTable),
     db.select().from(allocationsTable),
-    db.select().from(projectsTable),
+    // Draft project isolation: drafts are excluded from capacity-planning forecasts.
+    db.select().from(projectsTable).where(ne(projectsTable.status, "draft")),
     db.select().from(holidayDatesTable),
     db.select().from(timeOffRequestsTable).where(eq(timeOffRequestsTable.status, "Approved")),
   ]);
