@@ -511,6 +511,119 @@ router.delete("/allocations/:id", requirePM, async (req, res): Promise<void> => 
   res.sendStatus(204);
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/resources/heatmap-capacity?weekStart=YYYY-MM-DD&weekCount=N
+// Returns per-user, per-week availableHours factoring in approved time-off
+// and public holidays (per user's holidayCalendarId). Never negative.
+// ---------------------------------------------------------------------------
+router.get("/resources/heatmap-capacity", async (req, res): Promise<void> => {
+  const weekCount = Math.min(52, Math.max(1, parseInt(String(req.query.weekCount ?? "12"), 10) || 12));
+
+  // Determine weekStart — must be a Monday (YYYY-MM-DD)
+  let weekStartDate: Date;
+  if (req.query.weekStart && /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.weekStart))) {
+    weekStartDate = new Date(`${req.query.weekStart}T00:00:00Z`);
+    // Snap to Monday if the given date isn't one
+    const dow = weekStartDate.getUTCDay();
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    weekStartDate.setUTCDate(weekStartDate.getUTCDate() + diffToMon);
+  } else {
+    const now = new Date();
+    const dow = now.getUTCDay();
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    weekStartDate = new Date(now);
+    weekStartDate.setUTCDate(now.getUTCDate() + diffToMon);
+    weekStartDate.setUTCHours(0, 0, 0, 0);
+  }
+
+  // Build week [start, end] ISO string pairs
+  const weeks: Array<{ start: string; end: string }> = [];
+  for (let i = 0; i < weekCount; i++) {
+    const wStart = new Date(weekStartDate);
+    wStart.setUTCDate(weekStartDate.getUTCDate() + i * 7);
+    const wEnd = new Date(wStart);
+    wEnd.setUTCDate(wStart.getUTCDate() + 6);
+    weeks.push({ start: wStart.toISOString().slice(0, 10), end: wEnd.toISOString().slice(0, 10) });
+  }
+
+  const rangeStart = weeks[0].start;
+  const rangeEnd = weeks[weeks.length - 1].end;
+
+  // Load all internal users
+  const allUsers = await db.select().from(usersTable);
+  const users = allUsers.filter(u => u.isInternal !== false);
+
+  // Load all holiday dates in range, grouped by calendarId
+  const allHolidays = await db.select()
+    .from(holidayDatesTable)
+    .where(and(gte(holidayDatesTable.date, rangeStart), lte(holidayDatesTable.date, rangeEnd)));
+  const holidaysByCalendar = new Map<number, Set<string>>();
+  for (const h of allHolidays) {
+    if (!holidaysByCalendar.has(h.calendarId)) holidaysByCalendar.set(h.calendarId, new Set());
+    holidaysByCalendar.get(h.calendarId)!.add(h.date);
+  }
+
+  // Load all approved time-off requests overlapping range
+  const allTimeOffs = await db.select()
+    .from(timeOffRequestsTable)
+    .where(and(
+      eq(timeOffRequestsTable.status, "Approved"),
+      lte(timeOffRequestsTable.startDate, rangeEnd),
+      gte(timeOffRequestsTable.endDate, rangeStart),
+    ));
+  const timeOffByUser = new Map<number, Array<{ startDate: string; endDate: string }>>();
+  for (const t of allTimeOffs) {
+    if (!timeOffByUser.has(t.userId)) timeOffByUser.set(t.userId, []);
+    timeOffByUser.get(t.userId)!.push({ startDate: t.startDate, endDate: t.endDate });
+  }
+
+  const result = users.map(u => {
+    const dailyCap = u.capacity / 5;
+    const userHolidays: Set<string> = u.holidayCalendarId != null
+      ? (holidaysByCalendar.get(u.holidayCalendarId) ?? new Set())
+      : new Set();
+
+    // Expand user's approved time-off into a date set within the range
+    const timeOffSet = new Set<string>();
+    for (const t of (timeOffByUser.get(u.id) ?? [])) {
+      const cur = new Date(`${t.startDate}T00:00:00Z`);
+      const fin = new Date(`${t.endDate}T00:00:00Z`);
+      while (cur <= fin) {
+        const iso = cur.toISOString().slice(0, 10);
+        if (iso >= rangeStart && iso <= rangeEnd) timeOffSet.add(iso);
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+
+    const weekData = weeks.map(w => {
+      let workingDays = 0, holidayDays = 0, timeOffDays = 0;
+      const cur = new Date(`${w.start}T00:00:00Z`);
+      const fin = new Date(`${w.end}T00:00:00Z`);
+      while (cur <= fin) {
+        const dow = cur.getUTCDay();
+        const iso = cur.toISOString().slice(0, 10);
+        if (dow !== 0 && dow !== 6) {
+          workingDays++;
+          if (userHolidays.has(iso)) holidayDays++;
+          else if (timeOffSet.has(iso)) timeOffDays++;
+        }
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+      const availableDays = Math.max(0, workingDays - holidayDays - timeOffDays);
+      return {
+        weekStart: w.start,
+        availableHours: Math.round(availableDays * dailyCap * 100) / 100,
+        timeOffHours: Math.round(timeOffDays * dailyCap * 100) / 100,
+        holidayHours: Math.round(holidayDays * dailyCap * 100) / 100,
+      };
+    });
+
+    return { userId: u.id, weeks: weekData };
+  });
+
+  res.json(result);
+});
+
 router.get("/resources/capacity", async (_req, res): Promise<void> => {
   const allUsers = await db.select().from(usersTable);
   // Exclude external contacts (is_internal=false) from resource pool

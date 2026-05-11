@@ -44,6 +44,10 @@ interface UtilisationHeatmapProps {
   onFulfill?: (alloc: PlaceholderAllocInfo) => void;
 }
 
+// Shape returned by GET /api/resources/heatmap-capacity
+interface WeekCapEntry { weekStart: string; availableHours: number; timeOffHours: number; holidayHours: number }
+interface UserCapData { userId: number; weeks: WeekCapEntry[] }
+
 export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact = false, onFulfill }: UtilisationHeatmapProps) {
   const { data: users, isLoading: loadingUsers } = useListUsers();
   const { data: allAllocations, isLoading: loadingAllocs } = useQuery<any[]>({
@@ -55,9 +59,32 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
     },
   });
 
-  const isLoading = loadingUsers || loadingAllocs;
   const startFrom = fromDate ?? new Date();
   const weeks = getWeeksFromDate(startFrom, weekCount);
+
+  // Derive the Monday that starts our heatmap window for the capacity endpoint
+  const heatmapWeekStart = format(weeks[0].start, "yyyy-MM-dd");
+  const { data: capData, isLoading: loadingCap } = useQuery<UserCapData[]>({
+    queryKey: ["heatmap-capacity", heatmapWeekStart, weekCount],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/resources/heatmap-capacity?weekStart=${heatmapWeekStart}&weekCount=${weekCount}`,
+        { headers: authHeaders() },
+      );
+      if (!res.ok) throw new Error("Failed to fetch heatmap capacity");
+      return res.json();
+    },
+  });
+
+  // Build lookup: userId → weekStart(YYYY-MM-DD) → availableHours
+  const weekCapMap = new Map<number, Map<string, number>>();
+  for (const entry of (capData ?? [])) {
+    const inner = new Map<string, number>();
+    for (const w of entry.weeks) inner.set(w.weekStart, w.availableHours);
+    weekCapMap.set(entry.userId, inner);
+  }
+
+  const isLoading = loadingUsers || loadingAllocs || loadingCap;
 
   if (isLoading) {
     if (compact) {
@@ -174,6 +201,11 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
                       </div>
                     </td>
                     {weeks.map(week => {
+                      const weekIso = format(week.start, "yyyy-MM-dd");
+                      // Use backend-adjusted available hours (time-off + holiday deducted);
+                      // fall back to raw capacity until the endpoint responds.
+                      const effectiveCap = weekCapMap.get(user.id)?.get(weekIso) ?? capacity;
+
                       const allocatedHours = userAllocs.reduce((sum: number, a: any) => {
                         const aStart = new Date(a.startDate + "T00:00:00");
                         const aEnd = new Date(a.endDate + "T00:00:00");
@@ -189,7 +221,7 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
                         })
                         .every((a: any) => a.isSoftAllocation);
 
-                      const pct = capacity > 0 ? Math.round((allocatedHours / capacity) * 100) : 0;
+                      const pct = effectiveCap > 0 ? Math.round((allocatedHours / effectiveCap) * 100) : 0;
                       const color = cellColor(pct);
 
                       return (
@@ -207,7 +239,10 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="font-medium">{user.name} — {week.label}</p>
-                            <p>{allocatedHours}h allocated of {capacity}h capacity ({pct}%)</p>
+                            <p>{allocatedHours}h allocated of {effectiveCap}h available ({pct}%)</p>
+                            {effectiveCap < capacity && (
+                              <p className="text-slate-400 text-[10px]">{capacity - effectiveCap}h off (leave/holiday)</p>
+                            )}
                             {isSoftOnly && allocatedHours > 0 && <p className="text-amber-300">Soft allocation only</p>}
                           </TooltipContent>
                         </Tooltip>
