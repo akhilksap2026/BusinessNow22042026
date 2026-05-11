@@ -643,6 +643,16 @@ router.post("/allocations", requirePM, async (req, res): Promise<void> => {
     requiredProficiencyLevel: requiredProficiencyLevel ?? null,
   };
   const [row] = await db.insert(allocationsTable).values(insertVals).returning();
+
+  await logAudit({
+    entityType: "allocation",
+    entityId: row.id,
+    action: "created",
+    actorUserId: Number(req.headers["x-user-id"]) || undefined,
+    description: `Allocation ${row.id} created for ${row.userId ? `user ${row.userId}` : `placeholder "${row.placeholderRole}"`} on project ${row.projectId} (${row.startDate} → ${row.endDate}, ${row.hoursPerWeek}h/wk)`,
+    newValue: { projectId: row.projectId, userId: row.userId, startDate: row.startDate, endDate: row.endDate, hoursPerWeek: row.hoursPerWeek, isSoftAllocation: row.isSoftAllocation },
+  });
+
   res.status(201).json(mapAllocation(row));
 });
 
@@ -686,6 +696,17 @@ router.patch("/allocations/:id", requirePM, async (req, res): Promise<void> => {
   }
 
   const [row] = await db.update(allocationsTable).set(updateData).where(eq(allocationsTable.id, params.data.id)).returning();
+
+  await logAudit({
+    entityType: "allocation",
+    entityId: row.id,
+    action: "updated",
+    actorUserId: Number(req.headers["x-user-id"]) || undefined,
+    description: `Allocation ${row.id} updated (project ${row.projectId}, user ${row.userId ?? "placeholder"})`,
+    previousValue: { userId: existing.userId, startDate: existing.startDate, endDate: existing.endDate, hoursPerWeek: existing.hoursPerWeek, isSoftAllocation: existing.isSoftAllocation },
+    newValue: { userId: row.userId, startDate: row.startDate, endDate: row.endDate, hoursPerWeek: row.hoursPerWeek, isSoftAllocation: row.isSoftAllocation },
+  });
+
   res.json(UpdateAllocationResponse.parse(mapAllocation(row)));
 });
 
