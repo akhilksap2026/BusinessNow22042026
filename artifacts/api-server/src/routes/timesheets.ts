@@ -4,6 +4,7 @@ import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettin
 import { getGovernanceSettings, checkTimesheetStatusChangeable, checkTimesheetEditable } from "../lib/governance";
 import { requirePM } from "../middleware/rbac";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
+import { checkProjectNotClosed } from "../lib/closedProjectGuard";
 import {
   ListTimesheetsQueryParams,
   ListTimesheetsResponse,
@@ -375,6 +376,11 @@ router.get("/timesheet-rows", async (req, res): Promise<void> => {
 router.post("/timesheet-rows", async (req, res): Promise<void> => {
   const { userId, projectId, taskId, activityName, isNonProject, billable, categoryId } = req.body;
   if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+  // Closed-project guard: block new rows on completed projects (admin override allowed).
+  if (projectId) {
+    const closedBlock = await checkProjectNotClosed(Number(projectId), req);
+    if (closedBlock) { res.status(closedBlock.status).json(closedBlock.body); return; }
+  }
   const data: any = { userId: Number(userId), isNonProject: !!isNonProject, billable: isNonProject ? false : !!billable };
   if (projectId) data.projectId = Number(projectId);
   if (taskId) data.taskId = Number(taskId);

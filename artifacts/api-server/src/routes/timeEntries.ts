@@ -7,6 +7,7 @@ import {
 } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
+import { checkProjectNotClosed } from "../lib/closedProjectGuard";
 import {
   getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable,
   checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry,
@@ -368,6 +369,10 @@ router.post("/time-entries", async (req, res): Promise<void> => {
       return;
     }
   }
+
+  // Closed-project guard: block new entries on completed projects (admin override allowed).
+  const closedBlock = await checkProjectNotClosed(data.projectId ?? null, req);
+  if (closedBlock) { res.status(closedBlock.status).json(closedBlock.body); return; }
 
   // Enforce: non-project activities must be non-billable
   if (!data.projectId) { data.projectId = null; data.billable = false; }
