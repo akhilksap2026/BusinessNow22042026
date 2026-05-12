@@ -78,3 +78,9 @@ id = "3lMpLpG77z64lH_Lr8H8F"
 uri = "file://BRD.pdf"
 type = "pdf"
 title = "BusinessNow PSA — Business Requirements Document (PDF)"
+
+[[outputs]]
+id = "Ia8CNQ3kcuNTPOh0V-nax"
+uri = "file://docs/BusinessNow-PSA-Functional-UIUX-Specification.md"
+type = "text"
+title = "BusinessNow PSA — Functional UI/UX Specification"

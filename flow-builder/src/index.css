@@ -1,0 +1,94 @@
+@import "@xyflow/react/dist/style.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  font-family: theme("fontFamily.sans");
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.dark html,
+.dark body,
+.dark #root {
+  background: #0b1020;
+  color: #e2e8f0;
+}
+
+/* React Flow visual tweaks */
+.react-flow__edge-path {
+  stroke-width: 1.5;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #7c3aed;
+  stroke-width: 2.5;
+}
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: #c4b5fd;
+  border: 2px solid #ffffff;
+}
+.dark .react-flow__handle {
+  border-color: #0b1020;
+}
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__minimap {
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.react-flow__controls {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.react-flow__controls button {
+  background: #ffffff;
+  color: #475569;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+.react-flow__controls button:hover {
+  background: #f1f5f9;
+  color: #7c3aed;
+}
+.dark .react-flow__controls button {
+  background: #111733;
+  color: #cbd5e1;
+}
+.dark .react-flow__controls button:hover {
+  background: #1e2547;
+  color: #c4b5fd;
+}
+
+/* Edge label */
+.react-flow__edge-textbg {
+  fill: #ffffff;
+}
+.dark .react-flow__edge-textbg {
+  fill: #111733;
+}
+.react-flow__edge-text {
+  font-size: 11px;
+  font-weight: 500;
+  fill: #475569;
+}
+.dark .react-flow__edge-text {
+  fill: #cbd5e1;
+}
+
+/* Scrollbars in panels */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.25);
+  border-radius: 4px;
+}

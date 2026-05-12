@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    { "id": "n1", "label": "Landing Page", "subtitle": "Public · /home" },
+    { "id": "n2", "label": "Sign Up", "subtitle": "Form · /signup" },
+    { "id": "n3", "label": "Email Verification", "subtitle": "Async · token link" },
+    { "id": "n4", "label": "Onboarding", "subtitle": "Wizard · 3 steps" },
+    { "id": "n5", "label": "Dashboard", "subtitle": "Authenticated · /app" },
+    { "id": "n6", "label": "Profile Settings", "subtitle": "Form · /settings" },
+    { "id": "n7", "label": "Billing", "subtitle": "Stripe · /billing" },
+    { "id": "n8", "label": "Logout", "subtitle": "Action · clears session" }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2", "label": "Get Started" },
+    { "id": "e2", "source": "n2", "target": "n3", "label": "Submit" },
+    { "id": "e3", "source": "n3", "target": "n4", "label": "Verified" },
+    { "id": "e4", "source": "n4", "target": "n5", "label": "Finish" },
+    { "id": "e5", "source": "n5", "target": "n6", "label": "Open Settings" },
+    { "id": "e6", "source": "n5", "target": "n7", "label": "Upgrade" },
+    { "id": "e7", "source": "n6", "target": "n5", "label": "Save" },
+    { "id": "e8", "source": "n7", "target": "n5", "label": "Done" },
+    { "id": "e9", "source": "n5", "target": "n8", "label": "Log Out" }
+  ]
+}
