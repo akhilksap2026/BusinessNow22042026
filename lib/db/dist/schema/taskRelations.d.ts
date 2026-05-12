@@ -385,9 +385,9 @@ export declare const taskChecklistsTable: import("drizzle-orm/pg-core").PgTableW
 }>;
 export declare const insertTaskChecklistSchema: z.ZodObject<{
     name: z.ZodString;
-    order: z.ZodOptional<z.ZodInt>;
     taskId: z.ZodInt;
     completed: z.ZodOptional<z.ZodBoolean>;
+    order: z.ZodOptional<z.ZodInt>;
 }, {
     out: {};
     in: {};

@@ -40,8 +40,13 @@ router.get("/invoices", requireFinance, async (req, res): Promise<void> => {
 });
 
 router.post("/invoices", requireFinance, async (req, res): Promise<void> => {
-  const parsed = CreateInvoiceBody.safeParse(req.body);
+  const parsed = CreateInvoiceBody.strict().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // Sprint 1 / Phase 2.1: numeric floors on amount/tax.
+  if (Number(parsed.data.amount) < 0 || Number(parsed.data.tax) < 0) {
+    res.status(400).json({ error: "amount and tax must be >= 0" });
+    return;
+  }
   const invoiceCount = await db.select().from(invoicesTable);
   const invoiceId = `INV-${new Date().getFullYear()}-${String(invoiceCount.length + 1).padStart(3, '0')}`;
   const total = Number(parsed.data.amount) + Number(parsed.data.tax);

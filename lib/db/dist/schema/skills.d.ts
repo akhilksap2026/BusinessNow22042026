@@ -253,8 +253,8 @@ export declare const skillsTable: import("drizzle-orm/pg-core").PgTableWithColum
 }>;
 export declare const insertSkillSchema: z.ZodObject<{
     name: z.ZodString;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isActive: z.ZodOptional<z.ZodInt>;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     categoryId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     skillType: z.ZodOptional<z.ZodString>;
     section: z.ZodOptional<z.ZodNullable<z.ZodString>>;

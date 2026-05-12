@@ -127,8 +127,8 @@ export declare const taxCodesTable: import("drizzle-orm/pg-core").PgTableWithCol
 }>;
 export declare const insertTaxCodeSchema: z.ZodObject<{
     name: z.ZodString;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isActive: z.ZodOptional<z.ZodInt>;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     rate: z.ZodString;
     isDefault: z.ZodOptional<z.ZodBoolean>;
 }, {
@@ -383,11 +383,11 @@ export declare const invoiceLineItemsTable: import("drizzle-orm/pg-core").PgTabl
     dialect: "pg";
 }>;
 export declare const insertInvoiceLineItemSchema: z.ZodObject<{
-    description: z.ZodString;
-    order: z.ZodOptional<z.ZodInt>;
     role: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    description: z.ZodString;
     userId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     billable: z.ZodOptional<z.ZodBoolean>;
+    order: z.ZodOptional<z.ZodInt>;
     amount: z.ZodString;
     invoiceId: z.ZodString;
     quantity: z.ZodOptional<z.ZodString>;

@@ -611,11 +611,11 @@ export declare const templateTasksTable: import("drizzle-orm/pg-core").PgTableWi
 export declare const insertTemplateTaskSchema: z.ZodObject<{
     name: z.ZodString;
     templateId: z.ZodInt;
-    order: z.ZodOptional<z.ZodInt>;
     parentTaskId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     priority: z.ZodOptional<z.ZodString>;
     effort: z.ZodOptional<z.ZodString>;
     categoryId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    order: z.ZodOptional<z.ZodInt>;
     templatePhaseId: z.ZodInt;
     relativeDueDateOffset: z.ZodOptional<z.ZodInt>;
     billableDefault: z.ZodOptional<z.ZodBoolean>;
@@ -872,8 +872,8 @@ export declare const templateAllocationsTable: import("drizzle-orm/pg-core").PgT
     dialect: "pg";
 }>;
 export declare const insertTemplateAllocationSchema: z.ZodObject<{
-    templateId: z.ZodInt;
     role: z.ZodString;
+    templateId: z.ZodInt;
     userId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     placeholderId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     hoursPerDay: z.ZodOptional<z.ZodString>;

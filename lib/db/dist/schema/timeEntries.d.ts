@@ -331,9 +331,9 @@ export declare const timeEntriesTable: import("drizzle-orm/pg-core").PgTableWith
 }>;
 export declare const insertTimeEntrySchema: z.ZodObject<{
     date: z.ZodString;
+    role: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     projectId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-    role: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     userId: z.ZodInt;
     billable: z.ZodOptional<z.ZodBoolean>;
     categoryId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;

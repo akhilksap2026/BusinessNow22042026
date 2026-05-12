@@ -180,11 +180,13 @@ router.get("/reports/project-health", requirePermission("reports.view"), async (
   const projects = await db.select().from(projectsTable);
   const now = new Date();
 
+  const { getTrackedHoursMap } = await import("../lib/trackedHours");
+  const thMap = await getTrackedHoursMap(projects.map(p => p.id));
   const projectList = projects.map(p => {
     const due = new Date(p.dueDate);
     const daysRemaining = Math.max(0, Math.ceil((due.getTime() - now.getTime()) / 86400000));
     const budget = Number(p.budget) || 0;
-    const tracked = Number(p.trackedHours) || 0;
+    const tracked = thMap.get(p.id) ?? 0;
     const budgeted = Number(p.budgetedHours) || 0;
     const budgetUsed = budget > 0 && budgeted > 0 ? Math.round((tracked / budgeted) * 100) : 0;
     return {
@@ -210,6 +212,8 @@ router.get("/reports/budget-vs-actuals", requirePermission("reports.view"), requ
   const projects = await db.select().from(projectsTable).where(ne(projectsTable.status, "draft"));
   const invoices = await db.select().from(invoicesTable);
 
+  const { getTrackedHoursMap } = await import("../lib/trackedHours");
+  const thMap = await getTrackedHoursMap(projects.map(p => p.id));
   const projectList = projects.map(p => {
     const budget = Number(p.budget);
     const projectInvoices = invoices.filter(i => i.projectId === p.id);
@@ -224,7 +228,7 @@ router.get("/reports/budget-vs-actuals", requirePermission("reports.view"), requ
       remaining,
       percentUsed,
       budgetedHours: Number(p.budgetedHours),
-      trackedHours: Number(p.trackedHours),
+      trackedHours: thMap.get(p.id) ?? 0,
     };
   });
 

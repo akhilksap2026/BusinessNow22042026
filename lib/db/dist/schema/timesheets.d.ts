@@ -408,8 +408,8 @@ export declare const timeCategoriesTable: import("drizzle-orm/pg-core").PgTableW
 }>;
 export declare const insertTimeCategorySchema: z.ZodObject<{
     name: z.ZodString;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isActive: z.ZodOptional<z.ZodInt>;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     sortOrder: z.ZodOptional<z.ZodInt>;
     defaultBillable: z.ZodOptional<z.ZodBoolean>;
 }, {

@@ -15,7 +15,7 @@ async function main() {
   await db.execute(sql`
     TRUNCATE csat_responses, csat_surveys, notifications, time_entries, timesheets,
              intervals, key_events,
-             allocations, task_dependencies, tasks, phases,
+             allocations, task_dependencies, tasks,
              change_orders, invoices, opportunities, projects,
              resource_requests, prospects, accounts,
              time_off_requests, holiday_dates, holiday_calendars,
@@ -514,7 +514,7 @@ async function main() {
         dueDate: "2025-07-31",
         billingType: "Fixed Fee",
         budget: "1250000",
-        trackedHours: "820",
+
         allocatedHours: "1600",
         budgetedHours: "2000",
         completion: 45,
@@ -534,7 +534,7 @@ async function main() {
         dueDate: "2025-09-30",
         billingType: "Time & Materials",
         budget: "780000",
-        trackedHours: "340",
+
         allocatedHours: "960",
         budgetedHours: "1400",
         completion: 28,
@@ -554,7 +554,7 @@ async function main() {
         dueDate: "2025-08-29",
         billingType: "Fixed Fee",
         budget: "340000",
-        trackedHours: "210",
+
         allocatedHours: "480",
         budgetedHours: "720",
         completion: 35,
@@ -574,7 +574,7 @@ async function main() {
         dueDate: "2025-03-31",
         billingType: "Fixed Fee",
         budget: "490000",
-        trackedHours: "1280",
+
         allocatedHours: "1280",
         budgetedHours: "1200",
         completion: 100,
@@ -594,7 +594,7 @@ async function main() {
         dueDate: "2025-10-31",
         billingType: "Time & Materials",
         budget: "320000",
-        trackedHours: "95",
+
         allocatedHours: "280",
         budgetedHours: "560",
         completion: 18,
@@ -614,7 +614,7 @@ async function main() {
         dueDate: "2025-12-15",
         billingType: "Fixed Fee",
         budget: "220000",
-        trackedHours: "0",
+
         allocatedHours: "0",
         budgetedHours: "480",
         completion: 0,

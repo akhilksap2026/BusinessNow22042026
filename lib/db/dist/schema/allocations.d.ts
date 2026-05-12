@@ -433,9 +433,9 @@ export declare const allocationsTable: import("drizzle-orm/pg-core").PgTableWith
 }>;
 export declare const insertAllocationSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    role: z.ZodString;
     startDate: z.ZodString;
     projectId: z.ZodInt;
-    role: z.ZodString;
     userId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     totalHours: z.ZodOptional<z.ZodString>;
     endDate: z.ZodString;

@@ -265,9 +265,9 @@ export declare const customFieldDefinitionsTable: import("drizzle-orm/pg-core").
 }>;
 export declare const insertCustomFieldDefinitionSchema: z.ZodObject<{
     name: z.ZodString;
+    isActive: z.ZodOptional<z.ZodInt>;
     description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     order: z.ZodOptional<z.ZodInt>;
-    isActive: z.ZodOptional<z.ZodInt>;
     entityType: z.ZodString;
     fieldType: z.ZodString;
     isRequired: z.ZodOptional<z.ZodBoolean>;
@@ -599,8 +599,8 @@ export declare const customFieldSectionsTable: import("drizzle-orm/pg-core").PgT
 }>;
 export declare const insertCustomFieldSectionSchema: z.ZodObject<{
     name: z.ZodString;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isActive: z.ZodOptional<z.ZodBoolean>;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     sortOrder: z.ZodOptional<z.ZodInt>;
     entityType: z.ZodString;
     viewRoles: z.ZodOptional<z.ZodString>;

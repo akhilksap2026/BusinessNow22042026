@@ -81,6 +81,10 @@ router.get("/admin/portfolio-summary", requirePM, async (_req, res): Promise<voi
     invoicedByProject.set(inv.projectId, cur);
   }
 
+  // Tracked hours per project — computed from time_entries (Sprint 1 / Phase 1.3).
+  const { getTrackedHoursMap } = await import("../lib/trackedHours");
+  const trackedMap = await getTrackedHoursMap(activeProjects.map((p) => p.id));
+
   // Planned hours per project: prefer task rollup, fall back to project.budgetedHours.
   const taskPlannedByProject = new Map<number, number>();
   for (const t of tasks) {
@@ -105,7 +109,7 @@ router.get("/admin/portfolio-summary", requirePM, async (_req, res): Promise<voi
     const plannedHoursTask = taskPlannedByProject.get(p.id) ?? 0;
     const plannedHoursProject = (Number(p.budgetedHours) || 0) + co.hours;
     const plannedHours = plannedHoursTask > 0 ? plannedHoursTask : plannedHoursProject;
-    const actualHours = Number(p.trackedHours) || 0;
+    const actualHours = trackedMap.get(p.id) ?? 0;
     const completion = Number(p.completion) || 0;
 
     // ETC / EAC: prefer completion %; fall back to (planned - actual).

@@ -63,8 +63,24 @@ router.post("/projects/:id/change-orders", requirePM, async (req, res): Promise<
     title, description, amount, additionalHours, status,
     requestedDate, submittedDate, submittedByUserId,
     newResourceRole, documentLink, linkedTaskTitles,
-  } = req.body;
-  if (!title) { res.status(400).json({ error: "title is required" }); return; }
+  } = req.body ?? {};
+  if (!title || typeof title !== "string") {
+    res.status(400).json({ error: "title is required" }); return;
+  }
+  // Sprint 1 / Phase 2.1: numeric floors on amount and additionalHours.
+  // Reject non-finite (NaN, "abc", "") instead of silently coercing to 0/NaN
+  // and tripping a Postgres cast error downstream.
+  const checkNumeric = (value: unknown, label: string): string | null => {
+    if (value === undefined || value === null) return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return `${label} must be a number`;
+    if (n < 0) return `${label} must be >= 0`;
+    return null;
+  };
+  for (const [val, label] of [[amount, "amount"], [additionalHours, "additionalHours"]] as const) {
+    const err = checkNumeric(val, label);
+    if (err) { res.status(400).json({ error: err }); return; }
+  }
 
   const crNumber = await generateCRNumber(projectId);
 

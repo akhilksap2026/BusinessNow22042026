@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, asc, isNull, isNotNull, inArray, ne } from "drizzle-orm";
 import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
+import { getTrackedHoursMap, getTrackedHours } from "../lib/trackedHours";
 import { checkOutOfRangeAllocations } from "../lib/outOfRangeAllocationCheck";
 import { requireAdmin, requirePM } from "../middleware/rbac";
 import {
@@ -42,11 +43,11 @@ function normaliseStatus(s: string): string {
   return s.toLowerCase().replace(/\s+/g, "_");
 }
 
-function mapProject(p: typeof projectsTable.$inferSelect) {
+function mapProject(p: typeof projectsTable.$inferSelect, trackedHours: number = 0) {
   return {
     ...p,
     budget: Number(p.budget),
-    trackedHours: Number(p.trackedHours),
+    trackedHours,
     allocatedHours: Number(p.allocatedHours),
     budgetedHours: Number(p.budgetedHours),
     createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt,
@@ -73,8 +74,9 @@ router.get("/projects", async (req, res): Promise<void> => {
     .leftJoin(accountsTable, eq(projectsTable.accountId, accountsTable.id))
     .leftJoin(usersTable, eq(projectsTable.ownerId, usersTable.id))
     .where(and(...conditions));
+  const thMap = await getTrackedHoursMap(rows.map(r => r.project.id));
   res.json(ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain, ownerName }) => ({
-    ...mapProject(project),
+    ...mapProject(project, thMap.get(project.id) ?? 0),
     companyName: accountName ?? undefined,
     companyDomain: accountDomain ?? undefined,
     ownerName: ownerName ?? undefined,
@@ -98,7 +100,8 @@ router.post("/projects", requirePM, async (req, res): Promise<void> => {
 
 router.get("/projects/deleted", requireAdmin, async (_req, res): Promise<void> => {
   const rows = await db.select().from(projectsTable).where(isNotNull(projectsTable.deletedAt));
-  res.json(rows.map(mapProject));
+  const thMap = await getTrackedHoursMap(rows.map(r => r.id));
+  res.json(rows.map(r => mapProject(r, thMap.get(r.id) ?? 0)));
 });
 
 router.get("/projects/:id", async (req, res): Promise<void> => {
@@ -106,7 +109,8 @@ router.get("/projects/:id", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [row] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
-  res.json(GetProjectResponse.parse(mapProject(row)));
+  const th = await getTrackedHours(row.id);
+  res.json(GetProjectResponse.parse(mapProject(row, th)));
 });
 
 router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
@@ -198,6 +202,7 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
   }
   const [row] = await db.update(projectsTable).set(updatePayload).where(eq(projectsTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
+  const th = await getTrackedHours(row.id);
   if (!isStatusChange) {
     await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
   }
@@ -215,7 +220,7 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
     }).catch(() => {});
   }
 
-  res.json(UpdateProjectResponse.parse(mapProject(row)));
+  res.json(UpdateProjectResponse.parse(mapProject(row, th)));
 });
 
 // ---------------------------------------------------------------------------
@@ -251,7 +256,8 @@ router.patch("/projects/:id/unlock-budget", requireAdmin, async (req, res): Prom
     previousValue: { budgetLocked: true },
     newValue: { budgetLocked: false, reason },
   });
-  res.json(mapProject(row));
+  const th = await getTrackedHours(row.id);
+  res.json(mapProject(row, th));
 });
 
 router.delete("/projects/:id", requirePM, async (req, res): Promise<void> => {
@@ -283,7 +289,8 @@ router.post("/projects/:id/restore", requireAdmin, async (req, res): Promise<voi
     actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
     description: `Project "${row.name}" restored from archive`,
   });
-  res.json(mapProject(row));
+  const th = await getTrackedHours(row.id);
+  res.json(mapProject(row, th));
 });
 
 router.get("/projects/:id/summary", async (req, res): Promise<void> => {
@@ -297,7 +304,7 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
 
   const budget = Number(project.budget);
   const budgetedHours = Number(project.budgetedHours);
-  const trackedHours = Number(project.trackedHours);
+  const trackedHours = await getTrackedHours(project.id);
   const invoicedAmount = projectInvoices.filter(i => i.status === 'Paid' || i.status === 'Approved').reduce((s, i) => s + Number(i.total), 0);
   const pendingAmount = projectInvoices.filter(i => i.status === 'In Review' || i.status === 'Draft').reduce((s, i) => s + Number(i.total), 0);
   const due = new Date(project.dueDate);
@@ -584,7 +591,7 @@ router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise
   await logAudit({
     entityType: "budget_entry",
     entityId: row.id,
-    action: "created",
+    action: "updated",
     description: `Budget entry added to project ${projectId} (${type}): ${desc} — $${Number(row.amount).toFixed(2)}, ${Number(row.hours).toFixed(2)}h`,
     newValue: { projectId, type, amount: Number(row.amount), hours: Number(row.hours) },
   });

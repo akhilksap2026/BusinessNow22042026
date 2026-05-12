@@ -610,9 +610,9 @@ export declare const resourceRequestCommentsTable: import("drizzle-orm/pg-core")
 export declare const insertResourceRequestSchema: z.ZodObject<{
     region: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     status: z.ZodOptional<z.ZodString>;
+    role: z.ZodString;
     startDate: z.ZodString;
     projectId: z.ZodInt;
-    role: z.ZodString;
     type: z.ZodOptional<z.ZodString>;
     priority: z.ZodOptional<z.ZodString>;
     notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;

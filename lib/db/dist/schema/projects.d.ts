@@ -156,23 +156,6 @@ export declare const projectsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        trackedHours: import("drizzle-orm/pg-core").PgColumn<{
-            name: "tracked_hours";
-            tableName: "projects";
-            dataType: "string";
-            columnType: "PgNumeric";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
         allocatedHours: import("drizzle-orm/pg-core").PgColumn<{
             name: "allocated_hours";
             tableName: "projects";
@@ -474,7 +457,6 @@ export declare const insertProjectSchema: z.ZodObject<{
     dueDate: z.ZodString;
     billingType: z.ZodOptional<z.ZodString>;
     budget: z.ZodOptional<z.ZodString>;
-    trackedHours: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     allocatedHours: z.ZodOptional<z.ZodString>;
     budgetedHours: z.ZodOptional<z.ZodString>;
     completion: z.ZodOptional<z.ZodInt>;

@@ -361,8 +361,13 @@ router.get("/time-entries", async (req, res): Promise<void> => {
 });
 
 router.post("/time-entries", async (req, res): Promise<void> => {
-  const parsed = CreateTimeEntryBody.safeParse(req.body);
+  const parsed = CreateTimeEntryBody.strict().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // Sprint 1 / Phase 2.1: numeric floors. Hours must be > 0 and <= 24 (single day).
+  if (!Number.isFinite(parsed.data.hours) || parsed.data.hours <= 0 || parsed.data.hours > 24) {
+    res.status(400).json({ error: "hours must be > 0 and <= 24" });
+    return;
+  }
   const data: any = { ...parsed.data, hours: String(parsed.data.hours) };
   const body = req.body ?? {};
 

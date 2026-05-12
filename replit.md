@@ -122,7 +122,26 @@ Full-stack Professional Services Automation platform for KSAP Technology. Modele
 - No auto-cancel / auto-reassign — human review only
 - Test: `artifacts/api-server/tests/timeOffAllocationConflict.test.ts`
 
-**Test suite:** 65 tests / 21 suites — all passing.
+**Test suite:** 111 tests / 35 suites — all passing.
+
+### 5. Sprint 1 Hardening (current)
+- Phase 1.1.0 orphan FK scan run on dev DB — all-zero (clean).
+- Phase 1.1.2 `phases` table dropped (schema + DB).
+- Phase 1.2 hot-path indexes already present across tasks/time_entries/allocations/invoices/notifications/audit_log.
+- Phase 1.3 `tracked_hours` column dropped (Branch A — under 10K rows). Helper `lib/trackedHours.ts` with `getTrackedHoursMap` (batch) + `getTrackedHours` (single) computes from `time_entries`. `mapProject(p, trackedHours=0)` signature requires explicit pass-through; all read sites updated.
+- Phase 2.1 numeric floors on POST `/time-entries` (0 < hours <= 24), `/invoices` (amount/tax >= 0), `/projects/:id/change-orders` (amount/additionalHours >= 0).
+- Phase 2.2 `.strict()` body parse added on the same POST handlers + PATCH `/timesheets/:id` (extended schema to allow `status` enum).
+- Phase 3.7 budget-entry audit action `created` → `updated`.
+- Phase 3.8 PATCH `/timesheets/:id` withdraw flow wrapped in `db.transaction` with re-read inside txn.
+- Phase 3.9 `denyCustomerRole` mounted globally at `routes/index.ts`.
+- Phase 4.3 process-level catchers (`unhandledRejection`, `uncaughtException`) added in `index.ts`; global error handler already mounted in `app.ts`.
+
+**New tests (Sprint 1 / Phase 9A):**
+- `numericValidation.test.ts` — hours / amount / additionalHours floors.
+- `authBoundary.test.ts` — customer-role 403, missing `x-user-id` 401, admin baseline 200.
+- `statusTransitions.test.ts` — invoice status_changed audit row, timesheet withdraw clears submittedAt/By.
+- `idempotency.test.ts` — change-order re-approval no-double-write, timesheet withdraw idempotent.
+- (CR self-approval race covered by existing `sprint1Hardening` test 4.)
 
 ---
 

@@ -161,9 +161,9 @@ export declare const formsTable: import("drizzle-orm/pg-core").PgTableWithColumn
 }>;
 export declare const insertFormSchema: z.ZodObject<{
     name: z.ZodString;
+    isActive: z.ZodOptional<z.ZodInt>;
     description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     projectId: z.ZodInt;
-    isActive: z.ZodOptional<z.ZodInt>;
     createdByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     submissionCount: z.ZodOptional<z.ZodInt>;
 }, {

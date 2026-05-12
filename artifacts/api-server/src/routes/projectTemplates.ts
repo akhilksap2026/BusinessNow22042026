@@ -674,7 +674,6 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
       health: "On Track",
       budget: String(budget ?? 0),
       budgetedHours: "0",
-      trackedHours: "0",
       completion: 0,
       templateId: template.id,
       autoAllocate: template.autoAllocate,
@@ -806,7 +805,7 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
     ...project,
     budget: Number(project.budget),
     budgetedHours: Number(project.budgetedHours),
-    trackedHours: Number(project.trackedHours),
+    trackedHours: 0,
     createdAt: project.createdAt instanceof Date ? project.createdAt.toISOString() : project.createdAt,
     updatedAt: project.updatedAt instanceof Date ? project.updatedAt.toISOString() : project.updatedAt,
     templateApplied: {

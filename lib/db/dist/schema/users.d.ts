@@ -447,10 +447,10 @@ export declare const insertUserSchema: z.ZodObject<{
     name: z.ZodString;
     region: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isInternal: z.ZodOptional<z.ZodBoolean>;
-    accountId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     initials: z.ZodString;
     role: z.ZodString;
     email: z.ZodString;
+    accountId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     capacity: z.ZodOptional<z.ZodInt>;
     department: z.ZodString;
     costRate: z.ZodOptional<z.ZodString>;

@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { z } from "zod";
 import { eq, and, inArray } from "drizzle-orm";
 import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettingsTable, timesheetMessagesTable, notificationPreferencesTable, usersTable, allocationsTable } from "@workspace/db";
 import { getGovernanceSettings, checkTimesheetStatusChangeable, checkTimesheetEditable } from "../lib/governance";
@@ -107,36 +108,70 @@ router.get("/timesheets/:id", async (req, res): Promise<void> => {
 router.patch("/timesheets/:id", async (req, res): Promise<void> => {
   const params = UpdateTimesheetParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const parsed = UpdateTimesheetBody.safeParse(req.body);
+  // The OpenAPI UpdateTimesheetBody only declares totalHours/billableHours, but
+  // this route also accepts a `status` transition (Draft / Submitted /
+  // Approved / Rejected) for the withdraw + admin-edit flows. Extend then
+  // strict() so unknown keys are still rejected.
+  const UpdateTimesheetBodyExt = UpdateTimesheetBody.extend({
+    status: z.enum(["Draft", "Submitted", "Approved", "Rejected"]).optional(),
+  }).strict();
+  const parsed = UpdateTimesheetBodyExt.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const tsUpdates: any = { ...parsed.data };
   if (tsUpdates.totalHours !== undefined) tsUpdates.totalHours = String(tsUpdates.totalHours);
   if (tsUpdates.billableHours !== undefined) tsUpdates.billableHours = String(tsUpdates.billableHours);
   const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const settings = await getGovernanceSettings();
-  // Withdraw flow: if status is changing back to Draft from Submitted, clear submitted audit fields.
-  if (tsUpdates.status === "Draft") {
-    const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
-    if (existing) {
-      // Lock-on-Approval: cannot withdraw an Approved timesheet
-      const tsErr = checkTimesheetEditable(existing, role, settings);
-      if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
-      // Status lock: cannot withdraw if week is in locked period
-      const stErr = checkTimesheetStatusChangeable(existing, role, settings);
-      if (stErr) { res.status(stErr.status).json({ error: stErr.error }); return; }
-      if (existing.status === "Submitted") {
-        tsUpdates.submittedAt = null;
-        tsUpdates.submittedByUserId = null;
+  // Sprint 1 / Phase 3.8: wrap the entire withdraw / hours-update flow in a
+  // single txn so a concurrent PATCH cannot interleave the read-then-write
+  // pair (e.g. one caller withdraws to Draft while another updates hours
+  // assuming Submitted). All branches re-read inside the txn for fresh state.
+  let row: typeof timesheetsTable.$inferSelect | undefined;
+  let blocked: { status: number; error: string } | null = null;
+  try {
+    row = await db.transaction(async (tx) => {
+      // Optimistic-concurrency guard: capture the row's pre-image and only
+      // commit the write if the timesheet is still in the same status when
+      // we run the UPDATE. Two concurrent withdraws will then race on the
+      // status predicate; the loser sees an empty `returning()` and we 409.
+      let expectedStatus: string | null = null;
+      if (tsUpdates.status === "Draft") {
+        const [existing] = await tx.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
+        if (existing) {
+          expectedStatus = existing.status;
+          const tsErr = checkTimesheetEditable(existing, role, settings);
+          if (tsErr) { blocked = { status: tsErr.status, error: tsErr.error }; return undefined as any; }
+          const stErr = checkTimesheetStatusChangeable(existing, role, settings);
+          if (stErr) { blocked = { status: stErr.status, error: stErr.error }; return undefined as any; }
+          if (existing.status === "Submitted") {
+            tsUpdates.submittedAt = null;
+            tsUpdates.submittedByUserId = null;
+          }
+        }
+      } else if (tsUpdates.totalHours !== undefined || tsUpdates.billableHours !== undefined) {
+        const [existing] = await tx.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
+        if (existing) {
+          expectedStatus = existing.status;
+          const tsErr = checkTimesheetEditable(existing, role, settings);
+          if (tsErr) { blocked = { status: tsErr.status, error: tsErr.error }; return undefined as any; }
+        }
       }
-    }
-  } else if (tsUpdates.totalHours !== undefined || tsUpdates.billableHours !== undefined) {
-    const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
-    if (existing) {
-      const tsErr = checkTimesheetEditable(existing, role, settings);
-      if (tsErr) { res.status(tsErr.status).json({ error: tsErr.error }); return; }
-    }
+      const where = expectedStatus
+        ? and(eq(timesheetsTable.id, params.data.id), eq(timesheetsTable.status, expectedStatus))
+        : eq(timesheetsTable.id, params.data.id);
+      const [updated] = await tx.update(timesheetsTable).set(tsUpdates).where(where).returning();
+      if (!updated && expectedStatus) {
+        // Lost the race — another transaction flipped status under us.
+        blocked = { status: 409, error: "Timesheet was modified concurrently. Refresh and retry." };
+        return undefined as any;
+      }
+      return updated;
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to update timesheet", detail: String(err?.message ?? err) });
+    return;
   }
-  const [row] = await db.update(timesheetsTable).set(tsUpdates).where(eq(timesheetsTable.id, params.data.id)).returning();
+  if (blocked) { res.status((blocked as any).status).json({ error: (blocked as any).error }); return; }
   if (!row) { res.status(404).json({ error: "Timesheet not found" }); return; }
   res.json(UpdateTimesheetResponse.parse(mapTimesheet(row)));
 });
