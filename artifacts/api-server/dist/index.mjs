@@ -66857,6 +66857,10 @@ router8.post("/timesheets/bulk-approve", requirePM, async (req, res) => {
       `Your timesheet for the week of ${t.weekStart} has been approved.`,
       t.id
     );
+    snapshotRatesForTimesheet(t.id).catch(() => {
+    });
+    checkEffortOverrun(t.id).catch(() => {
+    });
   }
   res.json({ approved: eligible.length, skipped: ids.length - eligible.length });
 });
@@ -69048,6 +69052,7 @@ router14.get("/reports/utilization-grid", requirePermission("reports.view"), asy
     return Math.max(0, totalCap - holidayHours - toHours);
   }
   const rows = activeUsers.map((u) => {
+    const userCostRate = Number(u.costRate ?? 0);
     const cells = periods.map((p) => {
       const userPeriodEntries = entries.filter((e) => e.userId === u.id && e.date >= p.start && e.date <= p.end);
       const tracked = userPeriodEntries.reduce((s, e) => s + Number(e.hours), 0);
@@ -69059,7 +69064,8 @@ router14.get("/reports/utilization-grid", requirePermission("reports.view"), asy
         trackedHours: Math.round(tracked * 10) / 10,
         billableHours: Math.round(billable * 10) / 10,
         utilization: cap > 0 ? Math.round(tracked / cap * 100) : null,
-        billableUtilization: cap > 0 ? Math.round(billable / cap * 100) : null
+        billableUtilization: cap > 0 ? Math.round(billable / cap * 100) : null,
+        labourCost: Math.round(tracked * userCostRate * 100) / 100
       };
     });
     const totals = cells.reduce((acc, c) => ({
@@ -69077,7 +69083,8 @@ router14.get("/reports/utilization-grid", requirePermission("reports.view"), asy
         trackedHours: Math.round(totals.tracked * 10) / 10,
         billableHours: Math.round(totals.billable * 10) / 10,
         utilization: totals.avail > 0 ? Math.round(totals.tracked / totals.avail * 100) : null,
-        billableUtilization: totals.avail > 0 ? Math.round(totals.billable / totals.avail * 100) : null
+        billableUtilization: totals.avail > 0 ? Math.round(totals.billable / totals.avail * 100) : null,
+        labourCost: Math.round(totals.tracked * userCostRate * 100) / 100
       }
     };
   });
