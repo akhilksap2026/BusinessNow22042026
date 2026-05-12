@@ -200,7 +200,7 @@ export function InvoiceDetail({ invoice, open, onOpenChange }: { invoice: any, o
                     </TableRow>
                   ))}
                   {(!lineItems || lineItems.length === 0) && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-4 text-muted-foreground">No line items.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-sm text-muted-foreground">No line items.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

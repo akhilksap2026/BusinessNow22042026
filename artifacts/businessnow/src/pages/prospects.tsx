@@ -11,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Sheet,
   SheetContent,
@@ -52,15 +54,6 @@ import { Prospect } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import { Link } from "wouter";
-
-const STATUS_COLORS: Record<string, string> = {
-  New: "bg-slate-100 text-slate-700",
-  Qualified: "bg-blue-100 text-blue-700",
-  Proposal: "bg-purple-100 text-purple-700",
-  Negotiation: "bg-amber-100 text-amber-700",
-  Lost: "bg-red-100 text-red-700",
-  Converted: "bg-green-100 text-green-700",
-};
 
 const STATUSES = ["New", "Qualified", "Proposal", "Negotiation", "Lost", "Converted"];
 const SOURCES = ["Inbound", "Outbound", "Referral", "Partner", "Trade Show", "Website", "Cold Outreach", "Other"];
@@ -183,7 +176,12 @@ export default function ProspectsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground text-sm">No prospects found</div>
+        <EmptyState
+          icon={Search}
+          title="No prospects found"
+          description={search || filterStatus !== "all" ? "Try adjusting your search or filter." : "Add your first prospect to start tracking your pipeline."}
+          action={!search && filterStatus === "all" ? { label: "Add Prospect", onClick: () => setShowCreate(true) } : undefined}
+        />
       ) : (
         <>
           {/* Mobile cards */}
@@ -240,7 +238,7 @@ export default function ProspectsPage() {
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[p.status] ?? ""}`}>{p.status}</span>
+                    <StatusBadge status={p.status} />
                     <span className="text-xs text-muted-foreground">{p.source ?? "—"}</span>
                   </div>
                   <span className="text-sm font-medium tabular-nums">{fmt(p.estimatedValue)}</span>
@@ -271,7 +269,7 @@ export default function ProspectsPage() {
                       <div className="text-xs text-muted-foreground">{p.contactEmail ?? ""}</div>
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[p.status] ?? ""}`}>{p.status}</span>
+                      <StatusBadge status={p.status} />
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{p.source ?? "—"}</TableCell>
                     <TableCell className="text-right font-medium">{fmt(p.estimatedValue)}</TableCell>
@@ -319,7 +317,7 @@ export default function ProspectsPage() {
               </SheetHeader>
               <div className="mt-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[selected.status] ?? ""}`}>{selected.status}</span>
+                  <StatusBadge status={selected.status} />
                   {selected.status !== "Converted" && (
                     <Button size="sm" variant="outline" className="gap-1.5 ml-auto" onClick={() => setShowConvert(true)}>
                       <UserCheck className="h-3.5 w-3.5" /> Convert to Customer

@@ -193,7 +193,10 @@ function NotificationsBell() {
         </div>
         <ScrollArea className="max-h-80">
           {recentNotifs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">No notifications</div>
+            <div className="flex flex-col items-center gap-1 py-8 text-muted-foreground">
+              <Bell className="h-7 w-7 opacity-30" />
+              <p className="text-sm">No notifications</p>
+            </div>
           ) : (
             recentNotifs.map(n => (
               <div

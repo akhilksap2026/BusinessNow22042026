@@ -15,6 +15,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,12 +60,6 @@ function downloadCSV(filename: string, rows: Record<string, any>[]) {
   URL.revokeObjectURL(url);
 }
 
-const HEALTH_COLORS: Record<string, string> = {
-  "On Track": "#10b981", "At Risk": "#f59e0b", "Off Track": "#ef4444",
-};
-const STATUS_COLORS: Record<string, string> = {
-  "In Progress": "#7c3aed", "Started": "#7c3aed", "Completed": "#10b981", "Not Started": "#94a3b8", "On Hold": "#f59e0b",
-};
 
 // ─── Skill Supply vs Demand Report ──────────────────────────────────────────
 function SkillSupplyDemandReport() {
@@ -447,7 +442,7 @@ function ProjectPerformanceReport() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-10 text-muted-foreground">No projects match your filters.</td></tr>
+                <tr><td colSpan={9} className="text-center py-12 text-sm text-muted-foreground">No projects match your filters.</td></tr>
               ) : filtered.map((p: any) => (
                 <tr key={p.projectId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">
@@ -455,10 +450,10 @@ function ProjectPerformanceReport() {
                     {p.accountName && <div className="text-xs text-muted-foreground">{p.accountName}</div>}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: `${STATUS_COLORS[p.status]}22`, color: STATUS_COLORS[p.status] }}>{p.status}</span>
+                    <StatusBadge status={p.status} />
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: `${HEALTH_COLORS[p.health] ?? "#94a3b8"}22`, color: HEALTH_COLORS[p.health] ?? "#94a3b8" }}>{p.health}</span>
+                    <StatusBadge status={p.health} />
                   </td>
                   <td className="px-4 py-3 text-xs">{p.templateUsed ? <span className="text-violet-700 dark:text-violet-400">{p.templateName ?? "Yes"}</span> : <span className="text-muted-foreground">—</span>}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{p.totalTasks}</td>

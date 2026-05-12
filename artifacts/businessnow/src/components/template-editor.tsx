@@ -32,10 +32,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronRight,
-  LayoutTemplate, Archive, ArchiveRestore, GripVertical,
+  LayoutTemplate, Archive, ArchiveRestore, GripVertical, Users,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -875,10 +876,7 @@ function AllocationsSection({ templateId, totalDays }: { templateId: number; tot
       {isLoading && <Skeleton className="h-16 w-full rounded-md" />}
 
       {!isLoading && allocations.length === 0 && !adding && (
-        <div className="text-center py-8 border border-dashed rounded-lg text-muted-foreground">
-          <p className="text-sm font-medium">No allocations yet</p>
-          <p className="text-xs mt-1">Add placeholders or named resources with day-range coverage.</p>
-        </div>
+        <EmptyState icon={Users} title="No allocations yet" description="Add placeholders or named resources with day-range coverage." />
       )}
 
       <div className="space-y-2">
@@ -1225,11 +1223,7 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
         </div>
 
         {phases.length === 0 && !addingPhase && (
-          <div className="text-center py-10 border border-dashed rounded-lg text-muted-foreground">
-            <LayoutTemplate className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm font-medium">No phases yet</p>
-            <p className="text-xs mt-1">Add phases to define the project structure and tasks.</p>
-          </div>
+          <EmptyState icon={LayoutTemplate} title="No phases yet" description="Add phases to define the project structure and tasks." />
         )}
 
         {phases.map(phase => (

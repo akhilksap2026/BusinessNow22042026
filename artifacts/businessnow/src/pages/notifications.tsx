@@ -8,6 +8,7 @@ import { Bell, Briefcase, Clock, AlertCircle, DollarSign, CheckCircle2, X, Trash
 import { Button } from "@/components/ui/button";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -114,11 +115,11 @@ export default function Notifications() {
                 ))}
               </div>
             ) : notifications?.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground flex flex-col items-center">
-                <Bell className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                <p>You're all caught up!</p>
-                <p className="text-sm mt-1">No notifications to show.</p>
-              </div>
+              <EmptyState
+                icon={Bell}
+                title="You're all caught up!"
+                description="No notifications to show."
+              />
             ) : (
               <div className="space-y-3">
                 {notifications?.map(notification => {

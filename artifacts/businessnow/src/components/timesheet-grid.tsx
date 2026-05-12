@@ -23,6 +23,7 @@ import {
   getListTasksQueryKey,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -915,12 +916,6 @@ export function TimesheetGrid({ userId, weekStartDay = 1, initialWeekStart }: { 
     }
   };
 
-  const statusColors: Record<string, string> = {
-    Draft: "bg-gray-100 text-gray-700 border-gray-200",
-    Submitted: "bg-amber-100 text-amber-700 border-amber-200",
-    Approved: "bg-green-100 text-green-700 border-green-200",
-    Rejected: "bg-red-100 text-red-700 border-red-200",
-  };
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -949,9 +944,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1, initialWeekStart }: { 
                   <span className="ml-2 text-amber-600 text-xs font-medium">({hoursShort}h below {minHours}h minimum)</span>
                 )}
               </div>
-              <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold border", statusColors[timesheet.status] ?? statusColors.Draft)}>
-                {timesheet.status}
-              </span>
+              <StatusBadge status={timesheet.status} />
               {timesheet.status === "Draft" && (
                 <Button size="sm" onClick={onSubmitTimesheet} disabled={submitTimesheet.isPending || (minHours > 0 && hoursShort > 0)}>
                   Submit for Approval

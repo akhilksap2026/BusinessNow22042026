@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Plus, Pencil, Trash2, FileText, History, ChevronDown, ChevronUp, LayoutTemplate } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authHeaders } from "@/lib/auth-headers";
@@ -194,10 +195,7 @@ export function ProjectDocuments({ projectId }: Props) {
               {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}
             </div>
           ) : !docs?.length ? (
-            <div className="flex flex-col items-center py-12 text-muted-foreground gap-2">
-              <FileText className="h-10 w-10 opacity-30" />
-              <p className="text-sm">No documents yet. Create the first one.</p>
-            </div>
+            <EmptyState icon={FileText} title="No documents yet" description="Create the first document for this project." />
           ) : (
             <div className="divide-y">
               {docs.map(doc => (
@@ -378,11 +376,7 @@ export function ProjectDocuments({ projectId }: Props) {
                 {[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full rounded" />)}
               </div>
             ) : !templates?.length ? (
-              <div className="flex flex-col items-center py-10 text-muted-foreground gap-2">
-                <LayoutTemplate className="h-10 w-10 opacity-30" />
-                <p className="text-sm">No document templates yet.</p>
-                <p className="text-xs">An admin can create them in Admin → Document Templates.</p>
-              </div>
+              <EmptyState icon={LayoutTemplate} title="No document templates" description="An admin can create them in Admin → Document Templates." />
             ) : (
               <div className="divide-y">
                 {templates.map(t => (

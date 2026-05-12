@@ -1,0 +1,50 @@
+Act as a Senior Enterprise Software Architect, QA Auditor, Business Analyst, and UX Consultant.
+
+Perform a complete application logic audit of the entire system. Do not focus only on code quality — analyse business logic, workflow correctness, data flow, operational ease, and enterprise usability.
+
+Audit the application for the following:
+
+1. FIELD & DATA FLOW VALIDATION
+- Verify all fields flow correctly across frontend, backend, database, APIs, reports, and workflows.
+- Identify missing validations, incorrect mappings, redundant fields, broken dependencies, incorrect calculations, inconsistent naming, or data sync issues.
+- Check whether mandatory fields, status updates, audit trails, and permissions are functioning correctly.
+
+2. WORKFLOW & BUSINESS LOGIC AUDIT
+- Analyse complete workflow transitions, approvals, rejections, escalations, and status movements.
+- Identify workflow gaps, duplicate steps, unnecessary user effort, bottlenecks, missing controls, and logic inconsistencies.
+- Detect ways users can bypass intended processes.
+
+3. UX & OPERATIONAL EFFICIENCY REVIEW
+- Evaluate screen layouts, button placements, navigation flow, form usability, tables/grids, search/filter usability, and overall ease of operation.
+- Identify excessive clicks, cluttered screens, confusing workflows, or inefficient user journeys.
+- Suggest improvements for faster and simpler operations.
+
+4. RELATIONAL & SYSTEM CONSISTENCY CHECK
+- Validate parent-child relationships, module dependencies, transactional consistency, report accuracy, and synchronization across modules.
+- Detect orphan records, broken references, duplicate data risks, and integrity issues.
+
+5. EDGE CASE & FAILURE ANALYSIS
+- Identify invalid user paths, duplicate submission risks, missing exception handling, permission loopholes, race conditions, and potential data corruption scenarios.
+
+6. ENTERPRISE READINESS REVIEW
+- Evaluate scalability, maintainability, modularity, auditability, role management, logging, error handling, and production readiness.
+
+OUTPUT REQUIREMENTS:
+Provide findings in structured sections:
+- Executive Summary
+- Critical Issues
+- Workflow Gaps
+- UX & Ease-of-Operation Findings
+- Data Flow Problems
+- Recommended Improvements
+- Priority-Wise Action Plan
+
+For every issue include:
+- Module/Screen
+- Issue Description
+- Severity (Critical/High/Medium/Low)
+- Business Impact
+- Recommended Fix
+- Suggested UX Improvement (if applicable)
+
+Think like a real enterprise software auditor and provide highly practical, implementation-focused recommendations.

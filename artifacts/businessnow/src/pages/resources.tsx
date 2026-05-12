@@ -14,6 +14,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
@@ -771,10 +772,8 @@ export default function Resources() {
               <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-32 w-full" />)}</div>
             ) : filteredRequests.length === 0 ? (
               <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <Briefcase className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="font-medium">No resource requests</p>
-                  <p className="text-sm mt-1">Resource requests from project managers will appear here.</p>
+                <CardContent className="p-0">
+                  <EmptyState icon={Briefcase} title="No resource requests" description="Resource requests from project managers will appear here." />
                 </CardContent>
               </Card>
             ) : (

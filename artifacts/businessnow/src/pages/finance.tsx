@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
@@ -540,11 +541,12 @@ export default function Finance() {
                 {isLoadingSchedules ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
                 ) : schedules?.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <CalendarClock className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No billing schedules</p>
-                    <p className="text-sm mt-1">Create a schedule to automatically trigger invoice drafts.</p>
-                  </div>
+                  <EmptyState
+                    icon={CalendarClock}
+                    title="No billing schedules"
+                    description="Create a schedule to automatically trigger invoice drafts."
+                    action={{ label: "New Schedule", onClick: () => setIsScheduleOpen(true) }}
+                  />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -640,11 +642,12 @@ export default function Finance() {
                 {isLoadingRevenue ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
                 ) : revenueEntries?.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No revenue entries</p>
-                    <p className="text-sm mt-1">Record recognised revenue against projects and periods.</p>
-                  </div>
+                  <EmptyState
+                    icon={TrendingUp}
+                    title="No revenue entries"
+                    description="Record recognised revenue against projects and periods."
+                    action={{ label: "Recognise Revenue", onClick: () => setIsRevenueOpen(true) }}
+                  />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -716,11 +719,12 @@ export default function Finance() {
                   }
                   if (filtered.length === 0) {
                     return (
-                      <div className="text-center py-10 text-muted-foreground text-sm">
-                        {allContracts.length === 0
-                          ? "No contracts yet. Click \"New Contract\" to create one."
-                          : `No contracts match "${searchQuery}".`}
-                      </div>
+                      <EmptyState
+                        icon={BookOpen}
+                        title={allContracts.length === 0 ? "No contracts yet" : "No contracts match"}
+                        description={allContracts.length === 0 ? "Create a contract to track SOW and agreements." : `No contracts match "${searchQuery}".`}
+                        action={allContracts.length === 0 ? { label: "New Contract", onClick: () => setIsContractOpen(true) } : undefined}
+                      />
                     );
                   }
                   return (

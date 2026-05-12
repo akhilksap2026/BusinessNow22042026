@@ -6,6 +6,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -1326,7 +1327,12 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
                 </div>
               )}
               {!suggestLoading && suggestEntries.length === 0 && (
-                <p className="text-sm text-muted-foreground py-6 text-center">No suggestions — your timesheet looks complete for this week.</p>
+                <EmptyState
+                  icon={CheckCircle2}
+                  title="Timesheet looks complete"
+                  description="No suggestions — all your hours are accounted for this week."
+                  className="py-8"
+                />
               )}
               {!suggestLoading && suggestEntries.length > 0 && (
                 <>

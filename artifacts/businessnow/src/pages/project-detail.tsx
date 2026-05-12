@@ -7,6 +7,7 @@ import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useLis
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useParams, Link } from "wouter";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,7 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell, Info } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Star, MessageSquare, Plus, Pencil, Trash2, FileText, FileQuestion, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell, Info, Receipt } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApplyTemplateModal } from "@/components/apply-template-modal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -1370,11 +1371,7 @@ export default function ProjectDetail() {
                     {[1, 2].map(i => <Skeleton key={i} className="h-12 w-full" />)}
                   </div>
                 ) : allocations?.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No team members allocated</p>
-                    <p className="text-sm mt-1">Add allocations to assign team members and track capacity.</p>
-                  </div>
+                  <EmptyState icon={Users} title="No team members allocated" description="Add allocations to assign team members and track capacity." />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -1452,11 +1449,7 @@ export default function ProjectDetail() {
                 {isLoadingBookings ? (
                   <div className="space-y-2">{[1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
                 ) : !projectAssetBookings?.length ? (
-                  <div className="text-center py-10 text-muted-foreground">
-                    <Briefcase className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm font-medium">No assets booked</p>
-                    <p className="text-xs mt-1">Book an environment, device, or other shared resource for this project.</p>
-                  </div>
+                  <EmptyState icon={Briefcase} title="No assets booked" description="Book an environment, device, or other shared resource for this project." />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -1714,9 +1707,12 @@ export default function ProjectDetail() {
                   </CardHeader>
                   <CardContent>
                     {filtered.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        No cost entries{costCategoryFilter !== "all" ? " for this category" : ""}. Click &quot;Add Entry&quot; to record an expense.
-                      </p>
+                      <EmptyState
+                        icon={Receipt}
+                        title={`No cost entries${costCategoryFilter !== "all" ? " for this category" : ""}`}
+                        description='Click "Add Entry" to record an expense.'
+                        className="py-8"
+                      />
                     ) : (
                       <Table>
                         <TableHeader>
@@ -1781,10 +1777,8 @@ export default function ProjectDetail() {
 
             {!changeOrders || changeOrders.length === 0 ? (
               <Card>
-                <CardContent className="py-16 text-center text-muted-foreground">
-                  <PackagePlus className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">No change requests yet</p>
-                  <p className="text-xs mt-1">Create one to document scope changes and budget adjustments.</p>
+                <CardContent className="p-0">
+                  <EmptyState icon={PackagePlus} title="No change requests yet" description="Create one to document scope changes and budget adjustments." />
                 </CardContent>
               </Card>
             ) : (
@@ -3264,10 +3258,8 @@ function CsatTab({ projectId, csatSummary, csatSurveys, refetchSurveys }: {
       {/* Milestone surveys table */}
       {csatSurveys.length === 0 ? (
         <Card>
-          <CardContent className="py-14 text-center text-muted-foreground">
-            <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p className="font-medium">No milestone surveys yet</p>
-            <p className="text-sm mt-1">CSAT surveys are auto-sent when milestone tasks are marked complete.</p>
+          <CardContent className="p-0">
+            <EmptyState icon={MessageSquare} title="No milestone surveys yet" description="CSAT surveys are auto-sent when milestone tasks are marked complete." />
           </CardContent>
         </Card>
       ) : (

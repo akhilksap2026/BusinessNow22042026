@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-client-react";
 import { Opportunity } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,7 +50,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Kanban, ListIcon, FolderPlus, FolderOpen, ArrowUpRight } from "lucide-react";
+import { MoreHorizontal, Plus, Kanban, ListIcon, FolderPlus, FolderOpen, ArrowUpRight, Search } from "lucide-react";
 import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
@@ -508,7 +509,7 @@ function OpportunityTable({
   onConvert: (o: Opportunity) => void;
 }) {
   if (opportunities.length === 0) {
-    return <div className="text-center py-12 text-muted-foreground text-sm">No opportunities found</div>;
+    return <EmptyState icon={Search} title="No opportunities found" description="Try adjusting your filters or add a new opportunity." />;
   }
 
   return (

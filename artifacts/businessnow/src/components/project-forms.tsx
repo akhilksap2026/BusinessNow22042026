@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, FileQuestion, ChevronLeft, Send, Eye, Settings } from "lucide-react";
@@ -193,10 +194,7 @@ export function ProjectForms({ projectId }: Props) {
               {[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full rounded" />)}
             </div>
           ) : !forms?.length ? (
-            <div className="flex flex-col items-center py-12 text-muted-foreground gap-2">
-              <FileQuestion className="h-10 w-10 opacity-30" />
-              <p className="text-sm">No forms yet. Create one to start collecting data.</p>
-            </div>
+            <EmptyState icon={FileQuestion} title="No forms yet" description="Create one to start collecting data." />
           ) : (
             <div className="divide-y">
               {forms.map(form => (
@@ -481,7 +479,8 @@ function FormDetailView({
         <div className="space-y-3">
           {!form.fields?.length ? (
             <div className="flex flex-col items-center py-8 text-muted-foreground gap-2 border-2 border-dashed rounded-lg">
-              <p className="text-sm">No fields yet. Add a field to build your form.</p>
+              <p className="text-sm font-medium">No fields yet</p>
+              <p className="text-xs">Add a field to build your form.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -514,9 +513,7 @@ function FormDetailView({
       ) : (
         <div>
           {!responses?.length ? (
-            <div className="flex flex-col items-center py-8 text-muted-foreground gap-2">
-              <p className="text-sm">No responses yet.</p>
-            </div>
+            <EmptyState icon={FileQuestion} title="No responses yet" description="Responses will appear here once the form is submitted." />
           ) : (
             <Table>
               <TableHeader>

@@ -13,6 +13,7 @@ import {
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { addDays, format, startOfWeek } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -657,7 +658,7 @@ export default function TimeTracking() {
                 {isLoadingEntries ? (
                   <div className="space-y-4">{[1,2,3,4].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
                 ) : entries?.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">No time entries found.</div>
+                  <EmptyState icon={Clock} title="No time entries found" description="Log time against a project to get started." />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -779,11 +780,7 @@ export default function TimeTracking() {
                 {isLoadingTimeOff ? (
                   <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
                 ) : timeOffRequests?.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <CalendarOff className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No time-off requests</p>
-                    <p className="text-sm mt-1">Submit a request for PTO, sick leave, or other time off.</p>
-                  </div>
+                  <EmptyState icon={CalendarOff} title="No time-off requests" description="Submit a request for PTO, sick leave, or other time off." />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -1079,10 +1076,7 @@ export default function TimeTracking() {
           </SheetHeader>
 
           {detailEntries.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Clock className="h-10 w-10 mx-auto mb-2 opacity-20" />
-              <p>No time logged this week</p>
-            </div>
+            <EmptyState icon={Clock} title="No time logged this week" description="No entries were submitted for this period." />
           ) : (
             <div className="space-y-2">
               {/* Summary row */}

@@ -59,6 +59,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -459,11 +460,7 @@ function DocumentTemplatesPanel() {
         {isLoading ? (
           <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded" />)}</div>
         ) : !templates?.length ? (
-          <div className="flex flex-col items-center py-12 text-muted-foreground gap-2">
-            <FileText className="h-10 w-10 opacity-30" />
-            <p className="text-sm">No document templates yet.</p>
-            <p className="text-xs">Create one and your team can use it on any project.</p>
-          </div>
+          <EmptyState icon={FileText} title="No document templates yet" description="Create one and your team can use it on any project." />
         ) : (
           <Table>
             <TableHeader>
@@ -1589,11 +1586,7 @@ export default function Admin() {
                 {isLoadingTemplates ? (
                   <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
                 ) : (templates ?? []).filter((t: any) => showArchived || !t.isArchived).length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <LayoutTemplate className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No templates yet</p>
-                    <p className="text-sm mt-1">Create templates to speed up project creation.</p>
-                  </div>
+                  <EmptyState icon={LayoutTemplate} title="No templates yet" description="Create templates to speed up project creation." />
                 ) : (
                   <div className="space-y-3">
                     {(templates ?? []).filter((t: any) => showArchived || !t.isArchived).map((tmpl: any) => (
@@ -1656,10 +1649,7 @@ export default function Admin() {
                   {isLoadingCategories ? (
                     <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
                   ) : categories?.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Tag className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No categories yet</p>
-                    </div>
+                    <EmptyState icon={Tag} title="No categories yet" description="Add a category to group related skills." />
                   ) : (
                     <div className="space-y-2">
                       {categories?.map(cat => (
@@ -1705,10 +1695,7 @@ export default function Admin() {
                   {isLoadingSkills ? (
                     <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
                   ) : filteredSkills.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Star className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No skills found</p>
-                    </div>
+                    <EmptyState icon={Star} title="No skills found" description="Add skills to match team members to project requirements." />
                   ) : (
                     <div className="space-y-2">
                       {filteredSkills.map(skill => {
@@ -1755,11 +1742,7 @@ export default function Admin() {
                 {jobRolesLoading ? (
                   <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
                 ) : jobRoles.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No job roles defined yet.</p>
-                    <p className="text-xs mt-1">Add roles to use them as dropdowns in allocations and resource requests.</p>
-                  </div>
+                  <EmptyState icon={Briefcase} title="No job roles defined yet" description="Add roles to use them as dropdowns in allocations and resource requests." />
                 ) : (
                   <div className="divide-y border rounded-lg">
                     {jobRoles.map(role => (
@@ -1791,10 +1774,7 @@ export default function Admin() {
                 {isLoadingTaxCodes ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
                 ) : taxCodes?.length === 0 ? (
-                  <div className="text-center py-10 text-muted-foreground">
-                    <Percent className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No tax codes configured</p>
-                  </div>
+                  <EmptyState icon={Percent} title="No tax codes configured" description="Add tax codes to apply to invoices and billing." />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -1855,10 +1835,7 @@ export default function Admin() {
                 {isLoadingTimeCategories ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
                 ) : timeCategories?.length === 0 ? (
-                  <div className="text-center py-10 text-muted-foreground">
-                    <Clock className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No time categories yet</p>
-                  </div>
+                  <EmptyState icon={Clock} title="No time categories yet" description="Add categories to classify how time is logged." />
                 ) : (
                   <div className="space-y-2">
                     {timeCategories?.map((tc, idx, arr) => (
@@ -2213,10 +2190,7 @@ export default function Admin() {
                   {isLoadingHolidayCalendars ? (
                     <div className="space-y-3">{[1,2].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
                   ) : holidayCalendars?.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No calendars yet</p>
-                    </div>
+                    <EmptyState icon={CalendarDays} title="No calendars yet" description="Create a holiday calendar to track team time off." />
                   ) : (
                     <div className="space-y-2">
                       {holidayCalendars?.map(cal => (
@@ -2260,15 +2234,9 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   {!selectedCalendarId ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">Select a calendar on the left</p>
-                    </div>
+                    <EmptyState icon={CalendarDays} title="No calendar selected" description="Select a calendar on the left to manage its dates." />
                   ) : (holidayDates?.length ?? 0) === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No holidays added yet</p>
-                    </div>
+                    <EmptyState icon={Calendar} title="No holidays added yet" description="Add holidays for this calendar." />
                   ) : (
                     <div className="space-y-2">
                       {holidayDates?.sort((a, b) => a.date.localeCompare(b.date)).map(d => (
@@ -2305,11 +2273,7 @@ export default function Admin() {
                 {isLoadingRateCards ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
                 ) : (rateCards?.length ?? 0) === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <CreditCard className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No rate cards yet</p>
-                    <p className="text-sm mt-1">Create rate cards to assign billing rates to project roles.</p>
-                  </div>
+                  <EmptyState icon={CreditCard} title="No rate cards yet" description="Create rate cards to assign billing rates to project roles." />
                 ) : (
                   <div className="space-y-3">
                     {rateCards?.map(rc => (
@@ -2375,10 +2339,7 @@ export default function Admin() {
                   </CardHeader>
                   <CardContent>
                     {(cfSections?.length ?? 0) === 0 ? (
-                      <div className="text-center py-10 text-muted-foreground">
-                        <Folder className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm">No sections yet. Create a section to group custom fields by role permissions.</p>
-                      </div>
+                      <EmptyState icon={Folder} title="No sections yet" description="Create a section to group custom fields by role permissions." />
                     ) : (
                       <Table>
                         <TableHeader>
@@ -2452,11 +2413,7 @@ export default function Admin() {
                 {isLoadingCf ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
                 ) : (cfDefinitions?.length ?? 0) === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <SlidersHorizontal className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No custom fields defined</p>
-                    <p className="text-sm mt-1">Add fields to capture extra information on projects and tasks.</p>
-                  </div>
+                  <EmptyState icon={SlidersHorizontal} title="No custom fields defined" description="Add fields to capture extra information on projects and tasks." />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -2533,10 +2490,7 @@ export default function Admin() {
               </CardHeader>
               <CardContent>
                 {(activityDefaults?.length ?? 0) === 0 ? (
-                  <div className="text-center py-10 text-muted-foreground">
-                    <Zap className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No activity defaults configured.</p>
-                  </div>
+                  <EmptyState icon={Zap} title="No activity defaults configured" description="Add activity defaults to pre-fill billable/category on time entries." />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -2611,11 +2565,7 @@ export default function Admin() {
                 {isLoadingAudit ? (
                   <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
                 ) : (auditEntries?.length ?? 0) === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Activity className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">No audit entries yet</p>
-                    <p className="text-sm mt-1">Changes to projects, tasks, invoices, and users will appear here.</p>
-                  </div>
+                  <EmptyState icon={Activity} title="No audit entries yet" description="Changes to projects, tasks, invoices, and users will appear here." />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -2741,10 +2691,7 @@ export default function Admin() {
               </CardHeader>
               <CardContent>
                 {(deletedProjects?.length ?? 0) === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <RotateCcw className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p>No archived projects</p>
-                  </div>
+                  <EmptyState icon={RotateCcw} title="No archived projects" description="Projects that are soft-deleted will appear here for restoration." />
                 ) : (
                   <Table>
                     <TableHeader>

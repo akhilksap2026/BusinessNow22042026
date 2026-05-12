@@ -37,6 +37,7 @@ import { TaskDetailSheet } from "@/components/task-detail-sheet";
 import { TreeToggle } from "@/components/task-tree";
 import { useTaskStatuses, TASK_STATUS_CYCLE, taskStatusLabel } from "@/lib/task-status";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -63,6 +64,7 @@ import {
   Save,
   Undo2,
   X,
+  ListTodo,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -1121,15 +1123,12 @@ export function ProjectPhases({ projectId }: { projectId: number }) {
         </div>
 
         {tree.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">
-            No tasks yet.{" "}
-            <button
-              onClick={() => openAddTask(null)}
-              className="text-primary hover:underline font-medium"
-            >
-              Add the first task
-            </button>
-          </div>
+          <EmptyState
+            icon={ListTodo}
+            title="No tasks yet"
+            description="Create the first task or phase to start building your project plan."
+            action={{ label: "Add task", onClick: () => openAddTask(null) }}
+          />
         ) : (
           <DndContext
             sensors={sensors}
