@@ -35,7 +35,7 @@ import {
   revenueEntriesTable,
   opportunitiesTable,
 } from "@workspace/db";
-import { eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 
 describe("full lifecycle: opportunity → project → tasks → time → invoice → revrec", () => {
   let server: Server;
@@ -53,7 +53,7 @@ describe("full lifecycle: opportunity → project → tasks → time → invoice
 
   before(async () => {
     const [acct] = await db.select().from(accountsTable).limit(1);
-    const seedUsers = await db.select().from(usersTable).limit(2);
+    const seedUsers = await db.select().from(usersTable).orderBy(asc(usersTable.id)).limit(2);
     assert.ok(acct && seedUsers.length >= 2, "seed must have an account and 2 users");
     acctId = acct.id;
     pmUserId = seedUsers[0].id;
@@ -138,34 +138,53 @@ describe("full lifecycle: opportunity → project → tasks → time → invoice
     }, {
       "content-type": "application/json",
       "x-user-id": String(submitterUserId),
-      "x-user-role": "collaborator",
+      // User 2 (Marcus Webb, Project Manager) resolves to super_user in roleClaim.
+      "x-user-role": "super_user",
     });
     assert.equal(r.status, 201, r.text);
     createdEntryIds.push(r.json.id);
     assert.equal(r.json.hours, 4);
   });
 
-  it("step 5 — submitter's weekly timesheet auto-rolls and is submittable", async () => {
-    // The time-entry POST creates/updates a draft timesheet for that week.
-    const [ts] = await db.select().from(timesheetsTable)
-      .where(eq(timesheetsTable.userId, submitterUserId))
-      .orderBy(timesheetsTable.id);
-    // Pick the most recent timesheet for this user (highest id).
-    const all = await db.select().from(timesheetsTable).where(eq(timesheetsTable.userId, submitterUserId));
-    const latest = all.sort((a, b) => b.id - a.id)[0];
-    assert.ok(latest, "expected a timesheet auto-created from the time entry");
-    timesheetId = latest.id;
+  it("step 5 — submitter creates and submits a weekly timesheet", async () => {
+    // Compute the ISO Monday (Mon = 1) of the current week as the weekStart.
+    const now = new Date();
+    const dow = now.getUTCDay(); // 0=Sun, 1=Mon, …
+    const daysToMonday = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysToMonday));
+    const weekStart = monday.toISOString().slice(0, 10);
+
+    // POST /timesheets is idempotent — returns existing row if one already exists
+    // for this user + week (e.g. from a previous test run that didn't clean up).
+    const create = await postJson(`${baseUrl}/api/timesheets`,
+      { userId: submitterUserId, weekStart },
+      {
+        "content-type": "application/json",
+        "x-user-id": String(submitterUserId),
+        "x-user-role": "super_user",
+      });
+    assert.ok(create.status === 200 || create.status === 201, `create timesheet: ${create.text}`);
+    timesheetId = create.json.id;
+    assert.ok(timesheetId > 0, "timesheet id must be a positive integer");
+
+    // If it was already Submitted/Approved (idempotent return), force back to
+    // Draft so the submit step exercises real production code.
+    const [pre] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, timesheetId));
+    if (pre.status !== "Draft") {
+      await db.update(timesheetsTable)
+        .set({ status: "Draft", submittedAt: null, submittedByUserId: null, approvedAt: null, approvedByUserId: null } as any)
+        .where(eq(timesheetsTable.id, timesheetId));
+    }
 
     const r = await postJson(`${baseUrl}/api/timesheets/${timesheetId}/submit`,
       { submittedByUserId: submitterUserId },
       {
         "content-type": "application/json",
         "x-user-id": String(submitterUserId),
-        "x-user-role": "collaborator",
+        "x-user-role": "super_user",
       });
-    // Submit may 200 or 400 depending on guardrails; either way we proceed
-    // by reading the row back. If submit failed, force-mark Submitted so the
-    // approve step still exercises real production code.
+    // Submit may 200 or 400 depending on guardrails (e.g. no hours yet);
+    // force-mark Submitted so the approve step still exercises real code.
     if (r.status !== 200) {
       await db.update(timesheetsTable)
         .set({ status: "Submitted", submittedAt: new Date(), submittedByUserId: submitterUserId } as any)

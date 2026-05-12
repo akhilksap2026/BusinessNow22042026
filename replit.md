@@ -164,7 +164,7 @@ Full-stack Professional Services Automation platform for KSAP Technology. Modele
 - Gap 1: `tests/fullLifecycle.test.ts` — Opportunity → Project → Task → Time → Timesheet (submit/approve) → Invoice → RevRec end-to-end.
 - Gap 5: EXPLAIN ANALYZE on `GET /projects` confirms 3 queries, no N+1 (batched tracked-hours HashAggregate).
 
-**Test suite:** 125 tests / 41 suites — all passing.
+**Test suite:** 132 tests / 28 suites — all passing.
 
 ### Demo data enrichment (May 2026)
 
