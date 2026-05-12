@@ -46,21 +46,6 @@ import { Plus, Search, Building2, MoreHorizontal, Pencil, Trash2, ChevronRight, 
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const TIER_COLORS: Record<string, string> = {
-  Enterprise: "bg-purple-100 text-purple-700",
-  "Mid-Market": "bg-blue-100 text-blue-700",
-  SMB: "bg-amber-100 text-amber-700",
-  Startup: "bg-teal-100 text-teal-700",
-};
-
-const STAGE_COLORS: Record<string, string> = {
-  Discovery: "bg-slate-100 text-slate-700",
-  Qualified: "bg-blue-100 text-blue-700",
-  Proposal: "bg-purple-100 text-purple-700",
-  Negotiation: "bg-amber-100 text-amber-700",
-  Won: "bg-green-100 text-green-700",
-  Lost: "bg-red-100 text-red-700",
-};
 
 function fmt(n: number | null | undefined) {
   if (n == null) return "—";
@@ -230,9 +215,7 @@ export default function Accounts() {
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
                       <StatusBadge status={account.status} />
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[account.tier] ?? "bg-slate-100 text-slate-600"}`}>
-                        {account.tier}
-                      </span>
+                      <StatusBadge status={account.tier} />
                       <span className="text-xs text-muted-foreground">{account.region}</span>
                     </div>
                     <div className="flex justify-between text-xs">
@@ -282,9 +265,7 @@ export default function Accounts() {
                             <StatusBadge status={account.status} />
                           </TableCell>
                           <TableCell>
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[account.tier] ?? "bg-slate-100 text-slate-600"}`}>
-                              {account.tier}
-                            </span>
+                            <StatusBadge status={account.tier} />
                           </TableCell>
                           <TableCell>{account.region}</TableCell>
                           <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
@@ -585,7 +566,7 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
       <div className="mt-6 space-y-4">
         <div className="flex items-center gap-2">
           <StatusBadge status={account.status} />
-          <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${TIER_COLORS[account.tier] ?? ""}`}>{account.tier}</span>
+          <StatusBadge status={account.tier} />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -632,7 +613,7 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
                         <p className="text-xs text-muted-foreground mt-0.5">{o.probability}% probability</p>
                       </div>
                       <div className="text-right">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[o.stage] ?? ""}`}>{o.stage}</span>
+                        <StatusBadge status={o.stage} />
                         <p className="text-xs font-semibold mt-1">{fmt(o.value)}</p>
                       </div>
                     </div>

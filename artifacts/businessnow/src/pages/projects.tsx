@@ -16,13 +16,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Plus, MoreHorizontal, Search, X, Archive, RotateCcw, Download, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Search, X, Archive, RotateCcw, Download, Trash2, Briefcase } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { SavedViewsBar } from "@/components/saved-views-bar";
 import { type FieldDef, type FilterValue, EMPTY_FILTER, evaluateFilters } from "@/lib/filter-evaluator";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const PROJECT_FIELDS: FieldDef[] = [
   { id: "name", label: "Name", type: "text" },
@@ -78,6 +80,8 @@ export default function Projects() {
   const [showArchived, setShowArchived] = useState(false);
   const [viewFilter, setViewFilter] = useState<FilterValue>(EMPTY_FILTER);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [confirmArchive, setConfirmArchive] = useState<{ id: number; name: string } | null>(null);
+  const [confirmBulkArchive, setConfirmBulkArchive] = useState(false);
   const qc = useQueryClient();
   const { toast } = useToast();
   const deleteMut = useDeleteProject();
@@ -110,11 +114,15 @@ export default function Projects() {
   });
 
   function handleDelete(id: number, name: string) {
-    if (!confirm(`Archive project "${name}"? It will be hidden but can be recovered by an admin.`)) return;
+    setConfirmArchive({ id, name });
+  }
+
+  function doArchive(id: number, name: string) {
     deleteMut.mutate({ id }, {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: ["projects"] });
         toast({ title: "Project archived", description: `"${name}" has been archived.` });
+        setConfirmArchive(null);
       },
       onError: () => toast({ title: "Failed to archive project", variant: "destructive" }),
     });
@@ -137,12 +145,15 @@ export default function Projects() {
   }
 
   function handleBulkArchive() {
-    const names = visibleProjects.filter(p => selectedIds.has(p.id)).map(p => p.name);
-    if (!confirm(`Archive ${selectedIds.size} project${selectedIds.size !== 1 ? "s" : ""}?\n\n${names.slice(0, 5).join("\n")}${names.length > 5 ? `\n…and ${names.length - 5} more` : ""}`)) return;
+    setConfirmBulkArchive(true);
+  }
+
+  function doBulkArchive() {
     Promise.all([...selectedIds].map(id => deleteMut.mutateAsync({ id }))).then(() => {
       qc.invalidateQueries({ queryKey: ["projects"] });
       toast({ title: `${selectedIds.size} project${selectedIds.size !== 1 ? "s" : ""} archived` });
       setSelectedIds(new Set());
+      setConfirmBulkArchive(false);
     }).catch(() => toast({ title: "Some projects failed to archive", variant: "destructive" }));
   }
 
@@ -300,9 +311,12 @@ export default function Projects() {
                 {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
             ) : visibleProjects.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8 text-sm">
-                No projects found.
-              </div>
+              <EmptyState
+                icon={Briefcase}
+                title={hasActiveFilters ? "No projects match your filters" : "No projects yet"}
+                description={hasActiveFilters ? "Try adjusting or clearing the active filters." : "Create your first project to get started."}
+                action={!hasActiveFilters && canCreateProject ? { label: "New Project", onClick: () => setIsCreateOpen(true) } : hasActiveFilters ? { label: "Clear filters", onClick: clearFilters } : undefined}
+              />
             ) : (
               <>
                 {/* Mobile cards */}
@@ -547,6 +561,28 @@ export default function Projects() {
         )}
 
         <CreateProjectWizard open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+
+        <ConfirmDialog
+          open={!!confirmArchive}
+          onOpenChange={open => { if (!open) setConfirmArchive(null); }}
+          title={`Archive "${confirmArchive?.name}"?`}
+          description="The project will be hidden from all views but can be recovered by an admin at any time."
+          confirmLabel="Archive"
+          variant="destructive"
+          onConfirm={() => confirmArchive && doArchive(confirmArchive.id, confirmArchive.name)}
+          isLoading={deleteMut.isPending}
+        />
+
+        <ConfirmDialog
+          open={confirmBulkArchive}
+          onOpenChange={setConfirmBulkArchive}
+          title={`Archive ${selectedIds.size} project${selectedIds.size !== 1 ? "s" : ""}?`}
+          description="These projects will be hidden from all views but can be recovered by an admin at any time."
+          confirmLabel="Archive All"
+          variant="destructive"
+          onConfirm={doBulkArchive}
+          isLoading={deleteMut.isPending}
+        />
       </div>
     </Layout>
   );

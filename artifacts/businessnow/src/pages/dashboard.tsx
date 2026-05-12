@@ -34,6 +34,16 @@ import { useQuery } from "@tanstack/react-query";
 import { authHeaders } from "@/lib/auth-headers";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 
+function timeAgo(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 type Period = "week" | "month" | "quarter" | "ytd";
 
 type KpiStatus = "success" | "warning" | "danger" | "neutral";
@@ -488,7 +498,7 @@ export default function Dashboard() {
                           )}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {new Date(activity.timestamp).toLocaleDateString()}
+                          {timeAgo(activity.timestamp as unknown as string)}
                         </p>
                       </div>
                     </div>

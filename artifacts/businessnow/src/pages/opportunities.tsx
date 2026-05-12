@@ -67,14 +67,6 @@ const STAGE_PROBABILITY: Record<string, number> = {
   Lost: 0,
 };
 
-const STAGE_COLORS: Record<string, string> = {
-  Discovery: "bg-slate-100 text-slate-700",
-  Qualified: "bg-blue-100 text-blue-700",
-  Proposal: "bg-purple-100 text-purple-700",
-  Negotiation: "bg-amber-100 text-amber-700",
-  Won: "bg-green-100 text-green-700",
-  Lost: "bg-red-100 text-red-700",
-};
 
 const STAGE_BG: Record<string, string> = {
   Discovery: "bg-slate-50 border-slate-200",
@@ -233,7 +225,7 @@ export default function OpportunitiesPage() {
               </SheetHeader>
               <div className="mt-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${STAGE_COLORS[selected.stage] ?? ""}`}>{selected.stage}</span>
+                  <StatusBadge status={selected.stage} />
                   <span className="text-slate-500 text-sm">{selected.probability}% probability</span>
                   <div className="ml-auto flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => openEditOpp(selected)}>
@@ -560,7 +552,7 @@ function OpportunityTable({
               </div>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[o.stage] ?? ""}`}>{o.stage}</span>
+              <StatusBadge status={o.stage} />
               <div className="text-right">
                 <div className="text-sm font-medium tabular-nums">{fmt(o.value)}</div>
                 <div className="text-xs text-muted-foreground">
@@ -591,7 +583,7 @@ function OpportunityTable({
                 <TableCell className="font-medium">{o.name}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{o.accountName ?? "—"}</TableCell>
                 <TableCell>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[o.stage] ?? ""}`}>{o.stage}</span>
+                  <StatusBadge status={o.stage} />
                 </TableCell>
                 <TableCell className="text-right font-medium">{fmt(o.value)}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">
