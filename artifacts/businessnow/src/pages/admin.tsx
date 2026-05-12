@@ -188,9 +188,11 @@ function UserConfigTab({ users, BASE, onRefresh }: {
 }) {
   const { toast } = useToast();
   const [saving, setSaving] = useState<number | null>(null);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
 
   async function toggleSecondaryRole(userId: number, currentSecondary: string[], primaryRole: string, role: string) {
     if (role === primaryRole) return;
+    if (editingUserId !== userId) return;
     const updated = currentSecondary.includes(role)
       ? currentSecondary.filter(r => r !== role)
       : [...currentSecondary, role];
@@ -244,18 +246,31 @@ function UserConfigTab({ users, BASE, onRefresh }: {
                     <Badge variant="outline" className="font-normal">{user.role}</Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title={editingUserId === user.id ? "Done editing" : "Edit roles"}
+                        onClick={() => setEditingUserId(editingUserId === user.id ? null : user.id)}
+                      >
+                        {editingUserId === user.id ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                      </Button>
                       {ALL_ROLES.filter(r => r !== user.role).map(role => {
                         const active = secondary.includes(role);
+                        const editing = editingUserId === user.id;
                         return (
                           <button
                             key={role}
-                            disabled={saving === user.id}
+                            disabled={saving === user.id || !editing}
                             onClick={() => toggleSecondaryRole(user.id, secondary, user.role, role)}
                             className={`px-2.5 py-1 text-xs rounded-full border font-medium transition-colors ${
                               active
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : editing
+                                  ? "bg-background text-muted-foreground border-border hover:border-blue-500 cursor-pointer"
+                                  : "bg-background text-muted-foreground border-border cursor-not-allowed opacity-70"
                             }`}
                           >
                             {role}
