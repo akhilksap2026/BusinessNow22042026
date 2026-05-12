@@ -155,8 +155,11 @@ Full-stack Professional Services Automation platform for KSAP Technology. Modele
 - `timeOffManagerScoping.test.ts` — stranger super_user 403, requester's manager 200, account_admin 200.
 - `bulkApproveSkipped.test.ts` — `time-entries/bulk-approve` returns split counts; self-entry silently skipped.
 - `rateSnapshotConcurrency.test.ts` — three parallel snapshot calls produce exactly one snapshot per entry; re-run is no-op.
+- `escalationLifecycle.test.ts` — once escalated, no re-fire while escalatedAt set; after Draft → resubmit (clears escalatedAt) the next stale-check escalates again.
 
-**Test suite:** 123 tests / 39 suites — all passing.
+**Sprint 2 architect-fix follow-up:** `escalatedAt` is now reset to NULL on every status transition (approve, unapprove, reject, bulk-approve, withdraw-to-Draft via PATCH, and resubmit) so escalation properly re-arms across the timesheet lifecycle.
+
+**Test suite:** 124 tests / 40 suites — all passing.
 
 ---
 
