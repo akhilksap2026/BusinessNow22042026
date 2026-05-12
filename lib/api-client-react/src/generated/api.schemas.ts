@@ -290,6 +290,10 @@ export interface TimeEntry {
   billable: boolean;
   approved: boolean;
   createdAt: string;
+  /** @nullable - Snapshotted bill rate from the rate card effective on the entry's work date. Immutable once set. */
+  appliedBillRate?: number | null;
+  /** @nullable - Snapshotted cost rate at approval time. Not returned for collaborator-role callers. */
+  appliedCostRate?: number | null;
 }
 
 export interface CreateTimeEntryBody {

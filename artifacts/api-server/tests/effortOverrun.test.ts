@@ -157,8 +157,8 @@ describe("POST /api/timesheets/:id/approve — effort overrun detection", () => 
 
     assert.equal(res.status, 200, `approve failed: ${await res.text()}`);
 
-    // Allow a short tick for any async notification writes that may be deferred.
-    await new Promise(r => setTimeout(r, 50));
+    // Allow time for async notification writes (snapshotRates + effortOverrun run concurrently).
+    await new Promise(r => setTimeout(r, 400));
 
     // One overrun notification must exist for the PM on this task.
     const notifs = await db

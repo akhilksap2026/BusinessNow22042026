@@ -93,7 +93,11 @@ router.post("/invoices/:id/line-items/autofill", requireFinance, async (req, res
     const rateCard = rateCards[0];
     const roles = (rateCard?.roles as Array<{ role: string; rate: number }>) ?? [];
     const roleEntry = user ? roles.find(r => r.role === user.role) : null;
-    const unitRate = roleEntry ? roleEntry.rate : (user ? Number(user.costRate) : 0);
+    // Rule 3: prefer the snapshotted bill rate (immutable historical accuracy).
+    // Fall back to the current rate card only for legacy entries where the field is null.
+    const unitRate = entry.appliedBillRate != null
+      ? Number(entry.appliedBillRate)
+      : (roleEntry ? roleEntry.rate : (user ? Number(user.costRate) : 0));
     const quantity = Number(entry.hours);
     const amount = quantity * unitRate;
 

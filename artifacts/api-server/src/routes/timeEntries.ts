@@ -324,16 +324,23 @@ async function isParentOrPhaseTask(taskId: number): Promise<boolean> {
   return children.length > 0;
 }
 
-function mapEntry(e: typeof timeEntriesTable.$inferSelect) {
-  return {
+function mapEntry(e: typeof timeEntriesTable.$inferSelect, callerRole?: string) {
+  const result: Record<string, unknown> = {
     ...e,
-    hours: Number(e.hours),
-    projectId: e.projectId ?? undefined,
-    taskId: e.taskId ?? undefined,
-    activityName: (e as any).activityName ?? undefined,
-    createdAt: e.createdAt instanceof Date ? e.createdAt.toISOString() : e.createdAt,
-    updatedAt: e.updatedAt instanceof Date ? e.updatedAt.toISOString() : e.updatedAt,
+    hours:          Number(e.hours),
+    appliedBillRate: e.appliedBillRate != null ? Number(e.appliedBillRate) : null,
+    appliedCostRate: e.appliedCostRate != null ? Number(e.appliedCostRate) : null,
+    projectId:      e.projectId ?? undefined,
+    taskId:         e.taskId ?? undefined,
+    activityName:   (e as any).activityName ?? undefined,
+    createdAt:      e.createdAt instanceof Date ? e.createdAt.toISOString() : e.createdAt,
+    updatedAt:      e.updatedAt instanceof Date ? e.updatedAt.toISOString() : e.updatedAt,
   };
+  // Rule 4: appliedCostRate is sensitive — mask it from collaborator-role callers.
+  if (callerRole === "collaborator") {
+    delete result.appliedCostRate;
+  }
+  return result;
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -348,7 +355,8 @@ router.get("/time-entries", async (req, res): Promise<void> => {
   const rows = conditions.length
     ? await db.select().from(timeEntriesTable).where(and(...conditions))
     : await db.select().from(timeEntriesTable);
-  res.json(ListTimeEntriesResponse.parse(rows.map(mapEntry)));
+  const callerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  res.json(ListTimeEntriesResponse.parse(rows.map(e => mapEntry(e, callerRole))));
 });
 
 router.post("/time-entries", async (req, res): Promise<void> => {
@@ -436,7 +444,8 @@ router.post("/time-entries", async (req, res): Promise<void> => {
   }
 
   const [row] = await db.insert(timeEntriesTable).values(data).returning();
-  res.status(201).json({ ...mapEntry(row), guardrails: softBlocks.length > 0 ? guardrailResults : undefined });
+  const postRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  res.status(201).json({ ...mapEntry(row, postRole), guardrails: softBlocks.length > 0 ? guardrailResults : undefined });
 });
 
 router.patch("/time-entries/:id", async (req, res): Promise<void> => {
@@ -480,7 +489,7 @@ router.patch("/time-entries/:id", async (req, res): Promise<void> => {
   teUpdates.updatedAt = new Date();
   const [row] = await db.update(timeEntriesTable).set(teUpdates).where(eq(timeEntriesTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Time entry not found" }); return; }
-  res.json(UpdateTimeEntryResponse.parse(mapEntry(row)));
+  res.json(UpdateTimeEntryResponse.parse(mapEntry(row, role)));
 });
 
 router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<void> => {
@@ -507,7 +516,8 @@ router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<voi
       read: false,
     } as any);
   } catch {}
-  res.json(mapEntry(row));
+  const rejectRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  res.json(mapEntry(row, rejectRole));
 });
 
 router.post("/time-entries/bulk-reject", requirePM, async (req, res): Promise<void> => {

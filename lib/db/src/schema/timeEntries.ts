@@ -18,6 +18,10 @@ export const timeEntriesTable = pgTable("time_entries", {
   rejected: boolean("rejected").notNull().default(false),
   rejectionNote: text("rejection_note"),
   role: text("role"),
+  /** Snapshotted at timesheet-approval time from the rate card effective on the entry's work date. Immutable once set. */
+  appliedBillRate: numeric("applied_bill_rate", { precision: 8, scale: 2 }),
+  /** Snapshotted at timesheet-approval time from the resource's cost rate. Immutable once set. Masked for collaborator role. */
+  appliedCostRate: numeric("applied_cost_rate", { precision: 8, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

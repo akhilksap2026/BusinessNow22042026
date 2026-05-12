@@ -54349,6 +54349,10 @@ var init_timeEntries = __esm({
       rejected: boolean("rejected").notNull().default(false),
       rejectionNote: text("rejection_note"),
       role: text("role"),
+      /** Snapshotted at timesheet-approval time from the rate card effective on the entry's work date. Immutable once set. */
+      appliedBillRate: numeric("applied_bill_rate", { precision: 8, scale: 2 }),
+      /** Snapshotted at timesheet-approval time from the resource's cost rate. Immutable once set. Masked for collaborator role. */
+      appliedCostRate: numeric("applied_cost_rate", { precision: 8, scale: 2 }),
       createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
     });
@@ -61865,7 +61869,9 @@ var ListTimeEntriesResponseItem = objectType({
   description: stringType(),
   billable: booleanType(),
   approved: booleanType(),
-  createdAt: stringType()
+  createdAt: stringType(),
+  appliedBillRate: numberType().nullable().optional(),
+  appliedCostRate: numberType().nullable().optional()
 });
 var ListTimeEntriesResponse = arrayType(ListTimeEntriesResponseItem);
 var CreateTimeEntryBody = objectType({
@@ -61899,7 +61905,9 @@ var UpdateTimeEntryResponse = objectType({
   description: stringType(),
   billable: booleanType(),
   approved: booleanType(),
-  createdAt: stringType()
+  createdAt: stringType(),
+  appliedBillRate: numberType().nullable().optional(),
+  appliedCostRate: numberType().nullable().optional()
 });
 var DeleteTimeEntryParams = objectType({
   id: coerce.number()
@@ -66025,16 +66033,22 @@ async function isParentOrPhaseTask(taskId) {
   const children = await db.select({ id: tasksTable.id }).from(tasksTable).where(eq(tasksTable.parentTaskId, taskId)).limit(1);
   return children.length > 0;
 }
-function mapEntry(e) {
-  return {
+function mapEntry(e, callerRole) {
+  const result = {
     ...e,
     hours: Number(e.hours),
+    appliedBillRate: e.appliedBillRate != null ? Number(e.appliedBillRate) : null,
+    appliedCostRate: e.appliedCostRate != null ? Number(e.appliedCostRate) : null,
     projectId: e.projectId ?? void 0,
     taskId: e.taskId ?? void 0,
     activityName: e.activityName ?? void 0,
     createdAt: e.createdAt instanceof Date ? e.createdAt.toISOString() : e.createdAt,
     updatedAt: e.updatedAt instanceof Date ? e.updatedAt.toISOString() : e.updatedAt
   };
+  if (callerRole === "collaborator") {
+    delete result.appliedCostRate;
+  }
+  return result;
 }
 router7.get("/time-entries", async (req, res) => {
   const qp = ListTimeEntriesQueryParams.safeParse(req.query);
@@ -66044,7 +66058,8 @@ router7.get("/time-entries", async (req, res) => {
   if (qp.success && qp.data.startDate) conditions.push(gte(timeEntriesTable.date, qp.data.startDate));
   if (qp.success && qp.data.endDate) conditions.push(lte(timeEntriesTable.date, qp.data.endDate));
   const rows = conditions.length ? await db.select().from(timeEntriesTable).where(and(...conditions)) : await db.select().from(timeEntriesTable);
-  res.json(ListTimeEntriesResponse.parse(rows.map(mapEntry)));
+  const callerRole = req.authRole ?? "collaborator";
+  res.json(ListTimeEntriesResponse.parse(rows.map((e) => mapEntry(e, callerRole))));
 });
 router7.post("/time-entries", async (req, res) => {
   const parsed = CreateTimeEntryBody.safeParse(req.body);
@@ -66127,7 +66142,8 @@ router7.post("/time-entries", async (req, res) => {
     return;
   }
   const [row] = await db.insert(timeEntriesTable).values(data).returning();
-  res.status(201).json({ ...mapEntry(row), guardrails: softBlocks.length > 0 ? guardrailResults : void 0 });
+  const postRole = req.authRole ?? "collaborator";
+  res.status(201).json({ ...mapEntry(row, postRole), guardrails: softBlocks.length > 0 ? guardrailResults : void 0 });
 });
 router7.patch("/time-entries/:id", async (req, res) => {
   const params = UpdateTimeEntryParams.safeParse(req.params);
@@ -66194,7 +66210,7 @@ router7.patch("/time-entries/:id", async (req, res) => {
     res.status(404).json({ error: "Time entry not found" });
     return;
   }
-  res.json(UpdateTimeEntryResponse.parse(mapEntry(row)));
+  res.json(UpdateTimeEntryResponse.parse(mapEntry(row, role)));
 });
 router7.post("/time-entries/:id/reject", requirePM, async (req, res) => {
   const id = parseInt(req.params.id);
@@ -66227,7 +66243,8 @@ router7.post("/time-entries/:id/reject", requirePM, async (req, res) => {
     });
   } catch {
   }
-  res.json(mapEntry(row));
+  const rejectRole = req.authRole ?? "collaborator";
+  res.json(mapEntry(row, rejectRole));
 });
 router7.post("/time-entries/bulk-reject", requirePM, async (req, res) => {
   const ids = Array.isArray(req.body?.ids) ? req.body.ids.map((x) => Number(x)).filter(Boolean) : [];
@@ -66440,6 +66457,58 @@ async function checkEffortOverrun(timesheetId) {
       }),
       db.update(tasksTable).set({ overrunAlertSentAt: /* @__PURE__ */ new Date() }).where(eq(tasksTable.id, taskId))
     ]);
+  }
+}
+
+// src/lib/snapshotRates.ts
+init_drizzle_orm();
+init_src();
+function resolveCardForDate(allCards, workDate, fallbackCardId) {
+  const eligible = allCards.filter((rc) => rc.effectiveDate != null && rc.effectiveDate <= workDate).sort((a, b) => (b.effectiveDate ?? "").localeCompare(a.effectiveDate ?? ""));
+  if (eligible.length > 0) return eligible[0];
+  if (fallbackCardId != null) {
+    const current = allCards.find((rc) => rc.id === fallbackCardId);
+    if (current) return current;
+  }
+  return allCards[0];
+}
+function billRateFromCard(card, role) {
+  const roles = card.roles ?? [];
+  const entry = role ? roles.find((r) => r.role === role) : void 0;
+  return entry ? entry.rate : Number(card.defaultRate ?? 0);
+}
+async function snapshotRatesForTimesheet(timesheetId) {
+  const entries = await db.select().from(timeEntriesTable).where(
+    and(
+      eq(timeEntriesTable.timesheetId, timesheetId),
+      isNull(timeEntriesTable.appliedBillRate)
+    )
+  );
+  if (entries.length === 0) return;
+  const [allCards, allUsers, allProjects] = await Promise.all([
+    db.select().from(rateCardsTable),
+    db.select({ id: usersTable.id, role: usersTable.role, costRate: usersTable.costRate }).from(usersTable),
+    db.select({ id: projectsTable.id, rateCardId: projectsTable.rateCardId }).from(projectsTable)
+  ]);
+  for (const entry of entries) {
+    const workDate = entry.date;
+    const user = allUsers.find((u) => u.id === entry.userId);
+    const project = entry.projectId ? allProjects.find((p) => p.id === entry.projectId) : void 0;
+    const fallbackCardId = project?.rateCardId ?? null;
+    const effectiveRole = entry.role ?? user?.role ?? null;
+    const card = resolveCardForDate(allCards, workDate, fallbackCardId);
+    const billRate = card ? billRateFromCard(card, effectiveRole) : 0;
+    const costRate = user ? Number(user.costRate) : 0;
+    await db.update(timeEntriesTable).set({
+      appliedBillRate: String(billRate),
+      appliedCostRate: String(costRate)
+    }).where(
+      and(
+        eq(timeEntriesTable.id, entry.id),
+        isNull(timeEntriesTable.appliedBillRate)
+        // race-safe: double-check still null
+      )
+    );
   }
 }
 
@@ -66666,6 +66735,8 @@ router8.post("/timesheets/:id/approve", requirePM, async (req, res) => {
     `Your timesheet for the week of ${existing.weekStart} has been approved.`,
     existing.id
   );
+  snapshotRatesForTimesheet(params.data.id).catch(() => {
+  });
   checkEffortOverrun(params.data.id).catch(() => {
   });
   res.json(ApproveTimesheetResponse.parse(mapTimesheet(row)));
@@ -67174,7 +67245,7 @@ router10.post("/invoices/:id/line-items/autofill", requireFinance, async (req, r
     const rateCard = rateCards[0];
     const roles = rateCard?.roles ?? [];
     const roleEntry = user ? roles.find((r) => r.role === user.role) : null;
-    const unitRate = roleEntry ? roleEntry.rate : user ? Number(user.costRate) : 0;
+    const unitRate = entry.appliedBillRate != null ? Number(entry.appliedBillRate) : roleEntry ? roleEntry.rate : user ? Number(user.costRate) : 0;
     const quantity = Number(entry.hours);
     const amount = quantity * unitRate;
     const [row] = await db.insert(invoiceLineItemsTable).values({

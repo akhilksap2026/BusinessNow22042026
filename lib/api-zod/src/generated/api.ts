@@ -714,6 +714,8 @@ export const ListTimeEntriesResponseItem = zod.object({
   billable: zod.boolean(),
   approved: zod.boolean(),
   createdAt: zod.string(),
+  appliedBillRate: zod.number().nullable().optional(),
+  appliedCostRate: zod.number().nullable().optional(),
 });
 export const ListTimeEntriesResponse = zod.array(ListTimeEntriesResponseItem);
 
@@ -758,6 +760,8 @@ export const UpdateTimeEntryResponse = zod.object({
   billable: zod.boolean(),
   approved: zod.boolean(),
   createdAt: zod.string(),
+  appliedBillRate: zod.number().nullable().optional(),
+  appliedCostRate: zod.number().nullable().optional(),
 });
 
 /**
