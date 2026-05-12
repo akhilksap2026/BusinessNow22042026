@@ -166,6 +166,12 @@ Full-stack Professional Services Automation platform for KSAP Technology. Modele
 
 **Test suite:** 125 tests / 41 suites — all passing.
 
+### Demo data enrichment (May 2026)
+
+Additive SQL run against dev DB to fill previously-empty modules. All inserts are idempotent (`WHERE NOT EXISTS`); the canonical `scripts/src/seed.ts` is unchanged and still truncating — do not re-run it.
+
+Filled tables (target = projects 1–6 only): `tax_codes` (4), `project_groups` (4, projects tagged), `contracts` (7), `budget_entries` (9: SOW + adjustments), `change_orders` (5: Draft/Submitted/Approved/Rejected mix), `project_updates` (10), `resource_requests` (5: Pending/Approved/Filled/Blocked), `documents` (11), `document_templates` (4), `project_templates` + `template_phases` (11) + `template_tasks` (21), `invoice_line_items` (9, one per legacy invoice), `revenue_entries` (18: monthly across projects 1–5), `task_notes` (7), plus 4 demo notifications. Junk `TEST_NUMERIC_PROJECT` rows soft-archived (`deleted_at` set) and their draft invoices voided.
+
 ### 7. Sprint 3 — UX polish (current)
 - **7.1** Sticky table headers — `TableHeader` (`components/ui/table.tsx`) sticky-by-default with backdrop blur; opt-out via `sticky={false}`.
 - **7.3** Undo toasts replace ConfirmDialog for project archive (single + bulk) in `pages/projects.tsx` via `useUndoableMutation` + `POST /api/projects/:id/restore`.
