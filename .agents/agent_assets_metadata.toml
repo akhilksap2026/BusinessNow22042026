@@ -84,3 +84,9 @@ id = "Ia8CNQ3kcuNTPOh0V-nax"
 uri = "file://docs/BusinessNow-PSA-Functional-UIUX-Specification.md"
 type = "text"
 title = "BusinessNow PSA — Functional UI/UX Specification"
+
+[[outputs]]
+id = "6DpA-4eKm7rPyWcqPpkh2"
+uri = "file://docs/BusinessNow-PSA-Functional-UIUX-Specification.docx"
+type = "word_document"
+title = "BusinessNow PSA — Functional UI/UX Specification (DOCX)"
