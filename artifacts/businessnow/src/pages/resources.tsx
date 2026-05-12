@@ -45,13 +45,6 @@ import { StatusBadge } from "@/components/ui/status-badge";
 
 const PROFICIENCY_RANK: Record<string, number> = { "Needs Help": 1, "Independent": 2, "Can Lead": 3 };
 
-function PriorityBadge({ priority }: { priority: string }) {
-  const cls =
-    priority === "High" ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400"
-    : priority === "Medium" ? "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400"
-    : "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300";
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>{priority}</span>;
-}
 
 function ProficiencyDot({ level }: { level: string }) {
   const colors: Record<string, string> = {
@@ -817,7 +810,7 @@ export default function Resources() {
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-semibold text-base">{req.role}</span>
                             <StatusBadge status={req.status} />
-                            <PriorityBadge priority={req.priority} />
+                            <StatusBadge status={req.priority} />
                             {req.type && req.type !== "add_member" && (
                               <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">{typeLabels[req.type] ?? req.type}</span>
                             )}

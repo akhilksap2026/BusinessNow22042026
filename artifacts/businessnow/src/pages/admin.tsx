@@ -79,6 +79,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/contexts/current-user";
 import { can } from "@/lib/permissions";
 import { resolveRole, ROLES, type RoleValue } from "@/lib/roles";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /**
  * Role-assignment matrix — mirrors validateInviteRole on the API.
@@ -3561,6 +3562,7 @@ function PlaceholdersCatalog({ base }: { base: string }) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [roleId, setRoleId] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
@@ -3588,13 +3590,27 @@ function PlaceholdersCatalog({ base }: { base: string }) {
 
   async function remove(id: number, isDefault: boolean) {
     if (isDefault) { toast({ title: "Default placeholders cannot be deleted", variant: "destructive" }); return; }
-    if (!confirm("Delete this placeholder? Existing allocations referencing it will keep their text role label.")) return;
+    setDeleteConfirmId(id);
+  }
+
+  async function confirmDelete(id: number) {
+    setDeleteConfirmId(null);
     const r = await fetch(`${base}/api/placeholders/${id}`, { method: "DELETE", headers: authHeaders() });
     if (r.status === 204) { toast({ title: "Placeholder deleted" }); load(); }
     else { toast({ title: "Failed to delete", variant: "destructive" }); }
   }
 
   return (
+    <>
+    <ConfirmDialog
+      open={deleteConfirmId !== null}
+      onOpenChange={open => { if (!open) setDeleteConfirmId(null); }}
+      title="Delete placeholder"
+      description="Existing allocations referencing this placeholder will keep their text role label. This action cannot be undone."
+      confirmLabel="Delete"
+      onConfirm={() => deleteConfirmId !== null && confirmDelete(deleteConfirmId)}
+      destructive
+    />
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Placeholders Catalog</CardTitle>
@@ -3644,5 +3660,6 @@ function PlaceholdersCatalog({ base }: { base: string }) {
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }

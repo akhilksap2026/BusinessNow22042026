@@ -26,6 +26,7 @@ import {
   type FieldDef, type FilterValue, EMPTY_FILTER, OPERATORS_BY_TYPE, filtersEqual,
 } from "@/lib/filter-evaluator";
 import { useCurrentUser } from "@/contexts/current-user";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Entity = "projects" | "people" | "resource_requests";
 
@@ -51,6 +52,7 @@ export function SavedViewsBar({ entity, fields, value, onChange }: Props) {
   const [saveName, setSaveName] = useState("");
   const [saveVisibility, setSaveVisibility] = useState<"private" | "public">("private");
   const [saveAsNew, setSaveAsNew] = useState(false);
+  const [deleteViewTarget, setDeleteViewTarget] = useState<{ id: number; name: string } | null>(null);
 
   const activeView = useMemo(
     () => (activeViewId ? views.find((v) => v.id === activeViewId) ?? null : null),
@@ -107,6 +109,22 @@ export function SavedViewsBar({ entity, fields, value, onChange }: Props) {
   }
 
   return (
+    <>
+    <ConfirmDialog
+      open={deleteViewTarget !== null}
+      onOpenChange={open => { if (!open) setDeleteViewTarget(null); }}
+      title="Delete saved view"
+      description={deleteViewTarget ? `Delete view "${deleteViewTarget.name}"? This cannot be undone.` : ""}
+      confirmLabel="Delete"
+      onConfirm={() => {
+        if (deleteViewTarget) {
+          deleteMut.mutate({ id: deleteViewTarget.id });
+          if (activeViewId === deleteViewTarget.id) clearView();
+          setDeleteViewTarget(null);
+        }
+      }}
+      destructive
+    />
     <div className="flex items-center gap-2 flex-wrap" data-testid="saved-views-bar">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -263,12 +281,7 @@ export function SavedViewsBar({ entity, fields, value, onChange }: Props) {
                     variant="ghost"
                     size="sm"
                     disabled={!canEdit}
-                    onClick={() => {
-                      if (window.confirm(`Delete view "${v.name}"?`)) {
-                        deleteMut.mutate({ id: v.id });
-                        if (activeViewId === v.id) clearView();
-                      }
-                    }}
+                    onClick={() => setDeleteViewTarget({ id: v.id, name: v.name })}
                     data-testid={`button-delete-${v.id}`}
                   >
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -283,6 +296,7 @@ export function SavedViewsBar({ entity, fields, value, onChange }: Props) {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
 

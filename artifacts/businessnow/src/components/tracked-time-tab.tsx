@@ -40,6 +40,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Download,
   Plus,
@@ -140,6 +141,7 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "collabor
   const [rejectDialog, setRejectDialog] = useState<{ ids: number[] } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const userById = useMemo(() => new Map((users ?? []).map((u: any) => [u.id, u])), [users]);
@@ -318,7 +320,11 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "collabor
 
   const handleBulkDelete = async () => {
     if (selected.size === 0) return;
-    if (!confirm(`Delete ${selected.size} time entr${selected.size === 1 ? "y" : "ies"}? This cannot be undone.`)) return;
+    setBulkDeleteConfirm(true);
+  };
+
+  const executeBulkDelete = async () => {
+    setBulkDeleteConfirm(false);
     try {
       await callApi(`/api/time-entries/bulk-delete`, {
         method: "POST",
@@ -394,6 +400,16 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "collabor
   };
 
   return (
+    <>
+    <ConfirmDialog
+      open={bulkDeleteConfirm}
+      onOpenChange={open => setBulkDeleteConfirm(open)}
+      title="Delete time entries"
+      description={`Delete ${selected.size} time entr${selected.size === 1 ? "y" : "ies"}? This cannot be undone.`}
+      confirmLabel="Delete"
+      onConfirm={executeBulkDelete}
+      destructive
+    />
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -680,6 +696,7 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "collabor
         </DialogContent>
       </Dialog>
     </Card>
+    </>
   );
 }
 

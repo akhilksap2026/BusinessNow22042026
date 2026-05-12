@@ -53,6 +53,7 @@ import { MoreHorizontal, Plus, Kanban, ListIcon, FolderPlus, FolderOpen, ArrowUp
 import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 

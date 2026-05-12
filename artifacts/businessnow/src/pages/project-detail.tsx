@@ -33,6 +33,7 @@ import { ProjectForms } from "@/components/project-forms";
 import { useCurrentUser } from "@/contexts/current-user";
 import ProjectGantt from "@/components/project-gantt";
 import { TrackedTimeTab } from "@/components/tracked-time-tab";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 
 export default function ProjectDetail() {
@@ -75,6 +76,7 @@ export default function ProjectDetail() {
   const updateProject = useUpdateProject();
   const createResourceRequest = useCreateResourceRequest();
 
+  const [deleteCostEntryId, setDeleteCostEntryId] = useState<number | null>(null);
   const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
   const [taskView, setTaskView] = useState<"list" | "board">("list");
   const [activeTab, setActiveTab] = useState("tasks");
@@ -160,7 +162,11 @@ export default function ProjectDetail() {
   }
 
   async function handleDeleteCostEntry(id: number) {
-    if (!confirm("Delete this cost entry?")) return;
+    setDeleteCostEntryId(id);
+  }
+
+  async function confirmDeleteCostEntry(id: number) {
+    setDeleteCostEntryId(null);
     await fetch(`/api/cost-entries/${id}`, { method: "DELETE", headers: authHeaders() });
     refetchCostEntries();
   }
@@ -947,6 +953,15 @@ export default function ProjectDetail() {
 
   return (
     <Layout>
+      <ConfirmDialog
+        open={deleteCostEntryId !== null}
+        onOpenChange={open => { if (!open) setDeleteCostEntryId(null); }}
+        title="Delete cost entry"
+        description="This will permanently remove this cost entry. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => deleteCostEntryId !== null && confirmDeleteCostEntry(deleteCostEntryId)}
+        destructive
+      />
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

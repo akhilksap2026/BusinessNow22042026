@@ -36,13 +36,6 @@ import { TimeLogAssistant } from "@/components/time-log-assistant";
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 
-function TimeOffTypeBadge({ type }: { type: string }) {
-  const cls =
-    type === "PTO" ? "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
-    : type === "Sick" ? "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400"
-    : "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400";
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>{type}</span>;
-}
 
 export default function TimeTracking() {
   const { data: entries, isLoading: isLoadingEntries } = useListTimeEntries();
@@ -808,7 +801,7 @@ export default function TimeTracking() {
                       {timeOffRequests?.map(req => (
                         <TableRow key={req.id}>
                           <TableCell className="font-medium">{getUser(req.userId)?.name ?? `User #${req.userId}`}</TableCell>
-                          <TableCell><TimeOffTypeBadge type={req.type} /></TableCell>
+                          <TableCell><StatusBadge status={req.type} /></TableCell>
                           <TableCell>{req.startDate}</TableCell>
                           <TableCell>{req.endDate}</TableCell>
                           <TableCell className="max-w-[180px] truncate text-sm text-muted-foreground">{req.notes ?? "—"}</TableCell>
