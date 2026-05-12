@@ -12,7 +12,12 @@ export const projectsTable = pgTable("projects", {
   dueDate: text("due_date").notNull(),
   billingType: text("billing_type").notNull().default("Fixed Fee"),
   budget: numeric("budget", { precision: 12, scale: 2 }).notNull().default("0"),
-  trackedHours: numeric("tracked_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  // DEPRECATED — denormalized aggregate that was never kept in sync.
+  // Kept as a nullable column for backward compatibility with read-paths
+  // that have not yet been migrated to the per-call SUM aggregate.  All
+  // new code should query time_entries directly.  Will be dropped in a
+  // future migration once all consumers are switched.
+  trackedHours: numeric("tracked_hours", { precision: 8, scale: 2 }).default("0"),
   allocatedHours: numeric("allocated_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   budgetedHours: numeric("budgeted_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   completion: integer("completion").notNull().default(0),

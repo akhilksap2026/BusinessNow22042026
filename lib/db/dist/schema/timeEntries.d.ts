@@ -258,6 +258,40 @@ export declare const timeEntriesTable: import("drizzle-orm/pg-core").PgTableWith
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        appliedBillRate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "applied_bill_rate";
+            tableName: "time_entries";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        appliedCostRate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "applied_cost_rate";
+            tableName: "time_entries";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "time_entries";
@@ -304,12 +338,14 @@ export declare const insertTimeEntrySchema: z.ZodObject<{
     billable: z.ZodOptional<z.ZodBoolean>;
     categoryId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     taskId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    rejectionNote: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    activityName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     timesheetId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     hours: z.ZodString;
-    activityName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     approved: z.ZodOptional<z.ZodBoolean>;
     rejected: z.ZodOptional<z.ZodBoolean>;
-    rejectionNote: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    appliedBillRate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    appliedCostRate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};

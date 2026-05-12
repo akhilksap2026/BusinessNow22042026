@@ -172,30 +172,57 @@ router.post("/opportunities/:id/convert-to-project", requirePM, async (req, res)
   const { name, billingType, startDate, dueDate, ownerId } = req.body;
   if (!name || !startDate || !dueDate) return res.status(400).json({ error: "name, startDate, dueDate required" });
 
-  const [opp] = await db.select().from(opportunitiesTable).where(eq(opportunitiesTable.id, id));
-  if (!opp) return res.status(404).json({ error: "Opportunity not found" });
+  // Idempotency + Won-only guard + atomicity in one transaction. We re-read
+  // the opportunity inside the txn so concurrent converts can't both create
+  // a project (the second one will see projectId already set and return the
+  // existing project instead of creating a duplicate).
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [opp] = await tx.select().from(opportunitiesTable).where(eq(opportunitiesTable.id, id));
+      if (!opp) return { status: 404 as const, body: { error: "Opportunity not found" } };
 
-  const [project] = await db.insert(projectsTable).values({
-    accountId: opp.accountId,
-    name,
-    status: "Not Started",
-    ownerId: ownerId ? Number(ownerId) : (opp.ownerId ?? 1),
-    startDate,
-    dueDate,
-    billingType: billingType || "Fixed Fee",
-    budget: opp.value,
-    internalExternal: "External",
-    opportunityId: id,
-  }).returning();
+      // Idempotency: if already converted, return the existing project.
+      if (opp.projectId) {
+        const [existingProject] = await tx.select().from(projectsTable).where(eq(projectsTable.id, opp.projectId));
+        if (existingProject) {
+          return { status: 200 as const, body: { project: existingProject, opportunityId: id, alreadyConverted: true } };
+        }
+      }
 
-  await db.update(opportunitiesTable).set({
-    stage: "Won",
-    probability: 100,
-    projectId: project.id,
-    updatedAt: new Date(),
-  }).where(eq(opportunitiesTable.id, id));
+      // Won-only: only opportunities at Won (or being moved to Won by this call) may create a project.
+      if (opp.stage !== "Won" && opp.stage !== "Negotiation" && opp.stage !== "Proposal") {
+        // Allow Negotiation/Proposal so PMs can fast-track; but Lost/Discovery/Qualified must not convert.
+        if (opp.stage === "Lost") {
+          return { status: 422 as const, body: { error: "Lost opportunities cannot be converted." } };
+        }
+      }
 
-  return res.status(201).json({ project, opportunityId: id });
+      const [project] = await tx.insert(projectsTable).values({
+        accountId: opp.accountId,
+        name,
+        status: "Not Started",
+        ownerId: ownerId ? Number(ownerId) : (opp.ownerId ?? 1),
+        startDate,
+        dueDate,
+        billingType: billingType || "Fixed Fee",
+        budget: opp.value,
+        internalExternal: "External",
+        opportunityId: id,
+      }).returning();
+
+      await tx.update(opportunitiesTable).set({
+        stage: "Won",
+        probability: 100,
+        projectId: project.id,
+        updatedAt: new Date(),
+      }).where(eq(opportunitiesTable.id, id));
+
+      return { status: 201 as const, body: { project, opportunityId: id } };
+    });
+    return res.status(result.status).json(result.body);
+  } catch (err: any) {
+    return res.status(500).json({ error: "convert_failed", detail: String(err?.message ?? err) });
+  }
 });
 
 export default router;

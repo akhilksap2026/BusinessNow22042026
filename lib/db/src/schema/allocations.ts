@@ -1,11 +1,15 @@
-import { pgTable, serial, text, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { projectsTable } from "./projects";
+import { usersTable } from "./users";
 
 export const allocationsTable = pgTable("allocations", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  userId: integer("user_id"),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => usersTable.id, { onDelete: "set null" }),
   placeholderRole: text("placeholder_role"),
   placeholderId: integer("placeholder_id"),
   startDate: text("start_date").notNull(),
@@ -21,20 +25,18 @@ export const allocationsTable = pgTable("allocations", {
   source: text("source").notNull().default("manual"),
   isTimesheetApprover: boolean("is_timesheet_approver").notNull().default(false),
   isLeaveApprover: boolean("is_leave_approver").notNull().default(false),
-  // Lifecycle status. NULL = normal. 'at_risk' is set automatically when an
-  // approved time-off request overlaps this allocation.  Additional values may
-  // be added in future without a migration (text column, not a pg enum).
   status: text("status"),
-  // Over-allocation override: set to true when a PM/admin bypasses the capacity guard.
   isOverride: boolean("is_override").notNull().default(false),
   overrideReason: text("override_reason"),
-  // Skill requirement (optional). When set, POST /api/allocations validates the
-  // resource has the required skill at or above the numeric proficiency level (1–5).
   requiredSkillId: integer("required_skill_id"),
   requiredProficiencyLevel: integer("required_proficiency_level"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  userIdx: index("idx_allocations_user_id").on(t.userId),
+  projectIdx: index("idx_allocations_project_id").on(t.projectId),
+  dateRangeIdx: index("idx_allocations_date_range").on(t.startDate, t.endDate),
+}));
 
 export const insertAllocationSchema = createInsertSchema(allocationsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertAllocation = z.infer<typeof insertAllocationSchema>;

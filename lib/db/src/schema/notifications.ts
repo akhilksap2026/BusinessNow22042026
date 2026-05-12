@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,7 +13,9 @@ export const notificationsTable = pgTable("notifications", {
   entityType: text("entity_type"),
   entityId: text("entity_id"),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  userReadIdx: index("idx_notifications_user_read").on(t.userId, t.read),
+}));
 
 export const insertNotificationSchema = createInsertSchema(notificationsTable).omit({ id: true });
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;

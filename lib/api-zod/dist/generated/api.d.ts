@@ -649,6 +649,7 @@ export declare const GetProjectResponse: zod.ZodObject<{
     isAdminProject: zod.ZodOptional<zod.ZodNumber>;
     opportunityId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     projectGroupId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    budgetLocked: zod.ZodOptional<zod.ZodBoolean>;
     deletedAt: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
@@ -681,6 +682,7 @@ export declare const GetProjectResponse: zod.ZodObject<{
     companyName?: string | null | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
 }, {
     status: string;
     id: number;
@@ -707,6 +709,7 @@ export declare const GetProjectResponse: zod.ZodObject<{
     companyName?: string | null | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
 }>;
 /**
  * @summary Update project
@@ -778,6 +781,7 @@ export declare const UpdateProjectResponse: zod.ZodObject<{
     isAdminProject: zod.ZodOptional<zod.ZodNumber>;
     opportunityId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     projectGroupId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    budgetLocked: zod.ZodOptional<zod.ZodBoolean>;
     deletedAt: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
@@ -810,6 +814,7 @@ export declare const UpdateProjectResponse: zod.ZodObject<{
     companyName?: string | null | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
 }, {
     status: string;
     id: number;
@@ -836,6 +841,7 @@ export declare const UpdateProjectResponse: zod.ZodObject<{
     companyName?: string | null | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
 }>;
 /**
  * @summary Delete project
@@ -1714,6 +1720,8 @@ export declare const ListTimeEntriesResponseItem: zod.ZodObject<{
     billable: zod.ZodBoolean;
     approved: zod.ZodBoolean;
     createdAt: zod.ZodString;
+    appliedBillRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    appliedCostRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
 }, "strip", zod.ZodTypeAny, {
     id: number;
     description: string;
@@ -1727,6 +1735,8 @@ export declare const ListTimeEntriesResponseItem: zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
+    appliedBillRate?: number | null | undefined;
+    appliedCostRate?: number | null | undefined;
 }, {
     id: number;
     description: string;
@@ -1740,6 +1750,8 @@ export declare const ListTimeEntriesResponseItem: zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
+    appliedBillRate?: number | null | undefined;
+    appliedCostRate?: number | null | undefined;
 }>;
 export declare const ListTimeEntriesResponse: zod.ZodArray<zod.ZodObject<{
     id: zod.ZodNumber;
@@ -1754,6 +1766,8 @@ export declare const ListTimeEntriesResponse: zod.ZodArray<zod.ZodObject<{
     billable: zod.ZodBoolean;
     approved: zod.ZodBoolean;
     createdAt: zod.ZodString;
+    appliedBillRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    appliedCostRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
 }, "strip", zod.ZodTypeAny, {
     id: number;
     description: string;
@@ -1767,6 +1781,8 @@ export declare const ListTimeEntriesResponse: zod.ZodArray<zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
+    appliedBillRate?: number | null | undefined;
+    appliedCostRate?: number | null | undefined;
 }, {
     id: number;
     description: string;
@@ -1780,6 +1796,8 @@ export declare const ListTimeEntriesResponse: zod.ZodArray<zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
+    appliedBillRate?: number | null | undefined;
+    appliedCostRate?: number | null | undefined;
 }>, "many">;
 /**
  * @summary Log a time entry
@@ -1851,6 +1869,8 @@ export declare const UpdateTimeEntryResponse: zod.ZodObject<{
     billable: zod.ZodBoolean;
     approved: zod.ZodBoolean;
     createdAt: zod.ZodString;
+    appliedBillRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    appliedCostRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
 }, "strip", zod.ZodTypeAny, {
     id: number;
     description: string;
@@ -1864,6 +1884,8 @@ export declare const UpdateTimeEntryResponse: zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
+    appliedBillRate?: number | null | undefined;
+    appliedCostRate?: number | null | undefined;
 }, {
     id: number;
     description: string;
@@ -1877,6 +1899,8 @@ export declare const UpdateTimeEntryResponse: zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
+    appliedBillRate?: number | null | undefined;
+    appliedCostRate?: number | null | undefined;
 }>;
 /**
  * @summary Delete a time entry
@@ -2577,25 +2601,28 @@ export declare const ListAllocationsResponse: zod.ZodArray<zod.ZodObject<{
  */
 export declare const CreateAllocationBody: zod.ZodObject<{
     projectId: zod.ZodNumber;
-    userId: zod.ZodNumber;
+    userId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    placeholderRole: zod.ZodOptional<zod.ZodString>;
     startDate: zod.ZodString;
     endDate: zod.ZodString;
     hoursPerWeek: zod.ZodNumber;
-    role: zod.ZodString;
+    role: zod.ZodOptional<zod.ZodString>;
 }, "strip", zod.ZodTypeAny, {
     startDate: string;
     projectId: number;
-    role: string;
-    userId: number;
     endDate: string;
     hoursPerWeek: number;
+    role?: string | undefined;
+    userId?: number | null | undefined;
+    placeholderRole?: string | undefined;
 }, {
     startDate: string;
     projectId: number;
-    role: string;
-    userId: number;
     endDate: string;
     hoursPerWeek: number;
+    role?: string | undefined;
+    userId?: number | null | undefined;
+    placeholderRole?: string | undefined;
 }>;
 /**
  * @summary Update allocation

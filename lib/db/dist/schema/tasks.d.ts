@@ -456,6 +456,23 @@ export declare const tasksTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        overrunAlertSentAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "overrun_alert_sent_at";
+            tableName: "tasks";
+            dataType: "date";
+            columnType: "PgTimestamp";
+            data: Date;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "tasks";
@@ -518,6 +535,7 @@ export declare const insertTaskSchema: z.ZodObject<{
     privateNotes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isPhase: z.ZodOptional<z.ZodBoolean>;
     sortOrder: z.ZodOptional<z.ZodInt>;
+    overrunAlertSentAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
 }, {
     out: {};
     in: {};
@@ -569,7 +587,7 @@ export declare const taskNotesTable: import("drizzle-orm/pg-core").PgTableWithCo
             columnType: "PgInteger";
             data: number;
             driverParam: string | number;
-            notNull: true;
+            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -634,7 +652,7 @@ export declare const taskNotesTable: import("drizzle-orm/pg-core").PgTableWithCo
     dialect: "pg";
 }>;
 export declare const insertTaskNoteSchema: z.ZodObject<{
-    userId: z.ZodInt;
+    userId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     taskId: z.ZodInt;
     content: z.ZodString;
 }, {

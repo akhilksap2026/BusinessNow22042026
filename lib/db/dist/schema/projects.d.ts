@@ -163,7 +163,7 @@ export declare const projectsTable: import("drizzle-orm/pg-core").PgTableWithCol
             columnType: "PgNumeric";
             data: string;
             driverParam: string;
-            notNull: true;
+            notNull: false;
             hasDefault: true;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -394,6 +394,23 @@ export declare const projectsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        budgetLocked: import("drizzle-orm/pg-core").PgColumn<{
+            name: "budget_locked";
+            tableName: "projects";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         deletedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "deleted_at";
             tableName: "projects";
@@ -457,7 +474,7 @@ export declare const insertProjectSchema: z.ZodObject<{
     dueDate: z.ZodString;
     billingType: z.ZodOptional<z.ZodString>;
     budget: z.ZodOptional<z.ZodString>;
-    trackedHours: z.ZodOptional<z.ZodString>;
+    trackedHours: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     allocatedHours: z.ZodOptional<z.ZodString>;
     budgetedHours: z.ZodOptional<z.ZodString>;
     completion: z.ZodOptional<z.ZodInt>;
@@ -471,6 +488,7 @@ export declare const insertProjectSchema: z.ZodObject<{
     autoAllocate: z.ZodOptional<z.ZodBoolean>;
     opportunityId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     projectGroupId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    budgetLocked: z.ZodOptional<z.ZodBoolean>;
     deletedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
 }, {
     out: {};

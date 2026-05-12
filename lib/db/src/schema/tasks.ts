@@ -1,12 +1,16 @@
-import { pgTable, serial, text, integer, numeric, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, numeric, boolean, timestamp, jsonb, index, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { projectsTable } from "./projects";
+import { usersTable } from "./users";
 
 export const tasksTable = pgTable("tasks", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "cascade" }),
   phaseId: integer("phase_id"),
-  parentTaskId: integer("parent_task_id"),
+  parentTaskId: integer("parent_task_id").references((): AnyPgColumn => tasksTable.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   status: text("status").notNull().default("Not Started"),
   priority: text("priority").notNull().default("Medium"),
@@ -28,12 +32,14 @@ export const tasksTable = pgTable("tasks", {
   privateNotes: text("private_notes"),
   isPhase: boolean("is_phase").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
-  // Effort overrun alert: set to now() the first time actual hours cross
-  // OVERRUN_ALERT_THRESHOLD × plannedHours.  NULL = not yet alerted.
   overrunAlertSentAt: timestamp("overrun_alert_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  projectIdx: index("idx_tasks_project_id").on(t.projectId),
+  parentIdx: index("idx_tasks_parent_task_id").on(t.parentTaskId),
+  projectStatusIdx: index("idx_tasks_project_status").on(t.projectId, t.status),
+}));
 
 export const insertTaskSchema = createInsertSchema(tasksTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertTask = z.infer<typeof insertTaskSchema>;
@@ -41,12 +47,16 @@ export type Task = typeof tasksTable.$inferSelect;
 
 export const taskNotesTable = pgTable("task_notes", {
   id: serial("id").primaryKey(),
-  taskId: integer("task_id").notNull(),
-  userId: integer("user_id").notNull(),
+  taskId: integer("task_id")
+    .notNull()
+    .references(() => tasksTable.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => usersTable.id, { onDelete: "set null" }),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  taskIdx: index("idx_task_notes_task_id").on(t.taskId),
+}));
 
 export const insertTaskNoteSchema = createInsertSchema(taskNotesTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertTaskNote = z.infer<typeof insertTaskNoteSchema>;

@@ -87,22 +87,34 @@ router.post("/billing-schedules/:id/trigger", requireFinance, async (req, res): 
     ? Math.round(Number(project.budget) * Number(schedule.percentOfBudget) / 100 * 100) / 100
     : 0;
 
-  const [invoice] = await db.insert(invoicesTable).values({
-    id: invoiceId,
-    projectId: schedule.projectId,
-    accountId: project.accountId,
-    status: "Draft",
-    amount: amount.toString(),
-    tax: "0",
-    total: amount.toString(),
-    issueDate: new Date().toISOString().split("T")[0],
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    notes: `Auto-generated from billing schedule: ${schedule.name}`,
-  } as any).returning();
+  // Wrap invoice creation + schedule status flip in one transaction so a crash
+  // between the two writes can't leave a Draft invoice with no record on the
+  // schedule (or vice-versa).
+  let invoice;
+  try {
+    invoice = await db.transaction(async (tx) => {
+      const [inv] = await tx.insert(invoicesTable).values({
+        id: invoiceId,
+        projectId: schedule.projectId,
+        accountId: project.accountId,
+        status: "Draft",
+        amount: amount.toString(),
+        tax: "0",
+        total: amount.toString(),
+        issueDate: new Date().toISOString().split("T")[0],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        notes: `Auto-generated from billing schedule: ${schedule.name}`,
+      } as any).returning();
 
-  await db.update(billingSchedulesTable)
-    .set({ lastFiredAt: new Date(), status: "Fired" } as any)
-    .where(eq(billingSchedulesTable.id, params.data.id));
+      await tx.update(billingSchedulesTable)
+        .set({ lastFiredAt: new Date(), status: "Fired" } as any)
+        .where(eq(billingSchedulesTable.id, params.data.id));
+      return inv;
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "trigger_failed", detail: String(err?.message ?? err) });
+    return;
+  }
 
   res.json({ scheduleId: params.data.id, invoiceId: invoice.id, message: `Draft invoice ${invoice.id} created for $${amount}` });
 });

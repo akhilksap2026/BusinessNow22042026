@@ -264,7 +264,6 @@ export declare const timesheetsTable: import("drizzle-orm/pg-core").PgTableWithC
 export declare const insertTimesheetSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodString>;
     userId: z.ZodInt;
-    rejectionNote: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     weekStart: z.ZodString;
     totalHours: z.ZodOptional<z.ZodString>;
     billableHours: z.ZodOptional<z.ZodString>;
@@ -274,6 +273,7 @@ export declare const insertTimesheetSchema: z.ZodObject<{
     approvedByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     rejectedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
     rejectedByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    rejectionNote: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};

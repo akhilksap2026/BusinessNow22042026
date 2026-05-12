@@ -1,11 +1,23 @@
-import { pgTable, text, integer, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, numeric, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { projectsTable } from "./projects";
+import { accountsTable } from "./accounts";
+import { timesheetsTable } from "./timesheets";
 
 export const invoicesTable = pgTable("invoices", {
   id: text("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  accountId: integer("account_id").notNull(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "restrict" }),
+  accountId: integer("account_id")
+    .notNull()
+    .references(() => accountsTable.id, { onDelete: "restrict" }),
+  // Idempotency key for timesheet → invoice flow.  Nullable because most
+  // invoices are not derived from a timesheet (billing schedules, manual).
+  // When set, POST /timesheets/:id/invoice returns the existing invoice
+  // instead of creating a duplicate.
+  timesheetId: integer("timesheet_id").references(() => timesheetsTable.id, { onDelete: "set null" }),
   issueDate: text("issue_date").notNull(),
   dueDate: text("due_date").notNull(),
   status: text("status").notNull().default("Draft"),
@@ -17,7 +29,12 @@ export const invoicesTable = pgTable("invoices", {
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  projectIdx: index("idx_invoices_project_id").on(t.projectId),
+  accountIdx: index("idx_invoices_account_id").on(t.accountId),
+  statusIdx: index("idx_invoices_status").on(t.status),
+  timesheetIdx: index("idx_invoices_timesheet_id").on(t.timesheetId),
+}));
 
 export const insertInvoiceSchema = createInsertSchema(invoicesTable).omit({ createdAt: true, updatedAt: true });
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;

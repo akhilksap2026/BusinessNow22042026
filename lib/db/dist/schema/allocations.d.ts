@@ -309,6 +309,91 @@ export declare const allocationsTable: import("drizzle-orm/pg-core").PgTableWith
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        status: import("drizzle-orm/pg-core").PgColumn<{
+            name: "status";
+            tableName: "allocations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        isOverride: import("drizzle-orm/pg-core").PgColumn<{
+            name: "is_override";
+            tableName: "allocations";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        overrideReason: import("drizzle-orm/pg-core").PgColumn<{
+            name: "override_reason";
+            tableName: "allocations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        requiredSkillId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "required_skill_id";
+            tableName: "allocations";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        requiredProficiencyLevel: import("drizzle-orm/pg-core").PgColumn<{
+            name: "required_proficiency_level";
+            tableName: "allocations";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "allocations";
@@ -347,6 +432,7 @@ export declare const allocationsTable: import("drizzle-orm/pg-core").PgTableWith
     dialect: "pg";
 }>;
 export declare const insertAllocationSchema: z.ZodObject<{
+    status: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     startDate: z.ZodString;
     projectId: z.ZodInt;
     role: z.ZodString;
@@ -364,6 +450,10 @@ export declare const insertAllocationSchema: z.ZodObject<{
     source: z.ZodOptional<z.ZodString>;
     isTimesheetApprover: z.ZodOptional<z.ZodBoolean>;
     isLeaveApprover: z.ZodOptional<z.ZodBoolean>;
+    isOverride: z.ZodOptional<z.ZodBoolean>;
+    overrideReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    requiredSkillId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    requiredProficiencyLevel: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
 }, {
     out: {};
     in: {};

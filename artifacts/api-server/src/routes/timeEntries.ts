@@ -8,6 +8,7 @@ import {
 import { requirePM } from "../middleware/rbac";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import { checkProjectNotClosed } from "../lib/closedProjectGuard";
+import { logAudit } from "../lib/audit";
 import {
   getGovernanceSettings, checkEntryEditable, checkEntryStatusChangeable,
   checkInvoicedMove, checkTimesheetEditable, getTimesheetForEntry,
@@ -445,6 +446,14 @@ router.post("/time-entries", async (req, res): Promise<void> => {
 
   const [row] = await db.insert(timeEntriesTable).values(data).returning();
   const postRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  void logAudit({
+    entityType: "time_entry",
+    entityId: row.id,
+    action: "created",
+    actorUserId: (req as AuthenticatedRequest).authUserId,
+    description: `Time entry: ${Number(row.hours)}h on ${row.date} (project=${row.projectId ?? "—"}, task=${row.taskId ?? "—"})`,
+    newValue: { userId: row.userId, projectId: row.projectId, taskId: row.taskId, date: row.date, hours: Number(row.hours), billable: row.billable },
+  });
   res.status(201).json({ ...mapEntry(row, postRole), guardrails: softBlocks.length > 0 ? guardrailResults : undefined });
 });
 
@@ -613,6 +622,14 @@ router.delete("/time-entries/:id", async (req, res): Promise<void> => {
   const link = await getInvoicedLink(existing.id);
   if (link) { res.status(409).json({ error: `Cannot delete: this entry is on invoice ${link.invoiceId} (${link.invoiceStatus}). Void or delete the invoice first.` }); return; }
   await db.delete(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
+  void logAudit({
+    entityType: "time_entry",
+    entityId: existing.id,
+    action: "deleted",
+    actorUserId: (req as AuthenticatedRequest).authUserId,
+    description: `Time entry deleted: ${Number(existing.hours)}h on ${existing.date}`,
+    previousValue: { userId: existing.userId, projectId: existing.projectId, taskId: existing.taskId, date: existing.date, hours: Number(existing.hours) },
+  });
   res.sendStatus(204);
 });
 

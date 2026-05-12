@@ -29,11 +29,12 @@ const router: IRouter = Router();
 // statuses not present as keys (e.g. legacy "Not Started") are treated as
 // unrestricted — the guard is a no-op for those rows.
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  draft:     ["active"],
-  active:    ["on_hold", "completed", "cancelled"],
-  on_hold:   ["active", "cancelled"],
-  completed: [],
-  cancelled: [],
+  not_started: ["draft", "active"],
+  draft:       ["active"],
+  active:      ["on_hold", "completed", "cancelled"],
+  on_hold:     ["active", "cancelled"],
+  completed:   [],
+  cancelled:   [],
 };
 
 /** Normalise any status string to the lowercase_underscore key used in ALLOWED_TRANSITIONS. */
@@ -581,11 +582,11 @@ router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise
   }
 
   await logAudit({
-    entityType: "project",
-    entityId: projectId,
-    action: "budget_entry_added",
-    description: `Budget entry added (${type}): ${desc} — $${Number(row.amount).toFixed(2)}, ${Number(row.hours).toFixed(2)}h`,
-    newValue: { type, amount: Number(row.amount), hours: Number(row.hours) },
+    entityType: "budget_entry",
+    entityId: row.id,
+    action: "created",
+    description: `Budget entry added to project ${projectId} (${type}): ${desc} — $${Number(row.amount).toFixed(2)}, ${Number(row.hours).toFixed(2)}h`,
+    newValue: { projectId, type, amount: Number(row.amount), hours: Number(row.hours) },
   });
 
   res.status(201).json(mapBudgetEntry(row));

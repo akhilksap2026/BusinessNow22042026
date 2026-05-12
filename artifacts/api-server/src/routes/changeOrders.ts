@@ -124,19 +124,11 @@ router.patch("/change-orders/:id", requirePM, async (req, res): Promise<void> =>
 
   updates.updatedAt = new Date();
 
-  // ── Self-approval guard MUST run before any DB writes ────────────────────
+  // ── All writes happen atomically. The self-approval check is now performed
+  //    INSIDE the transaction against the freshly-locked row so a concurrent
+  //    PATCH that flips submittedByUserId can't sneak through the TOCTOU window
+  //    between the read and the write.
   const isApprovalTransition = status === "Approved" && existing.status !== "Approved";
-  if (isApprovalTransition) {
-    const actorId = Number(req.headers["x-user-id"] ?? 0);
-    if (actorId && existing.submittedByUserId && actorId === existing.submittedByUserId) {
-      res.status(403).json({ error: "You cannot approve a change request you submitted." });
-      return;
-    }
-  }
-
-  // ── All writes happen atomically. For the Approval transition we use a
-  //    conditional UPDATE so concurrent requests can't both apply the
-  //    one-time side-effects (idempotency).
   let row: typeof changeOrdersTable.$inferSelect;
   let appliedApproval = false;
   try {
@@ -144,6 +136,22 @@ router.patch("/change-orders/:id", requirePM, async (req, res): Promise<void> =>
       let updated: typeof changeOrdersTable.$inferSelect | undefined;
 
       if (isApprovalTransition) {
+        // Re-read the row inside the txn against the freshest committed state.
+        // Drizzle lacks a portable FOR UPDATE helper, so we rely on the
+        // conditional UPDATE (status != Approved) below as the race-safe
+        // second line of defence. Crucially we re-validate
+        // submittedByUserId against this fresh copy, not the stale `existing`
+        // row read before the txn began — that's the TOCTOU fix.
+        const [fresh] = await tx
+          .select()
+          .from(changeOrdersTable)
+          .where(eq(changeOrdersTable.id, id));
+        if (!fresh) throw new Error("CR vanished mid-approval");
+        const actorId = Number(req.headers["x-user-id"] ?? 0);
+        if (actorId && fresh.submittedByUserId && actorId === fresh.submittedByUserId) {
+          throw Object.assign(new Error("self_approval"), { _selfApproval: true });
+        }
+
         const winners = await tx
           .update(changeOrdersTable)
           .set(updates)
@@ -242,6 +250,10 @@ router.patch("/change-orders/:id", requirePM, async (req, res): Promise<void> =>
       return updated;
     });
   } catch (err: any) {
+    if (err?._selfApproval) {
+      res.status(403).json({ error: "You cannot approve a change request you submitted." });
+      return;
+    }
     res.status(500).json({ error: "Failed to update change request", detail: String(err?.message ?? err) });
     return;
   }

@@ -439,9 +439,31 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
       entityType: "task",
       entityId: row.id,
       action: "status_changed",
+      actorUserId: (req as AuthenticatedRequest).authUserId,
       previousValue: { status: existing.status },
       newValue: { status: row.status },
       description: `Task "${row.name}" moved from ${existing.status} to ${row.status}`,
+    });
+  }
+
+  // Audit non-status field changes (assignees, dates, hours, priority) so an
+  // admin can reconstruct who changed what on any task.
+  const fieldsChanged: Record<string, { from: unknown; to: unknown }> = {};
+  const trackedFields = ["name", "priority", "startDate", "dueDate", "assigneeIds", "plannedHours", "estimateHours", "effort", "billable"] as const;
+  for (const f of trackedFields) {
+    if ((parsed.data as any)[f] !== undefined && JSON.stringify((existing as any)[f]) !== JSON.stringify((row as any)[f])) {
+      fieldsChanged[f] = { from: (existing as any)[f], to: (row as any)[f] };
+    }
+  }
+  if (Object.keys(fieldsChanged).length > 0) {
+    void logAudit({
+      entityType: "task",
+      entityId: row.id,
+      action: "updated",
+      actorUserId: (req as AuthenticatedRequest).authUserId,
+      description: `Task "${row.name}" updated`,
+      previousValue: Object.fromEntries(Object.entries(fieldsChanged).map(([k, v]) => [k, v.from])),
+      newValue: Object.fromEntries(Object.entries(fieldsChanged).map(([k, v]) => [k, v.to])),
     });
   }
 
@@ -465,9 +487,11 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
             status: "Draft",
             issueDate: new Date().toISOString().slice(0, 10),
             dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+            description: `Milestone: ${row.name}`,
+            amount: String(project.budget ?? 0),
             total: String(project.budget ?? 0),
             notes: `Auto-generated from milestone: ${row.name}`,
-          }).returning();
+          } as any).returning();
           await logAudit({
             entityType: "invoice",
             entityId: newInvoice.id,

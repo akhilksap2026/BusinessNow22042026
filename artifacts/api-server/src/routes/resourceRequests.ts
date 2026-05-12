@@ -8,6 +8,8 @@ import {
 } from "@workspace/api-zod";
 import { requirePM } from "../middleware/rbac";
 import { hasRole } from "../constants/roles";
+import { logAudit } from "../lib/audit";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 
 const router: IRouter = Router();
 
@@ -74,6 +76,14 @@ router.post("/resource-requests", async (req, res): Promise<void> => {
     methodValue: methodValue !== undefined && methodValue !== null ? String(methodValue) : null,
     targetResourceId: targetResourceId ?? null,
   }).returning();
+  void logAudit({
+    entityType: "resource_request",
+    entityId: row.id,
+    action: "created",
+    actorUserId: (req as AuthenticatedRequest).authUserId,
+    description: `Resource request "${row.role}" created on project ${row.projectId}`,
+    newValue: { projectId: row.projectId, role: row.role, hoursPerWeek: Number(row.hoursPerWeek), startDate: row.startDate, endDate: row.endDate },
+  });
   res.status(201).json(mapRR(row));
 });
 
@@ -134,6 +144,22 @@ router.patch("/resource-requests/:id/status", requirePM, async (req, res): Promi
   }
 
   const [row] = await db.update(resourceRequestsTable).set(updates).where(eq(resourceRequestsTable.id, id)).returning();
+
+  if (row && existing.status !== row.status) {
+    const auditAction =
+      row.status === "Approved" ? "approved" :
+      row.status === "Rejected" ? "rejected" :
+      "status_changed";
+    void logAudit({
+      entityType: "resource_request",
+      entityId: row.id,
+      action: auditAction,
+      actorUserId: (req as AuthenticatedRequest).authUserId,
+      description: `Resource request "${row.role}" ${row.status.toLowerCase()}`,
+      previousValue: { status: existing.status },
+      newValue: { status: row.status, assignedUserId: row.assignedUserId ?? null, rejectionReason: row.rejectionReason ?? null },
+    });
+  }
 
   // ── Auto-create allocation when request transitions to Fulfilled with an assigned user ──
   if (status === "Fulfilled" && assignedUserId && row) {

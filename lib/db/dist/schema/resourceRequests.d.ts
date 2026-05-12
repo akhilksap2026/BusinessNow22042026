@@ -427,6 +427,57 @@ export declare const resourceRequestsTable: import("drizzle-orm/pg-core").PgTabl
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        assignedToUserId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "assigned_to_user_id";
+            tableName: "resource_requests";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        alternativeResourceId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "alternative_resource_id";
+            tableName: "resource_requests";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        alternativeReason: import("drizzle-orm/pg-core").PgColumn<{
+            name: "alternative_reason";
+            tableName: "resource_requests";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "resource_requests";
@@ -579,6 +630,9 @@ export declare const insertResourceRequestSchema: z.ZodObject<{
     fulfilledByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     rejectionReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     blockedReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    assignedToUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    alternativeResourceId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    alternativeReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};

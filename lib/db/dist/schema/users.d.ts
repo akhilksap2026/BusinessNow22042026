@@ -389,6 +389,23 @@ export declare const usersTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        onboardingDismissed: import("drizzle-orm/pg-core").PgColumn<{
+            name: "onboarding_dismissed";
+            tableName: "users";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "users";
@@ -445,6 +462,7 @@ export declare const insertUserSchema: z.ZodObject<{
     activeStatus: z.ZodOptional<z.ZodString>;
     timesheetApproverUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     holidayCalendarId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    onboardingDismissed: z.ZodOptional<z.ZodBoolean>;
 }, {
     out: {};
     in: {};

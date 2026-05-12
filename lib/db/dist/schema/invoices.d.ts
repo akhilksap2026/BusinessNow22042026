@@ -54,6 +54,23 @@ export declare const invoicesTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        timesheetId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "timesheet_id";
+            tableName: "invoices";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         issueDate: import("drizzle-orm/pg-core").PgColumn<{
             name: "issue_date";
             tableName: "invoices";
@@ -252,6 +269,7 @@ export declare const insertInvoiceSchema: z.ZodObject<{
     description: z.ZodString;
     projectId: z.ZodInt;
     notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    timesheetId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     issueDate: z.ZodString;
     amount: z.ZodString;
     tax: z.ZodOptional<z.ZodString>;
