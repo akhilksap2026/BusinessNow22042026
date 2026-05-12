@@ -1,0 +1,100 @@
+BusinessNow PSA — Enterprise Audit Report
+Executive Summary
+The platform demonstrates strong functional breadth (10+ modules, RBAC scaffolding, AI assistance, guard helpers) but carries significant production-readiness gaps across four dimensions: (1) auth model is dev-only — header-trust auth would be trivially spoofable in prod; (2) referential integrity is largely absent — most foreign keys lack .references() + onDelete clauses, putting the database one accidental delete away from cascading orphans; (3) denormalized aggregates drift silently — tracked_hours, project budgets, and revenue figures are recomputed in-memory but never reconciled against source-of-truth tables; (4) workflow guards are surface-level — several critical state machines (CR conversion, opportunity-to-project, billing-from-timesheet) lack idempotency checks, allowing duplicate side-effects on retry. Test suite (65 tests) covers happy-path business logic but no infra/concurrency/auth-bypass coverage. Recommend a 2-sprint hardening pass before any external customer onboarding.
+
+Critical Issues (P0 — block production)
+#	Module	Issue	File:Line	Business Impact
+C1	Auth	x-user-id / x-user-role headers fully spoofable; no JWT/session	middleware/roleClaim.ts:27,38	Any attacker with API URL = full admin access
+C2	Schema	Most FKs lack .references() + cascade (tasks→projects, time_entries→tasks, allocations→users/projects, invoices→accounts)	lib/db/src/schema/{tasks,timeEntries,allocations,invoices}.ts	Hard delete of a project leaves orphan tasks/time/invoices/allocations forever
+C3	Time Entries	hours lacks min(0.01) validation	routes/timeEntries.ts:362	Users can post negative hours and erase logged time / corrupt utilization KPIs
+C4	Invoices	POST /timesheets/:id/invoice has no idempotency check	routes/invoices.ts:117	Same week can be invoiced multiple times → double-billing customers
+C5	Budget	Manual "Adjustment" budget entries bypass budgetLocked and CR-required policy	routes/projects.ts:521 vs :133	Any user circumvents change-control by posting an Adjustment row
+C6	Project Status	not_started key missing from ALLOWED_TRANSITIONS map → guard becomes a no-op for newly-created projects	routes/projects.ts:31-37, :160	Status state machine is silently disabled at the most common entry point
+C7	Security	No helmet, no express-rate-limit, no CSRF, no input sanitization	app.ts:12	Stored XSS on description fields; brute-force on any endpoint
+High-Severity Issues (P1)
+#	Module	Issue	File:Line	Fix
+H1	Opportunities	POST /opportunities/:id/convert-to-project doesn't check existing projectId or stage="Won"	routes/opportunities.ts:170	Add early-return idempotency check
+H2	Resource Requests	Status can move Fulfilled → Open without removing the auto-created allocation	routes/resourceRequests.ts:108,139,192	Add formal state machine + cleanup on rollback
+H3	Timesheets	No global error handler; uncaught rejection may crash process	app.ts	Add Express error middleware + process.on('unhandledRejection')
+H4	Tasks	effort, plannedHours, estimateHours accept negatives	lib/api-zod/.../createTaskBody.ts	Add .min(0)
+H5	Pagination	/projects, /accounts, /time-entries, /allocations return entire tables	routes/{projects,accounts,timeEntries,allocations}.ts	Add cursor or limit/offset + default cap of 100
+H6	Indexing	No indexes on projectId, userId, accountId, date columns	lib/db/src/schema/*	Add Drizzle index() declarations on hot-path FKs
+H7	Aggregation	projects.tracked_hours is denormalized but never updated when time is logged	routes/timeEntries.ts	Either drop the column and compute on read, or update inside a transaction post-insert
+H8	Audit Log	POST /invoices, POST /time-entries, POST /resource-requests do not call logAudit	respective route files	Add logAudit("created", ...)
+H9	Timesheets	No RBAC middleware on POST /timesheets and PATCH /timesheets/:id; no denyCustomerRole	routes/timesheets.ts:86,107	Apply denyCustomerRole at minimum
+H10	Timesheet Withdraw	User can reset status to Draft mid-approval without re-checking current DB state	routes/timesheets.ts:107,128	Wrap in transaction; verify status before mutation
+H11	Billing	Invoice creation + schedule update not in a transaction	routes/billingSchedules.ts:90-105	Wrap in db.transaction()
+Workflow Gaps
+#	Workflow	Gap	Recommendation
+W1	Timesheet approval	No escalation if approver inactive — request stuck in "Submitted" forever	Add SLA timer + escalate to next approver after N days
+W2	Time-off approval	Any PM can approve any user's leave; no manager-of-record check	Use users.managerId to scope approvers
+W3	Bulk approve timesheets	Self-included items silently skipped instead of explicitly flagged	Return { approved, skippedSelf } to UI
+W4	Change orders	Self-approval check is outside the transaction (TOCTOU)	Move identity check inside transaction
+W5	Archived projects	closedProjectGuard only checks status="completed", not deletedAt	Add deletedAt IS NOT NULL to guard
+W6	Snapshot rates race	Fire-and-forget snapshotRatesForTimesheet can run concurrently on rapid unapprove/reapprove	Add a per-timesheet lock or sequence number
+UX & Ease-of-Operation Findings
+#	Screen	Finding	Suggested Improvement
+U1	Tables (global)	Headers not sticky → lost on long lists (Resources, Finance)	Add sticky top-0 bg-background z-10 to TableHeader in components/ui/table.tsx
+U2	Status badges	Read-only — every status change requires opening Edit dialog	Convert to actionable dropdown (StatusBadgeMenu)
+U3	Timesheet	"Add activity" requires 4+ clicks; no "Fill from last week"	Add 1-click "Copy last week" + "Recent projects" quick-add
+U4	Global navigation	No command palette / keyboard shortcuts	Add cmdk palette (⌘K): "Log 8h to X", "Approve all", "Go to project Y"
+U5	Project detail	10+ tabs in one screen; Financials + Change Orders + Budget should group	Two-level tabs: top = Plan / Deliver / Bill; sub-tabs underneath
+U6	Project wizard	5-step wizard loses state if user opens "New Account" mid-flow	Persist draft to localStorage; allow inline-create for Account/Rate Card
+U7	Opportunity → Project	"Won" status doesn't auto-prompt project creation	Trigger creation modal on stage change to Won
+U8	Destructive actions	Confirm dialogs everywhere — slows down power users	Replace non-destructive actions (Archive, Delete draft) with Undo toasts using existing useUndoableMutation
+U9	Resource assignment	PMs can't see capacity heatmap from project detail	Embed mini-heatmap in allocation dialog (or open in side panel)
+U10	Breadcrumbs	Missing on Admin / Finance / Resources	Add to all top-level pages for consistency
+U11	Invoice search	Search exists on Invoices; missing on Billing Schedules + Revenue tabs	Add unified <TableToolbar> with search/filter
+U12	Inline editing	activityName, description static after creation in timesheet grid	Allow click-to-edit
+Data Flow Problems
+#	Source → Destination	Problem	Impact
+D1	UI form isAdminProject → API	Field not in CreateProjectBody Zod	Cannot flag admin projects via standard API
+D2	UI form csatEnabled (per task) → API	Field exists in DB, missing in CreateTaskBody/UpdateTaskBody	Per-task CSAT toggle non-functional
+D3	DB numeric → API Number()	Precision loss on large budget, amount, tax values	Wrong totals over $9M
+D4	time_entries.hours → projects.tracked_hours	No sync hook	Dashboard EAC calculations wrong; reports misleading
+D5	users.role (legacy) ↔ secondary_roles[]	Two sources of truth resolved at runtime via resolveRole()	Future schema change risks misaligning permissions silently
+D6	PATCH bodies	Several safeParse() calls don't use .strict()	Extra fields can be spread into DB updates (e.g., overwrite budgetLocked)
+D7	Tasks PATCH audit	Status changes logged; assignee + plannedHours changes not	Effort-tracking history incomplete
+Recommended Improvements (concrete)
+Architecture / Security
+
+Replace header-trust auth with Replit Auth or session cookies + signed JWTs; keep header model only when NODE_ENV=development.
+Add helmet, express-rate-limit (e.g., 100 req/min per IP), and a global Express error handler.
+Mandate .strict() on every safeParse() for write endpoints.
+Add a Drizzle migration that: (a) adds .references() + onDelete: "cascade" (or "set null") on every existing FK; (b) adds indexes on the hot-path columns listed in H6.
+Data Integrity
+5. Either drop projects.tracked_hours (compute via aggregate) or add a post-insert/update trigger function in timeEntries.ts wrapped in db.transaction().
+
+Wrap billingSchedules.ts:90-105 invoice + schedule update in a transaction.
+Add idempotency keys to POST /opportunities/:id/convert-to-project and POST /timesheets/:id/invoice.
+Workflow Hardening
+8. Add not_started to ALLOWED_TRANSITIONS; write a test that exercises every documented transition.
+
+Block manual budget Adjustment entries when budgetLocked=true unless an approved CR is referenced.
+Move closedProjectGuard to also check deletedAt.
+UX / Ease of Operation
+11. Sticky table headers + actionable status badges (1-day change, huge usability win).
+
+cmdk command palette for power users.
+"Copy last week" button on timesheet grid.
+Replace Archive confirm dialogs with Undo toasts (already have useUndoableMutation).
+Group project-detail tabs into 2 levels.
+Testing
+16. Add concurrency tests: simultaneous timesheet approval, dual conversion of the same opportunity, simultaneous CR approve.
+
+Add auth bypass tests: spoofed header, mismatched x-user-id / x-user-role, role escalation attempts.
+Add integration tests for the full lifecycle: opportunity → project → tasks → time → invoice → revenue recognition.
+Priority-Wise Action Plan
+Sprint 1 (Critical / 1 week) — production blockers
+
+C1 auth replacement · C2 FK + cascade migration · C3, H4 numeric validations · C4, H1 idempotency · C5, C6 budget/status guard fixes · C7 helmet+rate-limit+global-error-handler
+Sprint 2 (High / 1 week) — integrity & scale
+
+H2 resource-request state machine · H5 pagination on 4 list endpoints · H6 indexes · H7 tracked_hours sync · H8 missing audit logs · H9, H10 timesheet RBAC + transaction · H11 billing transaction · D1–D3 schema/Zod alignment · D6 .strict() sweep
+Sprint 3 (Workflow + UX / 1 week)
+
+W1–W6 workflow hardening · U1, U2, U3, U8 high-impact UX wins (sticky tables, actionable badges, copy-last-week, Undo toasts) · U4 command palette
+Sprint 4 (Polish / ongoing)
+
+U5–U12 remaining UX · D4, D5, D7 data-flow cleanup · concurrency + auth-bypass test coverage · U6 wizard draft persistence
+Estimated effort: ~3–4 engineer-weeks to reach external-customer-ready posture; ~6 weeks to hit the polished-enterprise bar.
