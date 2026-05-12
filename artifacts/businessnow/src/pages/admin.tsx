@@ -1413,24 +1413,6 @@ export default function Admin() {
                   <CreditCard className="h-4 w-4" /> Rate Cards
                 </TabsTrigger>
               )}
-              <TabsTrigger value="customfields" className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4" /> Custom Fields
-              </TabsTrigger>
-              <TabsTrigger value="activitydefaults" className="flex items-center gap-2">
-                <Zap className="h-4 w-4" /> Activity Defaults
-              </TabsTrigger>
-              <TabsTrigger value="placeholders" className="flex items-center gap-2">
-                <Users className="h-4 w-4" /> Placeholders
-              </TabsTrigger>
-              <TabsTrigger value="auditlog" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" /> Audit Log
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" /> Company Settings
-              </TabsTrigger>
-              <TabsTrigger value="archived" className="flex items-center gap-2">
-                <RotateCcw className="h-4 w-4" /> Archived Projects
-              </TabsTrigger>
             </TabsList>
           </div>
 
