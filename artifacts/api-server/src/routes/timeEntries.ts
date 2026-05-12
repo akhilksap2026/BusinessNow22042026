@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { parsePagination, envelope } from "../lib/pagination";
 import {
   db, timeEntriesTable, projectsTable, usersTable, tasksTable,
   activityDefaultsTable, timeSettingsTable, timeCategoriesTable,
@@ -353,11 +354,24 @@ router.get("/time-entries", async (req, res): Promise<void> => {
   if (qp.success && qp.data.userId) conditions.push(eq(timeEntriesTable.userId, qp.data.userId));
   if (qp.success && qp.data.startDate) conditions.push(gte(timeEntriesTable.date, qp.data.startDate));
   if (qp.success && qp.data.endDate) conditions.push(lte(timeEntriesTable.date, qp.data.endDate));
-  const rows = conditions.length
-    ? await db.select().from(timeEntriesTable).where(and(...conditions))
-    : await db.select().from(timeEntriesTable);
+  const page = parsePagination(req.query as Record<string, unknown>);
+  const baseSelect = conditions.length
+    ? db.select().from(timeEntriesTable).where(and(...conditions))
+    : db.select().from(timeEntriesTable);
+  const rows = page.paginated
+    ? await baseSelect.limit(page.limit).offset(page.offset)
+    : await baseSelect;
+  let total = rows.length;
+  if (page.paginated) {
+    const baseCount = conditions.length
+      ? db.select({ c: sql<number>`count(*)::int` }).from(timeEntriesTable).where(and(...conditions))
+      : db.select({ c: sql<number>`count(*)::int` }).from(timeEntriesTable);
+    const [{ c }] = await baseCount;
+    total = Number(c);
+  }
   const callerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
-  res.json(ListTimeEntriesResponse.parse(rows.map(e => mapEntry(e, callerRole))));
+  const data = ListTimeEntriesResponse.parse(rows.map(e => mapEntry(e, callerRole)));
+  res.json(envelope(data, total, page));
 });
 
 router.post("/time-entries", async (req, res): Promise<void> => {
@@ -575,15 +589,30 @@ router.post("/time-entries/bulk-approve", requirePM, async (req, res): Promise<v
   const { inArray } = await import("drizzle-orm");
   const existing = await db.select().from(timeEntriesTable).where(inArray(timeEntriesTable.id, ids));
   const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const actorId = Number(req.headers["x-user-id"] ?? 0);
   const settings = await getGovernanceSettings();
-  for (const e of existing) {
+  // Sprint 2 / Phase 8.2 — split skipped into self vs other; never abort the
+  // batch on a single offender. Self-approval entries are silently skipped
+  // (instead of returning 403 for the whole call).
+  const skippedSelfIds = existing.filter(e => e.userId === actorId).map(e => e.id);
+  const remaining = existing.filter(e => e.userId !== actorId);
+  const eligible: number[] = [];
+  const skippedOtherIds: number[] = [];
+  for (const e of remaining) {
     const err = checkEntryStatusChangeable(e, role, settings);
-    if (err) { res.status(err.status).json({ error: err.error, blockedEntryId: e.id }); return; }
+    if (err) skippedOtherIds.push(e.id);
+    else eligible.push(e.id);
   }
-  await db.update(timeEntriesTable)
-    .set({ approved: true, rejected: false, rejectionNote: null, updatedAt: new Date() })
-    .where(inArray(timeEntriesTable.id, ids));
-  res.json({ approved: ids.length });
+  if (eligible.length > 0) {
+    await db.update(timeEntriesTable)
+      .set({ approved: true, rejected: false, rejectionNote: null, updatedAt: new Date() })
+      .where(inArray(timeEntriesTable.id, eligible));
+  }
+  res.json({
+    approved: eligible.length,
+    skippedSelf: skippedSelfIds.length,
+    skippedOther: skippedOtherIds.length,
+  });
 });
 
 router.post("/time-entries/bulk-delete", requirePM, async (req, res): Promise<void> => {

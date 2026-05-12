@@ -48,6 +48,13 @@ export const usersTable = pgTable("users", {
   isInternal: boolean("is_internal").notNull().default(true),
   activeStatus: text("active_status").notNull().default("active"),
   timesheetApproverUserId: integer("timesheet_approver_user_id"),
+  /**
+   * Sprint 2 / Phase 8.1 — Reporting line for time-off + escalation routing.
+   * NULL = no manager set (top of org, or unassigned). FK with ON DELETE SET NULL
+   * (added at the SQL push level since drizzle-kit's self-FK syntax is awkward
+   * here and we already use the column id at runtime).
+   */
+  managerId: integer("manager_id"),
   holidayCalendarId: integer("holiday_calendar_id"),
   /**
    * Per-user dismissal flag for the workspace setup checklist shown on the

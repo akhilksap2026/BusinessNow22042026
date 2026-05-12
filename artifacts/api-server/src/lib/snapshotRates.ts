@@ -11,7 +11,7 @@
  *  - Errors are swallowed; snapshotting must never block the approve response.
  */
 
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { db, timeEntriesTable, projectsTable, rateCardsTable, usersTable } from "@workspace/db";
 
 type RateCard = typeof rateCardsTable.$inferSelect;
@@ -51,50 +51,54 @@ function billRateFromCard(card: RateCard, role: string | null): number {
 }
 
 export async function snapshotRatesForTimesheet(timesheetId: number): Promise<void> {
-  // Only fetch entries that have NOT yet been snapshotted (immutability guard).
-  const entries = await db
-    .select()
-    .from(timeEntriesTable)
-    .where(
-      and(
-        eq(timeEntriesTable.timesheetId, timesheetId),
-        isNull(timeEntriesTable.appliedBillRate),
-      ),
-    );
+  // Sprint 2 / Phase 8.3 — Wrap the whole snapshot in a single transaction
+  // and serialise concurrent calls for the same timesheet via a Postgres
+  // advisory transaction lock. Two concurrent approve handlers for the same
+  // timesheet would otherwise both read entries with appliedBillRate = NULL
+  // and race; the second now blocks until the first commits, then sees zero
+  // un-snapshotted entries and exits cleanly. The double-check predicate
+  // (isNull(appliedBillRate)) on the per-row UPDATE remains as a belt-and-
+  // braces guarantee.
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${timesheetId})`);
 
-  if (entries.length === 0) return;
-
-  // Prefetch all rate cards and relevant projects + users in bulk.
-  const [allCards, allUsers, allProjects] = await Promise.all([
-    db.select().from(rateCardsTable),
-    db.select({ id: usersTable.id, role: usersTable.role, costRate: usersTable.costRate }).from(usersTable),
-    db.select({ id: projectsTable.id, rateCardId: projectsTable.rateCardId }).from(projectsTable),
-  ]);
-
-  for (const entry of entries) {
-    const workDate  = entry.date;
-    const user      = allUsers.find(u => u.id === entry.userId);
-    const project   = entry.projectId ? allProjects.find(p => p.id === entry.projectId) : undefined;
-    const fallbackCardId = project?.rateCardId ?? null;
-
-    // Effective role: entry.role overrides user.role (some entries carry a
-    // project-specific role override already stored on the entry itself).
-    const effectiveRole = entry.role ?? user?.role ?? null;
-
-    const card     = resolveCardForDate(allCards, workDate, fallbackCardId);
-    const billRate = card ? billRateFromCard(card, effectiveRole) : 0;
-    const costRate = user ? Number(user.costRate) : 0;
-
-    await db.update(timeEntriesTable)
-      .set({
-        appliedBillRate: String(billRate),
-        appliedCostRate: String(costRate),
-      })
+    const entries = await tx
+      .select()
+      .from(timeEntriesTable)
       .where(
         and(
-          eq(timeEntriesTable.id, entry.id),
-          isNull(timeEntriesTable.appliedBillRate), // race-safe: double-check still null
+          eq(timeEntriesTable.timesheetId, timesheetId),
+          isNull(timeEntriesTable.appliedBillRate),
         ),
       );
-  }
+
+    if (entries.length === 0) return;
+
+    const [allCards, allUsers, allProjects] = await Promise.all([
+      tx.select().from(rateCardsTable),
+      tx.select({ id: usersTable.id, role: usersTable.role, costRate: usersTable.costRate }).from(usersTable),
+      tx.select({ id: projectsTable.id, rateCardId: projectsTable.rateCardId }).from(projectsTable),
+    ]);
+
+    for (const entry of entries) {
+      const workDate  = entry.date;
+      const user      = allUsers.find(u => u.id === entry.userId);
+      const project   = entry.projectId ? allProjects.find(p => p.id === entry.projectId) : undefined;
+      const fallbackCardId = project?.rateCardId ?? null;
+      const effectiveRole = entry.role ?? user?.role ?? null;
+
+      const card     = resolveCardForDate(allCards, workDate, fallbackCardId);
+      const billRate = card ? billRateFromCard(card, effectiveRole) : 0;
+      const costRate = user ? Number(user.costRate) : 0;
+
+      await tx.update(timeEntriesTable)
+        .set({ appliedBillRate: String(billRate), appliedCostRate: String(costRate) })
+        .where(
+          and(
+            eq(timeEntriesTable.id, entry.id),
+            isNull(timeEntriesTable.appliedBillRate),
+          ),
+        );
+    }
+  });
 }

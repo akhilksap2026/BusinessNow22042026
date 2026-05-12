@@ -143,6 +143,21 @@ Full-stack Professional Services Automation platform for KSAP Technology. Modele
 - `idempotency.test.ts` — change-order re-approval no-double-write, timesheet withdraw idempotent.
 - (CR self-approval race covered by existing `sprint1Hardening` test 4.)
 
+### 6. Sprint 2 (current)
+- **Phase 6 — Pagination envelope** (`lib/pagination.ts`): opt-in via `?limit` / `?offset`; envelope `{data, total, limit, offset}` when present, plain array otherwise (back-compat). Default 100, max 500. Applied to `GET /projects`, `/accounts`, `/time-entries`, `/allocations`. Garbage limits fall back to default; >500 is clamped.
+- **Phase 8.1 — Manager-scoped time-off approval**: new `users.managerId` (nullable int FK conceptually; column added, FK constraint deferred). PATCH `/time-off-requests/:id` to `Approved`/`Rejected` requires `actorId === requester.managerId` OR `account_admin`; super_user without manager link → 403.
+- **Phase 8.2 — Bulk-approve skip breakdown**: `POST /time-entries/bulk-approve` and `POST /timesheets/bulk-approve` now return `{approved, skippedSelf, skippedOther}` (timesheets keeps legacy `skipped` for compat). Self-approval entries are silently skipped instead of aborting the batch.
+- **Phase 8.3 — Rate snapshot concurrency**: `snapshotRatesForTimesheet` now wraps reads + writes in a single `db.transaction` and acquires `pg_advisory_xact_lock(timesheetId)` so concurrent approve handlers serialize per timesheet. Per-row UPDATE keeps `isNull(appliedBillRate)` predicate as belt-and-braces.
+- **Phase 8.4 — Daily timesheet escalation cron**: `lib/timesheetEscalation.ts` finds Submitted timesheets > 5 days old whose user has a `managerId` and notifies that manager (`timesheet_escalation` notification type). Dedup via new `timesheets.escalatedAt` column. Wired into `lib/scheduler.ts` at `0 9 * * *` org timezone.
+
+**New tests (Sprint 2 / Phase 9B):**
+- `paginationEnvelope.test.ts` — array vs envelope, clamp at 500, default fallback on garbage.
+- `timeOffManagerScoping.test.ts` — stranger super_user 403, requester's manager 200, account_admin 200.
+- `bulkApproveSkipped.test.ts` — `time-entries/bulk-approve` returns split counts; self-entry silently skipped.
+- `rateSnapshotConcurrency.test.ts` — three parallel snapshot calls produce exactly one snapshot per entry; re-run is no-op.
+
+**Test suite:** 123 tests / 39 suites — all passing.
+
 ---
 
 ## Sprint Archive (pre-May 2026)

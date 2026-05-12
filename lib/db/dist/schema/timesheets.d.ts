@@ -224,6 +224,23 @@ export declare const timesheetsTable: import("drizzle-orm/pg-core").PgTableWithC
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        escalatedAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "escalated_at";
+            tableName: "timesheets";
+            dataType: "date";
+            columnType: "PgTimestamp";
+            data: Date;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "timesheets";
@@ -274,6 +291,7 @@ export declare const insertTimesheetSchema: z.ZodObject<{
     rejectedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
     rejectedByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     rejectionNote: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    escalatedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
 }, {
     out: {};
     in: {};

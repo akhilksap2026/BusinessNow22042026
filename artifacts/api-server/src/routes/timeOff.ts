@@ -95,6 +95,21 @@ router.patch("/time-off-requests/:id", requirePM, async (req, res): Promise<void
       res.status(403).json({ error: `You cannot ${newStatus.toLowerCase()} your own time-off request.` });
       return;
     }
+    // Sprint 2 / Phase 8.1 — Manager-scoped approval. Only the requester's
+    // manager (users.managerId) or an account_admin may approve/reject.
+    // super_user without a manager link gets 403.
+    const role = (req as any).authRole as string | undefined;
+    if (role !== "account_admin") {
+      const [requester] = await db.select({ managerId: usersTable.managerId })
+        .from(usersTable).where(eq(usersTable.id, existing.userId));
+      const managerId = requester?.managerId ?? null;
+      if (!actorId || managerId !== actorId) {
+        res.status(403).json({
+          error: "Only the requester's manager or an account admin can approve or reject this time-off request.",
+        });
+        return;
+      }
+    }
   }
   const [row] = await db.update(timeOffRequestsTable)
     .set({ ...parsed.data, updatedAt: new Date() } as any)

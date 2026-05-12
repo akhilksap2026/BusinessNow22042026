@@ -10,6 +10,7 @@ import cron from "node-cron";
 import { db, companySettingsTable } from "@workspace/db";
 import { logger } from "./logger";
 import { runUtilisationAlerts } from "./utilisationAlerts";
+import { runTimesheetEscalations } from "./timesheetEscalation";
 
 export async function startScheduler(): Promise<void> {
   const [settings] = await db
@@ -26,5 +27,12 @@ export async function startScheduler(): Promise<void> {
     { timezone },
   );
 
-  logger.info({ timezone }, "Scheduler started: utilisation alerts at Mon 08:00");
+  // Sprint 2 / Phase 8.4 — Timesheet SLA escalation, daily at 09:00 org tz
+  cron.schedule(
+    "0 9 * * *",
+    () => { void runTimesheetEscalations(); },
+    { timezone },
+  );
+
+  logger.info({ timezone }, "Scheduler started: utilisation Mon 08:00, escalations daily 09:00");
 }

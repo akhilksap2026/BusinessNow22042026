@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, asc, isNull, isNotNull, inArray, ne } from "drizzle-orm";
+import { eq, and, asc, isNull, isNotNull, inArray, ne, sql } from "drizzle-orm";
+import { parsePagination, envelope } from "../lib/pagination";
 import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { getTrackedHoursMap, getTrackedHours } from "../lib/trackedHours";
@@ -60,27 +61,35 @@ router.get("/projects", async (req, res): Promise<void> => {
   const conditions: ReturnType<typeof eq>[] = [isNull(projectsTable.deletedAt)];
   if (qp.success && qp.data.status) conditions.push(eq(projectsTable.status, qp.data.status));
   if (qp.success && qp.data.accountId) conditions.push(eq(projectsTable.accountId, qp.data.accountId));
-  // Draft project isolation guard: when callers fetch projects for the
-  // time-entry / timesheet selector, draft projects must be hidden so they
-  // can't have hours logged against them. Pass `?context=timesheet` from
-  // the timesheet row creator to opt in. Other callers (projects list,
-  // project detail, admin routes) keep seeing drafts.
   if (typeof req.query.context === "string" && req.query.context === "timesheet") {
     conditions.push(ne(projectsTable.status, "draft"));
   }
-  const rows = await db
+  const page = parsePagination(req.query as Record<string, unknown>);
+  const baseQuery = db
     .select({ project: projectsTable, accountName: accountsTable.name, accountDomain: accountsTable.domain, ownerName: usersTable.name })
     .from(projectsTable)
     .leftJoin(accountsTable, eq(projectsTable.accountId, accountsTable.id))
     .leftJoin(usersTable, eq(projectsTable.ownerId, usersTable.id))
     .where(and(...conditions));
+  const rows = page.paginated
+    ? await baseQuery.limit(page.limit).offset(page.offset)
+    : await baseQuery;
+  let total = rows.length;
+  if (page.paginated) {
+    const [{ c }] = await db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(projectsTable)
+      .where(and(...conditions));
+    total = Number(c);
+  }
   const thMap = await getTrackedHoursMap(rows.map(r => r.project.id));
-  res.json(ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain, ownerName }) => ({
+  const data = ListProjectsResponse.parse(rows.map(({ project, accountName, accountDomain, ownerName }) => ({
     ...mapProject(project, thMap.get(project.id) ?? 0),
     companyName: accountName ?? undefined,
     companyDomain: accountDomain ?? undefined,
     ownerName: ownerName ?? undefined,
-  }))));
+  })));
+  res.json(envelope(data, total, page));
 });
 
 router.post("/projects", requirePM, async (req, res): Promise<void> => {

@@ -16,6 +16,10 @@ export const timesheetsTable = pgTable("timesheets", {
   rejectedAt: timestamp("rejected_at", { withTimezone: true }),
   rejectedByUserId: integer("rejected_by_user_id"),
   rejectionNote: text("rejection_note"),
+  // Sprint 2 / Phase 8.4 — set when daily escalation cron notifies the
+  // requester's manager; nulled on any return-to-Draft so a re-submission
+  // is eligible to escalate again.
+  escalatedAt: timestamp("escalated_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -92,6 +96,7 @@ export const timeSettingsTable = pgTable("time_settings", {
   lockBeforeDate: text("lock_before_date"),
   weekStartDay: integer("week_start_day").notNull().default(1),
   minSubmitHours: integer("min_submit_hours").notNull().default(0),
+  // Sprint 2 / Phase 8.4 — placeholder for future per-org escalation SLA tuning.
   approverRoutingMode: text("approver_routing_mode").notNull().default("admin_default"),
   lockOnApprovalEnabled: boolean("lock_on_approval_enabled").notNull().default(false),
   statusLockEnabled: boolean("status_lock_enabled").notNull().default(false),

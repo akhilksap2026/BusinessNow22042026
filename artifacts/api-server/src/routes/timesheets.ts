@@ -335,24 +335,35 @@ router.post("/timesheets/bulk-approve", requirePM, async (req, res): Promise<voi
   const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const actorId = Number(req.headers["x-user-id"] ?? 0);
   const settings = await getGovernanceSettings();
-  const eligible = existing
-    .filter(t => t.status === "Submitted")
-    .filter(t => t.userId !== actorId)
+  // Sprint 2 / Phase 8.2 — Split skipped into skippedSelf vs skippedOther so
+  // the UI can tell "blocked because you submitted it" from "blocked because
+  // status/governance disallows it".
+  const submitted = existing.filter(t => t.status === "Submitted");
+  const skippedSelfIds = submitted.filter(t => t.userId === actorId).map(t => t.id);
+  const remaining = submitted.filter(t => t.userId !== actorId);
+  const eligible = remaining
     .filter(t => !checkTimesheetStatusChangeable(t, role, settings))
     .map(t => t.id);
-  if (eligible.length === 0) { res.json({ approved: 0, skipped: ids.length }); return; }
+  const skippedOtherIds = ids.filter(id => !eligible.includes(id) && !skippedSelfIds.includes(id));
+  if (eligible.length === 0) {
+    res.json({ approved: 0, skipped: ids.length, skippedSelf: skippedSelfIds.length, skippedOther: skippedOtherIds.length });
+    return;
+  }
   await db.update(timesheetsTable)
     .set({ status: "Approved", approvedAt: new Date(), approvedByUserId, rejectedAt: null, rejectedByUserId: null, rejectionNote: null })
     .where(inArray(timesheetsTable.id, eligible));
   for (const t of existing.filter(x => eligible.includes(x.id))) {
     await notifyUsers([t.userId], "timesheet_approved",
       `Your timesheet for the week of ${t.weekStart} has been approved.`, t.id);
-    // Snapshot rates + check effort overrun for each approved timesheet (fire-and-forget,
-    // matches single-approve path so historical cost data and overrun alerts stay consistent).
     snapshotRatesForTimesheet(t.id).catch(() => {});
     checkEffortOverrun(t.id).catch(() => {});
   }
-  res.json({ approved: eligible.length, skipped: ids.length - eligible.length });
+  res.json({
+    approved: eligible.length,
+    skipped: ids.length - eligible.length,
+    skippedSelf: skippedSelfIds.length,
+    skippedOther: skippedOtherIds.length,
+  });
 });
 
 // ─── Timesheet Messages (in-context conversation) ────────────────────────────

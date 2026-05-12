@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { parsePagination, envelope } from "../lib/pagination";
 import { db, accountsTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import {
@@ -26,10 +27,23 @@ function mapAccount(r: typeof accountsTable.$inferSelect) {
 
 router.get("/accounts", async (req, res): Promise<void> => {
   const typeFilter = typeof req.query.type === "string" ? req.query.type : undefined;
-  const rows = typeFilter
-    ? await db.select().from(accountsTable).where(eq(accountsTable.accountType, typeFilter)).orderBy(accountsTable.name)
-    : await db.select().from(accountsTable).orderBy(accountsTable.name);
-  res.json(ListAccountsResponse.parse(rows.map(mapAccount)));
+  const page = parsePagination(req.query as Record<string, unknown>);
+  const where = typeFilter ? eq(accountsTable.accountType, typeFilter) : undefined;
+  const baseSelect = where
+    ? db.select().from(accountsTable).where(where).orderBy(accountsTable.name)
+    : db.select().from(accountsTable).orderBy(accountsTable.name);
+  const rows = page.paginated
+    ? await baseSelect.limit(page.limit).offset(page.offset)
+    : await baseSelect;
+  let total = rows.length;
+  if (page.paginated) {
+    const [{ c }] = where
+      ? await db.select({ c: sql<number>`count(*)::int` }).from(accountsTable).where(where)
+      : await db.select({ c: sql<number>`count(*)::int` }).from(accountsTable);
+    total = Number(c);
+  }
+  const data = ListAccountsResponse.parse(rows.map(mapAccount));
+  res.json(envelope(data, total, page));
 });
 
 // Section E: keep `accountType` and `isInternal` in sync on every write so

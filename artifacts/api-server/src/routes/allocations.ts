@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte, isNull, inArray, ne } from "drizzle-orm";
+import { eq, and, gte, lte, isNull, inArray, ne, sql } from "drizzle-orm";
+import { parsePagination, envelope } from "../lib/pagination";
 import { requirePM } from "../middleware/rbac";
 import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable, projectsTable, userSkillsTable, skillsTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
@@ -127,10 +128,23 @@ router.get("/allocations", async (req, res): Promise<void> => {
   const conditions = [];
   if (qp.success && qp.data.projectId) conditions.push(eq(allocationsTable.projectId, qp.data.projectId));
   if (qp.success && qp.data.userId) conditions.push(eq(allocationsTable.userId, qp.data.userId));
-  const rows = conditions.length
-    ? await db.select().from(allocationsTable).where(and(...conditions))
-    : await db.select().from(allocationsTable);
-  res.json(ListAllocationsResponse.parse(rows.map(mapAllocation)));
+  const page = parsePagination(req.query as Record<string, unknown>);
+  const baseSelect = conditions.length
+    ? db.select().from(allocationsTable).where(and(...conditions))
+    : db.select().from(allocationsTable);
+  const rows = page.paginated
+    ? await baseSelect.limit(page.limit).offset(page.offset)
+    : await baseSelect;
+  let total = rows.length;
+  if (page.paginated) {
+    const baseCount = conditions.length
+      ? db.select({ c: sql<number>`count(*)::int` }).from(allocationsTable).where(and(...conditions))
+      : db.select({ c: sql<number>`count(*)::int` }).from(allocationsTable);
+    const [{ c }] = await baseCount;
+    total = Number(c);
+  }
+  const data = ListAllocationsResponse.parse(rows.map(mapAllocation));
+  res.json(envelope(data, total, page));
 });
 
 // ---------------------------------------------------------------------------
