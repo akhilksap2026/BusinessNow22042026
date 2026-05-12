@@ -1450,11 +1450,6 @@ export default function Admin() {
                       <CardDescription>Manage team members, roles, and permissions</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                      {canManageTeam && adminPageInviteRoles.length > 0 && (
-                        <Button size="sm" variant="outline" onClick={() => setInviteOpen(true)}>
-                          <Plus className="h-4 w-4 mr-2" /> Invite via Email
-                        </Button>
-                      )}
                       {canManageTeam && (
                         <Button size="sm" onClick={openAddUser}><Plus className="h-4 w-4 mr-2" /> Add User</Button>
                       )}
