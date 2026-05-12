@@ -129,7 +129,7 @@ describe("PATCH /api/projects/:id — out-of-range allocation detection", () => 
     assert.equal(res.status, 200, `PATCH failed: ${await res.text()}`);
 
     // Allow the fire-and-forget helper to complete.
-    await new Promise(r => setTimeout(r, 80));
+    await new Promise(r => setTimeout(r, 400));
 
     // Both allocations must be marked needs_review.
     const [upd1] = await db

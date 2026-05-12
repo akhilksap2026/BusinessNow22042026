@@ -312,6 +312,10 @@ router.post("/timesheets/bulk-approve", requirePM, async (req, res): Promise<voi
   for (const t of existing.filter(x => eligible.includes(x.id))) {
     await notifyUsers([t.userId], "timesheet_approved",
       `Your timesheet for the week of ${t.weekStart} has been approved.`, t.id);
+    // Snapshot rates + check effort overrun for each approved timesheet (fire-and-forget,
+    // matches single-approve path so historical cost data and overrun alerts stay consistent).
+    snapshotRatesForTimesheet(t.id).catch(() => {});
+    checkEffortOverrun(t.id).catch(() => {});
   }
   res.json({ approved: eligible.length, skipped: ids.length - eligible.length });
 });
