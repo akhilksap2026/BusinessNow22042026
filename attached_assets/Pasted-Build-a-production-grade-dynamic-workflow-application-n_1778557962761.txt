@@ -1,0 +1,108 @@
+Build a production-grade dynamic workflow / application navigation flow builder similar to Whimsical, Lucidchart, or FigJam.
+
+Tech Stack:
+- React
+- React Flow
+- TailwindCSS
+- Dagre or ELK.js for auto-layout
+- Zustand or Context API for state management
+
+Core Objective:
+The application must function as a generic, reusable flow-diagram engine.
+
+IMPORTANT:
+- Do NOT hardcode any node names, modules, pages, or business logic.
+- The graph structure must be fully data-driven and schema-based.
+- Nodes, relationships, labels, and layouts should all be generated dynamically from JSON input.
+- The system should support any type of application workflow, navigation map, process flow, or system architecture diagram.
+
+UI/UX Requirements:
+- Clean modern UI
+- Light background with dotted grid
+- Professional minimal styling
+- Smooth interactions and animations
+- Responsive layout
+- Zoom and pan support
+- Minimap support
+- Toolbar with controls
+
+Node Requirements:
+- Rectangular cards with subtle shadows
+- Light purple border/theme
+- Editable node title
+- Optional subtitle/metadata section
+- Dynamic sizing based on content
+- Drag-and-drop repositioning
+- Inline editing support
+
+Edge Requirements:
+- Smooth bezier curved edges
+- Directional arrowheads
+- Editable edge labels
+- Smart routing where possible
+- Animated edge option
+
+Functional Requirements:
+- Add/Edit/Delete nodes
+- Add/Edit/Delete edges
+- Drag-and-drop node creation
+- Auto-layout graph generation
+- Import JSON
+- Export JSON
+- Export PNG/SVG
+- Persist state locally
+- Undo/redo support
+- Real-time graph updates
+
+Input Format:
+The entire diagram should render dynamically from JSON like this:
+
+{
+  "nodes": [
+    {
+      "id": "node_1",
+      "label": "Section Name",
+      "subtitle": "Optional Metadata",
+      "position": {
+        "x": 100,
+        "y": 200
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "node_1",
+      "target": "node_2",
+      "label": "Action Name"
+    }
+  ]
+}
+
+Behavior Requirements:
+- If node positions are missing, auto-generate layout using Dagre/ELK.js.
+- Nodes should automatically space themselves cleanly.
+- Connections should remain attached during drag operations.
+- All rendering should be component-driven and reusable.
+- Architecture should be modular and scalable.
+
+Advanced Features:
+- Search nodes
+- Filter nodes
+- Collapsible groups/subflows
+- Keyboard shortcuts
+- Multi-select support
+- Snap-to-grid support
+- Context menu support
+- Theme switching (light/dark mode)
+
+Deliverables:
+- Fully runnable React application
+- Clean folder structure
+- Reusable components
+- Well-structured state management
+- Production-quality code
+- Sample dynamic JSON data
+- Instructions to run locally
+
+The final result should visually resemble professional workflow diagram tools used for UX flows, process mapping, and system architecture visualization.

@@ -31,6 +31,15 @@ import { useToast } from "@/hooks/use-toast";
 import { authHeaders } from "@/lib/auth-headers";
 import { ComposedChart, Area } from "recharts";
 
+const COST_FIELDS = new Set(["costRate", "appliedCostRate", "labourCost", "margin", "internalCost"]);
+
+function maskIfRestricted(value: any, userRole: string, field: string): string {
+  if (COST_FIELDS.has(field) && (userRole === "collaborator" || userRole === "customer")) {
+    return "—";
+  }
+  return value === null || value === undefined ? "—" : String(value);
+}
+
 function downloadCSV(filename: string, rows: Record<string, any>[]) {
   if (!rows.length) return;
   const keys = Object.keys(rows[0]);
@@ -1010,6 +1019,7 @@ function SaveViewButton({ entity, filters, disabled }: { entity: string; filters
 // ─── Utilization Sub-Report (grid) ────────────────────────────────────────────
 function UtilizationGridReport() {
   const { toast } = useToast();
+  const { activeRole } = useCurrentUser();
   const [from, setFrom] = useState(defaultRange(8)[0]);
   const [to, setTo] = useState(defaultRange(8)[1]);
   const [grouping, setGrouping] = useState<"week" | "month">("week");
@@ -1096,6 +1106,7 @@ function UtilizationGridReport() {
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="px-3 py-2 font-medium sticky left-0 bg-background z-10">Team Member</th>
                   <th className="px-2 py-2 font-medium text-right">Total</th>
+                  <th className="px-2 py-2 font-medium text-right">Labour Cost</th>
                   {periods.map((p: any) => <th key={p.key} className="px-2 py-2 font-medium text-center text-xs whitespace-nowrap">{p.label}</th>)}
                 </tr>
               </thead>
@@ -1111,6 +1122,13 @@ function UtilizationGridReport() {
                       <div className="text-xs text-muted-foreground font-normal">
                         {view === "overall" ? r.totals.trackedHours : r.totals.billableHours}h / {r.totals.availableHours}h
                       </div>
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums text-sm">
+                      {maskIfRestricted(
+                        r.totals.labourCost !== null ? `$${Number(r.totals.labourCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+                        activeRole,
+                        "labourCost"
+                      )}
                     </td>
                     {r.cells.map((c: any) => {
                       const val = view === "overall" ? c.utilization : c.billableUtilization;
