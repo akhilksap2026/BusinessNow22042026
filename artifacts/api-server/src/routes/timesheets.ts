@@ -204,7 +204,7 @@ router.post("/timesheets/:id/submit", async (req, res): Promise<void> => {
   }
   const submittedByUserId = (req.body as any)?.submittedByUserId ?? existing.userId;
   const [row] = await db.update(timesheetsTable)
-    .set({ status: "Submitted", submittedAt: new Date(), submittedByUserId })
+    .set({ status: "Submitted", submittedAt: new Date(), submittedByUserId, escalatedAt: null } as any)
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
   // Notify resolved approver(s)
@@ -246,7 +246,8 @@ router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void
       rejectedAt: null,
       rejectedByUserId: null,
       rejectionNote: null,
-    })
+      escalatedAt: null,
+    } as any)
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
   await notifyUsers([existing.userId], "timesheet_approved",
@@ -280,7 +281,10 @@ router.post("/timesheets/:id/unapprove", async (req, res): Promise<void> => {
       rejectedAt: null,
       rejectedByUserId: null,
       rejectionNote: null,
-    })
+      // Sprint 2 / Phase 8.4 — re-arm escalation: this timesheet is back in
+      // Submitted state, so the next stale-check should be eligible again.
+      escalatedAt: null,
+    } as any)
     .where(eq(timesheetsTable.id, id))
     .returning();
   await notifyUsers([existing.userId], "timesheet_unapproved",
@@ -317,7 +321,10 @@ router.post("/timesheets/:id/reject", async (req, res): Promise<void> => {
       rejectedByUserId,
       approvedAt: null,
       approvedByUserId: null,
-    })
+      // Sprint 2 / Phase 8.4 — clear escalation flag so a subsequent
+      // resubmit becomes eligible to escalate again.
+      escalatedAt: null,
+    } as any)
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
   const note = parsed.data.rejectionNote ? ` Reason: ${parsed.data.rejectionNote}` : "";
@@ -350,7 +357,7 @@ router.post("/timesheets/bulk-approve", requirePM, async (req, res): Promise<voi
     return;
   }
   await db.update(timesheetsTable)
-    .set({ status: "Approved", approvedAt: new Date(), approvedByUserId, rejectedAt: null, rejectedByUserId: null, rejectionNote: null })
+    .set({ status: "Approved", approvedAt: new Date(), approvedByUserId, rejectedAt: null, rejectedByUserId: null, rejectionNote: null, escalatedAt: null } as any)
     .where(inArray(timesheetsTable.id, eligible));
   for (const t of existing.filter(x => eligible.includes(x.id))) {
     await notifyUsers([t.userId], "timesheet_approved",
