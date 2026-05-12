@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useListSkills, useListUsers } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { authHeaders } from "@/lib/auth-headers";
 import { Search, RefreshCw, Eye, EyeOff } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -56,9 +56,10 @@ export default function SkillsMatrix() {
   async function loadMatrix() {
     setLoadingMatrix(true);
     try {
-      const res = await fetch("/api/user-skills");
+      const res = await fetch("/api/user-skills", { headers: authHeaders() });
+      if (!res.ok) throw new Error(`Failed to load skills (${res.status})`);
       const data = await res.json();
-      setUserSkills(data);
+      setUserSkills(Array.isArray(data) ? data : []);
     } catch {
       toast({ title: "Failed to load skills matrix", variant: "destructive" });
     } finally {
@@ -74,12 +75,12 @@ export default function SkillsMatrix() {
       const existing = userSkills.find(us => us.userId === userId && us.skillId === skillId);
       if (existing) {
         if (proficiencyLevel === "__remove__") {
-          await fetch(`/api/users/${userId}/skills/${skillId}`, { method: "DELETE" });
+          await fetch(`/api/users/${userId}/skills/${skillId}`, { method: "DELETE", headers: authHeaders() });
           setUserSkills(prev => prev.filter(us => !(us.userId === userId && us.skillId === skillId)));
         } else {
           await fetch(`/api/users/${userId}/skills/${skillId}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({ proficiencyLevel }),
           });
           setUserSkills(prev => prev.map(us =>
@@ -89,7 +90,7 @@ export default function SkillsMatrix() {
       } else if (proficiencyLevel !== "__remove__") {
         const res = await fetch(`/api/users/${userId}/skills`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({ skillId, proficiencyLevel }),
         });
         const newUs = await res.json();
@@ -249,9 +250,9 @@ export default function SkillsMatrix() {
           </thead>
           <tbody>
             {userGroups.map(group => (
-              <>
+              <Fragment key={group.label}>
                 {groupBy === "role" && (
-                  <tr key={`group-${group.label}`} className="bg-slate-50 dark:bg-slate-900/50">
+                  <tr className="bg-slate-50 dark:bg-slate-900/50">
                     <td colSpan={visibleSkills.length + 1} className="sticky left-0 px-3 py-1.5 font-semibold text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wide border-b border-slate-200">
                       {group.label} ({group.users.length})
                     </td>
@@ -314,7 +315,7 @@ export default function SkillsMatrix() {
                     })}
                   </tr>
                 ))}
-              </>
+              </Fragment>
             ))}
             {userList.length === 0 && (
               <tr>

@@ -1,0 +1,201 @@
+Act as a Senior Product Architect, UX Architect, and Technical Business Analyst.
+
+I want you to generate a complete developer-ready Functional UI/UX Specification Document for a web application.
+
+The document should be written in a structured manner so that:
+- Frontend developers can build screens directly from it
+- Backend developers understand data relationships
+- QA teams can derive test cases
+- UI/UX designers can create wireframes
+- Product managers can validate workflows
+
+IMPORTANT:
+Do NOT generate vague descriptions.
+The document must be implementation-oriented and extremely detailed.
+
+The application structure, modules, screens, entities, workflows, buttons, forms, validations, and relationships should all be clearly defined.
+
+For EACH SCREEN in the application, provide the following sections:
+
+1. Screen Overview
+- Purpose of the screen
+- Business objective
+- User roles who can access it
+
+2. Screen Layout
+- Header section
+- Sidebar/navigation
+- Main content area
+- Footer/actions area
+- Grid/table/form/card layout
+
+3. UI Components
+For every UI component specify:
+- Component type
+- Label/title
+- Mandatory or optional
+- Editable or read-only
+- Visibility conditions
+- Default values
+- Validation rules
+- Placeholder/help text
+
+4. Buttons & Actions
+For every button specify:
+- Button name
+- Position on screen
+- Visibility rules
+- Enable/disable conditions
+- Action performed
+- API/event triggered
+- Success behavior
+- Error behavior
+- Confirmation dialogs
+
+5. Table/Grid Specifications
+For every table specify:
+- Column name
+- Data type
+- Sortable or not
+- Filterable or not
+- Searchable or not
+- Mandatory or optional
+- Source entity/table
+- Relationship to other screens/entities
+- Click behavior/navigation
+
+6. Form Specifications
+For every form field specify:
+- Field name
+- Data type
+- Max length
+- Validation rules
+- Regex if applicable
+- Required/optional
+- Dependency on other fields
+- Dropdown source
+- API source
+- Conditional visibility logic
+
+7. Workflow & Navigation
+Describe:
+- How user enters the screen
+- Where user can navigate next
+- Workflow transitions
+- Role-based navigation
+- State transitions
+- Approval/rejection flows
+- Error handling flows
+
+8. Data Relationships
+Clearly define:
+- Entity relationships
+- Parent-child mappings
+- Foreign key style relationships
+- Cross-screen references
+- Linked records
+- Cascading behavior
+
+9. API Integration Requirements
+For each screen specify:
+- APIs consumed
+- Request payload structure
+- Response structure
+- Error responses
+- Loading states
+- Retry behavior
+
+10. State Management
+Describe:
+- Local state
+- Global state
+- Session state
+- Cache behavior
+- Unsaved changes handling
+
+11. Validation Rules
+Provide:
+- Frontend validation
+- Backend validation expectations
+- Business validations
+- Workflow validations
+
+12. Role-Based Access Control
+Define:
+- Which roles can view
+- Which roles can edit
+- Which roles can approve/reject
+- Hidden components by role
+
+13. Notifications & Alerts
+Define:
+- Success messages
+- Error messages
+- Warning messages
+- Toasts/modals
+- Email/system notification triggers
+
+14. Audit & Logging Requirements
+Specify:
+- User activity tracking
+- Change history
+- Audit fields
+- Timestamp handling
+
+15. Edge Cases & Exception Handling
+Provide:
+- Empty states
+- Invalid states
+- Permission issues
+- Concurrent edit handling
+- API failure behavior
+- Session expiry handling
+
+16. Responsive Design Requirements
+Specify:
+- Desktop behavior
+- Tablet behavior
+- Mobile behavior
+- Grid responsiveness
+- Table responsiveness
+
+17. Accessibility Requirements
+Specify:
+- Keyboard navigation
+- ARIA labels
+- Contrast expectations
+- Screen reader support
+
+18. Performance Requirements
+Specify:
+- Pagination requirements
+- Lazy loading
+- Infinite scroll
+- API throttling
+- Rendering optimization
+
+19. Suggested Frontend Architecture
+Provide:
+- Component hierarchy
+- Reusable components
+- Recommended folder structure
+- State management strategy
+- Form handling strategy
+
+20. Screen-to-Screen Relationship Matrix
+Create a matrix/table showing:
+- Source screen
+- Action
+- Destination screen
+- Data passed
+- Validation before navigation
+
+IMPORTANT OUTPUT REQUIREMENTS:
+- Use highly structured formatting
+- Use tables wherever possible
+- Use implementation-ready language
+- Avoid generic statements
+- Include real-world enterprise-grade considerations
+- Assume this document will be directly used by engineering teams
+
+The final output should resemble documentation used in large enterprise software companies before development begins.
