@@ -189,23 +189,37 @@ function UserConfigTab({ users, BASE, onRefresh }: {
   const { toast } = useToast();
   const [saving, setSaving] = useState<number | null>(null);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [draft, setDraft] = useState<string[]>([]);
 
-  async function toggleSecondaryRole(userId: number, currentSecondary: string[], primaryRole: string, role: string) {
-    if (role === primaryRole) return;
-    if (editingUserId !== userId) return;
-    const updated = currentSecondary.includes(role)
-      ? currentSecondary.filter(r => r !== role)
-      : [...currentSecondary, role];
+  function startEdit(userId: number, currentSecondary: string[]) {
+    setEditingUserId(userId);
+    setDraft([...currentSecondary]);
+  }
+
+  function cancelEdit() {
+    setEditingUserId(null);
+    setDraft([]);
+  }
+
+  function toggleDraftRole(role: string) {
+    setDraft(prev =>
+      prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
+    );
+  }
+
+  async function confirmEdit(userId: number) {
     setSaving(userId);
     try {
       const res = await fetch(`${BASE}/api/users/${userId}/secondary-roles`, {
         method: "PATCH",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ secondaryRoles: updated }),
+        body: JSON.stringify({ secondaryRoles: draft }),
       });
       if (!res.ok) throw new Error("Failed");
       onRefresh();
       toast({ title: "Roles updated" });
+      setEditingUserId(null);
+      setDraft([]);
     } catch {
       toast({ title: "Failed to update roles", variant: "destructive" });
     } finally {
@@ -234,6 +248,8 @@ function UserConfigTab({ users, BASE, onRefresh }: {
           <TableBody>
             {users.map(user => {
               const secondary = (user as any).secondaryRoles ?? [];
+              const editing = editingUserId === user.id;
+              const activeRoles = editing ? draft : secondary;
               return (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">
@@ -247,36 +263,62 @@ function UserConfigTab({ users, BASE, onRefresh }: {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        title={editingUserId === user.id ? "Done editing" : "Edit roles"}
-                        onClick={() => setEditingUserId(editingUserId === user.id ? null : user.id)}
-                      >
-                        {editingUserId === user.id ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
-                      </Button>
                       {ALL_ROLES.filter(r => r !== user.role).map(role => {
-                        const active = secondary.includes(role);
-                        const editing = editingUserId === user.id;
+                        const active = activeRoles.includes(role);
                         return (
                           <button
                             key={role}
                             disabled={saving === user.id || !editing}
-                            onClick={() => toggleSecondaryRole(user.id, secondary, user.role, role)}
+                            onClick={() => editing && toggleDraftRole(role)}
                             className={`px-2.5 py-1 text-xs rounded-full border font-medium transition-colors ${
                               active
                                 ? "bg-blue-600 text-white border-blue-600"
                                 : editing
                                   ? "bg-background text-muted-foreground border-border hover:border-blue-500 cursor-pointer"
-                                  : "bg-background text-muted-foreground border-border cursor-not-allowed opacity-70"
+                                  : "bg-background text-muted-foreground border-border cursor-default opacity-70"
                             }`}
                           >
                             {role}
                           </button>
                         );
                       })}
+                      {editing ? (
+                        <>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            title="Confirm"
+                            disabled={saving === user.id}
+                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => confirmEdit(user.id)}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            title="Cancel"
+                            disabled={saving === user.id}
+                            className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={cancelEdit}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          title="Edit roles"
+                          className="h-7 w-7 text-muted-foreground"
+                          onClick={() => startEdit(user.id, secondary)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
