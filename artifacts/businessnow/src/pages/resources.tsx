@@ -22,18 +22,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SavedViewsBar } from "@/components/saved-views-bar";
-import { type FieldDef, type FilterValue, EMPTY_FILTER, evaluateFilters } from "@/lib/filter-evaluator";
-
-const REQUEST_STATUSES = ["Pending", "In Review", "Alternative Proposed", "Approved", "Blocked", "Rejected", "Fulfilled", "Cancelled"];
-
-const REQUEST_FIELDS: FieldDef[] = [
-  { id: "status", label: "Status", type: "enum", options: REQUEST_STATUSES.map(s => ({ value: s, label: s })) },
-  { id: "role", label: "Role", type: "text" },
-  { id: "skillName", label: "Skill", type: "text" },
-  { id: "hours", label: "Hours", type: "number" },
-  { id: "neededByDate", label: "Needed by", type: "date" },
-];
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,6 +31,8 @@ import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTria
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
+
+const REQUEST_STATUSES = ["Pending", "In Review", "Alternative Proposed", "Approved", "Blocked", "Rejected", "Fulfilled", "Cancelled"];
 
 const PROFICIENCY_RANK: Record<string, number> = { "Needs Help": 1, "Independent": 2, "Can Lead": 3 };
 
@@ -281,8 +271,6 @@ export default function Resources() {
   const [chatMessages, setChatMessages] = useState<Record<number, any[]>>({});
   const [chatInput, setChatInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [peopleViewFilter, setPeopleViewFilter] = useState<FilterValue>(EMPTY_FILTER);
-  const [requestsViewFilter, setRequestsViewFilter] = useState<FilterValue>(EMPTY_FILTER);
   const [allUserSkills, setAllUserSkills] = useState<any[]>([]);
   const [showLowMatchMap, setShowLowMatchMap] = useState<Record<number, boolean>>({});
 
@@ -361,21 +349,12 @@ export default function Resources() {
   const allRequests = (requests ?? []) as any[];
 
   const baseFilteredRequests = statusFilter === "all" ? allRequests : allRequests.filter((r: any) => r.status === statusFilter);
-  const filteredRequests = evaluateFilters(baseFilteredRequests, REQUEST_FIELDS, requestsViewFilter);
+  const filteredRequests = baseFilteredRequests;
 
   const departmentOptions = useMemo(
     () => [...new Set((capacity ?? []).map((u: any) => u.department).filter(Boolean))].sort().map((d: any) => ({ value: d, label: d })),
     [capacity],
   );
-  const peopleFields: FieldDef[] = useMemo(() => ([
-    { id: "userName", label: "Name", type: "text" },
-    { id: "department", label: "Department", type: "enum", options: departmentOptions },
-    { id: "role", label: "Role", type: "text" },
-    { id: "utilizationPercent", label: "Utilization %", type: "number" },
-    { id: "capacity", label: "Capacity (h)", type: "number" },
-    { id: "available", label: "Available (h)", type: "number" },
-  ]), [departmentOptions]);
-
   const { data: rawAllocs } = useListAllocations();
   function forecastedUtil(userId: number, proposedHpw: number, ignoreSoftFlag: boolean): { current: number; proposed: number; capacity: number; pct: number } {
     const cap = (getUser(userId) as any)?.capacity ?? 40;
@@ -647,9 +626,6 @@ export default function Resources() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="mb-4">
-                  <SavedViewsBar entity="people" fields={peopleFields} value={peopleViewFilter} onChange={setPeopleViewFilter} />
-                </div>
                 {isLoading ? (
                   <div className="space-y-4">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
                 ) : (() => {
@@ -659,7 +635,7 @@ export default function Resources() {
                     const matchDept = deptFilter === "all" || u.department === deptFilter;
                     return matchSearch && matchDept;
                   });
-                  const filtered = evaluateFilters(baseFiltered, peopleFields, peopleViewFilter);
+                  const filtered = baseFiltered;
                   return (
                   <Table>
                     <TableHeader>
@@ -751,7 +727,6 @@ export default function Resources() {
           </TabsContent>
 
           <TabsContent value="requests" className="m-0 space-y-4">
-            <SavedViewsBar entity="resource_requests" fields={REQUEST_FIELDS} value={requestsViewFilter} onChange={setRequestsViewFilter} />
             <div className="flex flex-wrap items-center gap-3">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>

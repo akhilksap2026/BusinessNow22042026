@@ -21,32 +21,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { SavedViewsBar } from "@/components/saved-views-bar";
-import { type FieldDef, type FilterValue, EMPTY_FILTER, evaluateFilters } from "@/lib/filter-evaluator";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
-
-const PROJECT_FIELDS: FieldDef[] = [
-  { id: "name", label: "Name", type: "text" },
-  { id: "status", label: "Status", type: "enum", options: [
-    { value: "Not Started", label: "Not Started" },
-    { value: "In Progress", label: "In Progress" },
-    { value: "At Risk", label: "At Risk" },
-    { value: "Completed", label: "Completed" },
-  ] },
-  { id: "health", label: "Health", type: "enum", options: [
-    { value: "On Track", label: "On Track" },
-    { value: "At Risk", label: "At Risk" },
-    { value: "Off Track", label: "Off Track" },
-  ] },
-  { id: "internalExternal", label: "Type", type: "enum", options: [
-    { value: "Internal", label: "Internal" },
-    { value: "External", label: "External" },
-  ] },
-  { id: "startDate", label: "Start date", type: "date" },
-  { id: "endDate", label: "End date", type: "date" },
-  { id: "budget", label: "Budget", type: "number" },
-];
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -78,7 +54,6 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("All Health");
   const [showArchived, setShowArchived] = useState(false);
-  const [viewFilter, setViewFilter] = useState<FilterValue>(EMPTY_FILTER);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [confirmArchive, setConfirmArchive] = useState<{ id: number; name: string } | null>(null);
   const [confirmBulkArchive, setConfirmBulkArchive] = useState(false);
@@ -181,9 +156,9 @@ export default function Projects() {
     .filter(p => statusFilter === "All" || p.status === statusFilter)
     .filter(p => healthFilter === "All Health" || p.health === healthFilter)
     .filter(p => !searchText || p.name.toLowerCase().includes(searchText.toLowerCase()));
-  const visibleProjects = evaluateFilters(baseFiltered, PROJECT_FIELDS, viewFilter);
+  const visibleProjects = baseFiltered;
 
-  const hasActiveFilters = statusFilter !== "All" || healthFilter !== "All Health" || searchText || viewFilter.conditions.length > 0;
+  const hasActiveFilters = statusFilter !== "All" || healthFilter !== "All Health" || !!searchText;
 
   function clearFilters() {
     setStatusFilter("All");
@@ -293,9 +268,7 @@ export default function Projects() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <SavedViewsBar entity="projects" fields={PROJECT_FIELDS} value={viewFilter} onChange={setViewFilter} />
-        </div>
+
 
         <Card>
           <CardHeader>
