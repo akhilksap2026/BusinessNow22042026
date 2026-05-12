@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star, TrendingUp, AlertTriangle, CheckCircle2, Zap, Bell, FolderOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Undo2, Clock, X, Lock, Umbrella, Star, TrendingUp, AlertTriangle, CheckCircle2, Zap, Bell, FolderOpen, Copy } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TreeToggle } from "@/components/task-tree";
 import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
@@ -140,6 +140,49 @@ export function TimesheetGrid({ userId, weekStartDay = 1, initialWeekStart }: { 
   const { data: weekTimesheets } = useListTimesheets({ userId, weekStart: weekStartStr }, { query: { queryKey: getListTimesheetsQueryKey({ userId, weekStart: weekStartStr }) } });
   const timesheet = weekTimesheets?.[0];
   const isLocked = timesheet?.status === "Submitted" || timesheet?.status === "Approved";
+
+  // Sprint 3 / 7.4 — Copy from last week. Pulls every entry whose date falls
+  // in the previous week and re-creates it for the corresponding day of the
+  // current week (same project / task / activity / billable / description).
+  const [copyingLastWeek, setCopyingLastWeek] = useState(false);
+  async function onCopyFromLastWeek() {
+    if (isLocked) return;
+    setCopyingLastWeek(true);
+    try {
+      const prevStart = addDays(currentWeekStart, -7);
+      const prevStartStr = format(prevStart, "yyyy-MM-dd");
+      const prevEndStr = format(addDays(prevStart, 6), "yyyy-MM-dd");
+      const params = new URLSearchParams({ userId: String(userId), startDate: prevStartStr, endDate: prevEndStr });
+      const r = await fetch(`/api/time-entries?${params.toString()}`, { headers: authHeaders() });
+      if (!r.ok) throw new Error("fetch prev week failed");
+      const prev: Array<{ projectId?: number; taskId?: number; activityName?: string | null; categoryId?: number | null; description?: string | null; billable?: boolean; date: string; hours: number }> = await r.json();
+      if (prev.length === 0) {
+        toast({ title: "Nothing to copy", description: "No time was logged in the previous week." });
+        return;
+      }
+      let created = 0;
+      for (const e of prev) {
+        const dayOffset = Math.round((new Date(e.date).getTime() - prevStart.getTime()) / 86400_000);
+        const newDate = format(addDays(currentWeekStart, dayOffset), "yyyy-MM-dd");
+        const payload: any = {
+          userId, projectId: e.projectId, taskId: e.taskId,
+          date: newDate, hours: e.hours, billable: !!e.billable,
+        };
+        if (e.activityName) payload.activityName = e.activityName;
+        if (e.categoryId) payload.categoryId = e.categoryId;
+        if (e.description) payload.description = e.description;
+        try { await createTimeEntry.mutateAsync({ data: payload }); created++; } catch { /* skip individual failures */ }
+      }
+      toast({ title: `Copied ${created} entr${created === 1 ? "y" : "ies"} from last week` });
+      queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey({ userId }) });
+      queryClient.invalidateQueries({ queryKey: getListTimeEntriesQueryKey({ userId, startDate: weekStartStr, endDate: weekEndStr }) });
+      queryClient.invalidateQueries({ queryKey: getListTimesheetsQueryKey({ userId, weekStart: weekStartStr }) });
+    } catch (err: any) {
+      toast({ title: "Copy from last week failed", description: err?.message ?? "Please try again.", variant: "destructive" });
+    } finally {
+      setCopyingLastWeek(false);
+    }
+  }
 
   const { data: timeEntries } = useListTimeEntries({ userId, startDate: weekStartStr, endDate: weekEndStr }, {
     query: { queryKey: getListTimeEntriesQueryKey({ userId, startDate: weekStartStr, endDate: weekEndStr }) }
@@ -933,6 +976,19 @@ export function TimesheetGrid({ userId, weekStartDay = 1, initialWeekStart }: { 
           <Button variant="outline" size="icon" onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          {!isLocked && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-2 gap-1.5"
+              onClick={onCopyFromLastWeek}
+              disabled={copyingLastWeek}
+              title="Copy this week's time entries from the previous week"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              {copyingLastWeek ? "Copying…" : "Copy last week"}
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {timesheet && (

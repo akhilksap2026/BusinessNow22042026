@@ -21,7 +21,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateProjectWizard } from "@/components/create-project-wizard";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useUndoableMutation } from "@/hooks/use-undoable-mutation";
 import { EmptyState } from "@/components/ui/empty-state";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
@@ -55,8 +55,6 @@ export default function Projects() {
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("All Health");
   const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [confirmArchive, setConfirmArchive] = useState<{ id: number; name: string } | null>(null);
-  const [confirmBulkArchive, setConfirmBulkArchive] = useState(false);
   const qc = useQueryClient();
   const { toast } = useToast();
   const deleteMut = useDeleteProject();
@@ -88,18 +86,23 @@ export default function Projects() {
     onError: () => toast({ title: "Failed to restore project", variant: "destructive" }),
   });
 
-  function handleDelete(id: number, name: string) {
-    setConfirmArchive({ id, name });
+  const undoable = useUndoableMutation();
+
+  async function restoreOne(id: number) {
+    const res = await fetch(`${BASE}/api/projects/${id}/restore`, { method: "POST", headers: authHeaders() });
+    if (!res.ok) throw new Error("restore failed");
   }
 
-  function doArchive(id: number, name: string) {
-    deleteMut.mutate({ id }, {
-      onSuccess: () => {
-        qc.invalidateQueries({ queryKey: ["projects"] });
-        toast({ title: "Project archived", description: `"${name}" has been archived.` });
-        setConfirmArchive(null);
-      },
-      onError: () => toast({ title: "Failed to archive project", variant: "destructive" }),
+  function handleDelete(id: number, name: string) {
+    void undoable.run({
+      do: () => deleteMut.mutateAsync({ id }),
+      undo: () => restoreOne(id),
+      successTitle: "Project archived",
+      description: `"${name}" was archived.`,
+      undoSuccessTitle: "Project restored",
+    }).finally(() => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["projects-deleted"] });
     });
   }
 
@@ -119,17 +122,32 @@ export default function Projects() {
     }
   }
 
-  function handleBulkArchive() {
-    setConfirmBulkArchive(true);
-  }
-
-  function doBulkArchive() {
-    Promise.all([...selectedIds].map(id => deleteMut.mutateAsync({ id }))).then(() => {
-      qc.invalidateQueries({ queryKey: ["projects"] });
-      toast({ title: `${selectedIds.size} project${selectedIds.size !== 1 ? "s" : ""} archived` });
-      setSelectedIds(new Set());
-      setConfirmBulkArchive(false);
-    }).catch(() => toast({ title: "Some projects failed to archive", variant: "destructive" }));
+  async function handleBulkArchive() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    // Use allSettled so a single failure does not strand the rest of the
+    // batch without recovery — the toast offers Undo for whatever succeeded.
+    const results = await Promise.allSettled(ids.map(id => deleteMut.mutateAsync({ id })));
+    const succeeded = ids.filter((_, i) => results[i].status === "fulfilled");
+    const failed = ids.length - succeeded.length;
+    qc.invalidateQueries({ queryKey: ["projects"] });
+    qc.invalidateQueries({ queryKey: ["projects-deleted"] });
+    setSelectedIds(new Set());
+    if (succeeded.length === 0) {
+      toast({ title: "Failed to archive projects", variant: "destructive" });
+      return;
+    }
+    void undoable.run({
+      do: () => Promise.resolve(),
+      undo: async () => {
+        const undoResults = await Promise.allSettled(succeeded.map(id => restoreOne(id)));
+        qc.invalidateQueries({ queryKey: ["projects"] });
+        qc.invalidateQueries({ queryKey: ["projects-deleted"] });
+        if (undoResults.some(r => r.status === "rejected")) throw new Error("partial undo");
+      },
+      successTitle: `${succeeded.length} project${succeeded.length !== 1 ? "s" : ""} archived${failed ? ` (${failed} failed)` : ""}`,
+      undoSuccessTitle: "Projects restored",
+    });
   }
 
   function handleBulkExport() {
@@ -535,27 +553,6 @@ export default function Projects() {
 
         <CreateProjectWizard open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 
-        <ConfirmDialog
-          open={!!confirmArchive}
-          onOpenChange={open => { if (!open) setConfirmArchive(null); }}
-          title={`Archive "${confirmArchive?.name}"?`}
-          description="The project will be hidden from all views but can be recovered by an admin at any time."
-          confirmLabel="Archive"
-          variant="destructive"
-          onConfirm={() => confirmArchive && doArchive(confirmArchive.id, confirmArchive.name)}
-          isLoading={deleteMut.isPending}
-        />
-
-        <ConfirmDialog
-          open={confirmBulkArchive}
-          onOpenChange={setConfirmBulkArchive}
-          title={`Archive ${selectedIds.size} project${selectedIds.size !== 1 ? "s" : ""}?`}
-          description="These projects will be hidden from all views but can be recovered by an admin at any time."
-          confirmLabel="Archive All"
-          variant="destructive"
-          onConfirm={doBulkArchive}
-          isLoading={deleteMut.isPending}
-        />
       </div>
     </Layout>
   );

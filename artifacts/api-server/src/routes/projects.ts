@@ -286,7 +286,7 @@ router.delete("/projects/:id", requirePM, async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-router.post("/projects/:id/restore", requireAdmin, async (req, res): Promise<void> => {
+router.post("/projects/:id/restore", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [row] = await db.update(projectsTable).set({ deletedAt: null } as any).where(eq(projectsTable.id, id)).returning();

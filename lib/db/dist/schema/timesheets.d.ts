@@ -1195,6 +1195,23 @@ export declare const timeSettingsTable: import("drizzle-orm/pg-core").PgTableWit
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        escalationDaysAfter: import("drizzle-orm/pg-core").PgColumn<{
+            name: "escalation_days_after";
+            tableName: "time_settings";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         trackTimeAgainst: import("drizzle-orm/pg-core").PgColumn<{
             name: "track_time_against";
             tableName: "time_settings";
@@ -1713,6 +1730,7 @@ export declare const insertTimeSettingsSchema: z.ZodObject<{
     timesheetDueTime: z.ZodOptional<z.ZodString>;
     reminderDaysBefore: z.ZodOptional<z.ZodInt>;
     reminderDaysAfter: z.ZodOptional<z.ZodInt>;
+    escalationDaysAfter: z.ZodOptional<z.ZodInt>;
     trackTimeAgainst: z.ZodOptional<z.ZodString>;
     reportingScope: z.ZodOptional<z.ZodString>;
     maxSubmitHours: z.ZodOptional<z.ZodNullable<z.ZodInt>>;

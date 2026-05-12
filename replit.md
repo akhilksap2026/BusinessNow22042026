@@ -159,7 +159,20 @@ Full-stack Professional Services Automation platform for KSAP Technology. Modele
 
 **Sprint 2 architect-fix follow-up:** `escalatedAt` is now reset to NULL on every status transition (approve, unapprove, reject, bulk-approve, withdraw-to-Draft via PATCH, and resubmit) so escalation properly re-arms across the timesheet lifecycle.
 
-**Test suite:** 124 tests / 40 suites — all passing.
+**Sprint 2 gap closures (May 2026):**
+- Gap 3: `time_settings.escalation_days_after` int (default 5) — `timesheetEscalation.ts` reads it; ≤0 disables escalation cron.
+- Gap 1: `tests/fullLifecycle.test.ts` — Opportunity → Project → Task → Time → Timesheet (submit/approve) → Invoice → RevRec end-to-end.
+- Gap 5: EXPLAIN ANALYZE on `GET /projects` confirms 3 queries, no N+1 (batched tracked-hours HashAggregate).
+
+**Test suite:** 125 tests / 41 suites — all passing.
+
+### 7. Sprint 3 — UX polish (current)
+- **7.1** Sticky table headers — `TableHeader` (`components/ui/table.tsx`) sticky-by-default with backdrop blur; opt-out via `sticky={false}`.
+- **7.3** Undo toasts replace ConfirmDialog for project archive (single + bulk) in `pages/projects.tsx` via `useUndoableMutation` + `POST /api/projects/:id/restore`.
+- **7.4** "Copy last week" button in `timesheet-grid.tsx` week nav — fetches prev-week entries and re-creates them on the matching day of the current week (skips locked weeks).
+- **7.5** Breadcrumbs already shipped via `PageHeader` auto-derive (Admin/Finance/Resources).
+- **7.8** Command palette (`components/command-palette.tsx`) mounted in `layout.tsx`; Cmd/Ctrl-K toggles. Navigate + quick-action commands (cmdk).
+- 7.2 / 7.6 / 7.7 deferred.
 
 ---
 

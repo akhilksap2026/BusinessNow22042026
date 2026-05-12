@@ -107,6 +107,9 @@ export const timeSettingsTable = pgTable("time_settings", {
   timesheetDueTime: text("timesheet_due_time").notNull().default("17:00"),
   reminderDaysBefore: integer("reminder_days_before").notNull().default(0),
   reminderDaysAfter: integer("reminder_days_after").notNull().default(0),
+  // Sprint 2 / Phase 8.4 — SLA threshold in days for the daily timesheet
+  // escalation cron. NULL/<=0 disables escalation. Defaults to 5.
+  escalationDaysAfter: integer("escalation_days_after").notNull().default(5),
   trackTimeAgainst: text("track_time_against").notNull().default("task,activity"),
   reportingScope: text("reporting_scope").notNull().default("assigned"),
   maxSubmitHours: integer("max_submit_hours"),

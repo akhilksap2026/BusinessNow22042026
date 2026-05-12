@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CommandPalette } from "@/components/command-palette";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -724,6 +725,8 @@ export function Layout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+
+      <CommandPalette />
     </div>
   );
 }
