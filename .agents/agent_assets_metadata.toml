@@ -96,3 +96,9 @@ id = "6Vf4p68bmn-UQEQZNj5HO"
 uri = "file://docs/admin-module-functional-narrative.md"
 type = "text"
 title = "Admin Module — Functional Narrative"
+
+[[outputs]]
+id = "84IJgSwPEXyxtpSf5YVBF"
+uri = "file://exports/sitemap.md"
+type = "text"
+title = "BusinessNow PSA — Sitemap"

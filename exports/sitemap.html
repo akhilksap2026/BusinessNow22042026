@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BusinessNow PSA — Sitemap</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f8f9fb;
+    color: #1e1e2e;
+    padding: 40px 24px 80px;
+    line-height: 1.5;
+  }
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #e2e4ef;
+  }
+  .logo {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e1e2e;
+  }
+  header p {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  .meta {
+    margin-left: auto;
+    text-align: right;
+    font-size: 12px;
+    color: #9ca3af;
+  }
+  section { margin-bottom: 32px; }
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6366f1;
+    margin-bottom: 12px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  thead tr { background: #f4f4fb; }
+  thead th {
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 12px;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  tbody tr { border-bottom: 1px solid #f0f0f6; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { padding: 9px 14px; color: #374151; vertical-align: top; }
+  td.path {
+    font-family: 'Courier New', monospace;
+    font-size: 12.5px;
+    color: #6366f1;
+    white-space: nowrap;
+  }
+  td.tab { font-weight: 500; color: #1e1e2e; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-all { background: #ede9fe; color: #6d28d9; }
+  .badge-perm { background: #fef3c7; color: #92400e; }
+  .badge-pub { background: #d1fae5; color: #065f46; }
+  .badge-sys { background: #f3f4f6; color: #6b7280; }
+  .divider {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 600px) { .divider { grid-template-columns: 1fr; } }
+  .redirect-arrow { color: #9ca3af; margin: 0 4px; }
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e4ef;
+    font-size: 12px;
+    color: #9ca3af;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="logo">BN</div>
+    <div>
+      <h1>BusinessNow PSA</h1>
+      <p>Application Sitemap — KSAP Technology</p>
+    </div>
+    <div class="meta">
+      Generated: May 2026<br>
+      Version: Sprint 3
+    </div>
+  </header>
+
+  <!-- TOP-LEVEL ROUTES -->
+  <section>
+    <h2>Top-Level Routes</h2>
+    <table>
+      <thead>
+        <tr><th>Path</th><th>Page</th><th>Access</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="path">/login</td><td>Login</td><td><span class="badge badge-pub">Public</span></td></tr>
+        <tr><td class="path">/</td><td>Dashboard</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/projects</td><td>Projects List</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/projects/:id</td><td>Project Detail</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/accounts</td><td>Accounts</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/prospects</td><td>Prospects</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/opportunities</td><td>Opportunities</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/time</td><td>Time Tracking</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/resources</td><td>Resources</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/finance</td><td>Finance</td><td><span class="badge badge-perm">invoicing.view</span></td></tr>
+        <tr><td class="path">/reports</td><td>Reports</td><td><span class="badge badge-perm">reports.viewStandard</span></td></tr>
+        <tr><td class="path">/command-center</td><td>Command Center</td><td><span class="badge badge-perm">settings.manageTeam</span></td></tr>
+        <tr><td class="path">/admin</td><td>Admin</td><td><span class="badge badge-perm">settings.manageTeam</span></td></tr>
+        <tr><td class="path">/notifications</td><td>Notifications</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td class="path">/forbidden</td><td>403 Forbidden</td><td><span class="badge badge-sys">System</span></td></tr>
+        <tr><td class="path">*</td><td>404 Not Found</td><td><span class="badge badge-sys">System</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- REDIRECTS -->
+  <section>
+    <h2>Redirects</h2>
+    <table>
+      <thead>
+        <tr><th>From</th><th>To</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="path">/time-tracking</td><td class="path">/time</td></tr>
+        <tr><td class="path">/admin/portfolio</td><td class="path">/command-center</td></tr>
+        <tr><td class="path">/rate-cards</td><td class="path">/admin?tab=ratecards</td></tr>
+        <tr><td class="path">/admin/rate-cards</td><td class="path">/admin?tab=ratecards</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DETAILED SUB-SECTIONS -->
+  <div class="divider">
+
+    <!-- PROJECT DETAIL -->
+    <section>
+      <h2>Project Detail — Tabs</h2>
+      <table>
+        <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td class="tab">Tasks</td><td>Tree view, Kanban, Gantt chart</td></tr>
+          <tr><td class="tab">RAID</td><td>Risks, Actions, Issues, Decisions</td></tr>
+          <tr><td class="tab">Resources</td><td>Allocations, requests, placeholders</td></tr>
+          <tr><td class="tab">Financials</td><td>Budget history, change orders, cost entries, asset bookings</td></tr>
+          <tr><td class="tab">Documents</td><td>Project documents, form submissions</td></tr>
+          <tr><td class="tab">Updates</td><td>Project update posts, recipients</td></tr>
+          <tr><td class="tab">CSAT</td><td>Star ratings and distribution</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- FINANCE -->
+    <section>
+      <h2>Finance — Tabs</h2>
+      <table>
+        <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td class="tab">Invoices</td><td>List, send, record payment, print</td></tr>
+          <tr><td class="tab">Billing Schedules</td><td>Milestone-based billing</td></tr>
+          <tr><td class="tab">Revenue Recognition</td><td>Monthly revenue entries</td></tr>
+          <tr><td class="tab">Contracts</td><td>Contract CRUD per project</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- TIME TRACKING -->
+    <section>
+      <h2>Time Tracking — Tabs</h2>
+      <table>
+        <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td class="tab">Time Entries</td><td>Log and manage individual entries</td></tr>
+          <tr><td class="tab">Timesheets</td><td>Weekly grid, submit and approve flow</td></tr>
+          <tr><td class="tab">Time Off</td><td>Submit and manage leave requests</td></tr>
+          <tr><td class="tab">AI Assistant</td><td>NL entry, auto-suggest, wizard</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- RESOURCES -->
+    <section>
+      <h2>Resources — Tabs</h2>
+      <table>
+        <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td class="tab">Capacity</td><td>Utilisation grid, skill badges</td></tr>
+          <tr><td class="tab">Bench</td><td>Unallocated team members</td></tr>
+          <tr><td class="tab">Resource Requests</td><td>Open requests, status tracking</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- REPORTS -->
+    <section>
+      <h2>Reports — Tabs</h2>
+      <table>
+        <thead><tr><th>Tab</th></tr></thead>
+        <tbody>
+          <tr><td class="tab">Performance</td></tr>
+          <tr><td class="tab">Operations</td></tr>
+          <tr><td class="tab">CSAT Trend</td></tr>
+          <tr><td class="tab">Interval IQ</td></tr>
+          <tr><td class="tab">Budget vs Actuals</td></tr>
+          <tr><td class="tab">Burn-Down</td></tr>
+          <tr><td class="tab">Revenue</td></tr>
+          <tr><td class="tab">Utilisation</td></tr>
+          <tr><td class="tab">Project Health</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ADMIN -->
+    <section>
+      <h2>Admin — Tabs</h2>
+      <table>
+        <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td class="tab">Users</td><td>Roles, skills, secondary roles</td></tr>
+          <tr><td class="tab">Project Templates</td><td>Template phases and tasks</td></tr>
+          <tr><td class="tab">Document Templates</td><td>Reusable document content</td></tr>
+          <tr><td class="tab">Skills Matrix</td><td>Skill definitions</td></tr>
+          <tr><td class="tab">Tax Codes</td><td>Tax rate management</td></tr>
+          <tr><td class="tab">Rate Cards</td><td>Billing rate configuration</td></tr>
+          <tr><td class="tab">Custom Fields</td><td>Global field definitions</td></tr>
+          <tr><td class="tab">Holiday Calendars</td><td>Org-wide calendar management</td></tr>
+          <tr><td class="tab">Archived Projects</td><td>Soft-deleted project list</td></tr>
+          <tr><td class="tab">Audit Log</td><td>System activity log with action and date filters</td></tr>
+          <tr><td class="tab">Company Settings</td><td>Name, logo, colour, timezone, currency</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+
+  <!-- GLOBAL FEATURES -->
+  <section>
+    <h2>Global / Layout-Level Features</h2>
+    <table>
+      <thead><tr><th>Feature</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td>Sidebar navigation (collapsible to icon rail)</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td>Command palette — <code>Cmd / Ctrl + K</code></td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td>Notification bell with unread badge</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td>Role selector modal (multi-role users)</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td>Global error toasts</td><td><span class="badge badge-all">All roles</span></td></tr>
+        <tr><td>Onboarding checklist (dismissible)</td><td><span class="badge badge-perm">account_admin only</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    BusinessNow PSA Platform &mdash; KSAP Technology &mdash; Confidential
+  </footer>
+
+</div>
+</body>
+</html>
