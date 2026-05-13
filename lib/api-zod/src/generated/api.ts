@@ -826,8 +826,10 @@ export const CreateInvoiceBody = zod.object({
   issueDate: zod.string(),
   dueDate: zod.string(),
   amount: zod.number(),
-  tax: zod.number(),
+  tax: zod.number().optional().default(0),
+  taxCodeId: zod.number().optional(),
   description: zod.string(),
+  notes: zod.string().optional(),
 });
 
 /**

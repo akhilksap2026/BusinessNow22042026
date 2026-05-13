@@ -49,12 +49,13 @@ function mapProject(p: typeof projectsTable.$inferSelect, trackedHours: number =
   let health: string | null = p.health ?? null;
   if (!health) {
     const closedStatuses = ["Completed", "Cancelled", "Archived", "On Hold"];
-    if (p.endDate && !closedStatuses.includes(p.status ?? "")) {
+    const endDateVal = (p as any).endDate ?? (p as any).dueDate ?? null;
+    if (endDateVal && !closedStatuses.includes(p.status ?? "")) {
       const today = new Date().toISOString().slice(0, 10);
-      if (p.endDate < today) {
+      if (endDateVal < today) {
         health = "Red";
       } else {
-        const daysLeft = Math.ceil((new Date(p.endDate).getTime() - Date.now()) / 86400000);
+        const daysLeft = Math.ceil((new Date(endDateVal).getTime() - Date.now()) / 86400000);
         if (daysLeft <= 14) health = "Amber";
         else health = "Green";
       }

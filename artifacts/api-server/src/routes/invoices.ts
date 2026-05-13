@@ -73,7 +73,7 @@ router.post("/invoices", requireFinance, async (req, res): Promise<void> => {
   const taxCodeId = (parsed.data as any).taxCodeId ?? req.body.taxCodeId;
   if (taxCodeId) {
     const [tc] = await db.select().from(taxCodesTable).where(eq(taxCodesTable.id, Number(taxCodeId)));
-    if (tc) computedTax = Math.round(Number(parsed.data.amount) * Number(tc.rate) * 100) / 100;
+    if (tc) computedTax = Math.round(Number(parsed.data.amount) * Number(tc.rate)) / 100;
   }
   const invoiceCount = await db.select().from(invoicesTable);
   const invoiceId = `INV-${new Date().getFullYear()}-${String(invoiceCount.length + 1).padStart(3, '0')}`;

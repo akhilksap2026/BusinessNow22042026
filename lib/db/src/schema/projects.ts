@@ -18,7 +18,7 @@ export const projectsTable = pgTable("projects", {
   allocatedHours: numeric("allocated_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   budgetedHours: numeric("budgeted_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   completion: integer("completion").notNull().default(0),
-  health: text("health").notNull().default("On Track"),
+  health: text("health"),
   description: text("description"),
   rateCardId: integer("rate_card_id"),
   customerChampion: text("customer_champion"),
