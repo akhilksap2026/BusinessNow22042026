@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { db, invoicesTable, timesheetsTable, timeEntriesTable, projectsTable } from "@workspace/db";
+import { db, invoicesTable, timesheetsTable, timeEntriesTable, projectsTable, taxCodesTable } from "@workspace/db";
 import { requireFinance } from "../middleware/rbac";
 import { logAudit } from "../lib/audit";
 import {
@@ -57,10 +57,17 @@ router.post("/invoices", requireFinance, async (req, res): Promise<void> => {
     res.status(400).json({ error: "amount and tax must be >= 0" });
     return;
   }
+  // INV-01: auto-compute tax from taxCodeId if provided.
+  let computedTax = Number(parsed.data.tax ?? 0);
+  const taxCodeId = (parsed.data as any).taxCodeId ?? req.body.taxCodeId;
+  if (taxCodeId) {
+    const [tc] = await db.select().from(taxCodesTable).where(eq(taxCodesTable.id, Number(taxCodeId)));
+    if (tc) computedTax = Math.round(Number(parsed.data.amount) * Number(tc.rate) * 100) / 100;
+  }
   const invoiceCount = await db.select().from(invoicesTable);
   const invoiceId = `INV-${new Date().getFullYear()}-${String(invoiceCount.length + 1).padStart(3, '0')}`;
-  const total = Number(parsed.data.amount) + Number(parsed.data.tax);
-  const [row] = await db.insert(invoicesTable).values({ ...parsed.data as any, id: invoiceId, total: total.toString(), status: 'Draft' }).returning();
+  const total = Number(parsed.data.amount) + computedTax;
+  const [row] = await db.insert(invoicesTable).values({ ...parsed.data as any, tax: computedTax.toString(), id: invoiceId, total: total.toString(), status: 'Draft' }).returning();
   res.status(201).json(GetInvoiceResponse.parse(mapInvoice(row)));
 });
 

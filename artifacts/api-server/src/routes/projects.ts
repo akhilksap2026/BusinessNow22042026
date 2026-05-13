@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, asc, isNull, isNotNull, inArray, ne, sql } from "drizzle-orm";
 import { parsePagination, envelope } from "../lib/pagination";
-import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable } from "@workspace/db";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable, notificationsTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { getTrackedHoursMap, getTrackedHours } from "../lib/trackedHours";
 import { checkOutOfRangeAllocations } from "../lib/outOfRangeAllocationCheck";
@@ -221,6 +221,31 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
   const th = await getTrackedHours(row.id);
   if (!isStatusChange) {
     await logAudit({ entityType: "project", entityId: row.id, action: "updated", description: `Project "${row.name}" updated` });
+  }
+
+  // WF-01 — Notify all allocated users + project owner on status change (fire-and-forget).
+  if (isStatusChange) {
+    void (async () => {
+      try {
+        const allocated = await db
+          .select({ userId: allocationsTable.userId })
+          .from(allocationsTable)
+          .where(eq(allocationsTable.projectId, row.id));
+        const recipientSet = new Set<number>();
+        if (row.ownerId) recipientSet.add(row.ownerId);
+        for (const a of allocated) { if (a.userId) recipientSet.add(a.userId); }
+        for (const uid of recipientSet) {
+          await db.insert(notificationsTable).values({
+            userId: uid,
+            type: "project_status_changed",
+            title: `"${row.name}" is now ${row.status}`,
+            message: `Project status changed from "${existing.status}" to "${row.status}".`,
+            entityType: "project",
+            entityId: String(row.id),
+          });
+        }
+      } catch { /* non-blocking */ }
+    })();
   }
 
   // ── Out-of-range allocation detection (fire-and-forget) ──────────────────

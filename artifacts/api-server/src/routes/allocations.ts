@@ -744,6 +744,34 @@ router.delete("/projects/:projectId/users/:userId/allocations", requirePM, async
   res.json({ removedCount: removed.length });
 });
 
+// RS-01 — Fill a placeholder allocation with a named user.
+router.post("/allocations/:id/fill", requirePM, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const userId = Number(req.body.userId);
+  if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+  const [alloc] = await db.select().from(allocationsTable).where(eq(allocationsTable.id, id));
+  if (!alloc) { res.status(404).json({ error: "Allocation not found" }); return; }
+  if (alloc.userId) { res.status(409).json({ error: "Allocation already has a named user" }); return; }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const [updated] = await db
+    .update(allocationsTable)
+    .set({ userId, placeholderRole: null })
+    .where(eq(allocationsTable.id, id))
+    .returning();
+  await logAudit({
+    entityType: "allocation",
+    entityId: id,
+    action: "updated",
+    actorUserId: Number(req.headers["x-user-id"] ?? 0) || undefined,
+    description: `Placeholder allocation #${id} filled by ${user.name}`,
+    previousValue: { placeholderRole: alloc.placeholderRole },
+    newValue: { userId },
+  });
+  res.json(updated);
+});
+
 router.delete("/allocations/:id", requirePM, async (req, res): Promise<void> => {
   const params = DeleteAllocationParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }

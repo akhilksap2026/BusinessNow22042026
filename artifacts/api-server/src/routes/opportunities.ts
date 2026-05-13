@@ -42,6 +42,7 @@ async function mapOpportunity(row: typeof opportunitiesTable.$inferSelect) {
     closeDate: row.closeDate,
     ownerId: row.ownerId,
     projectId: row.projectId,
+    closeReason: row.closeReason ?? null,
     projectName,
     accountName,
     ownerName,
@@ -95,7 +96,7 @@ router.patch("/opportunities/:id", requirePM, async (req, res) => {
   const [existing] = await db.select().from(opportunitiesTable).where(eq(opportunitiesTable.id, id));
   if (!existing) return res.status(404).json({ error: "Not found" });
 
-  const { accountId, name, stage, probability, value, description, closeDate, ownerId } = req.body;
+  const { accountId, name, stage, probability, value, description, closeDate, ownerId, closeReason } = req.body;
   const updates: Partial<typeof opportunitiesTable.$inferInsert> = { updatedAt: new Date() };
   if (accountId !== undefined) updates.accountId = Number(accountId);
   if (name !== undefined) updates.name = name;
@@ -108,6 +109,7 @@ router.patch("/opportunities/:id", requirePM, async (req, res) => {
   if (description !== undefined) updates.description = description;
   if (closeDate !== undefined) updates.closeDate = closeDate;
   if (ownerId !== undefined) updates.ownerId = ownerId ? Number(ownerId) : null;
+  if (closeReason !== undefined) updates.closeReason = closeReason || null;
 
   const [row] = await db.update(opportunitiesTable).set(updates).where(eq(opportunitiesTable.id, id)).returning();
   if (!row) return res.status(404).json({ error: "Not found" });

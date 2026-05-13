@@ -184,11 +184,12 @@ router.get("/company-settings", async (_req, res): Promise<void> => {
 });
 
 router.put("/company-settings", requireAdmin, async (req, res): Promise<void> => {
-  const { name, address, logoUrl, timezone, currency, fiscalYearStart, website, phone } = req.body;
+  const { name, address, logoUrl, primaryColor, timezone, currency, fiscalYearStart, website, phone } = req.body;
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (name !== undefined) updates.name = name;
   if (address !== undefined) updates.address = address;
   if (logoUrl !== undefined) updates.logoUrl = logoUrl;
+  if (primaryColor !== undefined) updates.primaryColor = primaryColor;
   if (timezone !== undefined) updates.timezone = timezone;
   if (currency !== undefined) updates.currency = currency;
   if (fiscalYearStart !== undefined) updates.fiscalYearStart = fiscalYearStart;

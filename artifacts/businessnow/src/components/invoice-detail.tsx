@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useUpdateInvoice,
@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Pencil, Trash2, Plus, Zap } from "lucide-react";
+import { Pencil, Trash2, Plus, Zap, CreditCard } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 const lineItemSchema = z.object({
@@ -41,6 +41,18 @@ export function InvoiceDetail({ invoice, open, onOpenChange }: { invoice: any, o
   const { toast } = useToast();
 
   const [isAddLineItemOpen, setIsAddLineItemOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({ paymentDate: "", paymentAmount: "", paymentReference: "" });
+
+  useEffect(() => {
+    if (invoice) {
+      setPaymentForm({
+        paymentDate: invoice.paymentDate ? String(invoice.paymentDate).slice(0, 10) : "",
+        paymentAmount: invoice.paymentAmount != null ? String(invoice.paymentAmount) : "",
+        paymentReference: invoice.paymentReference ?? "",
+      });
+    }
+  }, [invoice?.id]);
 
   const invoiceId: string = invoice?.id ?? "";
   const { data: lineItems } = useListInvoiceLineItems(invoiceId, {
@@ -152,6 +164,11 @@ export function InvoiceDetail({ invoice, open, onOpenChange }: { invoice: any, o
             {invoice.status === "Approved" && (
               <Button onClick={() => handleStatusTransition("Paid")} className="bg-green-600 hover:bg-green-700">Mark as Paid</Button>
             )}
+            {(invoice.status === "Sent" || invoice.status === "Approved" || invoice.status === "Paid" || invoice.status === "Overdue") && (
+              <Button variant="outline" onClick={() => setIsPaymentOpen(true)}>
+                <CreditCard className="h-4 w-4 mr-2" /> Record Payment
+              </Button>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -224,6 +241,52 @@ export function InvoiceDetail({ invoice, open, onOpenChange }: { invoice: any, o
             </div>
           </div>
         </div>
+
+        {/* Record Payment Dialog */}
+        <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Payment Date *</label>
+                <input type="date" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={paymentForm.paymentDate} onChange={e => setPaymentForm(f => ({ ...f, paymentDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Amount Paid</label>
+                <input type="number" step="0.01" min="0" placeholder={String(invoice.total ?? "")} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={paymentForm.paymentAmount} onChange={e => setPaymentForm(f => ({ ...f, paymentAmount: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Reference / Cheque #</label>
+                <input type="text" placeholder="e.g. TXN-20240513" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={paymentForm.paymentReference} onChange={e => setPaymentForm(f => ({ ...f, paymentReference: e.target.value }))} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsPaymentOpen(false)}>Cancel</Button>
+              <Button
+                disabled={!paymentForm.paymentDate || updateInvoice.isPending}
+                onClick={async () => {
+                  try {
+                    await updateInvoice.mutateAsync({
+                      id: invoice.id,
+                      data: {
+                        paymentDate: paymentForm.paymentDate,
+                        paymentAmount: paymentForm.paymentAmount ? Number(paymentForm.paymentAmount) : undefined,
+                        paymentReference: paymentForm.paymentReference || undefined,
+                      } as any,
+                    });
+                    queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey() });
+                    toast({ title: "Payment recorded" });
+                    setIsPaymentOpen(false);
+                  } catch {
+                    toast({ title: "Failed to record payment", variant: "destructive" });
+                  }
+                }}
+              >
+                Save Payment
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={isAddLineItemOpen} onOpenChange={setIsAddLineItemOpen}>
           <DialogContent>

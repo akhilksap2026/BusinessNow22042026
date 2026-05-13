@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gte, lte, SQL } from "drizzle-orm";
 import { db, auditLogTable, usersTable } from "@workspace/db";
 import { requireAdmin } from "../middleware/rbac";
 import { logAudit } from "../lib/audit";
@@ -54,16 +54,25 @@ router.post("/audit/role-switch", async (req, res): Promise<void> => {
 });
 
 router.get("/audit-log", requireAdmin, async (req, res): Promise<void> => {
-  const { entityType, actorUserId, limit } = req.query as Record<string, string>;
+  const { entityType, actorUserId, limit, action, from, to } = req.query as Record<string, string>;
   const maxLimit = Math.min(parseInt(limit || "100", 10), 500);
 
-  let query = db.select().from(auditLogTable).orderBy(desc(auditLogTable.timestamp)).limit(maxLimit);
+  const conditions: SQL[] = [];
+  if (entityType) conditions.push(eq(auditLogTable.entityType, entityType));
+  if (actorUserId) conditions.push(eq(auditLogTable.actorUserId, parseInt(actorUserId, 10)));
+  if (action) conditions.push(eq(auditLogTable.action, action as any));
+  if (from) conditions.push(gte(auditLogTable.timestamp, new Date(from)));
+  if (to) {
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+    conditions.push(lte(auditLogTable.timestamp, toDate));
+  }
 
-  const rows = await (entityType
-    ? db.select().from(auditLogTable).where(eq(auditLogTable.entityType, entityType)).orderBy(desc(auditLogTable.timestamp)).limit(maxLimit)
-    : actorUserId
-    ? db.select().from(auditLogTable).where(eq(auditLogTable.actorUserId, parseInt(actorUserId, 10))).orderBy(desc(auditLogTable.timestamp)).limit(maxLimit)
-    : db.select().from(auditLogTable).orderBy(desc(auditLogTable.timestamp)).limit(maxLimit));
+  const rows = await db
+    .select().from(auditLogTable)
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(auditLogTable.timestamp))
+    .limit(maxLimit);
 
   const users = await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
   const userMap = Object.fromEntries(users.map(u => [u.id, u.name]));

@@ -13,6 +13,7 @@ export const opportunitiesTable = pgTable("opportunities", {
   closeDate: text("close_date"),
   ownerId: integer("owner_id"),
   projectId: integer("project_id"),
+  closeReason: text("close_reason"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

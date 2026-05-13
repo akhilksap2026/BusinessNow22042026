@@ -599,8 +599,11 @@ export function Layout({ children }: { children: ReactNode }) {
             <>
               <Link href="/">
                 <div className="flex items-center gap-2 cursor-pointer font-bold text-lg tracking-tight text-primary">
-                  <Briefcase className="h-5 w-5" />
-                  BusinessNow
+                  {(window as any).__BN_LOGO__ ? (
+                    <img src={(window as any).__BN_LOGO__} alt="Logo" className="h-6 object-contain" />
+                  ) : (
+                    <><Briefcase className="h-5 w-5" />BusinessNow</>
+                  )}
                 </div>
               </Link>
               <NotificationsBell />

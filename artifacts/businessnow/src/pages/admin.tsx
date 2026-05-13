@@ -962,12 +962,21 @@ export default function Admin() {
   }
 
   const [auditEntityFilter, setAuditEntityFilter] = useState<string>("all");
+  const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
+  const [auditDateFrom, setAuditDateFrom] = useState<string>("");
+  const [auditDateTo, setAuditDateTo] = useState<string>("");
+  const auditQueryParams = {
+    ...(auditEntityFilter !== "all" ? { entityType: auditEntityFilter } : {}),
+    ...(auditActionFilter !== "all" ? { action: auditActionFilter } : {}),
+    ...(auditDateFrom ? { from: auditDateFrom } : {}),
+    ...(auditDateTo ? { to: auditDateTo } : {}),
+  };
   const { data: auditEntries, isLoading: isLoadingAudit } = useListAuditLog(
-    auditEntityFilter !== "all" ? { entityType: auditEntityFilter } : undefined,
-    { query: { queryKey: getListAuditLogQueryKey(auditEntityFilter !== "all" ? { entityType: auditEntityFilter } : undefined) } }
+    Object.keys(auditQueryParams).length ? auditQueryParams : undefined,
+    { query: { queryKey: getListAuditLogQueryKey(Object.keys(auditQueryParams).length ? auditQueryParams : undefined) } }
   );
 
-  const [companyForm, setCompanyForm] = useState({ name: "", address: "", timezone: "", currency: "", fiscalYearStart: "", website: "", phone: "" });
+  const [companyForm, setCompanyForm] = useState({ name: "", address: "", timezone: "", currency: "", fiscalYearStart: "", website: "", phone: "", logoUrl: "", primaryColor: "" });
   const [companyFormDirty, setCompanyFormDirty] = useState(false);
 
   const { data: companySettings, refetch: refetchCompany } = useQuery({
@@ -989,6 +998,8 @@ export default function Admin() {
         fiscalYearStart: companySettings.fiscalYearStart ?? "",
         website: companySettings.website ?? "",
         phone: companySettings.phone ?? "",
+        logoUrl: (companySettings as any).logoUrl ?? "",
+        primaryColor: (companySettings as any).primaryColor ?? "",
       });
     }
   }, [companySettings, companyFormDirty]);
@@ -998,7 +1009,7 @@ export default function Admin() {
       const res = await fetch(`${BASE}/api/company-settings`, {
         method: "PUT",
         headers: authHeaders({ "content-type": "application/json" }),
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, logoUrl: data.logoUrl || null, primaryColor: data.primaryColor || null }),
       });
       if (!res.ok) throw new Error("Failed to save");
       return res.json();
@@ -2575,25 +2586,46 @@ export default function Admin() {
 
           <TabsContent value="auditlog" className="m-0">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2"><Activity className="h-4 w-4" /> Audit Log</CardTitle>
-                  <CardDescription>System-wide record of all significant changes</CardDescription>
+              <CardHeader>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><Activity className="h-4 w-4" /> Audit Log</CardTitle>
+                    <CardDescription>System-wide record of all significant changes</CardDescription>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Select value={auditEntityFilter} onValueChange={setAuditEntityFilter}>
+                      <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue placeholder="All entities" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All entities</SelectItem>
+                        <SelectItem value="project">Projects</SelectItem>
+                        <SelectItem value="task">Tasks</SelectItem>
+                        <SelectItem value="invoice">Invoices</SelectItem>
+                        <SelectItem value="timesheet">Timesheets</SelectItem>
+                        <SelectItem value="allocation">Allocations</SelectItem>
+                        <SelectItem value="user">Users</SelectItem>
+                        <SelectItem value="opportunity">Opportunities</SelectItem>
+                        <SelectItem value="project_risk">RAID Items</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={auditActionFilter} onValueChange={setAuditActionFilter}>
+                      <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="All actions" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All actions</SelectItem>
+                        <SelectItem value="created">Created</SelectItem>
+                        <SelectItem value="updated">Updated</SelectItem>
+                        <SelectItem value="deleted">Deleted</SelectItem>
+                        <SelectItem value="status_changed">Status changed</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <input type="date" value={auditDateFrom} onChange={e => setAuditDateFrom(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-input bg-background text-foreground" title="From date" />
+                    <input type="date" value={auditDateTo} onChange={e => setAuditDateTo(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-input bg-background text-foreground" title="To date" />
+                    {(auditEntityFilter !== "all" || auditActionFilter !== "all" || auditDateFrom || auditDateTo) && (
+                      <button onClick={() => { setAuditEntityFilter("all"); setAuditActionFilter("all"); setAuditDateFrom(""); setAuditDateTo(""); }} className="h-8 px-2 text-xs rounded-md border border-input hover:bg-muted text-muted-foreground">Clear</button>
+                    )}
+                  </div>
                 </div>
-                <Select value={auditEntityFilter} onValueChange={setAuditEntityFilter}>
-                  <SelectTrigger className="w-[160px] h-8 text-xs">
-                    <SelectValue placeholder="All entities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All entities</SelectItem>
-                    <SelectItem value="project">Projects</SelectItem>
-                    <SelectItem value="task">Tasks</SelectItem>
-                    <SelectItem value="invoice">Invoices</SelectItem>
-                    <SelectItem value="timesheet">Timesheets</SelectItem>
-                    <SelectItem value="allocation">Allocations</SelectItem>
-                    <SelectItem value="user">Users</SelectItem>
-                  </SelectContent>
-                </Select>
               </CardHeader>
               <CardContent>
                 {isLoadingAudit ? (
@@ -2654,6 +2686,18 @@ export default function Admin() {
                   <div className="col-span-2 space-y-1.5">
                     <Label>Address</Label>
                     <Textarea rows={2} value={companyForm.address} onChange={e => { setCompanyForm(f => ({ ...f, address: e.target.value })); setCompanyFormDirty(true); }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Logo URL</Label>
+                    <Input placeholder="https://example.com/logo.png" value={companyForm.logoUrl} onChange={e => { setCompanyForm(f => ({ ...f, logoUrl: e.target.value })); setCompanyFormDirty(true); }} />
+                    {companyForm.logoUrl && <img src={companyForm.logoUrl} alt="Logo preview" className="h-8 mt-1 rounded object-contain border" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Brand Colour</Label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={companyForm.primaryColor || "#6366f1"} onChange={e => { setCompanyForm(f => ({ ...f, primaryColor: e.target.value })); setCompanyFormDirty(true); }} className="h-9 w-12 cursor-pointer rounded border border-input" />
+                      <Input placeholder="#6366f1" value={companyForm.primaryColor} onChange={e => { setCompanyForm(f => ({ ...f, primaryColor: e.target.value })); setCompanyFormDirty(true); }} className="flex-1" />
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label>Website</Label>

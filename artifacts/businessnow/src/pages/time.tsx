@@ -867,6 +867,9 @@ export default function TimeTracking() {
                 <Input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
               </div>
             </div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <span className="text-amber-500">Note:</span> Requests that overlap public holidays in your calendar will be flagged during the approval step.
+            </p>
             <div className="space-y-1.5">
               <Label>Duration Type</Label>
               <div className="flex gap-2">

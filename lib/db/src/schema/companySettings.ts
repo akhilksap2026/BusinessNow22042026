@@ -7,6 +7,7 @@ export const companySettingsTable = pgTable("company_settings", {
   name: text("name").notNull().default("KSAP Technologies"),
   address: text("address"),
   logoUrl: text("logo_url"),
+  primaryColor: text("primary_color"),
   timezone: text("timezone").notNull().default("America/Toronto"),
   currency: text("currency").notNull().default("CAD"),
   fiscalYearStart: text("fiscal_year_start").notNull().default("01-01"),

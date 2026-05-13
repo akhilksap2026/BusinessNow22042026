@@ -441,6 +441,54 @@ export default function ProjectDetail() {
     }
   }
 
+  // RAID state (PM-01)
+  const { data: raidItems = [], refetch: refetchRaid } = useQuery<any[]>({
+    queryKey: ["project-risks", projectId],
+    queryFn: () => fetch(`/api/projects/${projectId}/risks`, { headers: authHeaders() }).then(r => r.json()),
+    enabled: !!projectId,
+  });
+  const [raidForm, setRaidForm] = useState({ type: "Risk", title: "", description: "", probability: "", impact: "", mitigation: "", status: "Open", targetDate: "" });
+  const [raidDialogOpen, setRaidDialogOpen] = useState(false);
+  const [editRaidId, setEditRaidId] = useState<number | null>(null);
+  const [fillAllocId, setFillAllocId] = useState<number | null>(null);
+  const [fillUserId, setFillUserId] = useState<string>("");
+
+  async function handleSaveRaid() {
+    const url = editRaidId ? `/api/project-risks/${editRaidId}` : "/api/project-risks";
+    const method = editRaidId ? "PATCH" : "POST";
+    await fetch(url, {
+      method,
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...raidForm, projectId }),
+    });
+    refetchRaid();
+    setRaidDialogOpen(false);
+    setEditRaidId(null);
+    setRaidForm({ type: "Risk", title: "", description: "", probability: "", impact: "", mitigation: "", status: "Open", targetDate: "" });
+  }
+
+  async function handleDeleteRaid(raidId: number) {
+    await fetch(`/api/project-risks/${raidId}`, { method: "DELETE", headers: authHeaders() });
+    refetchRaid();
+  }
+
+  async function handleFillPlaceholder() {
+    if (!fillAllocId || !fillUserId) return;
+    try {
+      await fetch(`/api/allocations/${fillAllocId}/fill`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ userId: Number(fillUserId) }),
+      });
+      queryClient.invalidateQueries({ queryKey: getListAllocationsQueryKey({ projectId }) });
+      toast({ title: "Placeholder filled" });
+      setFillAllocId(null);
+      setFillUserId("");
+    } catch {
+      toast({ title: "Failed to fill placeholder", variant: "destructive" });
+    }
+  }
+
   const [resReqOpen, setResReqOpen] = useState(false);
   const RES_REQ_FORM_INIT = {
     type: "add_member",
@@ -1185,6 +1233,10 @@ export default function ProjectDetail() {
                   <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{projectUpdates.length}</span>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="raid" className="flex items-center gap-1.5">
+                <ShieldAlert className="h-4 w-4" />
+                RAID
+              </TabsTrigger>
             </TabsList>
           </div>
           
@@ -1415,6 +1467,11 @@ export default function ProjectDetail() {
                             <TableCell className="text-right font-medium">{allocation.hoursPerWeek}h</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1 justify-end">
+                                {!allocation.userId && isPM && (
+                                  <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => { setFillAllocId(allocation.id); setFillUserId(""); }}>
+                                    Fill
+                                  </Button>
+                                )}
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek, hoursPerDay: (allocation as any).hoursPerDay, totalHours: (allocation as any).totalHours, percentOfCapacity: (allocation as any).percentOfCapacity, allocationMethod: (allocation as any).allocationMethod, isSoftAllocation: (allocation as any).isSoftAllocation ?? false, isTimesheetApprover: (allocation as any).isTimesheetApprover ?? false, isLeaveApprover: (allocation as any).isLeaveApprover ?? false })}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
@@ -2360,8 +2417,159 @@ export default function ProjectDetail() {
               )}
             </Card>
           </TabsContent>
+
+          {/* PM-01 — RAID Log Tab */}
+          <TabsContent value="raid" className="m-0">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2"><ShieldAlert className="h-4 w-4" /> RAID Log</CardTitle>
+                  <CardDescription>Risks, Assumptions, Issues, and Decisions for this project</CardDescription>
+                </div>
+                {isPM && (
+                  <Button size="sm" onClick={() => { setEditRaidId(null); setRaidForm({ type: "Risk", title: "", description: "", probability: "", impact: "", mitigation: "", status: "Open", targetDate: "" }); setRaidDialogOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" /> Add Item
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {raidItems.length === 0 ? (
+                  <EmptyState icon={ShieldAlert} title="No RAID items" description="Add risks, assumptions, issues, or decisions to track them here." />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-24">Type</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead className="w-24">Status</TableHead>
+                        <TableHead className="w-28">Target Date</TableHead>
+                        <TableHead className="w-20" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {raidItems.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <Badge variant="outline" className={
+                              item.type === "Risk" ? "border-red-300 text-red-700 bg-red-50"
+                              : item.type === "Issue" ? "border-orange-300 text-orange-700 bg-orange-50"
+                              : item.type === "Assumption" ? "border-blue-300 text-blue-700 bg-blue-50"
+                              : "border-purple-300 text-purple-700 bg-purple-50"
+                            }>{item.type}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-sm">{item.title}</div>
+                            {item.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.description}</div>}
+                          </TableCell>
+                          <TableCell><Badge variant="outline" className="text-xs">{item.status ?? "Open"}</Badge></TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{item.targetDate ?? "—"}</TableCell>
+                          <TableCell>
+                            {isPM && (
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditRaidId(item.id); setRaidForm({ type: item.type, title: item.title, description: item.description ?? "", probability: item.probability ?? "", impact: item.impact ?? "", mitigation: item.mitigation ?? "", status: item.status ?? "Open", targetDate: item.targetDate ?? "" }); setRaidDialogOpen(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => handleDeleteRaid(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
+
+      {/* Fill Placeholder Dialog */}
+      <Dialog open={!!fillAllocId} onOpenChange={v => { if (!v) setFillAllocId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Fill Placeholder</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">Select a team member to replace this placeholder slot.</p>
+            <Select value={fillUserId} onValueChange={setFillUserId}>
+              <SelectTrigger><SelectValue placeholder="Select team member" /></SelectTrigger>
+              <SelectContent>
+                {users?.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name} — {u.role}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFillAllocId(null)}>Cancel</Button>
+            <Button disabled={!fillUserId} onClick={handleFillPlaceholder}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* RAID Create/Edit Dialog */}
+      <Dialog open={raidDialogOpen} onOpenChange={v => { setRaidDialogOpen(v); if (!v) setEditRaidId(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editRaidId ? "Edit RAID Item" : "Add RAID Item"}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select value={raidForm.type} onValueChange={v => setRaidForm(f => ({ ...f, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Risk", "Assumption", "Issue", "Decision"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={raidForm.status} onValueChange={v => setRaidForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Open", "In Progress", "Resolved", "Closed", "Accepted"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Title *</Label>
+              <Input value={raidForm.title} onChange={e => setRaidForm(f => ({ ...f, title: e.target.value }))} placeholder="Brief description of the item" />
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Description</Label>
+              <Textarea rows={2} value={raidForm.description} onChange={e => setRaidForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            {raidForm.type === "Risk" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Probability</Label>
+                  <Select value={raidForm.probability} onValueChange={v => setRaidForm(f => ({ ...f, probability: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                    <SelectContent>
+                      {["Low", "Medium", "High"].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Impact</Label>
+                  <Select value={raidForm.impact} onValueChange={v => setRaidForm(f => ({ ...f, impact: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                    <SelectContent>
+                      {["Low", "Medium", "High", "Critical"].map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label>Mitigation</Label>
+                  <Textarea rows={2} value={raidForm.mitigation} onChange={e => setRaidForm(f => ({ ...f, mitigation: e.target.value }))} placeholder="How will this risk be mitigated?" />
+                </div>
+              </>
+            )}
+            <div className="space-y-1.5">
+              <Label>Target Date</Label>
+              <Input type="date" value={raidForm.targetDate} onChange={e => setRaidForm(f => ({ ...f, targetDate: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRaidDialogOpen(false)}>Cancel</Button>
+            <Button disabled={!raidForm.title} onClick={handleSaveRaid}>{editRaidId ? "Save Changes" : "Add Item"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={allocDialogOpen} onOpenChange={(open) => { setAllocDialogOpen(open); if (!open) { setEditAllocId(null); setAllocPreview(null); } }}>
         <DialogContent>

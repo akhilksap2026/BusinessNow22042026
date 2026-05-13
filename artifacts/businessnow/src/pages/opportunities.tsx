@@ -132,13 +132,14 @@ export default function OpportunitiesPage() {
       value: Number(editForm.value),
       description: editForm.description || undefined,
       closeDate: editForm.closeDate || undefined,
-    }),
+      closeReason: (editForm as any).closeReason || undefined,
+    } as any),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["opportunities"] }); setShowEdit(false); },
   });
 
   function openEditOpp(o: Opportunity) {
     setSelected(o);
-    setEditForm({ name: o.name, stage: o.stage, probability: String(o.probability), value: String(o.value), description: o.description ?? "", closeDate: o.closeDate ? o.closeDate.substring(0, 10) : "" });
+    setEditForm({ name: o.name, stage: o.stage, probability: String(o.probability), value: String(o.value), description: o.description ?? "", closeDate: o.closeDate ? o.closeDate.substring(0, 10) : "", closeReason: (o as any).closeReason ?? "" } as any);
     setShowEdit(true);
   }
 
@@ -421,6 +422,12 @@ export default function OpportunitiesPage() {
               <Label>Description</Label>
               <Textarea rows={2} value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
             </div>
+            {(editForm.stage === "Won" || editForm.stage === "Lost") && (
+              <div className="col-span-2 space-y-1">
+                <Label>Close Reason {editForm.stage === "Lost" ? "*" : "(optional)"}</Label>
+                <Textarea rows={2} placeholder={editForm.stage === "Lost" ? "e.g. Budget constraints, went with competitor…" : "e.g. Negotiated timeline, signed SOW…"} value={(editForm as any).closeReason ?? ""} onChange={e => setEditForm(f => ({ ...f, closeReason: e.target.value } as any))} />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
