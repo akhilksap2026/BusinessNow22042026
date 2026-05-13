@@ -182,6 +182,18 @@ router.get("/reports/project-health", requirePermission("reports.view"), async (
 
   const { getTrackedHoursMap } = await import("../lib/trackedHours");
   const thMap = await getTrackedHoursMap(projects.map(p => p.id));
+  const closedStatuses = ["Completed", "Cancelled", "Archived", "On Hold"];
+  const todayStr = now.toISOString().slice(0, 10);
+
+  function computeHealth(p: typeof projectsTable.$inferSelect): string {
+    if (p.health) return p.health;
+    const endDateVal = (p as any).endDate ?? (p as any).dueDate ?? null;
+    if (!endDateVal || closedStatuses.includes(p.status ?? "")) return "On Track";
+    if (endDateVal < todayStr) return "Red";
+    const daysLeft = Math.ceil((new Date(endDateVal).getTime() - now.getTime()) / 86400000);
+    return daysLeft <= 14 ? "Amber" : "Green";
+  }
+
   const projectList = projects.map(p => {
     const due = new Date(p.dueDate);
     const daysRemaining = Math.max(0, Math.ceil((due.getTime() - now.getTime()) / 86400000));
@@ -192,16 +204,16 @@ router.get("/reports/project-health", requirePermission("reports.view"), async (
     return {
       projectId: p.id,
       projectName: p.name,
-      health: p.health,
+      health: computeHealth(p),
       completion: p.completion,
       daysRemaining,
       budgetUsed,
     };
   });
 
-  const onTrack = projects.filter(p => p.health === 'On Track').length;
-  const atRisk = projects.filter(p => p.health === 'At Risk').length;
-  const offTrack = projects.filter(p => p.health === 'Off Track').length;
+  const onTrack = projectList.filter(p => p.health === 'On Track' || p.health === 'Green').length;
+  const atRisk = projectList.filter(p => p.health === 'At Risk' || p.health === 'Amber').length;
+  const offTrack = projectList.filter(p => p.health === 'Off Track' || p.health === 'Red').length;
   const completed = projects.filter(p => p.status === 'Completed').length;
 
   res.json(GetProjectHealthReportResponse.parse({ onTrack, atRisk, offTrack, completed, projects: projectList }));

@@ -1154,7 +1154,7 @@ export const GetProjectHealthReportResponse = zod.object({
     zod.object({
       projectId: zod.number(),
       projectName: zod.string(),
-      health: zod.string(),
+      health: zod.string().nullable(),
       completion: zod.number(),
       daysRemaining: zod.number(),
       budgetUsed: zod.number(),
