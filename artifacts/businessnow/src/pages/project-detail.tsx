@@ -17,7 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Plus, Pencil, Trash2, FileText, FileQuestion, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell, Info, Receipt } from "lucide-react";
+import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Plus, Pencil, Trash2, FileText, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell, Info, Receipt } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApplyTemplateModal } from "@/components/apply-template-modal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -30,7 +30,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectDocuments } from "@/components/project-documents";
-import { ProjectForms } from "@/components/project-forms";
 import { useCurrentUser } from "@/contexts/current-user";
 import ProjectGantt from "@/components/project-gantt";
 import { TrackedTimeTab } from "@/components/tracked-time-tab";
@@ -1192,10 +1191,6 @@ export default function ProjectDetail() {
                 <FileText className="h-4 w-4" />
                 Documents
               </TabsTrigger>
-              <TabsTrigger value="forms" className="flex items-center gap-1.5">
-                <FileQuestion className="h-4 w-4" />
-                Forms
-              </TabsTrigger>
               <TabsTrigger value="gantt" className="flex items-center gap-1.5">
                 <BarChart2 className="h-4 w-4" />
                 Timeline
@@ -2137,10 +2132,6 @@ export default function ProjectDetail() {
 
           <TabsContent value="documents" className="m-0">
             <ProjectDocuments projectId={projectId} />
-          </TabsContent>
-
-          <TabsContent value="forms" className="m-0">
-            <ProjectForms projectId={projectId} />
           </TabsContent>
 
           <TabsContent value="gantt" className="m-0">
