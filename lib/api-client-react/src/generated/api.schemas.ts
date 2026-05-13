@@ -91,7 +91,7 @@ export interface Project {
   allocatedHours: number;
   budgetedHours: number;
   completion: number;
-  health: string;
+  health: string | null;
   /** @nullable */
   description?: string | null;
   internalExternal: string;
@@ -519,7 +519,7 @@ export interface RevenueReport {
 export type ProjectHealthReportProjectsItem = {
   projectId: number;
   projectName: string;
-  health: string;
+  health: string | null;
   completion: number;
   daysRemaining: number;
   budgetUsed: number;
