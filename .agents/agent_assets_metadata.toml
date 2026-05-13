@@ -102,3 +102,9 @@ id = "84IJgSwPEXyxtpSf5YVBF"
 uri = "file://exports/sitemap.md"
 type = "text"
 title = "BusinessNow PSA — Sitemap"
+
+[[outputs]]
+id = "n3Zi5qrW5NxpnSQtWJ-h2"
+uri = "file://docs/fta-project-detail-page.md"
+type = "text"
+title = "FTA — Project Detail Page (/projects/1)"
