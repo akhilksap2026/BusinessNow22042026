@@ -1197,7 +1197,7 @@ export default function ProjectDetail() {
               </TabsTrigger>
               <TabsTrigger value="time" className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4" />
-                Time
+                Time entry
               </TabsTrigger>
               <TabsTrigger value="updates" className="flex items-center gap-1.5">
                 <Bell className="h-4 w-4" />
