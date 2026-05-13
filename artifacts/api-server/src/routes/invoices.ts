@@ -46,6 +46,17 @@ router.get("/invoices", requireFinance, async (req, res): Promise<void> => {
   const rows = conditions.length
     ? await db.select().from(invoicesTable).where(and(...conditions))
     : await db.select().from(invoicesTable);
+
+  // INV-02: Auto-mark Sent invoices past their dueDate as Overdue (fire-and-forget).
+  const today = new Date().toISOString().slice(0, 10);
+  const needsOverdue = rows.filter(r => r.status === "Sent" && r.dueDate && r.dueDate < today);
+  if (needsOverdue.length > 0) {
+    Promise.all(needsOverdue.map(r =>
+      db.update(invoicesTable).set({ status: "Overdue" }).where(eq(invoicesTable.id, r.id))
+    )).catch(e => console.error("INV-02 auto-overdue failed:", e));
+    needsOverdue.forEach(r => { (r as any).status = "Overdue"; });
+  }
+
   res.json(ListInvoicesResponse.parse(rows.map(mapInvoice)));
 });
 

@@ -526,6 +526,26 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
     }
   }
 
+  // WF-04: Notify project owner on every milestone completion (fire-and-forget).
+  if (wasNotCompleted && isNowCompleted && row.isMilestone) {
+    (async () => {
+      try {
+        const [proj] = await db.select({ id: projectsTable.id, name: projectsTable.name, ownerId: projectsTable.ownerId })
+          .from(projectsTable).where(eq(projectsTable.id, row.projectId));
+        if (proj?.ownerId) {
+          await db.insert(notificationsTable).values({
+            type: "milestone_completed",
+            message: `Milestone "${row.name}" completed in project "${proj.name}"`,
+            userId: proj.ownerId,
+            projectId: proj.id,
+            entityType: "task",
+            entityId: row.id,
+          } as any);
+        }
+      } catch (e) { console.error("WF-04 milestone notification failed:", e); }
+    })();
+  }
+
   // Milestone-triggered CSAT survey: any milestone completed with csat_enabled → create survey + notify
   if (wasNotCompleted && isNowCompleted && row.isMilestone && (row as any).csatEnabled !== false) {
     try {

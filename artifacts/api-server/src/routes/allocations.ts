@@ -1159,4 +1159,26 @@ router.post("/resources/suggest", requirePM, async (req, res): Promise<void> => 
   res.json(suggestions.slice(0, limit));
 });
 
+// RS-02: Bench report — users with no active hard allocation today.
+router.get("/resources/bench", async (_req, res): Promise<void> => {
+  const today = new Date().toISOString().slice(0, 10);
+  const users = await db.select().from(usersTable).where(eq(usersTable.isActive, 1));
+  const activeAllocs = await db.select({ userId: allocationsTable.userId })
+    .from(allocationsTable)
+    .where(and(
+      eq(allocationsTable.isSoftAllocation, false),
+      lte(allocationsTable.startDate, today),
+      gte(allocationsTable.endDate, today),
+    ));
+  const allocatedIds = new Set(activeAllocs.map(a => a.userId).filter(Boolean));
+  const bench = users.filter(u => !allocatedIds.has(u.id));
+  res.json(bench.map(u => ({
+    id: u.id,
+    name: u.name,
+    role: u.role,
+    department: u.department,
+    skills: u.skills,
+  })));
+});
+
 export default router;

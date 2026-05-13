@@ -45,8 +45,24 @@ function normaliseStatus(s: string): string {
 }
 
 function mapProject(p: typeof projectsTable.$inferSelect, trackedHours: number = 0) {
+  // PM-03: Auto-compute health when not explicitly set, based on end date proximity.
+  let health: string | null = p.health ?? null;
+  if (!health) {
+    const closedStatuses = ["Completed", "Cancelled", "Archived", "On Hold"];
+    if (p.endDate && !closedStatuses.includes(p.status ?? "")) {
+      const today = new Date().toISOString().slice(0, 10);
+      if (p.endDate < today) {
+        health = "Red";
+      } else {
+        const daysLeft = Math.ceil((new Date(p.endDate).getTime() - Date.now()) / 86400000);
+        if (daysLeft <= 14) health = "Amber";
+        else health = "Green";
+      }
+    }
+  }
   return {
     ...p,
+    health,
     budget: Number(p.budget),
     trackedHours,
     allocatedHours: Number(p.allocatedHours),

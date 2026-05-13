@@ -6,7 +6,7 @@
 import { Router, type IRouter } from "express";
 import { db, projectRisksTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { requirePM } from "../middleware/rbac";
 import { logAudit } from "../lib/audit";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";

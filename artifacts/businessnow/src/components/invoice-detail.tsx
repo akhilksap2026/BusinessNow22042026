@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Pencil, Trash2, Plus, Zap, CreditCard } from "lucide-react";
+import { Pencil, Trash2, Plus, Zap, CreditCard, Send, Printer } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 const lineItemSchema = z.object({
@@ -154,7 +154,7 @@ export function InvoiceDetail({ invoice, open, onOpenChange }: { invoice: any, o
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {invoice.status === "Draft" && (
               <Button onClick={() => handleStatusTransition("In Review")}>Submit for Review</Button>
             )}
@@ -162,11 +162,21 @@ export function InvoiceDetail({ invoice, open, onOpenChange }: { invoice: any, o
               <Button onClick={() => handleStatusTransition("Approved")}>Approve</Button>
             )}
             {invoice.status === "Approved" && (
-              <Button onClick={() => handleStatusTransition("Paid")} className="bg-green-600 hover:bg-green-700">Mark as Paid</Button>
+              <>
+                <Button onClick={() => handleStatusTransition("Sent")} className="gap-1.5">
+                  <Send className="h-4 w-4" /> Send Invoice
+                </Button>
+                <Button variant="outline" onClick={() => handleStatusTransition("Paid")} className="text-green-700 border-green-300 hover:bg-green-50">Mark as Paid</Button>
+              </>
             )}
             {(invoice.status === "Sent" || invoice.status === "Approved" || invoice.status === "Paid" || invoice.status === "Overdue") && (
               <Button variant="outline" onClick={() => setIsPaymentOpen(true)}>
                 <CreditCard className="h-4 w-4 mr-2" /> Record Payment
+              </Button>
+            )}
+            {(invoice.status === "Sent" || invoice.status === "Paid" || invoice.status === "Approved" || invoice.status === "Overdue") && (
+              <Button variant="outline" onClick={() => window.print()}>
+                <Printer className="h-4 w-4 mr-2" /> Print
               </Button>
             )}
           </div>

@@ -34,6 +34,74 @@ import { StatusBadge } from "@/components/ui/status-badge";
 
 const REQUEST_STATUSES = ["Pending", "In Review", "Alternative Proposed", "Approved", "Blocked", "Rejected", "Fulfilled", "Cancelled"];
 
+// RS-02: Bench tab — users with no active hard allocation today.
+function BenchTab() {
+  const [search, setSearch] = useState("");
+  const { data: bench = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/resources/bench"],
+    queryFn: () => fetch("/api/resources/bench", { headers: authHeaders() }).then(r => r.json()),
+  });
+  const filtered = bench.filter(u =>
+    !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.department?.toLowerCase().includes(search.toLowerCase())
+  );
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Bench</CardTitle>
+        <CardDescription>Team members with no active hard allocation today — available for new projects.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="relative mb-4 max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search name or department…" className="pl-8" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        {isLoading ? (
+          <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+        ) : filtered.length === 0 ? (
+          <EmptyState icon={<Users className="h-8 w-8 text-muted-foreground" />} title="No bench capacity" description={search ? "No matches for your search." : "All team members are currently assigned to active projects."} />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Skills</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((u: any) => (
+                <TableRow key={u.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7">
+                        <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700">
+                          {u.name.split(" ").map((p: string) => p[0]).join("").slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium text-sm">{u.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{u.department || "—"}</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">{u.role}</Badge></TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(u.skills ?? []).slice(0, 3).map((s: string) => (
+                        <span key={s} className="px-1.5 py-0.5 rounded bg-muted text-xs">{s}</span>
+                      ))}
+                      {(u.skills ?? []).length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 const PROFICIENCY_RANK: Record<string, number> = { "Needs Help": 1, "Independent": 2, "Can Lead": 3 };
 
 
@@ -597,6 +665,9 @@ export default function Resources() {
             <TabsTrigger value="skills-matrix" className="flex items-center gap-2">
               <Grid3x3 className="h-4 w-4" /> Skills Matrix
             </TabsTrigger>
+            <TabsTrigger value="bench" className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Bench
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="capacity" className="m-0">
@@ -1095,6 +1166,11 @@ export default function Resources() {
 
           <TabsContent value="skills-matrix" className="m-0">
             <SkillsMatrix />
+          </TabsContent>
+
+          {/* RS-02: Bench tab — users with no active hard allocation today */}
+          <TabsContent value="bench" className="m-0">
+            <BenchTab />
           </TabsContent>
         </Tabs>
       </div>

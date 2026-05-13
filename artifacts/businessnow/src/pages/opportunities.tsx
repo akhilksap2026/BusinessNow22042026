@@ -175,6 +175,11 @@ export default function OpportunitiesPage() {
 
   const totalPipeline = opportunities.filter(o => o.stage !== "Won" && o.stage !== "Lost").reduce((s, o) => s + o.value, 0);
   const totalWon = opportunities.filter(o => o.stage === "Won").reduce((s, o) => s + o.value, 0);
+  const wonDeals = opportunities.filter(o => o.stage === "Won");
+  const lostDeals = opportunities.filter(o => o.stage === "Lost");
+  const closedDeals = wonDeals.length + lostDeals.length;
+  const winRate = closedDeals > 0 ? Math.round((wonDeals.length / closedDeals) * 100) : null;
+  const avgWonValue = wonDeals.length > 0 ? wonDeals.reduce((s, o) => s + o.value, 0) / wonDeals.length : null;
 
   return (
     <Layout>
@@ -209,6 +214,32 @@ export default function OpportunitiesPage() {
           </>
         }
       />
+
+      {/* CRM-03: Win/Loss stats bar */}
+      {closedDeals > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="border rounded-lg px-4 py-3">
+            <p className="text-xs text-muted-foreground">Win Rate</p>
+            <p className="text-2xl font-bold text-green-600">{winRate}%</p>
+            <p className="text-xs text-muted-foreground">{wonDeals.length} won · {lostDeals.length} lost</p>
+          </div>
+          <div className="border rounded-lg px-4 py-3">
+            <p className="text-xs text-muted-foreground">Deals Won</p>
+            <p className="text-2xl font-bold">{wonDeals.length}</p>
+            <p className="text-xs text-muted-foreground">{fmt(totalWon)} total value</p>
+          </div>
+          <div className="border rounded-lg px-4 py-3">
+            <p className="text-xs text-muted-foreground">Avg Won Deal</p>
+            <p className="text-2xl font-bold">{avgWonValue != null ? fmt(avgWonValue) : "—"}</p>
+            <p className="text-xs text-muted-foreground">per closed-won deal</p>
+          </div>
+          <div className="border rounded-lg px-4 py-3">
+            <p className="text-xs text-muted-foreground">Deals Lost</p>
+            <p className="text-2xl font-bold text-red-500">{lostDeals.length}</p>
+            <p className="text-xs text-muted-foreground">{fmt(lostDeals.reduce((s, o) => s + o.value, 0))} total value</p>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto">
         {view === "kanban" ? (
