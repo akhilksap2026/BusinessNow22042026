@@ -23,6 +23,9 @@ function mapInvoice(i: typeof invoicesTable.$inferSelect) {
     amount: Number(i.amount),
     tax: Number(i.tax),
     total: Number(i.total),
+    paymentAmount: i.paymentAmount != null ? Number(i.paymentAmount) : null,
+    paymentDate: i.paymentDate ?? null,
+    paymentReference: i.paymentReference ?? null,
     createdAt: i.createdAt instanceof Date ? i.createdAt.toISOString() : i.createdAt,
     updatedAt: i.updatedAt instanceof Date ? i.updatedAt.toISOString() : i.updatedAt,
   };
@@ -32,7 +35,14 @@ router.get("/invoices", requireFinance, async (req, res): Promise<void> => {
   const qp = ListInvoicesQueryParams.safeParse(req.query);
   const conditions = [];
   if (qp.success && qp.data.status) conditions.push(eq(invoicesTable.status, qp.data.status));
-  if (qp.success && qp.data.accountId) conditions.push(eq(invoicesTable.accountId, qp.data.accountId));
+  // MT-1: scope by authenticated user's tenant when accountId not explicitly provided.
+  const authReqI = req as import("../middleware/roleClaim").AuthenticatedRequest;
+  const tenantIdI = authReqI.authAccountId;
+  if (qp.success && qp.data.accountId) {
+    conditions.push(eq(invoicesTable.accountId, qp.data.accountId));
+  } else if (tenantIdI) {
+    conditions.push(eq(invoicesTable.accountId, tenantIdI));
+  }
   const rows = conditions.length
     ? await db.select().from(invoicesTable).where(and(...conditions))
     : await db.select().from(invoicesTable);
@@ -81,6 +91,16 @@ router.get("/invoices/:id", requireFinance, async (req, res): Promise<void> => {
   res.json(GetInvoiceResponse.parse(mapInvoice(row)));
 });
 
+const INVOICE_TRANSITIONS: Record<string, string[]> = {
+  "Draft":     ["In Review", "Void"],
+  "In Review": ["Approved", "Draft", "Void"],
+  "Approved":  ["Sent", "In Review", "Void"],
+  "Sent":      ["Paid", "Overdue", "Void"],
+  "Paid":      ["Void"],
+  "Overdue":   ["Paid", "Void"],
+  "Void":      [],
+};
+
 router.patch("/invoices/:id", requireFinance, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = UpdateInvoiceParams.safeParse({ id: raw });
@@ -88,7 +108,23 @@ router.patch("/invoices/:id", requireFinance, async (req, res): Promise<void> =>
   const parsed = UpdateInvoiceBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [previous] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, params.data.id));
-  const [row] = await db.update(invoicesTable).set(parsed.data as any).where(eq(invoicesTable.id, params.data.id)).returning();
+  if (!previous) { res.status(404).json({ error: "Invoice not found" }); return; }
+  if (parsed.data.status && parsed.data.status !== previous.status) {
+    const allowed = INVOICE_TRANSITIONS[previous.status] ?? [];
+    if (!allowed.includes(parsed.data.status)) {
+      res.status(422).json({
+        error: `Invalid status transition: ${previous.status} → ${parsed.data.status}`,
+        allowedNext: allowed,
+      });
+      return;
+    }
+  }
+  // Merge payment fields from raw body (not in Zod schema but stored on the table).
+  const paymentPatch: Record<string, unknown> = {};
+  if (req.body.paymentDate !== undefined) paymentPatch.paymentDate = req.body.paymentDate || null;
+  if (req.body.paymentAmount !== undefined) paymentPatch.paymentAmount = req.body.paymentAmount || null;
+  if (req.body.paymentReference !== undefined) paymentPatch.paymentReference = req.body.paymentReference || null;
+  const [row] = await db.update(invoicesTable).set({ ...parsed.data as any, ...paymentPatch }).where(eq(invoicesTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "Invoice not found" }); return; }
   if (previous && parsed.data.status && previous.status !== parsed.data.status) {
     await logAudit({

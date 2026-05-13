@@ -47,8 +47,13 @@ router.get("/me", async (req, res): Promise<void> => {
   res.json(mapUser(u));
 });
 
-router.get("/users", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(usersTable).orderBy(usersTable.name);
+router.get("/users", async (req, res): Promise<void> => {
+  // MT-1: scope by authenticated user's tenant. NULL accountId = platform admin (sees all).
+  const authReqU = req as import("../middleware/roleClaim").AuthenticatedRequest;
+  const tenantIdU = authReqU.authAccountId;
+  const rows = tenantIdU
+    ? await db.select().from(usersTable).where(eq(usersTable.accountId, tenantIdU)).orderBy(usersTable.name)
+    : await db.select().from(usersTable).orderBy(usersTable.name);
   res.json(ListUsersResponse.parse(rows.map(mapUser)));
 });
 

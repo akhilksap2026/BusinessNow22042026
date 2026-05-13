@@ -31,3 +31,4 @@ export * from "./taskStatusDefinitions";
 export * from "./projectGroups";
 export * from "./contracts";
 export * from "./assets";
+export * from "./risks";

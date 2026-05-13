@@ -27,6 +27,10 @@ export const invoicesTable = pgTable("invoices", {
   description: text("description").notNull(),
   billTo: text("bill_to"),
   notes: text("notes"),
+  // INV-5 — Payment tracking fields. Set when payment is received.
+  paymentDate: text("payment_date"),
+  paymentAmount: numeric("payment_amount", { precision: 12, scale: 2 }),
+  paymentReference: text("payment_reference"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, inArray, asc } from "drizzle-orm";
-import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, csatSurveysTable, timeEntriesTable } from "@workspace/db";
+import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, csatSurveysTable, timeEntriesTable, usersTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import { hasRole } from "../constants/roles";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
@@ -498,6 +498,26 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
             action: "created",
             description: `Draft invoice ${invoiceId} created from milestone task "${row.name}"`,
           });
+          // Notify project PM + all account_admin users (PMO) about the payment milestone
+          try {
+            const adminUsers = await db.select({ id: usersTable.id })
+              .from(usersTable)
+              .where(eq(usersTable.role, "account_admin"));
+            const notifyIds = new Set<number>(adminUsers.map(u => u.id));
+            if (project.ownerId) notifyIds.add(project.ownerId);
+            await Promise.all([...notifyIds].map(userId =>
+              db.insert(notificationsTable).values({
+                type: "payment_milestone_completed",
+                message: `Payment milestone "${row.name}" completed — draft invoice ${invoiceId} created`,
+                userId,
+                projectId: project.id,
+                entityType: "invoice",
+                entityId: newInvoice.id,
+              } as any)
+            ));
+          } catch (notifErr) {
+            console.error("Milestone PM/PMO notification failed:", notifErr);
+          }
         }
       } catch (err) {
         // Non-blocking: invoice creation failure should not fail the task update

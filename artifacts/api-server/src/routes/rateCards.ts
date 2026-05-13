@@ -9,7 +9,7 @@ import {
   UpdateRateCardResponse,
   DeleteRateCardParams,
 } from "@workspace/api-zod";
-import { requireCostRateAccess, requireAdmin } from "../middleware/rbac";
+import { requireCostRateAccess, requireRateCardAccess, requireAdmin } from "../middleware/rbac";
 import { logAudit } from "../lib/audit";
 
 const router: IRouter = Router();
@@ -25,7 +25,7 @@ function mapRateCard(r: typeof rateCardsTable.$inferSelect) {
 }
 
 // Cost rates visible to Admin, Finance and PM only — Super User excluded per spec.
-router.get("/rate-cards", requireCostRateAccess, async (_req, res): Promise<void> => {
+router.get("/rate-cards", requireRateCardAccess, async (_req, res): Promise<void> => {
   const rows = await db.select().from(rateCardsTable).orderBy(rateCardsTable.name);
   res.json(ListRateCardsResponse.parse(rows.map(mapRateCard)));
 });

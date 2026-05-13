@@ -11,6 +11,9 @@ import { db, companySettingsTable } from "@workspace/db";
 import { logger } from "./logger";
 import { runUtilisationAlerts } from "./utilisationAlerts";
 import { runTimesheetEscalations } from "./timesheetEscalation";
+import { runTimesheetReminders } from "./timesheetReminder";
+import { runTimesheetNonSubmissionCheck } from "./timesheetNonSubmission";
+import { runInvoiceOverdueCheck } from "./invoiceOverdue";
 
 export async function startScheduler(): Promise<void> {
   const [settings] = await db
@@ -34,5 +37,28 @@ export async function startScheduler(): Promise<void> {
     { timezone },
   );
 
-  logger.info({ timezone }, "Scheduler started: utilisation Mon 08:00, escalations daily 09:00");
+  // WF-1 — Timesheet reminder cron, daily at 08:30 org tz.
+  // Fires only on days matching reminderDaysBefore / reminderDaysAfter windows.
+  cron.schedule(
+    "30 8 * * *",
+    () => { void runTimesheetReminders(); },
+    { timezone },
+  );
+
+  // WF-5 — Non-submission detection cron, daily at 10:00 org tz.
+  // Detects active users who have no submitted timesheet for the prior week.
+  cron.schedule(
+    "0 10 * * *",
+    () => { void runTimesheetNonSubmissionCheck(); },
+    { timezone },
+  );
+
+  // INV-5 — Invoice overdue detection, daily at 01:00 org tz.
+  cron.schedule(
+    "0 1 * * *",
+    () => { void runInvoiceOverdueCheck(); },
+    { timezone },
+  );
+
+  logger.info({ timezone }, "Scheduler started: utilisation Mon 08:00, escalations 09:00, reminders 08:30, non-submission 10:00, overdue 01:00");
 }

@@ -147,3 +147,6 @@ export const requireFinance = requireCanonicalRole("account_admin", "super_user"
  */
 export const requireCostRateAccess = requirePermission("financials.viewCostRates");
 
+/** Rate-card (billing rate) access: Admin + PM (super_user). Cost rates remain admin-only. */
+export const requireRateCardAccess = requirePermission("financials.viewRateCards");
+

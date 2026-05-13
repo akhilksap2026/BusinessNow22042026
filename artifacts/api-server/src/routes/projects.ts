@@ -60,7 +60,14 @@ router.get("/projects", async (req, res): Promise<void> => {
   const qp = ListProjectsQueryParams.safeParse(req.query);
   const conditions: ReturnType<typeof eq>[] = [isNull(projectsTable.deletedAt)];
   if (qp.success && qp.data.status) conditions.push(eq(projectsTable.status, qp.data.status));
-  if (qp.success && qp.data.accountId) conditions.push(eq(projectsTable.accountId, qp.data.accountId));
+  // MT-1: scope by authenticated user's tenant when accountId not explicitly provided.
+  const authReqP = req as import("../middleware/roleClaim").AuthenticatedRequest;
+  const tenantId = authReqP.authAccountId;
+  if (qp.success && qp.data.accountId) {
+    conditions.push(eq(projectsTable.accountId, qp.data.accountId));
+  } else if (tenantId) {
+    conditions.push(eq(projectsTable.accountId, tenantId));
+  }
   if (typeof req.query.context === "string" && req.query.context === "timesheet") {
     conditions.push(ne(projectsTable.status, "draft"));
   }

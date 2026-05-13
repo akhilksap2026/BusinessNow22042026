@@ -13,6 +13,8 @@ const BOOTSTRAP_PATHS = new Set<string>([
 export interface AuthenticatedRequest extends Request {
   authUserId?: number;
   authRole?: RoleValue;
+  /** MT-1: resolved tenant account ID for the authenticated user. NULL = platform admin. */
+  authAccountId?: number | null;
 }
 
 export async function verifyRoleClaim(
@@ -44,6 +46,7 @@ export async function verifyRoleClaim(
       role: usersTable.role,
       secondaryRoles: usersTable.secondaryRoles,
       activeStatus: usersTable.activeStatus,
+      accountId: usersTable.accountId,
     })
     .from(usersTable)
     .where(eq(usersTable.id, userId));
@@ -86,5 +89,8 @@ export async function verifyRoleClaim(
 
   req.authUserId = user.id;
   req.authRole = claimedCanonical;
+  // MT-1: propagate tenant ID so route handlers can scope queries without
+  // trusting query-param accountId from the client.
+  req.authAccountId = user.accountId ?? null;
   next();
 }
