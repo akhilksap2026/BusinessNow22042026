@@ -13,7 +13,7 @@ async function main() {
 
   // ─── Truncate in safe order ─────────────────────────────────────────────
   await db.execute(sql`
-    TRUNCATE csat_responses, csat_surveys, notifications, time_entries, timesheets,
+    TRUNCATE notifications, time_entries, timesheets,
              intervals, key_events,
              allocations, task_dependencies, tasks,
              change_orders, invoices, opportunities, projects,
@@ -994,21 +994,6 @@ async function main() {
     },
   ]);
 
-  // ─── CSAT Responses ────────────────────────────────────────────────────────
-  // Fetch some task IDs for csat (swift route tasks are completed)
-  const swiftTasks = await db
-    .select()
-    .from(schema.tasksTable)
-    .where(eq(schema.tasksTable.projectId, proj("Route Optimisation Engine Deployment").id));
-
-  if (swiftTasks.length >= 3) {
-    await db.insert(schema.csatResponsesTable).values([
-      { projectId: proj("Route Optimisation Engine Deployment").id, taskId: swiftTasks[0].id, submittedByUserId: u("Marcus Webb").id, rating: 5, comment: "Excellent delivery – algorithm performance exceeded our KPIs." },
-      { projectId: proj("Route Optimisation Engine Deployment").id, taskId: swiftTasks[1].id, submittedByUserId: u("Sophie Laurent").id, rating: 4, comment: "Strong technical output. Minor delays in carrier integration but resolved quickly." },
-      { projectId: proj("Route Optimisation Engine Deployment").id, taskId: swiftTasks[2].id, submittedByUserId: u("Daniel Osei").id, rating: 5, comment: "API connectors worked flawlessly in production from day 1." },
-    ]);
-  }
-
   // ─── Assign holiday calendars + designate timesheet approvers ──────────
   // North America users → US calendar; APAC user → APAC; Europe-focused PM → EU.
   const approverId = u("Marcus Webb").id;
@@ -1172,28 +1157,6 @@ async function main() {
     { projectId: proj("HarbourLink EDI Integration").id, name: "Contract → Kick-off", startEventId: ev("HarbourLink EDI Integration", "Contract Signed").id, endEventId: ev("HarbourLink EDI Integration", "Kick-off").id, benchmarkDays: 14 },
   ]);
 
-  // ─── CSAT Surveys (sent to clients on milestone tasks) ─────────────────
-  const milestoneTasks = await db
-    .select()
-    .from(schema.tasksTable)
-    .where(eq(schema.tasksTable.isMilestone, true));
-
-  if (milestoneTasks.length > 0) {
-    const surveyRows = milestoneTasks.slice(0, 8).map((t, i) => {
-      const completed = t.status === "Completed";
-      return {
-        milestoneTaskId: t.id,
-        projectId: t.projectId,
-        recipientUserId: u("Marcus Webb").id,
-        rating: completed ? (i % 2 === 0 ? 5 : 4) : null,
-        comment: completed ? (i % 2 === 0 ? "Strong delivery, met all acceptance criteria." : "Solid milestone, minor scope clarifications needed.") : null,
-        completedAt: completed ? new Date() : null,
-        token: `csat-token-${t.id}-${Math.random().toString(36).slice(2, 10)}`,
-      };
-    });
-    await db.insert(schema.csatSurveysTable).values(surveyRows as any);
-  }
-
   // ─── Notifications ────────────────────────────────────────────────────────
   await db.insert(schema.notificationsTable).values([
     { type: "invoice_overdue", message: "Invoice INV-2025-003 for VeloFreight Global is overdue by 30+ days.", read: false, userId: u("Marcus Webb").id, projectId: proj("VeloFreight TMS Rollout – Phase 1").id, projectName: "VeloFreight TMS Rollout – Phase 1", entityType: "invoice", entityId: "INV-2025-003" },
@@ -1212,7 +1175,7 @@ async function main() {
   console.log(`   • ${opps.length} opportunities`);
   console.log(`   • ${projects.length} projects`);
   console.log(`   • ${timeEntries.length} time entries`);
-  console.log("   • invoices, CSAT, notifications seeded");
+  console.log("   • invoices, notifications seeded");
 
   await pool.end();
 }

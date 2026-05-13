@@ -28,7 +28,6 @@ export const tasksTable = pgTable("tasks", {
   approvalStatus: text("approval_status").default("none"),
   fromTemplate: boolean("from_template").notNull().default(false),
   appliedTemplateId: integer("applied_template_id"),
-  csatEnabled: boolean("csat_enabled").notNull().default(true),
   privateNotes: text("private_notes"),
   isPhase: boolean("is_phase").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),

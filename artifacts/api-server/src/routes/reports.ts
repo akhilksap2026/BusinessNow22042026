@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, csatSurveysTable, csatResponsesTable, projectTemplatesTable, keyEventsTable, intervalsTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable, timesheetsTable, skillsTable, userSkillsTable } from "@workspace/db";
+import { db, timeEntriesTable, invoicesTable, projectsTable, usersTable, tasksTable, rateCardsTable, projectTemplatesTable, keyEventsTable, intervalsTable, accountsTable, allocationsTable, holidayDatesTable, timeOffRequestsTable, timesheetsTable, skillsTable, userSkillsTable } from "@workspace/db";
 import { eq, and, isNull, ne } from "drizzle-orm";
 import {
   GetUtilizationReportResponse,
@@ -300,9 +300,6 @@ router.get("/reports/project-performance", requirePermission("reports.view"), as
   const tasks = await db.select().from(tasksTable);
   const templates = await db.select().from(projectTemplatesTable);
   const accounts = await db.select().from(accountsTable);
-  const surveys = await db.select().from(csatSurveysTable);
-  const responses = await db.select().from(csatResponsesTable);
-
   const rows = projects.map(p => {
     const pTasks = tasks.filter(t => t.projectId === p.id && !t.isMilestone);
     const total = pTasks.length;
@@ -310,14 +307,6 @@ router.get("/reports/project-performance", requirePermission("reports.view"), as
     const overdue = pTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== "Completed").length;
     const nonTemplate = pTasks.filter(t => !t.fromTemplate).length;
     const onTimeRate = (completed + overdue) > 0 ? Math.round((completed / (completed + overdue)) * 100) : null;
-
-    const pSurveys = surveys.filter(s => s.projectId === p.id && s.rating !== null);
-    const pResponses = responses.filter(r => r.projectId === p.id);
-    const allRatings = [
-      ...pSurveys.map(s => s.rating as number),
-      ...pResponses.map(r => r.rating),
-    ];
-    const csatAvg = allRatings.length > 0 ? Math.round((allRatings.reduce((s, r) => s + r, 0) / allRatings.length) * 10) / 10 : null;
 
     const template = p.templateId ? templates.find(t => t.id === p.templateId) : null;
     const account = accounts.find(a => a.id === p.accountId);
@@ -337,8 +326,6 @@ router.get("/reports/project-performance", requirePermission("reports.view"), as
       overdueTasks: overdue,
       nonTemplateTasks: nonTemplate,
       onTimeRate,
-      csatAvg,
-      csatCount: allRatings.length,
       startDate: p.startDate,
       dueDate: p.dueDate,
       plannedDays: planned,
@@ -354,9 +341,6 @@ router.get("/reports/operations-insights", requirePermission("reports.view"), as
   const projects = await db.select().from(projectsTable);
   const tasks = await db.select().from(tasksTable);
   const templates = await db.select().from(projectTemplatesTable);
-  const surveys = await db.select().from(csatSurveysTable);
-  const responses = await db.select().from(csatResponsesTable);
-
   const grouped = new Map<string, {
     templateId: number | null; templateName: string; projects: typeof projects;
   }>();
@@ -383,12 +367,6 @@ router.get("/reports/operations-insights", requirePermission("reports.view"), as
       const nonTemplate = pTasks.filter(t => !t.fromTemplate).length;
       const onTimeRate = (completed + overdue) > 0 ? Math.round((completed / (completed + overdue)) * 100) : null;
 
-      const allRatings = [
-        ...surveys.filter(s => pIds.has(s.projectId) && s.rating !== null).map(s => s.rating as number),
-        ...responses.filter(r => pIds.has(r.projectId)).map(r => r.rating),
-      ];
-      const csatAvg = allRatings.length > 0 ? Math.round((allRatings.reduce((a, b) => a + b, 0) / allRatings.length) * 10) / 10 : null;
-
       const completedProjects = g.projects.filter(p => p.status === "Completed");
       const avgDuration = completedProjects.length > 0
         ? Math.round(completedProjects.reduce((s, p) => s + Math.ceil((new Date(p.dueDate).getTime() - new Date(p.startDate).getTime()) / 86400000), 0) / completedProjects.length)
@@ -404,55 +382,11 @@ router.get("/reports/operations-insights", requirePermission("reports.view"), as
         completedTasks: completed,
         nonTemplateTasks: nonTemplate,
         nonTemplateRatio: total > 0 ? Math.round((nonTemplate / total) * 100) : 0,
-        csatAvg,
         avgDurationDays: avgDuration,
       };
     });
 
   res.json(rows);
-});
-
-// ─── CSAT Trend Report ────────────────────────────────────────────────────────
-router.get("/reports/csat-trend", requirePermission("reports.view"), async (_req, res): Promise<void> => {
-  const surveys = await db.select().from(csatSurveysTable);
-  const responses = await db.select().from(csatResponsesTable);
-  const projects = await db.select().from(projectsTable);
-
-  const allRatings: { date: string; rating: number; projectId: number }[] = [
-    ...surveys.filter(s => s.rating !== null && s.completedAt !== null).map(s => ({
-      date: s.completedAt!.toISOString().slice(0, 7),
-      rating: s.rating as number,
-      projectId: s.projectId,
-    })),
-    ...responses.map(r => ({
-      date: r.submittedAt.toISOString().slice(0, 7),
-      rating: r.rating,
-      projectId: r.projectId,
-    })),
-  ];
-
-  const monthMap = new Map<string, number[]>();
-  for (const r of allRatings) {
-    if (!monthMap.has(r.date)) monthMap.set(r.date, []);
-    monthMap.get(r.date)!.push(r.rating);
-  }
-  const byMonth = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([month, ratings]) => ({
-    month,
-    avgRating: Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10,
-    count: ratings.length,
-  }));
-
-  const byProject = projects.map(p => {
-    const pr = allRatings.filter(r => r.projectId === p.id);
-    if (pr.length === 0) return null;
-    const avg = Math.round((pr.reduce((s, r) => s + r.rating, 0) / pr.length) * 10) / 10;
-    return { projectId: p.id, projectName: p.name, avgRating: avg, count: pr.length };
-  }).filter(Boolean);
-
-  const allValues = allRatings.map(r => r.rating);
-  const overallAvg = allValues.length > 0 ? Math.round((allValues.reduce((s, r) => s + r, 0) / allValues.length) * 10) / 10 : null;
-
-  res.json({ byMonth, byProject, overallAvg, totalResponses: allValues.length });
 });
 
 // ─── Interval IQ Report ───────────────────────────────────────────────────────

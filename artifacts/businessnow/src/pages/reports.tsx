@@ -27,7 +27,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend,
   ResponsiveContainer, LineChart, Line, Cell, ReferenceLine,
 } from "recharts";
-import { Download, AlertTriangle, CheckCircle2, Star, TrendingUp, Clock, Filter, Activity, Mail, FileSpreadsheet, Save } from "lucide-react";
+import { Download, AlertTriangle, CheckCircle2, TrendingUp, Clock, Filter, Activity, Mail, FileSpreadsheet, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authHeaders } from "@/lib/auth-headers";
 import { ComposedChart, Area } from "recharts";
@@ -176,18 +176,6 @@ function SkillSupplyDemandReport() {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function StarRating({ rating }: { rating: number | null }) {
-  if (rating === null) return <span className="text-muted-foreground text-xs">—</span>;
-  return (
-    <span className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(i => (
-        <Star key={i} className={`h-3 w-3 ${i <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
-      ))}
-      <span className="text-xs ml-1 text-muted-foreground">{rating}</span>
-    </span>
   );
 }
 
@@ -363,13 +351,12 @@ function ProjectPerformanceReport() {
   }), [rows, search, statusFilter, healthFilter, templateFilter]);
 
   const avgOnTime = filtered.filter(p => p.onTimeRate !== null).reduce((s, p, _, a) => s + p.onTimeRate / a.length, 0);
-  const avgCsat = filtered.filter(p => p.csatAvg !== null);
 
   if (isLoading) return <div className="space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Projects</p>
           <p className="text-2xl font-bold tracking-tight">{filtered.length}</p>
@@ -377,12 +364,6 @@ function ProjectPerformanceReport() {
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Avg On-Time Rate</p>
           <p className="text-2xl font-bold tracking-tight text-green-600">{filtered.length ? Math.round(avgOnTime) : "—"}%</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Avg CSAT</p>
-          <p className="text-2xl font-bold tracking-tight text-amber-600">
-            {avgCsat.length ? (avgCsat.reduce((s, p) => s + p.csatAvg, 0) / avgCsat.length).toFixed(1) : "—"}
-          </p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Template Projects</p>
@@ -436,13 +417,12 @@ function ProjectPerformanceReport() {
                 <th className="px-4 py-2 font-medium text-right">Tasks</th>
                 <th className="px-4 py-2 font-medium text-right">On-Time %</th>
                 <th className="px-4 py-2 font-medium text-right">Non-Template Tasks</th>
-                <th className="px-4 py-2 font-medium">CSAT</th>
                 <th className="px-4 py-2 font-medium text-right">Days Planned</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-12 text-sm text-muted-foreground">No projects match your filters.</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-sm text-muted-foreground">No projects match your filters.</td></tr>
               ) : filtered.map((p: any) => (
                 <tr key={p.projectId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">
@@ -468,7 +448,6 @@ function ProjectPerformanceReport() {
                   <td className="px-4 py-3 text-right tabular-nums">
                     <span className={p.nonTemplateTasks > 0 ? "text-amber-600 font-medium" : "text-muted-foreground"}>{p.nonTemplateTasks}</span>
                   </td>
-                  <td className="px-4 py-3"><StarRating rating={p.csatAvg} /></td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{p.plannedDays}d</td>
                 </tr>
               ))}
@@ -535,7 +514,6 @@ function OperationsInsightsReport() {
                 <th className="px-4 py-2 font-medium text-right">On-Time %</th>
                 <th className="px-4 py-2 font-medium text-right">Non-Template Tasks</th>
                 <th className="px-4 py-2 font-medium text-right">Scope Creep %</th>
-                <th className="px-4 py-2 font-medium">Avg CSAT</th>
                 <th className="px-4 py-2 font-medium text-right">Avg Duration</th>
               </tr>
             </thead>
@@ -554,7 +532,6 @@ function OperationsInsightsReport() {
                   <td className="px-4 py-3 text-right">
                     <span className={`tabular-nums font-medium ${r.nonTemplateRatio > 30 ? "text-red-600" : r.nonTemplateRatio > 15 ? "text-amber-600" : "text-muted-foreground"}`}>{r.nonTemplateRatio}%</span>
                   </td>
-                  <td className="px-4 py-3"><StarRating rating={r.csatAvg} /></td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{r.avgDurationDays !== null ? `${r.avgDurationDays}d` : "—"}</td>
                 </tr>
               ))}
@@ -562,101 +539,6 @@ function OperationsInsightsReport() {
           </table>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-// ─── CSAT Trend Report ────────────────────────────────────────────────────────
-function CsatTrendReport() {
-  const { data, isLoading } = useQuery<any>({
-    queryKey: ["report-csat-trend"],
-    queryFn: () => fetch("/api/reports/csat-trend", { headers: authHeaders() }).then(r => r.json()),
-  });
-
-  const byMonth = data?.byMonth ?? [];
-  const byProject = (data?.byProject ?? []).filter(Boolean).sort((a: any, b: any) => b.avgRating - a.avgRating);
-
-  const chartData = byMonth.map((m: any) => ({
-    month: m.month,
-    rating: m.avgRating,
-    count: m.count,
-  }));
-
-  if (isLoading) return <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>;
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Overall Average</p>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-2xl font-bold tracking-tight text-amber-600">{data?.overallAvg ?? "—"}</p>
-            {data?.overallAvg && <div className="flex">{[1,2,3,4,5].map(i => <Star key={i} className={`h-4 w-4 ${i <= Math.round(data.overallAvg) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"}`} />)}</div>}
-          </div>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Total Responses</p>
-          <p className="text-2xl font-bold tracking-tight">{data?.totalResponses ?? 0}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Projects with CSAT</p>
-          <p className="text-2xl font-bold tracking-tight">{byProject.length}</p>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between">
-          <div>
-            <CardTitle>CSAT Rating Trend</CardTitle>
-            <CardDescription>Average customer satisfaction score over time</CardDescription>
-          </div>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => downloadCSV("csat-trend.csv", byMonth)}>
-            <Download className="h-4 w-4" /> Export CSV
-          </Button>
-        </CardHeader>
-        <CardContent className="h-[320px]">
-          {byMonth.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">No CSAT data yet. Submit surveys from project milestone tasks.</div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                <YAxis axisLine={false} tickLine={false} domain={[1, 5]} ticks={[1,2,3,4,5]} tickFormatter={v => `${v}★`} />
-                <RechartsTooltip formatter={(v: number, name: string) => [name === "rating" ? `${v} stars` : `${v} responses`, name === "rating" ? "Avg Rating" : "Responses"]} />
-                <ReferenceLine y={4} stroke="#10b981" strokeDasharray="4 2" label={{ value: "Target (4★)", position: "right", fontSize: 11, fill: "#10b981" }} />
-                <Line type="monotone" dataKey="rating" name="rating" stroke="#f59e0b" strokeWidth={3} dot={{ r: 5, fill: "#f59e0b" }} activeDot={{ r: 7 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {byProject.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">By Project</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="px-4 py-2 font-medium">Project</th>
-                  <th className="px-4 py-2 font-medium">Rating</th>
-                  <th className="px-4 py-2 font-medium text-right">Responses</th>
-                </tr>
-              </thead>
-              <tbody>
-                {byProject.map((p: any) => (
-                  <tr key={p.projectId} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-3"><a href={`/projects/${p.projectId}`} className="text-primary hover:underline font-medium">{p.projectName}</a></td>
-                    <td className="px-4 py-3"><StarRating rating={p.avgRating} /></td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{p.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
@@ -1326,7 +1208,6 @@ export default function Reports() {
               <TabsTrigger value="timesheet-submissions" className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Timesheet Submissions</TabsTrigger>
               <TabsTrigger value="capacity-planning" className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Capacity Planning</TabsTrigger>
               <TabsTrigger value="operations">Operations</TabsTrigger>
-              <TabsTrigger value="csat" className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5" /> CSAT Trend</TabsTrigger>
               <TabsTrigger value="interval-iq" className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Interval IQ</TabsTrigger>
               <TabsTrigger value="budget">Budget vs Actuals</TabsTrigger>
               <TabsTrigger value="burndown">Burn-Down</TabsTrigger>
@@ -1355,10 +1236,6 @@ export default function Reports() {
 
           <TabsContent value="operations" className="m-0">
             <OperationsInsightsReport />
-          </TabsContent>
-
-          <TabsContent value="csat" className="m-0">
-            <CsatTrendReport />
           </TabsContent>
 
           <TabsContent value="interval-iq" className="m-0">

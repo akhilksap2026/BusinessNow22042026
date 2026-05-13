@@ -183,7 +183,6 @@ export const PROJECT_PERMISSIONS = {
   "milestone.convertToTask":     { admin: true,  collaborator: false, customer: false },
   "milestone.updateFields":      { admin: true,  collaborator: true,  customer: false },
   "milestone.delete":            { admin: true,  collaborator: false, customer: false },
-  "milestone.enableCSAT":        { admin: true,  collaborator: false, customer: false },
   "milestone.rate":              { admin: false, collaborator: false, customer: true  },
   "milestone.viewRating":        { admin: true,  collaborator: true,  customer: false },
 

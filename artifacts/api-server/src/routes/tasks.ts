@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, inArray, asc } from "drizzle-orm";
-import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, csatSurveysTable, timeEntriesTable, usersTable } from "@workspace/db";
+import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, timeEntriesTable, usersTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import { hasRole } from "../constants/roles";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
@@ -544,41 +544,6 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
         }
       } catch (e) { console.error("WF-04 milestone notification failed:", e); }
     })();
-  }
-
-  // Milestone-triggered CSAT survey: any milestone completed with csat_enabled → create survey + notify
-  if (wasNotCompleted && isNowCompleted && row.isMilestone && (row as any).csatEnabled !== false) {
-    try {
-      // Check no survey already exists for this task
-      const existing = await db.select().from(csatSurveysTable).where(eq(csatSurveysTable.milestoneTaskId, row.id));
-      if (existing.length === 0) {
-        // Find project customer champion: first allocation on project
-        const allocs = await db.select().from(allocationsTable).where(eq(allocationsTable.projectId, row.projectId));
-        const recipientId = allocs[0]?.userId ?? null;
-
-        const token = crypto.randomUUID();
-        const [survey] = await db.insert(csatSurveysTable).values({
-          milestoneTaskId: row.id,
-          projectId: row.projectId,
-          recipientUserId: recipientId,
-          token,
-        }).returning();
-
-        // Create in-app notification for recipient
-        if (recipientId) {
-          await db.insert(notificationsTable).values({
-            type: "csat_survey",
-            message: `You have a satisfaction survey for milestone "${row.name}"`,
-            userId: recipientId,
-            projectId: row.projectId,
-            entityType: "csat_survey",
-            entityId: String(survey.id),
-          });
-        }
-      }
-    } catch (err) {
-      console.error("CSAT survey creation failed:", err);
-    }
   }
 
   // Auto-allocate hook: if project.autoAllocate is true and assigneeIds changed,

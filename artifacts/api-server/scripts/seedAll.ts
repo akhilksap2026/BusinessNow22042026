@@ -28,7 +28,6 @@ import {
   budgetEntriesTable,
   revenueEntriesTable,
   rateCardsTable,
-  csatResponsesTable,
   projectTemplatesTable,
   templatePhasesTable,
   templateTasksTable,
@@ -1456,38 +1455,6 @@ async function seedRevenueEntries(projectMap: Map<string, number>, userMap: Map<
   }
 }
 
-// ─── 19. CSAT RESPONSES ───────────────────────────────────────────────────────
-
-async function seedCsatResponses(
-  projectMap: Map<string, number>,
-  taskMap: Map<string, number>,
-  userMap: Map<string, number>,
-): Promise<void> {
-  const sarahId  = userMap.get("sarah.chen@ksap.internal")!;
-  const jamesId  = userMap.get("james.okoye@ksap.internal")!;
-
-  // Use Discovery task IDs as milestone proxies
-  const meridDiscoveryTaskKey = `${projectMap.get("Meridian ERP Implementation")}:SOW sign-off`;
-  const bpGoLiveKey           = `${projectMap.get("Blueprint CRM Rollout")}:Go-live cutover`;
-
-  const meridTaskId = taskMap.get(meridDiscoveryTaskKey);
-  const bpTaskId    = taskMap.get(bpGoLiveKey);
-
-  if (!meridTaskId || !bpTaskId) return;
-
-  const defs = [
-    { projectId: projectMap.get("Meridian ERP Implementation")!, taskId: meridTaskId, submittedByUserId: sarahId, rating: 5, comment: "Discovery phase was extremely well-structured. The team really understood our business before designing anything." },
-    { projectId: projectMap.get("Blueprint CRM Rollout")!,         taskId: bpTaskId,    submittedByUserId: jamesId, rating: 4, comment: "Go-live was smooth. Minor issues in the first week handled quickly. Very satisfied overall." },
-  ];
-
-  const existing = await db.select().from(csatResponsesTable);
-  const existingSet = new Set(existing.map((c) => `${c.projectId}:${c.submittedByUserId}`));
-  const toInsert = defs.filter((d) => !existingSet.has(`${d.projectId}:${d.submittedByUserId}`));
-  if (toInsert.length > 0) {
-    await db.insert(csatResponsesTable).values(toInsert);
-  }
-}
-
 // ─── 20. EXTRA PROJECT TEMPLATES ─────────────────────────────────────────────
 
 async function seedExtraTemplates(): Promise<void> {
@@ -1786,9 +1753,6 @@ async function main() {
 
   console.log("  Revenue entries...");
   await seedRevenueEntries(projectMap, userMap);
-
-  console.log("  CSAT responses...");
-  await seedCsatResponses(projectMap, taskMap, userMap);
 
   console.log("  Project templates (4 existing + 4 new)...");
   // Run existing sample templates first
