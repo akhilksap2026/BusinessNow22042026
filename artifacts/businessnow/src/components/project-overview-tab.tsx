@@ -1,4 +1,5 @@
 import { BurnChart } from "./burn-chart";
+import { QuotedVsActualTable } from "./quoted-vs-actual-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBurnChart } from "@/hooks/use-burn-chart";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,14 +26,7 @@ export function ProjectOverviewTab({ projectId }: ProjectOverviewTabProps) {
         <BurnChart data={burnData} />
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">Quoted vs Actual</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">Coming in next task...</p>
-        </CardContent>
-      </Card>
+      <QuotedVsActualTable projectId={projectId} />
 
       <Card>
         <CardHeader>

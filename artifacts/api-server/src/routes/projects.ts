@@ -416,6 +416,60 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
   }));
 });
 
+// ─── Quoted vs Actual ─────────────────────────────────────────────────────────
+router.get("/projects/:id/quoted-vs-actual", async (req, res): Promise<void> => {
+  const projectId = parseInt(String(req.params.id), 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  const phases = await db.select().from(tasksTable).where(
+    and(eq(tasksTable.projectId, projectId), eq(tasksTable.isPhase, true))
+  );
+
+  const rows: Array<{
+    phaseId: number; phaseName: string; quotedHours: number;
+    actualHours: number; completionPct: number; status: "under" | "on-track" | "over";
+  }> = [];
+
+  for (const phase of phases) {
+    const childTasks = await db.select().from(tasksTable).where(
+      eq(tasksTable.parentTaskId, phase.id)
+    );
+
+    const quotedHours = childTasks.reduce((s, t) => s + Number(t.estimateHours ?? 0), 0);
+
+    let actualHours = 0;
+    if (childTasks.length > 0) {
+      const taskIds = childTasks.map(t => t.id);
+      const [res2] = await db
+        .select({ total: sum(timeEntriesTable.hours).mapWith(Number) })
+        .from(timeEntriesTable)
+        .where(inArray(timeEntriesTable.taskId, taskIds));
+      actualHours = Number(res2?.total ?? 0);
+    }
+
+    const completedCount = childTasks.filter(t => t.status === "Completed").length;
+    const completionPct = childTasks.length > 0
+      ? Math.round((completedCount / childTasks.length) * 100)
+      : 0;
+
+    let status: "under" | "on-track" | "over" = "on-track";
+    if (quotedHours > 0) {
+      const variance = (actualHours - quotedHours) / quotedHours;
+      if (variance < -0.05) status = "under";
+      if (variance > 0.05) status = "over";
+    }
+
+    rows.push({ phaseId: phase.id, phaseName: phase.name, quotedHours, actualHours, completionPct, status });
+  }
+
+  const totals = rows.reduce(
+    (acc, r) => ({ quotedHours: acc.quotedHours + r.quotedHours, actualHours: acc.actualHours + r.actualHours }),
+    { quotedHours: 0, actualHours: 0 }
+  );
+
+  res.json({ rows, totals });
+});
+
 // ─── Burn Chart ───────────────────────────────────────────────────────────────
 router.get("/projects/:id/burn-chart", async (req, res): Promise<void> => {
   const projectId = parseInt(String(req.params.id), 10);
