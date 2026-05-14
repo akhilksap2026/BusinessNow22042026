@@ -419,9 +419,6 @@ export default function Finance() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Invoices</CardTitle>
-                <Button size="sm" onClick={() => setIsCreateOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" /> New Invoice
-                </Button>
               </CardHeader>
               <CardContent>
                 {(() => {
