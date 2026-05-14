@@ -100,6 +100,21 @@ router.get("/invoices/finance-summary", requireFinance, async (_req, res): Promi
   res.json(GetFinanceSummaryResponse.parse({ totalInvoiced, totalPaid, totalOutstanding, totalOverdue, pipelineValue, byStatus }));
 });
 
+router.get("/invoices/project-summary/:projectId", requireFinance, async (req, res): Promise<void> => {
+  const projectId = Number(req.params.projectId);
+  if (!projectId || isNaN(projectId)) { res.status(400).json({ error: "Invalid projectId" }); return; }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+  const invoices = await db.select().from(invoicesTable).where(
+    and(eq(invoicesTable.projectId, projectId))
+  );
+  const activeInvoices = invoices.filter(i => i.status !== "Void");
+  const totalInvoiced = activeInvoices.reduce((s, i) => s + Number(i.total), 0);
+  const totalBudget = Number(project.budget);
+  const remainingBalance = totalBudget - totalInvoiced;
+  res.json({ totalBudget, totalInvoiced, remainingBalance, projectName: project.name });
+});
+
 router.get("/invoices/:id", requireFinance, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = GetInvoiceParams.safeParse({ id: raw });

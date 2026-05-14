@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { InvoiceDetail } from "@/components/invoice-detail";
+import { CreateInvoiceDialog } from "@/components/create-invoice-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -47,6 +48,7 @@ type ContractRow = {
 
 export default function Finance() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterProjectId, setFilterProjectId] = useState<number | undefined>();
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -382,6 +384,9 @@ export default function Finance() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Invoices</CardTitle>
+                <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> New Invoice
+                </Button>
               </CardHeader>
               <CardContent>
                 {(() => {
@@ -762,6 +767,7 @@ export default function Finance() {
         </Tabs>
 
         <InvoiceDetail invoice={selectedInvoice} open={!!selectedInvoice} onOpenChange={(o) => !o && setSelectedInvoice(null)} />
+        <CreateInvoiceDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 
         <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
           <DialogContent>
