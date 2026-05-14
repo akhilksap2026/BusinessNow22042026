@@ -62,6 +62,11 @@ export const usersTable = pgTable("users", {
    * setting up) they can dismiss it and we stop showing it for them.
    */
   onboardingDismissed: boolean("onboarding_dismissed").notNull().default(false),
+  /**
+   * R7 — Distinguishes internal staff from external contractors/vendors.
+   * Values: "employee" | "contractor" | "vendor". Defaults to "employee".
+   */
+  resourceType: text("resource_type").notNull().default("employee"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

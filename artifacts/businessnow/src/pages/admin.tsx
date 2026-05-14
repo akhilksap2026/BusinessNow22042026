@@ -425,6 +425,104 @@ function TaskStatusesAdminPanel() {
   );
 }
 
+// P15 — Project Status display-label and colour customisation
+function ProjectStatusLabelsPanel() {
+  const { toast } = useToast();
+  const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+  const [configs, setConfigs] = useState<any[]>([]);
+  const [editing, setEditing] = useState<Record<number, { displayLabel: string; color: string }>>({});
+
+  useEffect(() => {
+    fetch(`${BASE}/api/project-status-configs`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setConfigs)
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async (id: number) => {
+    const updates = editing[id];
+    if (!updates) return;
+    const r = await fetch(`${BASE}/api/project-status-configs/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (r.ok) {
+      const row = await r.json();
+      setConfigs(prev => prev.map(c => c.id === id ? row : c));
+      setEditing(prev => { const n = { ...prev }; delete n[id]; return n; });
+      toast({ title: "Status label saved" });
+    } else {
+      toast({ title: "Save failed", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Project Status Labels</CardTitle>
+        <CardDescription>Customise the display label and colour for each project lifecycle status.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Status Key</TableHead>
+              <TableHead>Display Label</TableHead>
+              <TableHead>Colour Hint</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {configs.map(c => {
+              const edit = editing[c.id];
+              return (
+                <TableRow key={c.id}>
+                  <TableCell className="font-mono text-sm text-muted-foreground">{c.statusKey}</TableCell>
+                  <TableCell>
+                    {edit ? (
+                      <Input className="h-8 w-40" value={edit.displayLabel} onChange={e => setEditing(prev => ({ ...prev, [c.id]: { ...prev[c.id], displayLabel: e.target.value } }))} />
+                    ) : (
+                      <span className="text-sm">{c.displayLabel}</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {edit ? (
+                      <Select value={edit.color} onValueChange={v => setEditing(prev => ({ ...prev, [c.id]: { ...prev[c.id], color: v } }))}>
+                        <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {["default", "green", "yellow", "red", "blue", "orange", "violet", "slate"].map(col => (
+                            <SelectItem key={col} value={col}>{col}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">{c.color || "default"}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    {edit ? (
+                      <>
+                        <Button size="sm" onClick={() => handleSave(c.id)}>Save</Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditing(prev => { const n = { ...prev }; delete n[c.id]; return n; })}>Cancel</Button>
+                      </>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => setEditing(prev => ({ ...prev, [c.id]: { displayLabel: c.displayLabel, color: c.color || "default" } }))}>Edit</Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {configs.length === 0 && (
+              <TableRow><TableCell colSpan={4} className="text-center py-6 text-sm text-muted-foreground">No status configs found. Check API connection.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
 type DocTemplateRow = {
   id: number;
   name: string;
@@ -656,7 +754,7 @@ export default function Admin() {
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
   const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
-  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "" });
+  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "", resourceType: "employee" });
 
   /* ── Invite + role-management context ─────────────────────────── */
   const { activeRole } = useCurrentUser();
@@ -708,18 +806,18 @@ export default function Admin() {
 
   function openAddUser() {
     setEditUser(null);
-    setUserForm({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "" });
+    setUserForm({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "", resourceType: "employee" });
     setUserDialogOpen(true);
   }
 
   function openEditUser(u: any) {
     setEditUser(u);
-    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", region: u.region ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0), isInternal: u.isInternal === false ? "false" : "true", activeStatus: u.activeStatus ?? "active", holidayCalendarId: u.holidayCalendarId ? String(u.holidayCalendarId) : "" });
+    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", region: u.region ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0), isInternal: u.isInternal === false ? "false" : "true", activeStatus: u.activeStatus ?? "active", holidayCalendarId: u.holidayCalendarId ? String(u.holidayCalendarId) : "", resourceType: (u as any).resourceType ?? "employee" });
     setUserDialogOpen(true);
   }
 
   async function handleSaveUser() {
-    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, region: userForm.region || undefined, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate), isInternal: userForm.isInternal !== "false", activeStatus: userForm.activeStatus, holidayCalendarId: userForm.holidayCalendarId ? Number(userForm.holidayCalendarId) : null };
+    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, region: userForm.region || undefined, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate), isInternal: userForm.isInternal !== "false", activeStatus: userForm.activeStatus, holidayCalendarId: userForm.holidayCalendarId ? Number(userForm.holidayCalendarId) : null, resourceType: userForm.resourceType };
     try {
       if (editUser) {
         await updateUser.mutateAsync({ id: editUser.id, data: payload });
@@ -1470,6 +1568,9 @@ export default function Admin() {
               <TabsTrigger value="taskstatuses" className="flex items-center gap-2" data-testid="tab-task-statuses">
                 <ListTodo className="h-4 w-4" /> Task Statuses
               </TabsTrigger>
+              <TabsTrigger value="projectstatuses" className="flex items-center gap-2">
+                <ListTodo className="h-4 w-4" /> Project Status Labels
+              </TabsTrigger>
               <TabsTrigger value="timesettings" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" /> Time Settings
               </TabsTrigger>
@@ -1921,6 +2022,10 @@ export default function Admin() {
 
           <TabsContent value="taskstatuses" className="m-0 space-y-4" data-testid="content-task-statuses">
             <TaskStatusesAdminPanel />
+          </TabsContent>
+
+          <TabsContent value="projectstatuses" className="m-0 space-y-4">
+            <ProjectStatusLabelsPanel />
           </TabsContent>
 
           <TabsContent value="timesettings" className="m-0 space-y-4">
@@ -3492,6 +3597,18 @@ export default function Admin() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Resource Type</Label>
+              <Select value={userForm.resourceType} onValueChange={v => setUserForm(f => ({ ...f, resourceType: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="contractor">Contractor</SelectItem>
+                  <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                  <SelectItem value="vendor">Vendor</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Holiday Calendar</Label>

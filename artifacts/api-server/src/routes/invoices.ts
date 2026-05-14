@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte } from "drizzle-orm";
-import { db, invoicesTable, timesheetsTable, timeEntriesTable, projectsTable, taxCodesTable } from "@workspace/db";
+import { eq, and, gte, lte, asc } from "drizzle-orm";
+import { db, invoicesTable, invoicePaymentsTable, timesheetsTable, timeEntriesTable, projectsTable, taxCodesTable } from "@workspace/db";
 import { requireFinance } from "../middleware/rbac";
 import { logAudit } from "../lib/audit";
 import {
@@ -238,6 +238,52 @@ router.post("/invoices/from-timesheet/:id", requireFinance, async (req, res): Pr
   } as any).returning();
 
   res.status(201).json(mapInvoice(row));
+});
+
+// V5 — Multiple partial payments per invoice.
+router.get("/invoices/:id/payments", requireFinance, async (req, res): Promise<void> => {
+  const invoiceId = req.params.id;
+  const rows = await db.select()
+    .from(invoicePaymentsTable)
+    .where(eq(invoicePaymentsTable.invoiceId, invoiceId))
+    .orderBy(asc(invoicePaymentsTable.createdAt));
+  res.json(rows.map(p => ({
+    ...p,
+    amount: Number(p.amount),
+    createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt,
+  })));
+});
+
+router.post("/invoices/:id/payments", requireFinance, async (req, res): Promise<void> => {
+  const invoiceId = req.params.id;
+  const { amount, paymentDate, reference, notes, recordedByUserId } = req.body;
+  if (!amount || !paymentDate) {
+    res.status(400).json({ error: "amount and paymentDate are required" });
+    return;
+  }
+  if (Number(amount) <= 0) {
+    res.status(400).json({ error: "amount must be positive" });
+    return;
+  }
+  const [row] = await db.insert(invoicePaymentsTable).values({
+    invoiceId,
+    amount: String(amount),
+    paymentDate,
+    reference: reference ?? null,
+    notes: notes ?? null,
+    recordedByUserId: recordedByUserId ?? null,
+  }).returning();
+  await logAudit({
+    entityType: "invoice",
+    entityId: invoiceId,
+    action: "updated",
+    description: `Payment of $${amount} recorded on invoice ${invoiceId}`,
+  });
+  res.status(201).json({
+    ...row,
+    amount: Number(row.amount),
+    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+  });
 });
 
 export default router;

@@ -41,6 +41,7 @@ import adminPortfolioRouter from "./adminPortfolio";
 import authLoginRouter from "./authLogin";
 import costEntriesRouter from "./costEntries";
 import risksRouter from "./risks";
+import projectStatusConfigsRouter from "./projectStatusConfigs";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
 
@@ -99,5 +100,6 @@ router.use(aiTimeAssistantRouter);
 router.use(adminPortfolioRouter);
 router.use(costEntriesRouter);
 router.use(risksRouter);
+router.use(projectStatusConfigsRouter);
 
 export default router;

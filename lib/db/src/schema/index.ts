@@ -28,5 +28,6 @@ export * from "./savedViews";
 export * from "./taskStatusDefinitions";
 export * from "./projectGroups";
 export * from "./contracts";
+export * from "./projectStatusConfigs";
 export * from "./assets";
 export * from "./risks";

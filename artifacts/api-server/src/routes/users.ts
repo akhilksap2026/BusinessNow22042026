@@ -149,6 +149,7 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   if (req.body.isInternal !== undefined) userUpdates.isInternal = Boolean(req.body.isInternal);
   if (req.body.activeStatus !== undefined) userUpdates.activeStatus = req.body.activeStatus;
   if (req.body.holidayCalendarId !== undefined) userUpdates.holidayCalendarId = req.body.holidayCalendarId === null || req.body.holidayCalendarId === "" ? null : Number(req.body.holidayCalendarId);
+  if (req.body.resourceType !== undefined) userUpdates.resourceType = req.body.resourceType;
   const [previous] = await db.select().from(usersTable).where(eq(usersTable.id, params.data.id));
   const [row] = await db.update(usersTable).set(userUpdates).where(eq(usersTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }

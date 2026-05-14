@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, inArray, asc } from "drizzle-orm";
+import { eq, and, inArray, asc, sql } from "drizzle-orm";
 import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, timeEntriesTable, usersTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import { hasRole } from "../constants/roles";
@@ -128,6 +128,13 @@ router.get("/tasks", async (req, res): Promise<void> => {
   const conditions = [];
   if (qp.success && qp.data.projectId) conditions.push(eq(tasksTable.projectId, qp.data.projectId));
   if (qp.success && qp.data.status) conditions.push(eq(tasksTable.status, qp.data.status));
+  // T3 — When context=timesheet, scope results to tasks assigned to the requesting user.
+  if (qp.success && qp.data.context === "timesheet") {
+    const userId = Number((req as any).headers?.["x-user-id"]);
+    if (Number.isFinite(userId) && userId > 0) {
+      conditions.push(sql`${tasksTable.assigneeIds} @> ARRAY[${userId}]::integer[]`);
+    }
+  }
   const rows = conditions.length
     ? await db.select().from(tasksTable).where(and(...conditions)).orderBy(asc(tasksTable.sortOrder), asc(tasksTable.id))
     : await db.select().from(tasksTable).orderBy(asc(tasksTable.sortOrder), asc(tasksTable.id));

@@ -253,6 +253,12 @@ export interface User {
   department: string;
   costRate: number;
   skills: string[];
+  resourceType?: string;
+  isInternal?: boolean;
+  region?: string | null;
+  activeStatus?: string;
+  holidayCalendarId?: number | null;
+  managerId?: number | null;
   createdAt: string;
 }
 

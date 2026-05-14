@@ -68,6 +68,52 @@ router.delete("/invoices/:id/line-items/:lineItemId", requireFinance, async (req
   res.sendStatus(204);
 });
 
+// V1 — Sanitizable autofill preview: returns proposed items without inserting them.
+router.get("/invoices/:id/line-items/autofill-preview", requireFinance, async (req, res): Promise<void> => {
+  const params = AutofillInvoiceLineItemsParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const existingItems = await db.select().from(invoiceLineItemsTable)
+    .where(eq(invoiceLineItemsTable.invoiceId, params.data.id));
+
+  const linkedTimeEntryIds = existingItems
+    .filter(i => i.timeEntryId !== null)
+    .map(i => i.timeEntryId as number);
+
+  const allEntries = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.approved, true));
+  const entries = allEntries.filter(e => !linkedTimeEntryIds.includes(e.id));
+
+  const users = await db.select().from(usersTable);
+  const rateCards = await db.select().from(rateCardsTable);
+
+  let order = existingItems.length;
+  const preview = entries.map(entry => {
+    const user = users.find(u => u.id === entry.userId);
+    const rateCard = rateCards[0];
+    const roles = (rateCard?.roles as Array<{ role: string; rate: number }>) ?? [];
+    const roleEntry = user ? roles.find(r => r.role === user.role) : null;
+    const unitRate = entry.appliedBillRate != null
+      ? Number(entry.appliedBillRate)
+      : (roleEntry ? roleEntry.rate : (user ? Number(user.costRate) : 0));
+    const quantity = Number(entry.hours);
+    const amount = quantity * unitRate;
+    return {
+      description: entry.description || `${user?.name ?? "Team Member"} — ${new Date(entry.date).toLocaleDateString()}`,
+      quantity,
+      unitRate,
+      amount,
+      taxAmount: 0,
+      billable: entry.billable ?? true,
+      timeEntryId: entry.id,
+      userId: entry.userId,
+      role: user?.role ?? null,
+      order: order++,
+    };
+  });
+
+  res.json(preview);
+});
+
 router.post("/invoices/:id/line-items/autofill", requireFinance, async (req, res): Promise<void> => {
   const params = AutofillInvoiceLineItemsParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }

@@ -418,6 +418,7 @@ export const ListTasksQueryParams = zod.object({
   projectId: zod.coerce.number().optional(),
   assigneeId: zod.coerce.number().optional(),
   status: zod.coerce.string().optional(),
+  context: zod.string().optional(),
 });
 
 export const ListTasksResponseItem = zod.object({
@@ -627,6 +628,12 @@ export const ListUsersResponseItem = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
+  resourceType: zod.string().optional(),
+  isInternal: zod.boolean().optional(),
+  region: zod.string().nullable().optional(),
+  activeStatus: zod.string().optional(),
+  holidayCalendarId: zod.number().nullable().optional(),
+  managerId: zod.number().nullable().optional(),
   createdAt: zod.string(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
@@ -661,6 +668,12 @@ export const GetUserResponse = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
+  resourceType: zod.string().optional(),
+  isInternal: zod.boolean().optional(),
+  region: zod.string().nullable().optional(),
+  activeStatus: zod.string().optional(),
+  holidayCalendarId: zod.number().nullable().optional(),
+  managerId: zod.number().nullable().optional(),
   createdAt: zod.string(),
 });
 

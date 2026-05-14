@@ -10,7 +10,7 @@ import { ResourceKpiBar } from "@/components/resource-kpi-bar";
 import SkillsMatrix from "@/components/skills-matrix";
 import {
   useGetCapacityOverview, useListUsers, useListProjects, useListResourceRequests, useUpdateResourceRequestStatus, getListResourceRequestsQueryKey,
-  useGetUserSkills, useListSkills, useListAllocations,
+  useGetUserSkills, useListSkills, useListAllocations, useListTimeOffRequests,
 } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,12 +27,92 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3, ChevronDown, ChevronUp, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 const REQUEST_STATUSES = ["Pending", "In Review", "Alternative Proposed", "Approved", "Blocked", "Rejected", "Fulfilled", "Cancelled"];
+
+// D14 — Team holiday/vacation snapshot
+function TeamCalendarTab() {
+  const { data: allRequests = [] } = useListTimeOffRequests();
+  const { data: users = [] } = useListUsers();
+
+  const today = new Date();
+  const in60Days = new Date(today.getTime() + 60 * 86400000);
+
+  const upcoming = (allRequests as any[])
+    .filter(r => r.status === "Approved")
+    .filter(r => {
+      const end = new Date(r.endDate ?? r.startDate);
+      const start = new Date(r.startDate);
+      return end >= today && start <= in60Days;
+    })
+    .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+  const getUserName = (userId: number) => (users as any[]).find(u => u.id === userId)?.name ?? `User ${userId}`;
+  const getUserInitials = (userId: number) => (users as any[]).find(u => u.id === userId)?.initials ?? "?";
+
+  const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+  if (upcoming.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Calendar</CardTitle>
+          <CardDescription>Upcoming approved time-off in the next 60 days</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground py-6 text-center">No approved time-off scheduled in the next 60 days.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Team Calendar</CardTitle>
+        <CardDescription>Approved time-off in the next 60 days — {upcoming.length} request{upcoming.length !== 1 ? "s" : ""}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Team Member</TableHead>
+              <TableHead>Start</TableHead>
+              <TableHead>End</TableHead>
+              <TableHead>Days</TableHead>
+              <TableHead>Reason</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {upcoming.map((r: any) => {
+              const start = new Date(r.startDate);
+              const end = new Date(r.endDate ?? r.startDate);
+              const days = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+              return (
+                <TableRow key={r.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7"><AvatarFallback className="text-xs">{getUserInitials(r.userId)}</AvatarFallback></Avatar>
+                      <span className="text-sm font-medium">{getUserName(r.userId)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{fmt(r.startDate)}</TableCell>
+                  <TableCell className="text-sm">{r.endDate ? fmt(r.endDate) : fmt(r.startDate)}</TableCell>
+                  <TableCell className="text-sm">{days}d</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.reason || "—"}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
 
 // RS-02: Bench tab — users with no active hard allocation today.
 function BenchTab() {
@@ -668,6 +748,9 @@ export default function Resources() {
             <TabsTrigger value="bench" className="flex items-center gap-2">
               <Users className="h-4 w-4" /> Bench
             </TabsTrigger>
+            <TabsTrigger value="team-calendar" className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" /> Team Calendar
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="capacity" className="m-0">
@@ -1171,6 +1254,10 @@ export default function Resources() {
           {/* RS-02: Bench tab — users with no active hard allocation today */}
           <TabsContent value="bench" className="m-0">
             <BenchTab />
+          </TabsContent>
+
+          <TabsContent value="team-calendar" className="m-0">
+            <TeamCalendarTab />
           </TabsContent>
         </Tabs>
       </div>
