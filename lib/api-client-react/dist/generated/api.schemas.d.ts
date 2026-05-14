@@ -172,6 +172,8 @@ export interface Task {
     etc: number;
     /** Estimate At Completion = actualHours + abs(etc) */
     eac: number;
+    eacStatus?: 'under' | 'on-track' | 'over';
+    varianceHours?: number;
     billable: boolean;
     isMilestone: boolean;
     /** True if this task was created by applying a template */

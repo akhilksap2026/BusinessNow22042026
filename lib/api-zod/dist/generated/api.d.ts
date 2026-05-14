@@ -890,6 +890,9 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
         changeRequests: number;
         updates: number;
     }>>;
+    profitToDate: zod.ZodOptional<zod.ZodNumber>;
+    marginPct: zod.ZodOptional<zod.ZodNumber>;
+    totalCost: zod.ZodOptional<zod.ZodNumber>;
 }, "strip", zod.ZodTypeAny, {
     projectId: number;
     budgetUsedPercent: number;
@@ -902,6 +905,9 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
         changeRequests: number;
         updates: number;
     } | undefined;
+    profitToDate?: number | undefined;
+    marginPct?: number | undefined;
+    totalCost?: number | undefined;
 }, {
     projectId: number;
     budgetUsedPercent: number;
@@ -914,6 +920,9 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
         changeRequests: number;
         updates: number;
     } | undefined;
+    profitToDate?: number | undefined;
+    marginPct?: number | undefined;
+    totalCost?: number | undefined;
 }>;
 /**
  * @summary List budget entries for a project with running totals
@@ -1077,6 +1086,8 @@ export declare const ListTasksResponseItem: zod.ZodObject<{
     actualHours: zod.ZodNumber;
     etc: zod.ZodNumber;
     eac: zod.ZodNumber;
+    eacStatus: zod.ZodOptional<zod.ZodEnum<["under", "on-track", "over"]>>;
+    varianceHours: zod.ZodOptional<zod.ZodNumber>;
     billable: zod.ZodBoolean;
     isMilestone: zod.ZodBoolean;
     fromTemplate: zod.ZodOptional<zod.ZodBoolean>;
@@ -1104,6 +1115,8 @@ export declare const ListTasksResponseItem: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
+    eacStatus?: "under" | "on-track" | "over" | undefined;
+    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1127,6 +1140,8 @@ export declare const ListTasksResponseItem: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
+    eacStatus?: "under" | "on-track" | "over" | undefined;
+    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1147,6 +1162,8 @@ export declare const ListTasksResponse: zod.ZodArray<zod.ZodObject<{
     actualHours: zod.ZodNumber;
     etc: zod.ZodNumber;
     eac: zod.ZodNumber;
+    eacStatus: zod.ZodOptional<zod.ZodEnum<["under", "on-track", "over"]>>;
+    varianceHours: zod.ZodOptional<zod.ZodNumber>;
     billable: zod.ZodBoolean;
     isMilestone: zod.ZodBoolean;
     fromTemplate: zod.ZodOptional<zod.ZodBoolean>;
@@ -1174,6 +1191,8 @@ export declare const ListTasksResponse: zod.ZodArray<zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
+    eacStatus?: "under" | "on-track" | "over" | undefined;
+    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1197,6 +1216,8 @@ export declare const ListTasksResponse: zod.ZodArray<zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
+    eacStatus?: "under" | "on-track" | "over" | undefined;
+    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1316,6 +1337,8 @@ export declare const GetTaskResponse: zod.ZodObject<{
     actualHours: zod.ZodNumber;
     etc: zod.ZodNumber;
     eac: zod.ZodNumber;
+    eacStatus: zod.ZodOptional<zod.ZodEnum<["under", "on-track", "over"]>>;
+    varianceHours: zod.ZodOptional<zod.ZodNumber>;
     billable: zod.ZodBoolean;
     isMilestone: zod.ZodBoolean;
     fromTemplate: zod.ZodOptional<zod.ZodBoolean>;
@@ -1343,6 +1366,8 @@ export declare const GetTaskResponse: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
+    eacStatus?: "under" | "on-track" | "over" | undefined;
+    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1366,6 +1391,8 @@ export declare const GetTaskResponse: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
+    eacStatus?: "under" | "on-track" | "over" | undefined;
+    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1442,6 +1469,8 @@ export declare const UpdateTaskResponse: zod.ZodObject<{
     actualHours: zod.ZodNumber;
     etc: zod.ZodNumber;
     eac: zod.ZodNumber;
+    eacStatus: zod.ZodOptional<zod.ZodEnum<["under", "on-track", "over"]>>;
+    varianceHours: zod.ZodOptional<zod.ZodNumber>;
     billable: zod.ZodBoolean;
     isMilestone: zod.ZodBoolean;
     fromTemplate: zod.ZodOptional<zod.ZodBoolean>;
@@ -1469,6 +1498,8 @@ export declare const UpdateTaskResponse: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
+    eacStatus?: "under" | "on-track" | "over" | undefined;
+    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1492,6 +1523,8 @@ export declare const UpdateTaskResponse: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
+    eacStatus?: "under" | "on-track" | "over" | undefined;
+    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;

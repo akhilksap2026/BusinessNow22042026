@@ -450,6 +450,8 @@ export const ListTasksResponseItem = zod.object({
     .number()
     .describe("Estimate To Complete = estimateHours − actualHours"),
   eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
+  eacStatus: zod.enum(["under", "on-track", "over"]).optional(),
+  varianceHours: zod.number().optional(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
@@ -535,6 +537,8 @@ export const GetTaskResponse = zod.object({
     .number()
     .describe("Estimate To Complete = estimateHours − actualHours"),
   eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
+  eacStatus: zod.enum(["under", "on-track", "over"]).optional(),
+  varianceHours: zod.number().optional(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
@@ -598,6 +602,8 @@ export const UpdateTaskResponse = zod.object({
     .number()
     .describe("Estimate To Complete = estimateHours − actualHours"),
   eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
+  eacStatus: zod.enum(["under", "on-track", "over"]).optional(),
+  varianceHours: zod.number().optional(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
