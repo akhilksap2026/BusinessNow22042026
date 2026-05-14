@@ -16,5 +16,13 @@ export interface UpdateAccountBody {
     contractValue?: number;
     billingAddress?: string | null;
     logoUrl?: string | null;
+    companyName?: string | null;
+    contactName?: string | null;
+    contactEmail?: string | null;
+    phone?: string | null;
+    source?: string | null;
+    estValue?: number | null;
+    notes?: string | null;
+    leadStatus?: string | null;
 }
 //# sourceMappingURL=updateAccountBody.d.ts.map

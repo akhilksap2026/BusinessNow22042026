@@ -470,12 +470,12 @@ export type InsertInvoicePayment = z.infer<typeof insertInvoicePaymentSchema>;
 export type InvoicePayment = typeof invoicePaymentsTable.$inferSelect;
 export declare const insertInvoiceSchema: z.ZodObject<{
     id: z.ZodString;
-    description: z.ZodString;
     status: z.ZodOptional<z.ZodString>;
+    notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     accountId: z.ZodInt;
     dueDate: z.ZodString;
+    description: z.ZodString;
     projectId: z.ZodInt;
-    notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     timesheetId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     issueDate: z.ZodString;
     amount: z.ZodString;

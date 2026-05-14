@@ -47,6 +47,14 @@ export interface Account {
   billingAddress?: string | null;
   logoUrl?: string | null;
   convertedFromProspectId?: number | null;
+  companyName?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  phone?: string | null;
+  source?: string | null;
+  estValue?: number | null;
+  notes?: string | null;
+  leadStatus?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +70,14 @@ export interface CreateAccountBody {
   contractValue: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
+  companyName?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  phone?: string | null;
+  source?: string | null;
+  estValue?: number | null;
+  notes?: string | null;
+  leadStatus?: string | null;
 }
 
 export interface UpdateAccountBody {
@@ -75,6 +91,14 @@ export interface UpdateAccountBody {
   contractValue?: number;
   billingAddress?: string | null;
   logoUrl?: string | null;
+  companyName?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  phone?: string | null;
+  source?: string | null;
+  estValue?: number | null;
+  notes?: string | null;
+  leadStatus?: string | null;
 }
 
 export interface Project {
@@ -91,17 +115,19 @@ export interface Project {
   allocatedHours: number;
   budgetedHours: number;
   completion: number;
-  health: string | null;
+  health: string;
   /** @nullable */
   description?: string | null;
   internalExternal: string;
   isAdminProject?: number;
   opportunityId?: number | null;
   projectGroupId?: number | null;
-  budgetLocked?: boolean;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** True when the budget is locked (auto-set on draft→active transition). While locked, PATCH /projects/:id rejects budget field changes with 403 budget_locked. Account Admin can unlock via PATCH /projects/:id/unlock-budget.
+   */
+  budgetLocked?: boolean;
   /** @nullable */
   companyName?: string | null;
   /** @nullable */
@@ -118,13 +144,6 @@ export interface ProjectSummary {
   invoicedAmount: number;
   pendingAmount: number;
   teamSize: number;
-  badgeCounts?: {
-    changeRequests: number;
-    updates: number;
-  };
-  profitToDate?: number;
-  marginPct?: number;
-  totalCost?: number;
 }
 
 export interface CreateProjectBody {
@@ -139,9 +158,6 @@ export interface CreateProjectBody {
   budgetedHours: number;
   description?: string;
   internalExternal?: string;
-  rateCardId?: number;
-  customerChampion?: string;
-  opportunityId?: number;
 }
 
 export interface UpdateProjectBody {
@@ -182,8 +198,6 @@ export interface Task {
   etc: number;
   /** Estimate At Completion = actualHours + abs(etc) */
   eac: number;
-  eacStatus?: 'under' | 'on-track' | 'over';
-  varianceHours?: number;
   billable: boolean;
   isMilestone: boolean;
   /** True if this task was created by applying a template */
@@ -262,12 +276,6 @@ export interface User {
   department: string;
   costRate: number;
   skills: string[];
-  resourceType?: string;
-  isInternal?: boolean;
-  region?: string | null;
-  activeStatus?: string;
-  holidayCalendarId?: number | null;
-  managerId?: number | null;
   createdAt: string;
 }
 
@@ -308,10 +316,6 @@ export interface TimeEntry {
   billable: boolean;
   approved: boolean;
   createdAt: string;
-  /** @nullable - Snapshotted bill rate from the rate card effective on the entry's work date. Immutable once set. */
-  appliedBillRate?: number | null;
-  /** @nullable - Snapshotted cost rate at approval time. Not returned for collaborator-role callers. */
-  appliedCostRate?: number | null;
 }
 
 export interface CreateTimeEntryBody {
@@ -537,7 +541,7 @@ export interface RevenueReport {
 export type ProjectHealthReportProjectsItem = {
   projectId: number;
   projectName: string;
-  health: string | null;
+  health: string;
   completion: number;
   daysRemaining: number;
   budgetUsed: number;

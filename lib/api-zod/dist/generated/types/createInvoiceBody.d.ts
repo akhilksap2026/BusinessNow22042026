@@ -11,9 +11,7 @@ export interface CreateInvoiceBody {
     issueDate: string;
     dueDate: string;
     amount: number;
-    tax?: number;
-    taxCodeId?: number;
+    tax: number;
     description: string;
-    notes?: string;
 }
 //# sourceMappingURL=createInvoiceBody.d.ts.map

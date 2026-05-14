@@ -3716,6 +3716,30 @@ components:
         convertedFromProspectId:
           type: integer
           nullable: true
+        companyName:
+          type: string
+          nullable: true
+        contactName:
+          type: string
+          nullable: true
+        contactEmail:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        source:
+          type: string
+          nullable: true
+        estValue:
+          type: number
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        leadStatus:
+          type: string
+          nullable: true
         createdAt:
           type: string
         updatedAt:
@@ -3758,6 +3782,30 @@ components:
         logoUrl:
           type: string
           nullable: true
+        companyName:
+          type: string
+          nullable: true
+        contactName:
+          type: string
+          nullable: true
+        contactEmail:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        source:
+          type: string
+          nullable: true
+        estValue:
+          type: number
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        leadStatus:
+          type: string
+          nullable: true
       required:
         - name
         - domain
@@ -3788,6 +3836,30 @@ components:
           type: string
           nullable: true
         logoUrl:
+          type: string
+          nullable: true
+        companyName:
+          type: string
+          nullable: true
+        contactName:
+          type: string
+          nullable: true
+        contactEmail:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        source:
+          type: string
+          nullable: true
+        estValue:
+          type: number
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        leadStatus:
           type: string
           nullable: true
 

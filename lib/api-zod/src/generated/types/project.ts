@@ -30,6 +30,9 @@ export interface Project {
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** True when the budget is locked (auto-set on draft→active transition). While locked, PATCH /projects/:id rejects budget field changes with 403 budget_locked. Account Admin can unlock via PATCH /projects/:id/unlock-budget.
+   */
+  budgetLocked?: boolean;
   /** @nullable */
   companyName?: string | null;
   /** @nullable */

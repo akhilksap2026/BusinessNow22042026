@@ -20,6 +20,14 @@ export interface Account {
     billingAddress?: string | null;
     logoUrl?: string | null;
     convertedFromProspectId?: number | null;
+    companyName?: string | null;
+    contactName?: string | null;
+    contactEmail?: string | null;
+    phone?: string | null;
+    source?: string | null;
+    estValue?: number | null;
+    notes?: string | null;
+    leadStatus?: string | null;
     createdAt: string;
     updatedAt: string;
 }

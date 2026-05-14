@@ -136,6 +136,14 @@ export declare const ListAccountsResponseItem: zod.ZodObject<{
     billingAddress: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     logoUrl: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     convertedFromProspectId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactEmail: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    phone: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    source: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    estValue: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    leadStatus: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
@@ -153,6 +161,14 @@ export declare const ListAccountsResponseItem: zod.ZodObject<{
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
     convertedFromProspectId?: number | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }, {
     status: string;
     id: number;
@@ -168,6 +184,14 @@ export declare const ListAccountsResponseItem: zod.ZodObject<{
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
     convertedFromProspectId?: number | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }>;
 export declare const ListAccountsResponse: zod.ZodArray<zod.ZodObject<{
     id: zod.ZodNumber;
@@ -182,6 +206,14 @@ export declare const ListAccountsResponse: zod.ZodArray<zod.ZodObject<{
     billingAddress: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     logoUrl: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     convertedFromProspectId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactEmail: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    phone: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    source: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    estValue: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    leadStatus: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
@@ -199,6 +231,14 @@ export declare const ListAccountsResponse: zod.ZodArray<zod.ZodObject<{
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
     convertedFromProspectId?: number | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }, {
     status: string;
     id: number;
@@ -214,6 +254,14 @@ export declare const ListAccountsResponse: zod.ZodArray<zod.ZodObject<{
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
     convertedFromProspectId?: number | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }>, "many">;
 /**
  * @summary Create a new account
@@ -229,6 +277,14 @@ export declare const CreateAccountBody: zod.ZodObject<{
     contractValue: zod.ZodNumber;
     billingAddress: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     logoUrl: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactEmail: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    phone: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    source: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    estValue: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    leadStatus: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
 }, "strip", zod.ZodTypeAny, {
     name: string;
     domain: string;
@@ -240,6 +296,14 @@ export declare const CreateAccountBody: zod.ZodObject<{
     isInternal?: boolean | undefined;
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }, {
     name: string;
     domain: string;
@@ -251,6 +315,14 @@ export declare const CreateAccountBody: zod.ZodObject<{
     isInternal?: boolean | undefined;
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }>;
 /**
  * @summary Get account by ID
@@ -275,6 +347,14 @@ export declare const GetAccountResponse: zod.ZodObject<{
     billingAddress: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     logoUrl: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     convertedFromProspectId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactEmail: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    phone: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    source: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    estValue: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    leadStatus: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
@@ -292,6 +372,14 @@ export declare const GetAccountResponse: zod.ZodObject<{
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
     convertedFromProspectId?: number | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }, {
     status: string;
     id: number;
@@ -307,6 +395,14 @@ export declare const GetAccountResponse: zod.ZodObject<{
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
     convertedFromProspectId?: number | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }>;
 /**
  * @summary Update account
@@ -329,6 +425,14 @@ export declare const UpdateAccountBody: zod.ZodObject<{
     contractValue: zod.ZodOptional<zod.ZodNumber>;
     billingAddress: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     logoUrl: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactEmail: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    phone: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    source: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    estValue: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    leadStatus: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
 }, "strip", zod.ZodTypeAny, {
     status?: string | undefined;
     name?: string | undefined;
@@ -340,6 +444,14 @@ export declare const UpdateAccountBody: zod.ZodObject<{
     contractValue?: number | undefined;
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }, {
     status?: string | undefined;
     name?: string | undefined;
@@ -351,6 +463,14 @@ export declare const UpdateAccountBody: zod.ZodObject<{
     contractValue?: number | undefined;
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }>;
 export declare const UpdateAccountResponse: zod.ZodObject<{
     id: zod.ZodNumber;
@@ -365,6 +485,14 @@ export declare const UpdateAccountResponse: zod.ZodObject<{
     billingAddress: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     logoUrl: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     convertedFromProspectId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    contactEmail: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    phone: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    source: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    estValue: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    leadStatus: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
@@ -382,6 +510,14 @@ export declare const UpdateAccountResponse: zod.ZodObject<{
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
     convertedFromProspectId?: number | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }, {
     status: string;
     id: number;
@@ -397,6 +533,14 @@ export declare const UpdateAccountResponse: zod.ZodObject<{
     billingAddress?: string | null | undefined;
     logoUrl?: string | null | undefined;
     convertedFromProspectId?: number | null | undefined;
+    companyName?: string | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    phone?: string | null | undefined;
+    source?: string | null | undefined;
+    estValue?: number | null | undefined;
+    notes?: string | null | undefined;
+    leadStatus?: string | null | undefined;
 }>;
 /**
  * @summary Delete account
@@ -435,7 +579,7 @@ export declare const ListProjectsResponseItem: zod.ZodObject<{
     allocatedHours: zod.ZodNumber;
     budgetedHours: zod.ZodNumber;
     completion: zod.ZodNumber;
-    health: zod.ZodNullable<zod.ZodString>;
+    health: zod.ZodString;
     description: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     internalExternal: zod.ZodString;
     isAdminProject: zod.ZodOptional<zod.ZodNumber>;
@@ -444,6 +588,7 @@ export declare const ListProjectsResponseItem: zod.ZodObject<{
     deletedAt: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
+    budgetLocked: zod.ZodOptional<zod.ZodBoolean>;
     companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     accountDomain: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     ownerName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
@@ -463,14 +608,15 @@ export declare const ListProjectsResponseItem: zod.ZodObject<{
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string | null;
+    health: string;
     internalExternal: string;
     description?: string | null | undefined;
+    companyName?: string | null | undefined;
     isAdminProject?: number | undefined;
     opportunityId?: number | null | undefined;
     projectGroupId?: number | null | undefined;
     deletedAt?: string | null | undefined;
-    companyName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
 }, {
@@ -489,14 +635,15 @@ export declare const ListProjectsResponseItem: zod.ZodObject<{
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string | null;
+    health: string;
     internalExternal: string;
     description?: string | null | undefined;
+    companyName?: string | null | undefined;
     isAdminProject?: number | undefined;
     opportunityId?: number | null | undefined;
     projectGroupId?: number | null | undefined;
     deletedAt?: string | null | undefined;
-    companyName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
 }>;
@@ -514,7 +661,7 @@ export declare const ListProjectsResponse: zod.ZodArray<zod.ZodObject<{
     allocatedHours: zod.ZodNumber;
     budgetedHours: zod.ZodNumber;
     completion: zod.ZodNumber;
-    health: zod.ZodNullable<zod.ZodString>;
+    health: zod.ZodString;
     description: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     internalExternal: zod.ZodString;
     isAdminProject: zod.ZodOptional<zod.ZodNumber>;
@@ -523,6 +670,7 @@ export declare const ListProjectsResponse: zod.ZodArray<zod.ZodObject<{
     deletedAt: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
+    budgetLocked: zod.ZodOptional<zod.ZodBoolean>;
     companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     accountDomain: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     ownerName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
@@ -542,14 +690,15 @@ export declare const ListProjectsResponse: zod.ZodArray<zod.ZodObject<{
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string | null;
+    health: string;
     internalExternal: string;
     description?: string | null | undefined;
+    companyName?: string | null | undefined;
     isAdminProject?: number | undefined;
     opportunityId?: number | null | undefined;
     projectGroupId?: number | null | undefined;
     deletedAt?: string | null | undefined;
-    companyName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
 }, {
@@ -568,14 +717,15 @@ export declare const ListProjectsResponse: zod.ZodArray<zod.ZodObject<{
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string | null;
+    health: string;
     internalExternal: string;
     description?: string | null | undefined;
+    companyName?: string | null | undefined;
     isAdminProject?: number | undefined;
     opportunityId?: number | null | undefined;
     projectGroupId?: number | null | undefined;
     deletedAt?: string | null | undefined;
-    companyName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
 }>, "many">;
@@ -594,9 +744,6 @@ export declare const CreateProjectBody: zod.ZodObject<{
     budgetedHours: zod.ZodNumber;
     description: zod.ZodOptional<zod.ZodString>;
     internalExternal: zod.ZodOptional<zod.ZodString>;
-    rateCardId: zod.ZodOptional<zod.ZodNumber>;
-    customerChampion: zod.ZodOptional<zod.ZodString>;
-    opportunityId: zod.ZodOptional<zod.ZodNumber>;
 }, "strip", zod.ZodTypeAny, {
     status: string;
     name: string;
@@ -609,9 +756,6 @@ export declare const CreateProjectBody: zod.ZodObject<{
     budgetedHours: number;
     description?: string | undefined;
     internalExternal?: string | undefined;
-    opportunityId?: number | undefined;
-    rateCardId?: number | undefined;
-    customerChampion?: string | undefined;
 }, {
     status: string;
     name: string;
@@ -624,9 +768,6 @@ export declare const CreateProjectBody: zod.ZodObject<{
     budgetedHours: number;
     description?: string | undefined;
     internalExternal?: string | undefined;
-    opportunityId?: number | undefined;
-    rateCardId?: number | undefined;
-    customerChampion?: string | undefined;
 }>;
 /**
  * @summary Get project by ID
@@ -652,16 +793,16 @@ export declare const GetProjectResponse: zod.ZodObject<{
     allocatedHours: zod.ZodNumber;
     budgetedHours: zod.ZodNumber;
     completion: zod.ZodNumber;
-    health: zod.ZodNullable<zod.ZodString>;
+    health: zod.ZodString;
     description: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     internalExternal: zod.ZodString;
     isAdminProject: zod.ZodOptional<zod.ZodNumber>;
     opportunityId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     projectGroupId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    budgetLocked: zod.ZodOptional<zod.ZodBoolean>;
     deletedAt: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
+    budgetLocked: zod.ZodOptional<zod.ZodBoolean>;
     companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     accountDomain: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     ownerName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
@@ -681,17 +822,17 @@ export declare const GetProjectResponse: zod.ZodObject<{
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string | null;
+    health: string;
     internalExternal: string;
     description?: string | null | undefined;
+    companyName?: string | null | undefined;
     isAdminProject?: number | undefined;
     opportunityId?: number | null | undefined;
     projectGroupId?: number | null | undefined;
     deletedAt?: string | null | undefined;
-    companyName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
-    budgetLocked?: boolean | undefined;
 }, {
     status: string;
     id: number;
@@ -708,17 +849,17 @@ export declare const GetProjectResponse: zod.ZodObject<{
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string | null;
+    health: string;
     internalExternal: string;
     description?: string | null | undefined;
+    companyName?: string | null | undefined;
     isAdminProject?: number | undefined;
     opportunityId?: number | null | undefined;
     projectGroupId?: number | null | undefined;
     deletedAt?: string | null | undefined;
-    companyName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
-    budgetLocked?: boolean | undefined;
 }>;
 /**
  * @summary Update project
@@ -784,16 +925,16 @@ export declare const UpdateProjectResponse: zod.ZodObject<{
     allocatedHours: zod.ZodNumber;
     budgetedHours: zod.ZodNumber;
     completion: zod.ZodNumber;
-    health: zod.ZodNullable<zod.ZodString>;
+    health: zod.ZodString;
     description: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     internalExternal: zod.ZodString;
     isAdminProject: zod.ZodOptional<zod.ZodNumber>;
     opportunityId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     projectGroupId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    budgetLocked: zod.ZodOptional<zod.ZodBoolean>;
     deletedAt: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodString;
     updatedAt: zod.ZodString;
+    budgetLocked: zod.ZodOptional<zod.ZodBoolean>;
     companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     accountDomain: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     ownerName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
@@ -813,17 +954,17 @@ export declare const UpdateProjectResponse: zod.ZodObject<{
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string | null;
+    health: string;
     internalExternal: string;
     description?: string | null | undefined;
+    companyName?: string | null | undefined;
     isAdminProject?: number | undefined;
     opportunityId?: number | null | undefined;
     projectGroupId?: number | null | undefined;
     deletedAt?: string | null | undefined;
-    companyName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
-    budgetLocked?: boolean | undefined;
 }, {
     status: string;
     id: number;
@@ -840,17 +981,17 @@ export declare const UpdateProjectResponse: zod.ZodObject<{
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string | null;
+    health: string;
     internalExternal: string;
     description?: string | null | undefined;
+    companyName?: string | null | undefined;
     isAdminProject?: number | undefined;
     opportunityId?: number | null | undefined;
     projectGroupId?: number | null | undefined;
     deletedAt?: string | null | undefined;
-    companyName?: string | null | undefined;
+    budgetLocked?: boolean | undefined;
     accountDomain?: string | null | undefined;
     ownerName?: string | null | undefined;
-    budgetLocked?: boolean | undefined;
 }>;
 /**
  * @summary Delete project
@@ -880,19 +1021,6 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
     invoicedAmount: zod.ZodNumber;
     pendingAmount: zod.ZodNumber;
     teamSize: zod.ZodNumber;
-    badgeCounts: zod.ZodOptional<zod.ZodObject<{
-        changeRequests: zod.ZodNumber;
-        updates: zod.ZodNumber;
-    }, "strip", zod.ZodTypeAny, {
-        changeRequests: number;
-        updates: number;
-    }, {
-        changeRequests: number;
-        updates: number;
-    }>>;
-    profitToDate: zod.ZodOptional<zod.ZodNumber>;
-    marginPct: zod.ZodOptional<zod.ZodNumber>;
-    totalCost: zod.ZodOptional<zod.ZodNumber>;
 }, "strip", zod.ZodTypeAny, {
     projectId: number;
     budgetUsedPercent: number;
@@ -901,13 +1029,6 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
     invoicedAmount: number;
     pendingAmount: number;
     teamSize: number;
-    badgeCounts?: {
-        changeRequests: number;
-        updates: number;
-    } | undefined;
-    profitToDate?: number | undefined;
-    marginPct?: number | undefined;
-    totalCost?: number | undefined;
 }, {
     projectId: number;
     budgetUsedPercent: number;
@@ -916,13 +1037,6 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
     invoicedAmount: number;
     pendingAmount: number;
     teamSize: number;
-    badgeCounts?: {
-        changeRequests: number;
-        updates: number;
-    } | undefined;
-    profitToDate?: number | undefined;
-    marginPct?: number | undefined;
-    totalCost?: number | undefined;
 }>;
 /**
  * @summary List budget entries for a project with running totals
@@ -1058,17 +1172,14 @@ export declare const ListTasksQueryParams: zod.ZodObject<{
     projectId: zod.ZodOptional<zod.ZodNumber>;
     assigneeId: zod.ZodOptional<zod.ZodNumber>;
     status: zod.ZodOptional<zod.ZodString>;
-    context: zod.ZodOptional<zod.ZodString>;
 }, "strip", zod.ZodTypeAny, {
     status?: string | undefined;
     projectId?: number | undefined;
     assigneeId?: number | undefined;
-    context?: string | undefined;
 }, {
     status?: string | undefined;
     projectId?: number | undefined;
     assigneeId?: number | undefined;
-    context?: string | undefined;
 }>;
 export declare const ListTasksResponseItem: zod.ZodObject<{
     id: zod.ZodNumber;
@@ -1086,8 +1197,6 @@ export declare const ListTasksResponseItem: zod.ZodObject<{
     actualHours: zod.ZodNumber;
     etc: zod.ZodNumber;
     eac: zod.ZodNumber;
-    eacStatus: zod.ZodOptional<zod.ZodEnum<["under", "on-track", "over"]>>;
-    varianceHours: zod.ZodOptional<zod.ZodNumber>;
     billable: zod.ZodBoolean;
     isMilestone: zod.ZodBoolean;
     fromTemplate: zod.ZodOptional<zod.ZodBoolean>;
@@ -1115,8 +1224,6 @@ export declare const ListTasksResponseItem: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
-    eacStatus?: "under" | "on-track" | "over" | undefined;
-    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1140,8 +1247,6 @@ export declare const ListTasksResponseItem: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
-    eacStatus?: "under" | "on-track" | "over" | undefined;
-    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1162,8 +1267,6 @@ export declare const ListTasksResponse: zod.ZodArray<zod.ZodObject<{
     actualHours: zod.ZodNumber;
     etc: zod.ZodNumber;
     eac: zod.ZodNumber;
-    eacStatus: zod.ZodOptional<zod.ZodEnum<["under", "on-track", "over"]>>;
-    varianceHours: zod.ZodOptional<zod.ZodNumber>;
     billable: zod.ZodBoolean;
     isMilestone: zod.ZodBoolean;
     fromTemplate: zod.ZodOptional<zod.ZodBoolean>;
@@ -1191,8 +1294,6 @@ export declare const ListTasksResponse: zod.ZodArray<zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
-    eacStatus?: "under" | "on-track" | "over" | undefined;
-    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1216,8 +1317,6 @@ export declare const ListTasksResponse: zod.ZodArray<zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
-    eacStatus?: "under" | "on-track" | "over" | undefined;
-    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1337,8 +1436,6 @@ export declare const GetTaskResponse: zod.ZodObject<{
     actualHours: zod.ZodNumber;
     etc: zod.ZodNumber;
     eac: zod.ZodNumber;
-    eacStatus: zod.ZodOptional<zod.ZodEnum<["under", "on-track", "over"]>>;
-    varianceHours: zod.ZodOptional<zod.ZodNumber>;
     billable: zod.ZodBoolean;
     isMilestone: zod.ZodBoolean;
     fromTemplate: zod.ZodOptional<zod.ZodBoolean>;
@@ -1366,8 +1463,6 @@ export declare const GetTaskResponse: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
-    eacStatus?: "under" | "on-track" | "over" | undefined;
-    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1391,8 +1486,6 @@ export declare const GetTaskResponse: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
-    eacStatus?: "under" | "on-track" | "over" | undefined;
-    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1469,8 +1562,6 @@ export declare const UpdateTaskResponse: zod.ZodObject<{
     actualHours: zod.ZodNumber;
     etc: zod.ZodNumber;
     eac: zod.ZodNumber;
-    eacStatus: zod.ZodOptional<zod.ZodEnum<["under", "on-track", "over"]>>;
-    varianceHours: zod.ZodOptional<zod.ZodNumber>;
     billable: zod.ZodBoolean;
     isMilestone: zod.ZodBoolean;
     fromTemplate: zod.ZodOptional<zod.ZodBoolean>;
@@ -1498,8 +1589,6 @@ export declare const UpdateTaskResponse: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
-    eacStatus?: "under" | "on-track" | "over" | undefined;
-    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1523,8 +1612,6 @@ export declare const UpdateTaskResponse: zod.ZodObject<{
     startDate?: string | null | undefined;
     dueDate?: string | null | undefined;
     isPhase?: boolean | undefined;
-    eacStatus?: "under" | "on-track" | "over" | undefined;
-    varianceHours?: number | undefined;
     fromTemplate?: boolean | undefined;
     appliedTemplateId?: number | null | undefined;
     parentTaskId?: number | null | undefined;
@@ -1552,12 +1639,6 @@ export declare const ListUsersResponseItem: zod.ZodObject<{
     department: zod.ZodString;
     costRate: zod.ZodNumber;
     skills: zod.ZodArray<zod.ZodString, "many">;
-    resourceType: zod.ZodOptional<zod.ZodString>;
-    isInternal: zod.ZodOptional<zod.ZodBoolean>;
-    region: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
-    activeStatus: zod.ZodOptional<zod.ZodString>;
-    holidayCalendarId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    managerId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     createdAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     id: number;
@@ -1570,12 +1651,6 @@ export declare const ListUsersResponseItem: zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
-    region?: string | null | undefined;
-    isInternal?: boolean | undefined;
-    resourceType?: string | undefined;
-    activeStatus?: string | undefined;
-    holidayCalendarId?: number | null | undefined;
-    managerId?: number | null | undefined;
 }, {
     id: number;
     name: string;
@@ -1587,12 +1662,6 @@ export declare const ListUsersResponseItem: zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
-    region?: string | null | undefined;
-    isInternal?: boolean | undefined;
-    resourceType?: string | undefined;
-    activeStatus?: string | undefined;
-    holidayCalendarId?: number | null | undefined;
-    managerId?: number | null | undefined;
 }>;
 export declare const ListUsersResponse: zod.ZodArray<zod.ZodObject<{
     id: zod.ZodNumber;
@@ -1604,12 +1673,6 @@ export declare const ListUsersResponse: zod.ZodArray<zod.ZodObject<{
     department: zod.ZodString;
     costRate: zod.ZodNumber;
     skills: zod.ZodArray<zod.ZodString, "many">;
-    resourceType: zod.ZodOptional<zod.ZodString>;
-    isInternal: zod.ZodOptional<zod.ZodBoolean>;
-    region: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
-    activeStatus: zod.ZodOptional<zod.ZodString>;
-    holidayCalendarId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    managerId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     createdAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     id: number;
@@ -1622,12 +1685,6 @@ export declare const ListUsersResponse: zod.ZodArray<zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
-    region?: string | null | undefined;
-    isInternal?: boolean | undefined;
-    resourceType?: string | undefined;
-    activeStatus?: string | undefined;
-    holidayCalendarId?: number | null | undefined;
-    managerId?: number | null | undefined;
 }, {
     id: number;
     name: string;
@@ -1639,12 +1696,6 @@ export declare const ListUsersResponse: zod.ZodArray<zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
-    region?: string | null | undefined;
-    isInternal?: boolean | undefined;
-    resourceType?: string | undefined;
-    activeStatus?: string | undefined;
-    holidayCalendarId?: number | null | undefined;
-    managerId?: number | null | undefined;
 }>, "many">;
 /**
  * @summary Create a user
@@ -1694,12 +1745,6 @@ export declare const GetUserResponse: zod.ZodObject<{
     department: zod.ZodString;
     costRate: zod.ZodNumber;
     skills: zod.ZodArray<zod.ZodString, "many">;
-    resourceType: zod.ZodOptional<zod.ZodString>;
-    isInternal: zod.ZodOptional<zod.ZodBoolean>;
-    region: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
-    activeStatus: zod.ZodOptional<zod.ZodString>;
-    holidayCalendarId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    managerId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     createdAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     id: number;
@@ -1712,12 +1757,6 @@ export declare const GetUserResponse: zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
-    region?: string | null | undefined;
-    isInternal?: boolean | undefined;
-    resourceType?: string | undefined;
-    activeStatus?: string | undefined;
-    holidayCalendarId?: number | null | undefined;
-    managerId?: number | null | undefined;
 }, {
     id: number;
     name: string;
@@ -1729,12 +1768,6 @@ export declare const GetUserResponse: zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
-    region?: string | null | undefined;
-    isInternal?: boolean | undefined;
-    resourceType?: string | undefined;
-    activeStatus?: string | undefined;
-    holidayCalendarId?: number | null | undefined;
-    managerId?: number | null | undefined;
 }>;
 /**
  * @summary Update user
@@ -1837,8 +1870,6 @@ export declare const ListTimeEntriesResponseItem: zod.ZodObject<{
     billable: zod.ZodBoolean;
     approved: zod.ZodBoolean;
     createdAt: zod.ZodString;
-    appliedBillRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    appliedCostRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
 }, "strip", zod.ZodTypeAny, {
     id: number;
     description: string;
@@ -1852,8 +1883,6 @@ export declare const ListTimeEntriesResponseItem: zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
-    appliedBillRate?: number | null | undefined;
-    appliedCostRate?: number | null | undefined;
 }, {
     id: number;
     description: string;
@@ -1867,8 +1896,6 @@ export declare const ListTimeEntriesResponseItem: zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
-    appliedBillRate?: number | null | undefined;
-    appliedCostRate?: number | null | undefined;
 }>;
 export declare const ListTimeEntriesResponse: zod.ZodArray<zod.ZodObject<{
     id: zod.ZodNumber;
@@ -1883,8 +1910,6 @@ export declare const ListTimeEntriesResponse: zod.ZodArray<zod.ZodObject<{
     billable: zod.ZodBoolean;
     approved: zod.ZodBoolean;
     createdAt: zod.ZodString;
-    appliedBillRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    appliedCostRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
 }, "strip", zod.ZodTypeAny, {
     id: number;
     description: string;
@@ -1898,8 +1923,6 @@ export declare const ListTimeEntriesResponse: zod.ZodArray<zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
-    appliedBillRate?: number | null | undefined;
-    appliedCostRate?: number | null | undefined;
 }, {
     id: number;
     description: string;
@@ -1913,8 +1936,6 @@ export declare const ListTimeEntriesResponse: zod.ZodArray<zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
-    appliedBillRate?: number | null | undefined;
-    appliedCostRate?: number | null | undefined;
 }>, "many">;
 /**
  * @summary Log a time entry
@@ -1986,8 +2007,6 @@ export declare const UpdateTimeEntryResponse: zod.ZodObject<{
     billable: zod.ZodBoolean;
     approved: zod.ZodBoolean;
     createdAt: zod.ZodString;
-    appliedBillRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    appliedCostRate: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
 }, "strip", zod.ZodTypeAny, {
     id: number;
     description: string;
@@ -2001,8 +2020,6 @@ export declare const UpdateTimeEntryResponse: zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
-    appliedBillRate?: number | null | undefined;
-    appliedCostRate?: number | null | undefined;
 }, {
     id: number;
     description: string;
@@ -2016,8 +2033,6 @@ export declare const UpdateTimeEntryResponse: zod.ZodObject<{
     taskId?: number | null | undefined;
     activityName?: string | null | undefined;
     categoryId?: number | null | undefined;
-    appliedBillRate?: number | null | undefined;
-    appliedCostRate?: number | null | undefined;
 }>;
 /**
  * @summary Delete a time entry
@@ -2187,10 +2202,8 @@ export declare const CreateInvoiceBody: zod.ZodObject<{
     issueDate: zod.ZodString;
     dueDate: zod.ZodString;
     amount: zod.ZodNumber;
-    tax: zod.ZodDefault<zod.ZodOptional<zod.ZodNumber>>;
-    taxCodeId: zod.ZodOptional<zod.ZodNumber>;
+    tax: zod.ZodNumber;
     description: zod.ZodString;
-    notes: zod.ZodOptional<zod.ZodString>;
 }, "strip", zod.ZodTypeAny, {
     description: string;
     accountId: number;
@@ -2199,8 +2212,6 @@ export declare const CreateInvoiceBody: zod.ZodObject<{
     amount: number;
     issueDate: string;
     tax: number;
-    taxCodeId?: number | undefined;
-    notes?: string | undefined;
 }, {
     description: string;
     accountId: number;
@@ -2208,9 +2219,7 @@ export declare const CreateInvoiceBody: zod.ZodObject<{
     projectId: number;
     amount: number;
     issueDate: string;
-    tax?: number | undefined;
-    taxCodeId?: number | undefined;
-    notes?: string | undefined;
+    tax: number;
 }>;
 /**
  * @summary Get invoice by ID
@@ -2724,28 +2733,25 @@ export declare const ListAllocationsResponse: zod.ZodArray<zod.ZodObject<{
  */
 export declare const CreateAllocationBody: zod.ZodObject<{
     projectId: zod.ZodNumber;
-    userId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
-    placeholderRole: zod.ZodOptional<zod.ZodString>;
+    userId: zod.ZodNumber;
     startDate: zod.ZodString;
     endDate: zod.ZodString;
     hoursPerWeek: zod.ZodNumber;
-    role: zod.ZodOptional<zod.ZodString>;
+    role: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     startDate: string;
     projectId: number;
+    role: string;
+    userId: number;
     endDate: string;
     hoursPerWeek: number;
-    role?: string | undefined;
-    userId?: number | null | undefined;
-    placeholderRole?: string | undefined;
 }, {
     startDate: string;
     projectId: number;
+    role: string;
+    userId: number;
     endDate: string;
     hoursPerWeek: number;
-    role?: string | undefined;
-    userId?: number | null | undefined;
-    placeholderRole?: string | undefined;
 }>;
 /**
  * @summary Update allocation
@@ -3057,21 +3063,21 @@ export declare const GetProjectHealthReportResponse: zod.ZodObject<{
     projects: zod.ZodArray<zod.ZodObject<{
         projectId: zod.ZodNumber;
         projectName: zod.ZodString;
-        health: zod.ZodNullable<zod.ZodString>;
+        health: zod.ZodString;
         completion: zod.ZodNumber;
         daysRemaining: zod.ZodNumber;
         budgetUsed: zod.ZodNumber;
     }, "strip", zod.ZodTypeAny, {
         projectName: string;
         completion: number;
-        health: string | null;
+        health: string;
         projectId: number;
         daysRemaining: number;
         budgetUsed: number;
     }, {
         projectName: string;
         completion: number;
-        health: string | null;
+        health: string;
         projectId: number;
         daysRemaining: number;
         budgetUsed: number;
@@ -3084,7 +3090,7 @@ export declare const GetProjectHealthReportResponse: zod.ZodObject<{
     projects: {
         projectName: string;
         completion: number;
-        health: string | null;
+        health: string;
         projectId: number;
         daysRemaining: number;
         budgetUsed: number;
@@ -3097,7 +3103,7 @@ export declare const GetProjectHealthReportResponse: zod.ZodObject<{
     projects: {
         projectName: string;
         completion: number;
-        health: string | null;
+        health: string;
         projectId: number;
         daysRemaining: number;
         budgetUsed: number;
@@ -3931,9 +3937,9 @@ export declare const ListResourceRequestsResponseItem: zod.ZodObject<{
     hoursPerWeek: number;
     requestedByUserId: number;
     requiredSkills: string[];
+    notes?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
-    notes?: string | undefined;
     assignedUserId?: number | undefined;
     assignedPlaceholder?: string | undefined;
     fulfilledByUserId?: number | undefined;
@@ -3949,9 +3955,9 @@ export declare const ListResourceRequestsResponseItem: zod.ZodObject<{
     hoursPerWeek: number;
     requestedByUserId: number;
     requiredSkills: string[];
+    notes?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
-    notes?: string | undefined;
     assignedUserId?: number | undefined;
     assignedPlaceholder?: string | undefined;
     fulfilledByUserId?: number | undefined;
@@ -3986,9 +3992,9 @@ export declare const ListResourceRequestsResponse: zod.ZodArray<zod.ZodObject<{
     hoursPerWeek: number;
     requestedByUserId: number;
     requiredSkills: string[];
+    notes?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
-    notes?: string | undefined;
     assignedUserId?: number | undefined;
     assignedPlaceholder?: string | undefined;
     fulfilledByUserId?: number | undefined;
@@ -4004,9 +4010,9 @@ export declare const ListResourceRequestsResponse: zod.ZodArray<zod.ZodObject<{
     hoursPerWeek: number;
     requestedByUserId: number;
     requiredSkills: string[];
+    notes?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
-    notes?: string | undefined;
     assignedUserId?: number | undefined;
     assignedPlaceholder?: string | undefined;
     fulfilledByUserId?: number | undefined;
@@ -4032,8 +4038,8 @@ export declare const CreateResourceRequestBody: zod.ZodObject<{
     endDate: string;
     hoursPerWeek: number;
     requestedByUserId: number;
-    priority?: string | undefined;
     notes?: string | undefined;
+    priority?: string | undefined;
     requiredSkills?: string[] | undefined;
 }, {
     startDate: string;
@@ -4042,8 +4048,8 @@ export declare const CreateResourceRequestBody: zod.ZodObject<{
     endDate: string;
     hoursPerWeek: number;
     requestedByUserId: number;
-    priority?: string | undefined;
     notes?: string | undefined;
+    priority?: string | undefined;
     requiredSkills?: string[] | undefined;
 }>;
 /**
@@ -4068,21 +4074,21 @@ export declare const UpdateResourceRequestBody: zod.ZodObject<{
     status: zod.ZodOptional<zod.ZodString>;
 }, "strip", zod.ZodTypeAny, {
     status?: string | undefined;
+    notes?: string | undefined;
     startDate?: string | undefined;
     priority?: string | undefined;
     role?: string | undefined;
     endDate?: string | undefined;
-    notes?: string | undefined;
     hoursPerWeek?: number | undefined;
     requiredSkills?: string[] | undefined;
     assignedUserId?: number | undefined;
 }, {
     status?: string | undefined;
+    notes?: string | undefined;
     startDate?: string | undefined;
     priority?: string | undefined;
     role?: string | undefined;
     endDate?: string | undefined;
-    notes?: string | undefined;
     hoursPerWeek?: number | undefined;
     requiredSkills?: string[] | undefined;
     assignedUserId?: number | undefined;
@@ -4116,9 +4122,9 @@ export declare const UpdateResourceRequestResponse: zod.ZodObject<{
     hoursPerWeek: number;
     requestedByUserId: number;
     requiredSkills: string[];
+    notes?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
-    notes?: string | undefined;
     assignedUserId?: number | undefined;
     assignedPlaceholder?: string | undefined;
     fulfilledByUserId?: number | undefined;
@@ -4134,9 +4140,9 @@ export declare const UpdateResourceRequestResponse: zod.ZodObject<{
     hoursPerWeek: number;
     requestedByUserId: number;
     requiredSkills: string[];
+    notes?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
-    notes?: string | undefined;
     assignedUserId?: number | undefined;
     assignedPlaceholder?: string | undefined;
     fulfilledByUserId?: number | undefined;
@@ -4204,9 +4210,9 @@ export declare const UpdateResourceRequestStatusResponse: zod.ZodObject<{
     hoursPerWeek: number;
     requestedByUserId: number;
     requiredSkills: string[];
+    notes?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
-    notes?: string | undefined;
     assignedUserId?: number | undefined;
     assignedPlaceholder?: string | undefined;
     fulfilledByUserId?: number | undefined;
@@ -4222,9 +4228,9 @@ export declare const UpdateResourceRequestStatusResponse: zod.ZodObject<{
     hoursPerWeek: number;
     requestedByUserId: number;
     requiredSkills: string[];
+    notes?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
-    notes?: string | undefined;
     assignedUserId?: number | undefined;
     assignedPlaceholder?: string | undefined;
     fulfilledByUserId?: number | undefined;
@@ -8620,12 +8626,12 @@ export declare const ListProspectsResponseItem: zod.ZodObject<{
     name: string;
     createdAt: string;
     updatedAt: string;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
     convertedAccountId?: number | null | undefined;
     convertedAt?: string | null | undefined;
@@ -8635,12 +8641,12 @@ export declare const ListProspectsResponseItem: zod.ZodObject<{
     name: string;
     createdAt: string;
     updatedAt: string;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
     convertedAccountId?: number | null | undefined;
     convertedAt?: string | null | undefined;
@@ -8666,12 +8672,12 @@ export declare const ListProspectsResponse: zod.ZodArray<zod.ZodObject<{
     name: string;
     createdAt: string;
     updatedAt: string;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
     convertedAccountId?: number | null | undefined;
     convertedAt?: string | null | undefined;
@@ -8681,12 +8687,12 @@ export declare const ListProspectsResponse: zod.ZodArray<zod.ZodObject<{
     name: string;
     createdAt: string;
     updatedAt: string;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
     convertedAccountId?: number | null | undefined;
     convertedAt?: string | null | undefined;
@@ -8707,22 +8713,22 @@ export declare const CreateProspectBody: zod.ZodObject<{
 }, "strip", zod.ZodTypeAny, {
     name: string;
     status?: string | undefined;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
 }, {
     name: string;
     status?: string | undefined;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
 }>;
 /**
@@ -8756,12 +8762,12 @@ export declare const GetProspectResponse: zod.ZodObject<{
     name: string;
     createdAt: string;
     updatedAt: string;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
     convertedAccountId?: number | null | undefined;
     convertedAt?: string | null | undefined;
@@ -8771,12 +8777,12 @@ export declare const GetProspectResponse: zod.ZodObject<{
     name: string;
     createdAt: string;
     updatedAt: string;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
     convertedAccountId?: number | null | undefined;
     convertedAt?: string | null | undefined;
@@ -8804,22 +8810,22 @@ export declare const UpdateProspectBody: zod.ZodObject<{
 }, "strip", zod.ZodTypeAny, {
     status?: string | undefined;
     name?: string | undefined;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
 }, {
     status?: string | undefined;
     name?: string | undefined;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
 }>;
 export declare const UpdateProspectResponse: zod.ZodObject<{
@@ -8843,12 +8849,12 @@ export declare const UpdateProspectResponse: zod.ZodObject<{
     name: string;
     createdAt: string;
     updatedAt: string;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
     convertedAccountId?: number | null | undefined;
     convertedAt?: string | null | undefined;
@@ -8858,12 +8864,12 @@ export declare const UpdateProspectResponse: zod.ZodObject<{
     name: string;
     createdAt: string;
     updatedAt: string;
-    ownerId?: number | null | undefined;
-    notes?: string | null | undefined;
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
-    contactPhone?: string | null | undefined;
     source?: string | null | undefined;
+    notes?: string | null | undefined;
+    ownerId?: number | null | undefined;
+    contactPhone?: string | null | undefined;
     estimatedValue?: number | null | undefined;
     convertedAccountId?: number | null | undefined;
     convertedAt?: string | null | undefined;
@@ -8918,6 +8924,14 @@ export declare const ConvertProspectResponse: zod.ZodObject<{
         billingAddress: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
         logoUrl: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
         convertedFromProspectId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+        companyName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        contactName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        contactEmail: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        phone: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        source: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        estValue: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+        notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        leadStatus: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
         createdAt: zod.ZodString;
         updatedAt: zod.ZodString;
     }, "strip", zod.ZodTypeAny, {
@@ -8935,6 +8949,14 @@ export declare const ConvertProspectResponse: zod.ZodObject<{
         billingAddress?: string | null | undefined;
         logoUrl?: string | null | undefined;
         convertedFromProspectId?: number | null | undefined;
+        companyName?: string | null | undefined;
+        contactName?: string | null | undefined;
+        contactEmail?: string | null | undefined;
+        phone?: string | null | undefined;
+        source?: string | null | undefined;
+        estValue?: number | null | undefined;
+        notes?: string | null | undefined;
+        leadStatus?: string | null | undefined;
     }, {
         status: string;
         id: number;
@@ -8950,6 +8972,14 @@ export declare const ConvertProspectResponse: zod.ZodObject<{
         billingAddress?: string | null | undefined;
         logoUrl?: string | null | undefined;
         convertedFromProspectId?: number | null | undefined;
+        companyName?: string | null | undefined;
+        contactName?: string | null | undefined;
+        contactEmail?: string | null | undefined;
+        phone?: string | null | undefined;
+        source?: string | null | undefined;
+        estValue?: number | null | undefined;
+        notes?: string | null | undefined;
+        leadStatus?: string | null | undefined;
     }>;
     prospectId: zod.ZodNumber;
 }, "strip", zod.ZodTypeAny, {
@@ -8968,6 +8998,14 @@ export declare const ConvertProspectResponse: zod.ZodObject<{
         billingAddress?: string | null | undefined;
         logoUrl?: string | null | undefined;
         convertedFromProspectId?: number | null | undefined;
+        companyName?: string | null | undefined;
+        contactName?: string | null | undefined;
+        contactEmail?: string | null | undefined;
+        phone?: string | null | undefined;
+        source?: string | null | undefined;
+        estValue?: number | null | undefined;
+        notes?: string | null | undefined;
+        leadStatus?: string | null | undefined;
     };
     prospectId: number;
 }, {
@@ -8986,6 +9024,14 @@ export declare const ConvertProspectResponse: zod.ZodObject<{
         billingAddress?: string | null | undefined;
         logoUrl?: string | null | undefined;
         convertedFromProspectId?: number | null | undefined;
+        companyName?: string | null | undefined;
+        contactName?: string | null | undefined;
+        contactEmail?: string | null | undefined;
+        phone?: string | null | undefined;
+        source?: string | null | undefined;
+        estValue?: number | null | undefined;
+        notes?: string | null | undefined;
+        leadStatus?: string | null | undefined;
     };
     prospectId: number;
 }>;

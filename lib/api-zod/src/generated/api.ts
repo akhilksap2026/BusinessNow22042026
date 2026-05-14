@@ -83,6 +83,14 @@ export const ListAccountsResponseItem = zod.object({
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
   convertedFromProspectId: zod.number().nullish(),
+  companyName: zod.string().nullish(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  source: zod.string().nullish(),
+  estValue: zod.number().nullish(),
+  notes: zod.string().nullish(),
+  leadStatus: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -102,6 +110,14 @@ export const CreateAccountBody = zod.object({
   contractValue: zod.number(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
+  companyName: zod.string().nullish(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  source: zod.string().nullish(),
+  estValue: zod.number().nullish(),
+  notes: zod.string().nullish(),
+  leadStatus: zod.string().nullish(),
 });
 
 /**
@@ -132,6 +148,14 @@ export const GetAccountResponse = zod.object({
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
   convertedFromProspectId: zod.number().nullish(),
+  companyName: zod.string().nullish(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  source: zod.string().nullish(),
+  estValue: zod.number().nullish(),
+  notes: zod.string().nullish(),
+  leadStatus: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -154,6 +178,14 @@ export const UpdateAccountBody = zod.object({
   contractValue: zod.number().optional(),
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
+  companyName: zod.string().nullish(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  source: zod.string().nullish(),
+  estValue: zod.number().nullish(),
+  notes: zod.string().nullish(),
+  leadStatus: zod.string().nullish(),
 });
 
 export const UpdateAccountResponse = zod.object({
@@ -177,6 +209,14 @@ export const UpdateAccountResponse = zod.object({
   billingAddress: zod.string().nullish(),
   logoUrl: zod.string().nullish(),
   convertedFromProspectId: zod.number().nullish(),
+  companyName: zod.string().nullish(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  source: zod.string().nullish(),
+  estValue: zod.number().nullish(),
+  notes: zod.string().nullish(),
+  leadStatus: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -210,7 +250,7 @@ export const ListProjectsResponseItem = zod.object({
   allocatedHours: zod.number(),
   budgetedHours: zod.number(),
   completion: zod.number(),
-  health: zod.string().nullable(),
+  health: zod.string(),
   description: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
@@ -219,6 +259,12 @@ export const ListProjectsResponseItem = zod.object({
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  budgetLocked: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True when the budget is locked (auto-set on draft→active transition). While locked, PATCH \/projects\/:id rejects budget field changes with 403 budget_locked. Account Admin can unlock via PATCH \/projects\/:id\/unlock-budget.\n",
+    ),
   companyName: zod.string().nullish(),
   accountDomain: zod.string().nullish(),
   ownerName: zod.string().nullish(),
@@ -240,9 +286,6 @@ export const CreateProjectBody = zod.object({
   budgetedHours: zod.number(),
   description: zod.string().optional(),
   internalExternal: zod.string().optional(),
-  rateCardId: zod.number().optional(),
-  customerChampion: zod.string().optional(),
-  opportunityId: zod.number().optional(),
 });
 
 /**
@@ -266,16 +309,21 @@ export const GetProjectResponse = zod.object({
   allocatedHours: zod.number(),
   budgetedHours: zod.number(),
   completion: zod.number(),
-  health: zod.string().nullable(),
+  health: zod.string(),
   description: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
   opportunityId: zod.number().nullish(),
   projectGroupId: zod.number().nullish(),
-  budgetLocked: zod.boolean().optional(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  budgetLocked: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True when the budget is locked (auto-set on draft→active transition). While locked, PATCH \/projects\/:id rejects budget field changes with 403 budget_locked. Account Admin can unlock via PATCH \/projects\/:id\/unlock-budget.\n",
+    ),
   companyName: zod.string().nullish(),
   accountDomain: zod.string().nullish(),
   ownerName: zod.string().nullish(),
@@ -317,16 +365,21 @@ export const UpdateProjectResponse = zod.object({
   allocatedHours: zod.number(),
   budgetedHours: zod.number(),
   completion: zod.number(),
-  health: zod.string().nullable(),
+  health: zod.string(),
   description: zod.string().nullish(),
   internalExternal: zod.string(),
   isAdminProject: zod.number().optional(),
   opportunityId: zod.number().nullish(),
   projectGroupId: zod.number().nullish(),
-  budgetLocked: zod.boolean().optional(),
   deletedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  budgetLocked: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True when the budget is locked (auto-set on draft→active transition). While locked, PATCH \/projects\/:id rejects budget field changes with 403 budget_locked. Account Admin can unlock via PATCH \/projects\/:id\/unlock-budget.\n",
+    ),
   companyName: zod.string().nullish(),
   accountDomain: zod.string().nullish(),
   ownerName: zod.string().nullish(),
@@ -354,13 +407,6 @@ export const GetProjectSummaryResponse = zod.object({
   invoicedAmount: zod.number(),
   pendingAmount: zod.number(),
   teamSize: zod.number(),
-  badgeCounts: zod.object({
-    changeRequests: zod.number(),
-    updates: zod.number(),
-  }).optional(),
-  profitToDate: zod.number().optional(),
-  marginPct: zod.number().optional(),
-  totalCost: zod.number().optional(),
 });
 
 /**
@@ -425,7 +471,6 @@ export const ListTasksQueryParams = zod.object({
   projectId: zod.coerce.number().optional(),
   assigneeId: zod.coerce.number().optional(),
   status: zod.coerce.string().optional(),
-  context: zod.string().optional(),
 });
 
 export const ListTasksResponseItem = zod.object({
@@ -450,8 +495,6 @@ export const ListTasksResponseItem = zod.object({
     .number()
     .describe("Estimate To Complete = estimateHours − actualHours"),
   eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
-  eacStatus: zod.enum(["under", "on-track", "over"]).optional(),
-  varianceHours: zod.number().optional(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
@@ -537,8 +580,6 @@ export const GetTaskResponse = zod.object({
     .number()
     .describe("Estimate To Complete = estimateHours − actualHours"),
   eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
-  eacStatus: zod.enum(["under", "on-track", "over"]).optional(),
-  varianceHours: zod.number().optional(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
@@ -602,8 +643,6 @@ export const UpdateTaskResponse = zod.object({
     .number()
     .describe("Estimate To Complete = estimateHours − actualHours"),
   eac: zod.number().describe("Estimate At Completion = actualHours + abs(etc)"),
-  eacStatus: zod.enum(["under", "on-track", "over"]).optional(),
-  varianceHours: zod.number().optional(),
   billable: zod.boolean(),
   isMilestone: zod.boolean(),
   fromTemplate: zod
@@ -641,12 +680,6 @@ export const ListUsersResponseItem = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
-  resourceType: zod.string().optional(),
-  isInternal: zod.boolean().optional(),
-  region: zod.string().nullable().optional(),
-  activeStatus: zod.string().optional(),
-  holidayCalendarId: zod.number().nullable().optional(),
-  managerId: zod.number().nullable().optional(),
   createdAt: zod.string(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
@@ -681,12 +714,6 @@ export const GetUserResponse = zod.object({
   department: zod.string(),
   costRate: zod.number(),
   skills: zod.array(zod.string()),
-  resourceType: zod.string().optional(),
-  isInternal: zod.boolean().optional(),
-  region: zod.string().nullable().optional(),
-  activeStatus: zod.string().optional(),
-  holidayCalendarId: zod.number().nullable().optional(),
-  managerId: zod.number().nullable().optional(),
   createdAt: zod.string(),
 });
 
@@ -743,8 +770,6 @@ export const ListTimeEntriesResponseItem = zod.object({
   billable: zod.boolean(),
   approved: zod.boolean(),
   createdAt: zod.string(),
-  appliedBillRate: zod.number().nullable().optional(),
-  appliedCostRate: zod.number().nullable().optional(),
 });
 export const ListTimeEntriesResponse = zod.array(ListTimeEntriesResponseItem);
 
@@ -789,8 +814,6 @@ export const UpdateTimeEntryResponse = zod.object({
   billable: zod.boolean(),
   approved: zod.boolean(),
   createdAt: zod.string(),
-  appliedBillRate: zod.number().nullable().optional(),
-  appliedCostRate: zod.number().nullable().optional(),
 });
 
 /**
@@ -855,10 +878,8 @@ export const CreateInvoiceBody = zod.object({
   issueDate: zod.string(),
   dueDate: zod.string(),
   amount: zod.number(),
-  tax: zod.number().optional().default(0),
-  taxCodeId: zod.number().optional(),
+  tax: zod.number(),
   description: zod.string(),
-  notes: zod.string().optional(),
 });
 
 /**
@@ -1048,12 +1069,11 @@ export const ListAllocationsResponse = zod.array(ListAllocationsResponseItem);
  */
 export const CreateAllocationBody = zod.object({
   projectId: zod.number(),
-  userId: zod.number().nullable().optional(),
-  placeholderRole: zod.string().optional(),
+  userId: zod.number(),
   startDate: zod.string(),
   endDate: zod.string(),
   hoursPerWeek: zod.number(),
-  role: zod.string().optional(),
+  role: zod.string(),
 });
 
 /**
@@ -1183,7 +1203,7 @@ export const GetProjectHealthReportResponse = zod.object({
     zod.object({
       projectId: zod.number(),
       projectName: zod.string(),
-      health: zod.string().nullable(),
+      health: zod.string(),
       completion: zod.number(),
       daysRemaining: zod.number(),
       budgetUsed: zod.number(),
@@ -3390,6 +3410,14 @@ export const ConvertProspectResponse = zod.object({
     billingAddress: zod.string().nullish(),
     logoUrl: zod.string().nullish(),
     convertedFromProspectId: zod.number().nullish(),
+    companyName: zod.string().nullish(),
+    contactName: zod.string().nullish(),
+    contactEmail: zod.string().nullish(),
+    phone: zod.string().nullish(),
+    source: zod.string().nullish(),
+    estValue: zod.number().nullish(),
+    notes: zod.string().nullish(),
+    leadStatus: zod.string().nullish(),
     createdAt: zod.string(),
     updatedAt: zod.string(),
   }),

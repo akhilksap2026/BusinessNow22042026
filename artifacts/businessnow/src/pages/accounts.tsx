@@ -42,6 +42,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "wouter";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Building2, MoreHorizontal, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -60,8 +62,9 @@ export default function Accounts() {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [editTarget, setEditTarget] = useState<Account | null>(null);
-  const [form, setForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
-  const [editForm, setEditForm] = useState({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
+  const emptyForm = { name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false, companyName: "", contactName: "", contactEmail: "", phone: "", source: "", estValue: "", notes: "", leadStatus: "New" };
+  const [form, setForm] = useState({ ...emptyForm });
+  const [editForm, setEditForm] = useState({ ...emptyForm });
 
   const [expandedAccounts, setExpandedAccounts] = useState<Set<number>>(new Set());
 
@@ -88,6 +91,14 @@ export default function Accounts() {
       status: form.status,
       contractValue: Number(form.contractValue) || 0,
       isInternal: form.isInternal,
+      companyName: form.companyName || null,
+      contactName: form.contactName || null,
+      contactEmail: form.contactEmail || null,
+      phone: form.phone || null,
+      source: form.source || null,
+      estValue: form.estValue ? Number(form.estValue) : null,
+      notes: form.notes || null,
+      leadStatus: form.leadStatus || null,
     } as any),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowCreate(false); resetForm(); toast({ title: "Account created" }); },
     onError: (err: any) => toast({ title: "Failed to create account", description: err?.message ?? "Please try again.", variant: "destructive" }),
@@ -107,7 +118,15 @@ export default function Accounts() {
       region: editForm.region,
       status: editForm.status,
       contractValue: Number(editForm.contractValue) || 0,
-    }),
+      companyName: editForm.companyName || null,
+      contactName: editForm.contactName || null,
+      contactEmail: editForm.contactEmail || null,
+      phone: editForm.phone || null,
+      source: editForm.source || null,
+      estValue: editForm.estValue ? Number(editForm.estValue) : null,
+      notes: editForm.notes || null,
+      leadStatus: editForm.leadStatus || null,
+    } as any),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["accounts"] }); setShowEdit(false); setEditTarget(null); toast({ title: "Account updated" }); },
     onError: (err: any) => toast({ title: "Failed to save account", description: err?.message ?? "Please try again.", variant: "destructive" }),
   });
@@ -120,7 +139,23 @@ export default function Accounts() {
 
   function openEdit(account: Account) {
     setEditTarget(account);
-    setEditForm({ name: account.name, domain: account.domain, tier: account.tier, region: account.region, status: account.status, contractValue: String(account.contractValue ?? ""), isInternal: account.isInternal ?? account.accountType === "internal" });
+    setEditForm({
+      name: account.name,
+      domain: account.domain,
+      tier: account.tier,
+      region: account.region,
+      status: account.status,
+      contractValue: String(account.contractValue ?? ""),
+      isInternal: account.isInternal ?? account.accountType === "internal",
+      companyName: (account as any).companyName ?? "",
+      contactName: (account as any).contactName ?? "",
+      contactEmail: (account as any).contactEmail ?? "",
+      phone: (account as any).phone ?? "",
+      source: (account as any).source ?? "",
+      estValue: (account as any).estValue != null ? String((account as any).estValue) : "",
+      notes: (account as any).notes ?? "",
+      leadStatus: (account as any).leadStatus ?? "New",
+    });
     setShowEdit(true);
   }
 
@@ -130,7 +165,7 @@ export default function Accounts() {
   }
 
   function resetForm() {
-    setForm({ name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false });
+    setForm({ ...emptyForm });
   }
 
   const filtered = accounts.filter(a => {
@@ -332,13 +367,15 @@ export default function Accounts() {
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={v => { setShowCreate(v); if (!v) resetForm(); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Account</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3 py-2">
+            {/* Row 1: Account Name */}
             <div className="col-span-2 space-y-1">
               <Label>Account Name *</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
+            {/* Row 2: Domain | Contract Value */}
             <div className="space-y-1">
               <Label>Domain *</Label>
               <Input placeholder="company.com" value={form.domain} onChange={e => setForm(f => ({ ...f, domain: e.target.value }))} />
@@ -347,6 +384,7 @@ export default function Accounts() {
               <Label>Contract Value ($)</Label>
               <Input type="number" value={form.contractValue} onChange={e => setForm(f => ({ ...f, contractValue: e.target.value }))} />
             </div>
+            {/* Row 3: Tier | Region */}
             <div className="space-y-1">
               <Label>Tier</Label>
               <Select value={form.tier} onValueChange={v => setForm(f => ({ ...f, tier: v }))}>
@@ -365,22 +403,70 @@ export default function Accounts() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Row 4: Company Name */}
+            <div className="col-span-2 space-y-1">
+              <Label>Company Name *</Label>
+              <Input value={form.companyName} onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))} />
+            </div>
+            {/* Row 5: Contact Name | Contact Email */}
+            <div className="space-y-1">
+              <Label>Contact Name</Label>
+              <Input value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Contact Email</Label>
+              <Input type="email" value={form.contactEmail} onChange={e => setForm(f => ({ ...f, contactEmail: e.target.value }))} />
+            </div>
+            {/* Row 6: Phone | Status (lead) */}
+            <div className="space-y-1">
+              <Label>Phone</Label>
+              <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+            </div>
             <div className="space-y-1">
               <Label>Status</Label>
-              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+              <Select value={form.leadStatus} onValueChange={v => setForm(f => ({ ...f, leadStatus: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["New", "Contacted", "Qualified", "In Progress", "Closed"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Row 7: Source | Est. Value */}
+            <div className="space-y-1">
+              <Label>Source</Label>
+              <Select value={form.source || "__none__"} onValueChange={v => setForm(f => ({ ...f, source: v === "__none__" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="— None —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None —</SelectItem>
+                  {["Referral", "Inbound", "Outbound", "Partner", "Event", "Other"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Est. Value ($)</Label>
+              <Input type="number" value={form.estValue} onChange={e => setForm(f => ({ ...f, estValue: e.target.value }))} />
+            </div>
+            {/* Row 8: Notes */}
+            <div className="col-span-2 space-y-1">
+              <Label>Notes</Label>
+              <Textarea rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="resize-y" />
+            </div>
+            {/* Row 9: Account Status */}
+            <div className="col-span-2 space-y-1">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["Active", "Inactive", "Prospect", "At Risk"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 flex items-center gap-2 pt-1">
-              <input
-                type="checkbox"
+            {/* Row 10: Internal account */}
+            <div className="col-span-2 flex items-center gap-2">
+              <Checkbox
                 id="acct-is-internal"
                 checked={form.isInternal}
-                onChange={e => setForm(f => ({ ...f, isInternal: e.target.checked }))}
-                className="h-4 w-4 rounded border-input"
+                onCheckedChange={v => setForm(f => ({ ...f, isInternal: !!v }))}
                 data-testid="checkbox-is-internal"
               />
               <Label htmlFor="acct-is-internal" className="font-normal cursor-pointer">
@@ -402,9 +488,9 @@ export default function Accounts() {
 
       {/* Edit Account Dialog */}
       <Dialog open={showEdit} onOpenChange={v => { setShowEdit(v); if (!v) setEditTarget(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Account</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3 py-2">
             <div className="col-span-2 space-y-1">
               <Label>Account Name *</Label>
               <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
@@ -435,14 +521,70 @@ export default function Accounts() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="col-span-2 space-y-1">
+              <Label>Company Name</Label>
+              <Input value={editForm.companyName} onChange={e => setEditForm(f => ({ ...f, companyName: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Contact Name</Label>
+              <Input value={editForm.contactName} onChange={e => setEditForm(f => ({ ...f, contactName: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Contact Email</Label>
+              <Input type="email" value={editForm.contactEmail} onChange={e => setEditForm(f => ({ ...f, contactEmail: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Phone</Label>
+              <Input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+            </div>
             <div className="space-y-1">
               <Label>Status</Label>
-              <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+              <Select value={editForm.leadStatus} onValueChange={v => setEditForm(f => ({ ...f, leadStatus: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["New", "Contacted", "Qualified", "In Progress", "Closed"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Source</Label>
+              <Select value={editForm.source || "__none__"} onValueChange={v => setEditForm(f => ({ ...f, source: v === "__none__" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="— None —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None —</SelectItem>
+                  {["Referral", "Inbound", "Outbound", "Partner", "Event", "Other"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Est. Value ($)</Label>
+              <Input type="number" value={editForm.estValue} onChange={e => setEditForm(f => ({ ...f, estValue: e.target.value }))} />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label>Notes</Label>
+              <Textarea rows={3} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} className="resize-y" />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label>Status</Label>
+              <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["Active", "Inactive", "Prospect", "At Risk", "Churned"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="col-span-2 flex items-center gap-2">
+              <Checkbox
+                id="edit-acct-is-internal"
+                checked={editForm.isInternal}
+                onCheckedChange={v => setEditForm(f => ({ ...f, isInternal: !!v }))}
+              />
+              <Label htmlFor="edit-acct-is-internal" className="font-normal cursor-pointer">
+                Internal account
+                <span className="text-xs text-muted-foreground ml-2">
+                  (represents the operating company; used for internal projects)
+                </span>
+              </Label>
             </div>
           </div>
           <DialogFooter>
