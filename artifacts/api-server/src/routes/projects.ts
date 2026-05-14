@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq, and, asc, isNull, isNotNull, inArray, ne, sql } from "drizzle-orm";
+import { eq, and, asc, isNull, isNotNull, inArray, ne, sql, sum, or } from "drizzle-orm";
 import { parsePagination, envelope } from "../lib/pagination";
-import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable, notificationsTable, changeOrdersTable, projectUpdatesTable } from "@workspace/db";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable, notificationsTable, changeOrdersTable, projectUpdatesTable, timeEntriesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
+import { generateBurnChartSeries, buildCumulativeActuals } from "../lib/burnChart";
 import { getTrackedHoursMap, getTrackedHours } from "../lib/trackedHours";
 import { checkOutOfRangeAllocations } from "../lib/outOfRangeAllocationCheck";
 import { requireAdmin, requirePM } from "../middleware/rbac";
@@ -403,6 +404,79 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
       updates: updatesCount[0]?.count ?? 0,
     },
   }));
+});
+
+// ─── Burn Chart ───────────────────────────────────────────────────────────────
+router.get("/projects/:id/burn-chart", async (req, res): Promise<void> => {
+  const projectId = parseInt(String(req.params.id), 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+
+  const granularity = req.query.granularity === "month" ? "month" : "week";
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+  if (!project.startDate || !project.dueDate) {
+    res.status(422).json({ error: "Project must have startDate and dueDate" }); return;
+  }
+
+  // Aggregate time entries per day: hours + cost (hours × user.costRate).
+  const timeRows = await db
+    .select({
+      date: timeEntriesTable.date,
+      hours: sum(timeEntriesTable.hours).mapWith(Number),
+      cost: sum(sql<number>`${timeEntriesTable.hours}::numeric * COALESCE(${usersTable.costRate}::numeric, 0)`).mapWith(Number),
+    })
+    .from(timeEntriesTable)
+    .leftJoin(usersTable, eq(timeEntriesTable.userId, usersTable.id))
+    .where(eq(timeEntriesTable.projectId, projectId))
+    .groupBy(timeEntriesTable.date)
+    .orderBy(timeEntriesTable.date);
+
+  // Aggregate approved/paid invoices per issue date.
+  const invoiceRows = await db
+    .select({
+      date: invoicesTable.issueDate,
+      invoiced: sum(invoicesTable.total).mapWith(Number),
+    })
+    .from(invoicesTable)
+    .where(
+      and(
+        eq(invoicesTable.projectId, projectId),
+        or(
+          eq(invoicesTable.status, "Approved"),
+          eq(invoicesTable.status, "Paid")
+        )
+      )
+    )
+    .groupBy(invoicesTable.issueDate)
+    .orderBy(invoicesTable.issueDate);
+
+  const timeSeries = timeRows.map(r => ({
+    date: r.date,
+    hours: Number(r.hours ?? 0),
+    cost: Number(r.cost ?? 0),
+  }));
+  const invoiceSeries = invoiceRows.map(r => ({
+    date: r.date,
+    invoiced: Number(r.invoiced ?? 0),
+  }));
+
+  const cumulativeActuals = buildCumulativeActuals(timeSeries, invoiceSeries);
+
+  const series = generateBurnChartSeries(
+    new Date(project.startDate),
+    new Date(project.dueDate),
+    Number(project.budget ?? 0),
+    Number(project.budgetedHours ?? 0),
+    cumulativeActuals,
+    granularity
+  );
+
+  res.json({
+    currency: (project as any).budgetCurrency ?? "USD",
+    series,
+    todayLine: new Date().toISOString().split("T")[0],
+  });
 });
 
 // ─── Shift Dates ──────────────────────────────────────────────────────────────
