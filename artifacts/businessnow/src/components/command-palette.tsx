@@ -45,7 +45,6 @@ const COMMANDS: Cmd[] = [
   { label: "Admin", href: "/admin", icon: Settings, group: "Navigate" },
   { label: "New Project", href: "/projects?new=1", icon: Plus, group: "Quick actions" },
   { label: "Log Time", href: "/time-tracking?log=1", icon: Plus, group: "Quick actions" },
-  { label: "New Invoice", href: "/finance?new=invoice", icon: Plus, group: "Quick actions" },
   { label: "Day off / Time off", href: "/time-tracking?tab=time-off", icon: CalendarDays, group: "Quick actions" },
 ];
 

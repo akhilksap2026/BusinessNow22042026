@@ -3,17 +3,13 @@ import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import {
-  useGetFinanceSummary, useListInvoices, useListAccounts, useListProjects, useCreateInvoice, getListInvoicesQueryKey,
+  useGetFinanceSummary, useListInvoices, useListAccounts, useListProjects, getListInvoicesQueryKey,
   useListBillingSchedules, useCreateBillingSchedule, useDeleteBillingSchedule, useTriggerBillingSchedule, getListBillingSchedulesQueryKey,
   useListRevenueEntries, useCreateRevenueEntry, useDeleteRevenueEntry, useGetRevenueByPeriodReport, getListRevenueEntriesQueryKey,
   useUpdateInvoice,
 } from "@workspace/api-client-react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -49,19 +45,8 @@ type ContractRow = {
   updatedAt: string;
 };
 
-const createInvoiceSchema = z.object({
-  projectId: z.coerce.number().min(1, "Project is required"),
-  accountId: z.coerce.number().min(1, "Account is required"),
-  issueDate: z.string().min(1),
-  dueDate: z.string().min(1),
-  description: z.string().min(1),
-  amount: z.coerce.number().min(0),
-  tax: z.coerce.number().min(0),
-});
-
 export default function Finance() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterProjectId, setFilterProjectId] = useState<number | undefined>();
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -141,7 +126,6 @@ export default function Finance() {
   const { data: invoices, isLoading: isLoadingInvoices } = useListInvoices();
   const { data: accounts } = useListAccounts();
   const { data: projects } = useListProjects();
-  const createInvoice = useCreateInvoice();
 
   const { data: schedules, isLoading: isLoadingSchedules } = useListBillingSchedules({ projectId: filterProjectId });
   const createSchedule = useCreateBillingSchedule();
@@ -153,22 +137,6 @@ export default function Finance() {
   const deleteRevenue = useDeleteRevenueEntry();
   const { data: revReport } = useGetRevenueByPeriodReport();
 
-  const form = useForm<z.infer<typeof createInvoiceSchema>>({
-    resolver: zodResolver(createInvoiceSchema),
-    defaultValues: { issueDate: new Date().toISOString().split("T")[0], dueDate: new Date().toISOString().split("T")[0], amount: 0, tax: 0, description: "" },
-  });
-
-  const onCreateInvoice = async (values: z.infer<typeof createInvoiceSchema>) => {
-    try {
-      await createInvoice.mutateAsync({ data: { ...values, status: "Draft" } as any });
-      queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey() });
-      setIsCreateOpen(false);
-      form.reset();
-      toast({ title: "Invoice created" });
-    } catch {
-      toast({ title: "Failed to create invoice", variant: "destructive" });
-    }
-  };
 
   async function handleCreateSchedule() {
     if (!scheduleForm.name || !scheduleForm.projectId) return;
@@ -348,11 +316,6 @@ export default function Finance() {
         <PageHeader
           title="Finance & Invoicing"
           breadcrumbs={[{ label: "Finance" }]}
-          actions={
-            <Button onClick={() => setIsCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Create Invoice
-            </Button>
-          }
         />
 
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -799,50 +762,6 @@ export default function Finance() {
         </Tabs>
 
         <InvoiceDetail invoice={selectedInvoice} open={!!selectedInvoice} onOpenChange={(o) => !o && setSelectedInvoice(null)} />
-
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create Invoice</DialogTitle></DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onCreateInvoice)} className="space-y-4">
-                <FormField control={form.control} name="projectId" render={({ field }) => (
-                  <FormItem><FormLabel>Project</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger></FormControl>
-                      <SelectContent>{projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}</SelectContent>
-                    </Select></FormItem>
-                )} />
-                <FormField control={form.control} name="accountId" render={({ field }) => (
-                  <FormItem><FormLabel>Account</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger></FormControl>
-                      <SelectContent>{accounts?.map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)}</SelectContent>
-                    </Select></FormItem>
-                )} />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="issueDate" render={({ field }) => (
-                    <FormItem><FormLabel>Issue Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
-                  )} />
-                  <FormField control={form.control} name="dueDate" render={({ field }) => (
-                    <FormItem><FormLabel>Due Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
-                  )} />
-                </div>
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
-                )} />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="amount" render={({ field }) => (
-                    <FormItem><FormLabel>Amount</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl></FormItem>
-                  )} />
-                  <FormField control={form.control} name="tax" render={({ field }) => (
-                    <FormItem><FormLabel>Tax</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl></FormItem>
-                  )} />
-                </div>
-                <DialogFooter><Button type="submit" disabled={createInvoice.isPending}>Create Invoice</Button></DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
 
         <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
           <DialogContent>
