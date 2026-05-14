@@ -51,7 +51,7 @@ export default function Login() {
   }, [authLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
-    fetch(`${BASE}/api/auth/users-for-login`)
+    fetch(`${BASE}/api/auth/users-for-login`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then((data: LoginUser[]) => setUsers(data))
       .catch(() => {});
