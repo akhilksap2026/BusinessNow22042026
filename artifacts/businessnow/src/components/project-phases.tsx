@@ -372,7 +372,31 @@ function SortableTaskRow(props: SortableTaskRowProps) {
             {hourCols.estimate && cell(totalEstimate, "estimate")}
             {hourCols.actual && cell(totalActual, "actual")}
             {hourCols.etc && cell(totalEtc, "etc", { negativeRed: true })}
-            {hourCols.eac && cell(totalEac, "eac")}
+            {hourCols.eac && (() => {
+              const eacVal = hasChildren ? totalEac : ((task as any).eac ?? totalEac);
+              const variance: number = hasChildren ? 0 : ((task as any).varianceHours ?? 0);
+              const eacStatus: string = hasChildren ? 'on-track' : ((task as any).eacStatus ?? 'on-track');
+              return (
+                <div key="eac" className="w-20 shrink-0 text-xs text-right tabular-nums">
+                  {task.isMilestone ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <div className="flex items-center justify-end gap-1">
+                      <span className={hasChildren ? "opacity-60" : ""}>{fmt(eacVal)}</span>
+                      {!hasChildren && variance !== 0 && (
+                        <span className={`text-[10px] font-medium px-1 py-0 rounded ${
+                          eacStatus === 'over' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' :
+                          eacStatus === 'under' ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {variance > 0 ? '+' : ''}{variance}h
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </>
         );
       })()}

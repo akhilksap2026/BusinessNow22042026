@@ -5,6 +5,7 @@ import { requirePM } from "../middleware/rbac";
 import { hasRole } from "../constants/roles";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import { logAudit } from "../lib/audit";
+import { calculateEAC } from "../lib/eac";
 import {
   ListTasksResponse,
   ListTasksQueryParams,
@@ -25,7 +26,10 @@ function mapTask(t: typeof tasksTable.$inferSelect, actualHoursById?: Map<number
   const actual = actualHoursById?.get(t.id) ?? 0;
   const etcOverride = t.etcOverride !== null && t.etcOverride !== undefined ? Number(t.etcOverride) : null;
   const etc = etcOverride !== null ? etcOverride : estimate - actual;
-  const eac = actual + Math.max(0, etc);
+  const completionPct = t.completionPct ?? 0;
+  // Use completion-based EAC formula; fall back to estimate when no progress recorded.
+  const pctFraction = completionPct / 100;
+  const eacData = calculateEAC(actual, estimate, pctFraction);
   return {
     ...t,
     effort: Number(t.effort),
@@ -34,8 +38,10 @@ function mapTask(t: typeof tasksTable.$inferSelect, actualHoursById?: Map<number
     actualHours: Number(actual.toFixed(2)),
     etcOverride: etcOverride,
     etc: Number(etc.toFixed(2)),
-    eac: Number(eac.toFixed(2)),
-    completionPct: t.completionPct ?? 0,
+    eac: eacData.eacHours,
+    eacStatus: eacData.status,
+    varianceHours: eacData.varianceHours,
+    completionPct,
     assigneeIds: t.assigneeIds ?? [],
     createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
     updatedAt: t.updatedAt instanceof Date ? t.updatedAt.toISOString() : t.updatedAt,
