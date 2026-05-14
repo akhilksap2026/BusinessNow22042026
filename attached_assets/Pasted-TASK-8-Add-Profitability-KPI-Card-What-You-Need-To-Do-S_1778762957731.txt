@@ -1,0 +1,63 @@
+TASK 8: Add Profitability KPI Card
+What You Need To Do
+Step 8.1: Update the summary endpoint
+In artifacts/api-server/src/routes/projects.ts, find GET /api/projects/:id/summary.
+Add these calculations:
+typescript// Calculate labour cost
+const labourCost = await db
+  .select({
+    total: sum(sql`${timeEntries.hours} * COALESCE(${users.costRate}, 0)`)
+  })
+  .from(timeEntries)
+  .leftJoin(users, eq(timeEntries.userId, users.id))
+  .where(eq(timeEntries.projectId, projectId));
+
+// Get direct costs
+const directCost = await db
+  .select({
+    total: sum(costEntries.amount)
+  })
+  .from(costEntries)
+  .where(eq(costEntries.projectId, projectId));
+
+const totalLabourCost = Number(labourCost[0]?.total || 0);
+const totalDirectCost = Number(directCost[0]?.total || 0);
+const totalCost = totalLabourCost + totalDirectCost;
+
+// Calculate margin
+const profitToDate = invoicedAmount - totalCost;
+const marginPct = invoicedAmount > 0 
+  ? Math.round((profitToDate / invoicedAmount) * 100) 
+  : 0;
+
+// Add to response:
+return {
+  // ... existing fields
+  profitToDate,
+  marginPct,
+  totalCost
+};
+Step 8.2: Add the KPI card component
+In pages/project-detail.tsx, find the KPI cards row (should have 4 cards currently).
+Add a fifth card:
+tsx<Card>
+  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <CardTitle className="text-sm font-medium">Margin</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="text-2xl font-bold">
+      {summary?.marginPct !== undefined ? `${summary.marginPct}%` : '—'}
+    </div>
+    <p className={cn(
+      "text-xs",
+      (summary?.profitToDate || 0) < 0 ? "text-destructive" : "text-muted-foreground"
+    )}>
+      {summary?.profitToDate !== undefined 
+        ? `${summary.profitToDate >= 0 ? '+' : ''}${summary.profitToDate.toLocaleString()} ${summary.currency || 'USD'}`
+        : 'No data yet'
+      }
+    </p>
+  </CardContent>
+</Card>
+CHECKPOINT: Should see 5 KPI cards, the last one showing Margin percentage.
+STOP HERE and show me the page.

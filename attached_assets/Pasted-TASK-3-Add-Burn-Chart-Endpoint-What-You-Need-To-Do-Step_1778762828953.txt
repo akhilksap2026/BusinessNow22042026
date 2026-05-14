@@ -1,0 +1,183 @@
+TASK 3: Add Burn Chart Endpoint
+What You Need To Do
+Step 3.1: Create new file lib/burn-chart.ts
+typescriptinterface BurnChartDataPoint {
+  date: string; // YYYY-MM-DD
+  plannedBudget: number;
+  actualCost: number;
+  invoicedAmount: number;
+  plannedHours: number;
+  actualHours: number;
+  forecastCost: number;
+  forecastHours: number;
+}
+
+export interface BurnChartResponse {
+  currency: string;
+  series: BurnChartDataPoint[];
+  todayLine: string;
+}
+
+export function generateBurnChartSeries(
+  projectStartDate: Date,
+  projectDueDate: Date,
+  totalBudget: number,
+  totalBudgetedHours: number,
+  actualData: Array<{
+    date: string;
+    cumulativeCost: number;
+    cumulativeHours: number;
+    cumulativeInvoiced: number;
+  }>,
+  granularity: 'week' | 'month' = 'week'
+): BurnChartDataPoint[] {
+  const today = new Date();
+  const series: BurnChartDataPoint[] = [];
+  
+  // Calculate planned budget per period (linear distribution)
+  const projectDurationDays = Math.ceil(
+    (projectDueDate.getTime() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  
+  // Generate date points based on granularity
+  let currentDate = new Date(projectStartDate);
+  const incrementDays = granularity === 'week' ? 7 : 30;
+  
+  while (currentDate <= projectDueDate) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const daysFromStart = Math.ceil(
+      (currentDate.getTime() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    // Planned budget: linear distribution
+    const plannedBudget = totalBudget * (daysFromStart / projectDurationDays);
+    const plannedHours = totalBudgetedHours * (daysFromStart / projectDurationDays);
+    
+    // Find actual data for this date (closest match)
+    const actual = actualData.find(d => d.date === dateStr) || 
+      actualData.filter(d => d.date <= dateStr).pop() ||
+      { cumulativeCost: 0, cumulativeHours: 0, cumulativeInvoiced: 0 };
+    
+    // Forecast (for future dates)
+    let forecastCost = actual.cumulativeCost;
+    let forecastHours = actual.cumulativeHours;
+    
+    if (currentDate > today && actual.cumulativeCost > 0) {
+      const daysElapsed = Math.ceil(
+        (today.getTime() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const burnPerDay = actual.cumulativeCost / daysElapsed;
+      const daysToForecast = Math.ceil(
+        (currentDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      forecastCost = actual.cumulativeCost + (burnPerDay * daysToForecast);
+      
+      const hoursBurnPerDay = actual.cumulativeHours / daysElapsed;
+      forecastHours = actual.cumulativeHours + (hoursBurnPerDay * daysToForecast);
+    }
+    
+    series.push({
+      date: dateStr,
+      plannedBudget: Math.round(plannedBudget * 100) / 100,
+      actualCost: Math.round(actual.cumulativeCost * 100) / 100,
+      invoicedAmount: Math.round(actual.cumulativeInvoiced * 100) / 100,
+      plannedHours: Math.round(plannedHours * 100) / 100,
+      actualHours: Math.round(actual.cumulativeHours * 100) / 100,
+      forecastCost: Math.round(forecastCost * 100) / 100,
+      forecastHours: Math.round(forecastHours * 100) / 100
+    });
+    
+    currentDate.setDate(currentDate.getDate() + incrementDays);
+  }
+  
+  return series;
+}
+Step 3.2: Add the burn chart API route
+In artifacts/api-server/src/routes/projects.ts, add:
+typescript// GET /api/projects/:id/burn-chart
+router.get('/:id/burn-chart', requireAuth, async (req, res) => {
+  const projectId = parseInt(req.params.id);
+  const granularity = (req.query.granularity as 'week' | 'month') || 'week';
+  
+  // Fetch project
+  const project = await db.query.projects.findFirst({
+    where: eq(projects.id, projectId)
+  });
+  
+  if (!project) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+  
+  // Fetch cumulative actuals grouped by date
+  // This needs to aggregate time_entries and cost_entries
+  const timeEntriesData = await db
+    .select({
+      date: timeEntries.date,
+      hours: sum(timeEntries.hours),
+      cost: sum(sql`${timeEntries.hours} * COALESCE(${users.costRate}, 0)`)
+    })
+    .from(timeEntries)
+    .leftJoin(users, eq(timeEntries.userId, users.id))
+    .where(eq(timeEntries.projectId, projectId))
+    .groupBy(timeEntries.date)
+    .orderBy(timeEntries.date);
+  
+  const costEntriesData = await db
+    .select({
+      date: costEntries.date,
+      amount: sum(costEntries.amount)
+    })
+    .from(costEntries)
+    .where(eq(costEntries.projectId, projectId))
+    .groupBy(costEntries.date)
+    .orderBy(costEntries.date);
+  
+  const invoicesData = await db
+    .select({
+      date: invoices.issueDate,
+      amount: sum(invoices.total)
+    })
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.projectId, projectId),
+        or(
+          eq(invoices.status, 'Approved'),
+          eq(invoices.status, 'Paid')
+        )
+      )
+    )
+    .groupBy(invoices.issueDate)
+    .orderBy(invoices.issueDate);
+  
+  // Combine into cumulative actuals
+  const actualData = []; // You need to merge the three arrays and calculate cumulative sums
+  // (Implementation detail: merge by date and calculate running totals)
+  
+  const series = generateBurnChartSeries(
+    new Date(project.startDate),
+    new Date(project.dueDate),
+    Number(project.budget),
+    Number(project.budgetedHours),
+    actualData,
+    granularity
+  );
+  
+  return res.json({
+    currency: project.budgetCurrency || 'USD',
+    series,
+    todayLine: new Date().toISOString().split('T')[0]
+  });
+});
+IMPORTANT: The merge logic for cumulative data is complex. If you're unsure how to implement it:
+
+STOP and ask me for guidance
+Do not guess or generate incorrect cumulative calculations
+Show me what you've done so far
+
+CHECKPOINT: Test the endpoint with curl http://localhost:3000/api/projects/1/burn-chart
+
+Should return a JSON response with series array
+Each point should have all required fields
+
+STOP HERE and show me the endpoint response. Do not proceed to Task 4 until I confirm.

@@ -111,6 +111,10 @@ export interface ProjectSummary {
     invoicedAmount: number;
     pendingAmount: number;
     teamSize: number;
+    badgeCounts?: {
+        changeRequests: number;
+        updates: number;
+    };
 }
 export interface CreateProjectBody {
     accountId: number;

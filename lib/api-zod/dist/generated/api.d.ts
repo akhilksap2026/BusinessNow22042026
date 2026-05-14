@@ -880,6 +880,16 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
     invoicedAmount: zod.ZodNumber;
     pendingAmount: zod.ZodNumber;
     teamSize: zod.ZodNumber;
+    badgeCounts: zod.ZodOptional<zod.ZodObject<{
+        changeRequests: zod.ZodNumber;
+        updates: zod.ZodNumber;
+    }, "strip", zod.ZodTypeAny, {
+        changeRequests: number;
+        updates: number;
+    }, {
+        changeRequests: number;
+        updates: number;
+    }>>;
 }, "strip", zod.ZodTypeAny, {
     projectId: number;
     budgetUsedPercent: number;
@@ -888,6 +898,10 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
     invoicedAmount: number;
     pendingAmount: number;
     teamSize: number;
+    badgeCounts?: {
+        changeRequests: number;
+        updates: number;
+    } | undefined;
 }, {
     projectId: number;
     budgetUsedPercent: number;
@@ -896,6 +910,10 @@ export declare const GetProjectSummaryResponse: zod.ZodObject<{
     invoicedAmount: number;
     pendingAmount: number;
     teamSize: number;
+    badgeCounts?: {
+        changeRequests: number;
+        updates: number;
+    } | undefined;
 }>;
 /**
  * @summary List budget entries for a project with running totals

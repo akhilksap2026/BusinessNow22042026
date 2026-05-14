@@ -1,0 +1,72 @@
+TASK 5: Add Overview Tab
+What You Need To Do
+Step 5.1: Create components/project-overview-tab.tsx
+tsximport { BurnChart } from './burn-chart';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useBurnChart } from '@/lib/queries';
+
+interface ProjectOverviewTabProps {
+  projectId: number;
+}
+
+export function ProjectOverviewTab({ projectId }: ProjectOverviewTabProps) {
+  const { data: burnData, isLoading: burnLoading } = useBurnChart(projectId);
+  
+  if (burnLoading) {
+    return <div>Loading overview...</div>;
+  }
+  
+  return (
+    <div className="space-y-6">
+      {/* Burn Chart */}
+      {burnData && <BurnChart data={burnData} />}
+      
+      {/* Quoted vs Actual - Placeholder for now */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quoted vs Actual</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Coming in next task...
+          </p>
+        </CardContent>
+      </Card>
+      
+      {/* At-Risk Items */}
+      <Card>
+        <CardHeader>
+          <CardTitle>At-Risk Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Aggregated risks will appear here...
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+Step 5.2: Add Overview tab to the tabs array
+In pages/project-detail.tsx, find the tabs definition and add Overview as the FIRST tab:
+tsxconst tabs = [
+  { value: 'overview', label: 'Overview' }, // ADD THIS AS FIRST
+  { value: 'tasks', label: 'Tasks' },
+  { value: 'team', label: 'Team & Allocations' },
+  // ... rest of tabs
+];
+
+// Change the default tab
+const [activeTab, setActiveTab] = useState('overview'); // Changed from 'tasks'
+Step 5.3: Add the tab content
+In the tab panels section:
+tsx{activeTab === 'overview' && (
+  <ProjectOverviewTab projectId={projectId} />
+)}
+CHECKPOINT:
+
+Navigate to /projects/1
+Should land on Overview tab
+Should see burn chart (even if empty for now)
+
+STOP HERE and show me the page. Do not proceed until I confirm.

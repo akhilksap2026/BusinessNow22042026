@@ -1,0 +1,66 @@
+TASK 9: Soft-Delete Migration for Financial Entities
+What You Need To Do
+Step 9.1: Create a Drizzle migration file
+bashnpm run db:generate
+Name it: add_deleted_at_to_financial_tables
+Step 9.2: Write the migration SQL
+sql-- Add deleted_at columns
+ALTER TABLE allocations ADD COLUMN deleted_at TIMESTAMP;
+ALTER TABLE cost_entries ADD COLUMN deleted_at TIMESTAMP;
+ALTER TABLE asset_bookings ADD COLUMN deleted_at TIMESTAMP;
+ALTER TABLE documents ADD COLUMN deleted_at TIMESTAMP;
+ALTER TABLE change_orders ADD COLUMN deleted_at TIMESTAMP;
+ALTER TABLE project_risks ADD COLUMN deleted_at TIMESTAMP;
+
+-- Create indexes for better query performance
+CREATE INDEX idx_allocations_deleted_at ON allocations(deleted_at);
+CREATE INDEX idx_cost_entries_deleted_at ON cost_entries(deleted_at);
+CREATE INDEX idx_asset_bookings_deleted_at ON asset_bookings(deleted_at);
+CREATE INDEX idx_documents_deleted_at ON documents(deleted_at);
+CREATE INDEX idx_change_orders_deleted_at ON change_orders(deleted_at);
+CREATE INDEX idx_project_risks_deleted_at ON project_risks(deleted_at);
+Step 9.3: Update Drizzle schema
+In your schema file, add deletedAt to these tables:
+typescriptexport const allocations = pgTable('allocations', {
+  // ... existing columns
+  deletedAt: timestamp('deleted_at'),
+});
+
+// Repeat for: costEntries, assetBookings, documents, changeOrders, projectRisks
+Step 9.4: Update DELETE route handlers
+For EACH of these routes, change from hard delete to soft delete:
+Before:
+typescriptrouter.delete('/allocations/:id', requirePM, async (req, res) => {
+  await db.delete(allocations).where(eq(allocations.id, id));
+  // ...
+});
+After:
+typescriptrouter.delete('/allocations/:id', requirePM, async (req, res) => {
+  await db
+    .update(allocations)
+    .set({ deletedAt: new Date() })
+    .where(eq(allocations.id, id));
+  // ...
+});
+Step 9.5: Update all SELECT queries
+Add isNull(table.deletedAt) filter to all queries on these tables:
+typescript// Before:
+const items = await db.query.allocations.findMany({
+  where: eq(allocations.projectId, projectId)
+});
+
+// After:
+const items = await db.query.allocations.findMany({
+  where: and(
+    eq(allocations.projectId, projectId),
+    isNull(allocations.deletedAt)
+  )
+});
+⚠️ CRITICAL: You must update EVERY query that reads from these tables. Missing even one will show deleted records.
+CHECKPOINT:
+
+Run migration: npm run db:push
+Test deleting an allocation - should set deleted_at, not remove row
+Verify deleted allocation doesn't appear in the list
+
+STOP HERE - this is a critical data integrity change. Show me all affected files before proceeding.

@@ -1183,8 +1183,8 @@ export default function ProjectDetail() {
               <TabsTrigger value="changes" className="flex items-center gap-1.5">
                 <PackagePlus className="h-4 w-4" />
                 Change Requests
-                {changeOrders && changeOrders.length > 0 && (
-                  <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{changeOrders.length}</span>
+                {(summary?.badgeCounts?.changeRequests ?? 0) > 0 && (
+                  <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{summary!.badgeCounts!.changeRequests}</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
@@ -1202,8 +1202,8 @@ export default function ProjectDetail() {
               <TabsTrigger value="updates" className="flex items-center gap-1.5">
                 <Bell className="h-4 w-4" />
                 Updates
-                {projectUpdates.length > 0 && (
-                  <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{projectUpdates.length}</span>
+                {(summary?.badgeCounts?.updates ?? 0) > 0 && (
+                  <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{summary!.badgeCounts!.updates}</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="raid" className="flex items-center gap-1.5">

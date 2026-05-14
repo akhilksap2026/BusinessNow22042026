@@ -354,6 +354,10 @@ export const GetProjectSummaryResponse = zod.object({
   invoicedAmount: zod.number(),
   pendingAmount: zod.number(),
   teamSize: zod.number(),
+  badgeCounts: zod.object({
+    changeRequests: zod.number(),
+    updates: zod.number(),
+  }).optional(),
 });
 
 /**

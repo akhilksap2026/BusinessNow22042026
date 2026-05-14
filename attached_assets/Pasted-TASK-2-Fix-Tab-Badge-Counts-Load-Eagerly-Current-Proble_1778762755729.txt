@@ -1,0 +1,67 @@
+TASK 2: Fix Tab Badge Counts (Load Eagerly)
+Current Problem
+Badge counts on tabs (Change Requests [N], CSAT [N], Updates [N]) only fetch when user clicks the tab for the first time. They show empty/stale until visited.
+What You Need To Do
+Step 2.1: Find the existing summary endpoint
+
+Open artifacts/api-server/src/routes/projects.ts
+Find the handler for GET /api/projects/:id/summary
+This already returns invoicedAmount, budgetUsedPercent, etc.
+
+Step 2.2: Add badge counts to the summary response
+Add these new fields to the summary endpoint response:
+typescript// Add these queries (they should be COUNT queries, not full data fetches):
+const changeRequestsCount = await db
+  .select({ count: sql`count(*)` })
+  .from(changeOrders)
+  .where(eq(changeOrders.projectId, projectId));
+
+const csatPendingCount = await db
+  .select({ count: sql`count(*)` })
+  .from(csatSurveys)
+  .where(
+    and(
+      eq(csatSurveys.projectId, projectId),
+      isNull(csatSurveys.rating)
+    )
+  );
+
+const updatesCount = await db
+  .select({ count: sql`count(*)` })
+  .from(projectUpdates)
+  .where(eq(projectUpdates.projectId, projectId));
+
+// Add to the response:
+return {
+  ...existingFields,
+  badgeCounts: {
+    changeRequests: changeRequestsCount[0]?.count || 0,
+    csatPending: csatPendingCount[0]?.count || 0,
+    updates: updatesCount[0]?.count || 0
+  }
+};
+Step 2.3: Update frontend to use badge counts from summary
+
+Open pages/project-detail.tsx
+Find where tabs are defined (look for the <Tabs> component)
+Currently, badges might be getting data from individual queries
+Change them to use summary.badgeCounts:
+
+tsx// Find the tabs array, something like:
+const tabs = [
+  { value: 'tasks', label: 'Tasks' },
+  { value: 'team', label: 'Team & Allocations' },
+  // ...
+  { value: 'changes', label: 'Change Requests', badge: changeOrders?.length },
+  // ...
+];
+
+// Change to:
+{ value: 'changes', label: 'Change Requests', badge: summary?.badgeCounts?.changeRequests }
+Step 2.4: Remove old lazy badge queries
+
+Search for any useQuery hooks that fetch counts just for badges
+Remove them if they're only used for the badge display
+
+CHECKPOINT: Load the project detail page. Badge counts should show immediately without clicking tabs.
+STOP HERE and show me the changes. Do not proceed to Task 3 until I confirm.

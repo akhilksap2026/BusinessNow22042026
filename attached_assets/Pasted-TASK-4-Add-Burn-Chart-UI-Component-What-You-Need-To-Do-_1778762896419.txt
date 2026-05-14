@@ -1,0 +1,154 @@
+TASK 4: Add Burn Chart UI Component
+What You Need To Do
+Step 4.1: Create components/burn-chart.tsx
+tsximport { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+interface BurnChartProps {
+  data: {
+    currency: string;
+    series: Array<{
+      date: string;
+      plannedBudget: number;
+      actualCost: number;
+      invoicedAmount: number;
+      plannedHours: number;
+      actualHours: number;
+      forecastCost: number;
+      forecastHours: number;
+    }>;
+    todayLine: string;
+  };
+}
+
+export function BurnChart({ data }: BurnChartProps) {
+  const { series, todayLine, currency } = data;
+  
+  // Calculate if there's an overrun forecast
+  const lastPoint = series[series.length - 1];
+  const finalPlanned = lastPoint?.plannedBudget || 0;
+  const finalForecast = lastPoint?.forecastCost || 0;
+  const overrun = finalForecast - finalPlanned;
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Budget & Hours Burn</CardTitle>
+        {overrun > 0 && (
+          <p className="text-sm text-destructive">
+            ⚠️ Forecasted overrun: {currency} {overrun.toLocaleString()} by project end
+          </p>
+        )}
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="budget">
+          <TabsList>
+            <TabsTrigger value="budget">Budget</TabsTrigger>
+            <TabsTrigger value="hours">Hours</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="budget">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={series}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="date" 
+                  tickFormatter={(date) => new Date(date).toLocaleDateString()}
+                />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: number) => `${currency} ${value.toLocaleString()}`}
+                  labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                />
+                <Legend />
+                <ReferenceLine 
+                  x={todayLine} 
+                  stroke="#888" 
+                  strokeDasharray="3 3" 
+                  label="Today" 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="plannedBudget" 
+                  stroke="#8884d8" 
+                  name="Planned Budget"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="actualCost" 
+                  stroke="#82ca9d" 
+                  name="Actual Cost"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="forecastCost" 
+                  stroke="#ff7c7c" 
+                  strokeDasharray="5 5"
+                  name="Forecast"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </TabsContent>
+          
+          <TabsContent value="hours">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={series}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="date" 
+                  tickFormatter={(date) => new Date(date).toLocaleDateString()}
+                />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: number) => `${value}h`}
+                  labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                />
+                <Legend />
+                <ReferenceLine 
+                  x={todayLine} 
+                  stroke="#888" 
+                  strokeDasharray="3 3" 
+                  label="Today" 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="plannedHours" 
+                  stroke="#8884d8" 
+                  name="Planned Hours"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="actualHours" 
+                  stroke="#82ca9d" 
+                  name="Actual Hours"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="forecastHours" 
+                  stroke="#ff7c7c" 
+                  strokeDasharray="5 5"
+                  name="Forecast"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+}
+Step 4.2: Add the query hook
+In your queries file (probably lib/queries.ts or similar):
+typescriptexport function useBurnChart(projectId: number) {
+  return useQuery({
+    queryKey: ['burn-chart', projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects/${projectId}/burn-chart`);
+      if (!res.ok) throw new Error('Failed to fetch burn chart');
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
+}
+STOP HERE and show me the component. Do not add it to any page yet.

@@ -1,0 +1,185 @@
+TASK 10: Add Quoted vs Actual Table (Simplified Version)
+What You Need To Do
+Step 10.1: Create the API endpoint
+In artifacts/api-server/src/routes/projects.ts:
+typescriptrouter.get('/:id/quoted-vs-actual', requireAuth, async (req, res) => {
+  const projectId = parseInt(req.params.id);
+  
+  // Get all phases for this project
+  const phases = await db.query.tasks.findMany({
+    where: and(
+      eq(tasks.projectId, projectId),
+      eq(tasks.isPhase, true),
+      isNull(tasks.deletedAt)
+    )
+  });
+  
+  const rows = [];
+  
+  for (const phase of phases) {
+    // Get child tasks
+    const childTasks = await db.query.tasks.findMany({
+      where: and(
+        eq(tasks.parentTaskId, phase.id),
+        isNull(tasks.deletedAt)
+      )
+    });
+    
+    // Sum quoted hours
+    const quotedHours = childTasks.reduce((sum, t) => sum + (Number(t.estimateHours) || 0), 0);
+    
+    // Get actual hours from time entries
+    const actualHoursResult = await db
+      .select({ total: sum(timeEntries.hours) })
+      .from(timeEntries)
+      .where(
+        inArray(timeEntries.taskId, childTasks.map(t => t.id))
+      );
+    
+    const actualHours = Number(actualHoursResult[0]?.total || 0);
+    
+    // Calculate completion
+    const completedCount = childTasks.filter(t => t.status === 'Completed').length;
+    const completionPct = childTasks.length > 0 
+      ? Math.round((completedCount / childTasks.length) * 100) 
+      : 0;
+    
+    // Determine status
+    let status: 'under' | 'on-track' | 'over' = 'on-track';
+    if (quotedHours > 0) {
+      const variance = (actualHours - quotedHours) / quotedHours;
+      if (variance < -0.05) status = 'under';
+      if (variance > 0.05) status = 'over';
+    }
+    
+    rows.push({
+      phaseId: phase.id,
+      phaseName: phase.name,
+      quotedHours,
+      actualHours,
+      completionPct,
+      status
+    });
+  }
+  
+  // Calculate totals
+  const totals = rows.reduce((acc, row) => ({
+    quotedHours: acc.quotedHours + row.quotedHours,
+    actualHours: acc.actualHours + row.actualHours
+  }), { quotedHours: 0, actualHours: 0 });
+  
+  return res.json({ rows, totals });
+});
+Step 10.2: Create the component
+Create components/quoted-vs-actual-table.tsx:
+tsximport { useQuery } from '@tanstack/react-query';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface QuotedVsActualProps {
+  projectId: number;
+}
+
+export function QuotedVsActualTable({ projectId }: QuotedVsActualProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['quoted-vs-actual', projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects/${projectId}/quoted-vs-actual`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    }
+  });
+  
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (!data || data.rows.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Quoted vs Actual</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            No phase data available yet.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Quoted vs Actual</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Phase</TableHead>
+              <TableHead className="text-right">Quoted Hours</TableHead>
+              <TableHead className="text-right">Actual Hours</TableHead>
+              <TableHead className="text-right">Completion</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.rows.map((row: any) => (
+              <TableRow key={row.phaseId}>
+                <TableCell className="font-medium">{row.phaseName}</TableCell>
+                <TableCell className="text-right font-mono">
+                  {row.quotedHours.toFixed(1)}h
+                </TableCell>
+                <TableCell className="text-right font-mono">
+                  {row.actualHours.toFixed(1)}h
+                </TableCell>
+                <TableCell className="text-right">{row.completionPct}%</TableCell>
+                <TableCell>
+                  <Badge variant={
+                    row.status === 'over' ? 'destructive' :
+                    row.status === 'under' ? 'outline' :
+                    'secondary'
+                  }>
+                    {row.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell className="font-bold">Total</TableCell>
+              <TableCell className="text-right font-mono font-bold">
+                {data.totals.quotedHours.toFixed(1)}h
+              </TableCell>
+              <TableCell className="text-right font-mono font-bold">
+                {data.totals.actualHours.toFixed(1)}h
+              </TableCell>
+              <TableCell></TableCell>
+              <TableCell></TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+Step 10.3: Add to Overview tab
+In components/project-overview-tab.tsx, replace the placeholder:
+tsximport { QuotedVsActualTable } from './quoted-vs-actual-table';
+
+// Replace the placeholder Card with:
+<QuotedVsActualTable projectId={projectId} />
+CHECKPOINT: Overview tab should show both burn chart and quoted vs actual table.
+STOP HERE - show me the complete Overview tab.

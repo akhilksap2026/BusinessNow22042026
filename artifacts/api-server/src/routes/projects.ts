@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, asc, isNull, isNotNull, inArray, ne, sql } from "drizzle-orm";
 import { parsePagination, envelope } from "../lib/pagination";
-import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable, notificationsTable } from "@workspace/db";
+import { db, projectsTable, invoicesTable, allocationsTable, accountsTable, usersTable, tasksTable, taskDependenciesTable, budgetEntriesTable, notificationsTable, changeOrdersTable, projectUpdatesTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { getTrackedHoursMap, getTrackedHours } from "../lib/trackedHours";
 import { checkOutOfRangeAllocations } from "../lib/outOfRangeAllocationCheck";
@@ -374,8 +374,12 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
 
-  const projectInvoices = await db.select().from(invoicesTable).where(eq(invoicesTable.projectId, params.data.id));
-  const allocations = await db.select().from(allocationsTable).where(eq(allocationsTable.projectId, params.data.id));
+  const [projectInvoices, allocations, changeOrdersCount, updatesCount] = await Promise.all([
+    db.select().from(invoicesTable).where(eq(invoicesTable.projectId, params.data.id)),
+    db.select().from(allocationsTable).where(eq(allocationsTable.projectId, params.data.id)),
+    db.select({ count: sql<number>`count(*)::int` }).from(changeOrdersTable).where(eq(changeOrdersTable.projectId, params.data.id)),
+    db.select({ count: sql<number>`count(*)::int` }).from(projectUpdatesTable).where(eq(projectUpdatesTable.projectId, params.data.id)),
+  ]);
 
   const budget = Number(project.budget);
   const budgetedHours = Number(project.budgetedHours);
@@ -394,6 +398,10 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
     invoicedAmount,
     pendingAmount,
     teamSize,
+    badgeCounts: {
+      changeRequests: changeOrdersCount[0]?.count ?? 0,
+      updates: updatesCount[0]?.count ?? 0,
+    },
   }));
 });
 
