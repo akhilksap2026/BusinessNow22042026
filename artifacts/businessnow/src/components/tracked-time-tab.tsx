@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { hasRole } from "@/lib/roles";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQueryClient } from "@tanstack/react-query";
@@ -558,7 +558,7 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "collabor
                   const groupHours = g.entries.reduce((s: number, e: any) => s + Number(e.hours), 0);
                   const groupBillable = g.entries.filter((e: any) => e.billable).reduce((s: number, e: any) => s + Number(e.hours), 0);
                   return (
-                    <>
+                    <Fragment key={g.key}>
                       {groupBy !== "none" && (
                         <TableRow key={`group-${g.key}`} className="bg-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => {
                           setCollapsed((prev) => {
@@ -631,7 +631,7 @@ export function TrackedTimeTab({ projectId, scopedUserId, viewerRole = "collabor
                           </TableRow>
                         );
                       })}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>

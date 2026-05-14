@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { authHeaders } from "@/lib/auth-headers";
 
 export interface BurnChartData {
   currency: string;
@@ -20,7 +21,8 @@ export function useBurnChart(projectId: number, granularity: "week" | "month" = 
     queryKey: ["burn-chart", projectId, granularity],
     queryFn: async () => {
       const res = await fetch(
-        `/api/projects/${projectId}/burn-chart?granularity=${granularity}`
+        `/api/projects/${projectId}/burn-chart?granularity=${granularity}`,
+        { headers: authHeaders() },
       );
       if (!res.ok) throw new Error("Failed to fetch burn chart");
       return res.json();

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { authHeaders } from "@/lib/auth-headers";
 import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -34,7 +35,9 @@ export function QuotedVsActualTable({ projectId }: QuotedVsActualProps) {
   const { data, isLoading } = useQuery<QuotedVsActualData>({
     queryKey: ["quoted-vs-actual", projectId],
     queryFn: async () => {
-      const res = await fetch(`/api/projects/${projectId}/quoted-vs-actual`);
+      const res = await fetch(`/api/projects/${projectId}/quoted-vs-actual`, {
+        headers: authHeaders(),
+      });
       if (!res.ok) throw new Error("Failed to fetch quoted vs actual");
       return res.json();
     },
