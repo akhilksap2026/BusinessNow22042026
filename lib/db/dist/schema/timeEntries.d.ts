@@ -331,17 +331,17 @@ export declare const timeEntriesTable: import("drizzle-orm/pg-core").PgTableWith
 }>;
 export declare const insertTimeEntrySchema: z.ZodObject<{
     date: z.ZodString;
-    role: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    role: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     projectId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     userId: z.ZodInt;
     billable: z.ZodOptional<z.ZodBoolean>;
     categoryId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     taskId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     rejectionNote: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    activityName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     timesheetId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     hours: z.ZodString;
+    activityName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     approved: z.ZodOptional<z.ZodBoolean>;
     rejected: z.ZodOptional<z.ZodBoolean>;
     appliedBillRate: z.ZodOptional<z.ZodNullable<z.ZodString>>;

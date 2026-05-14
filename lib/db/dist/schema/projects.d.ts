@@ -214,8 +214,8 @@ export declare const projectsTable: import("drizzle-orm/pg-core").PgTableWithCol
             columnType: "PgText";
             data: string;
             driverParam: string;
-            notNull: true;
-            hasDefault: true;
+            notNull: false;
+            hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
@@ -450,6 +450,7 @@ export declare const projectsTable: import("drizzle-orm/pg-core").PgTableWithCol
 }>;
 export declare const insertProjectSchema: z.ZodObject<{
     name: z.ZodString;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     status: z.ZodOptional<z.ZodString>;
     accountId: z.ZodInt;
     ownerId: z.ZodInt;
@@ -460,8 +461,7 @@ export declare const insertProjectSchema: z.ZodObject<{
     allocatedHours: z.ZodOptional<z.ZodString>;
     budgetedHours: z.ZodOptional<z.ZodString>;
     completion: z.ZodOptional<z.ZodInt>;
-    health: z.ZodOptional<z.ZodString>;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    health: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     rateCardId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     customerChampion: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     templateId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;

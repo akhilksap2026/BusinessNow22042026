@@ -388,23 +388,6 @@ export declare const tasksTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        csatEnabled: import("drizzle-orm/pg-core").PgColumn<{
-            name: "csat_enabled";
-            tableName: "tasks";
-            dataType: "boolean";
-            columnType: "PgBoolean";
-            data: boolean;
-            driverParam: boolean;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
         privateNotes: import("drizzle-orm/pg-core").PgColumn<{
             name: "private_notes";
             tableName: "tasks";
@@ -473,6 +456,40 @@ export declare const tasksTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        etcOverride: import("drizzle-orm/pg-core").PgColumn<{
+            name: "etc_override";
+            tableName: "tasks";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        completionPct: import("drizzle-orm/pg-core").PgColumn<{
+            name: "completion_pct";
+            tableName: "tasks";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "tasks";
@@ -531,11 +548,12 @@ export declare const insertTaskSchema: z.ZodObject<{
     approvalStatus: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     fromTemplate: z.ZodOptional<z.ZodBoolean>;
     appliedTemplateId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-    csatEnabled: z.ZodOptional<z.ZodBoolean>;
     privateNotes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isPhase: z.ZodOptional<z.ZodBoolean>;
     sortOrder: z.ZodOptional<z.ZodInt>;
     overrunAlertSentAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    etcOverride: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    completionPct: z.ZodOptional<z.ZodInt>;
 }, {
     out: {};
     in: {};

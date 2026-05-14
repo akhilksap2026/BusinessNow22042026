@@ -71,6 +71,23 @@ export declare const companySettingsTable: import("drizzle-orm/pg-core").PgTable
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        primaryColor: import("drizzle-orm/pg-core").PgColumn<{
+            name: "primary_color";
+            tableName: "company_settings";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         timezone: import("drizzle-orm/pg-core").PgColumn<{
             name: "timezone";
             tableName: "company_settings";
@@ -181,6 +198,7 @@ export declare const insertCompanySettingsSchema: z.ZodObject<{
     logoUrl: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     currency: z.ZodOptional<z.ZodString>;
     address: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    primaryColor: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     timezone: z.ZodOptional<z.ZodString>;
     fiscalYearStart: z.ZodOptional<z.ZodString>;
     website: z.ZodOptional<z.ZodNullable<z.ZodString>>;

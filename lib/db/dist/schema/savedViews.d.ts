@@ -6,8 +6,8 @@ export declare const savedViewConditionSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const savedViewFiltersSchema: z.ZodObject<{
     matchMode: z.ZodDefault<z.ZodEnum<{
-        any: "any";
         all: "all";
+        any: "any";
     }>>;
     conditions: z.ZodDefault<z.ZodArray<z.ZodObject<{
         field: z.ZodString;
@@ -78,7 +78,7 @@ export declare const savedViewsTable: import("drizzle-orm/pg-core").PgTableWithC
             dataType: "json";
             columnType: "PgJsonb";
             data: {
-                matchMode: "any" | "all";
+                matchMode: "all" | "any";
                 conditions: {
                     field: string;
                     operator: string;
@@ -97,7 +97,7 @@ export declare const savedViewsTable: import("drizzle-orm/pg-core").PgTableWithC
             generated: undefined;
         }, {}, {
             $type: {
-                matchMode: "any" | "all";
+                matchMode: "all" | "any";
                 conditions: {
                     field: string;
                     operator: string;
@@ -135,6 +135,42 @@ export declare const savedViewsTable: import("drizzle-orm/pg-core").PgTableWithC
             isAutoincrement: false;
             hasRuntimeDefault: false;
             enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        widgetConfig: import("drizzle-orm/pg-core").PgColumn<{
+            name: "widget_config";
+            tableName: "saved_views";
+            dataType: "json";
+            columnType: "PgJsonb";
+            data: Record<string, unknown>;
+            driverParam: unknown;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            $type: Record<string, unknown>;
+        }>;
+        roleDefault: import("drizzle-orm/pg-core").PgColumn<{
+            name: "role_default";
+            tableName: "saved_views";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
             baseColumn: never;
             identity: undefined;
             generated: undefined;
@@ -178,12 +214,11 @@ export declare const savedViewsTable: import("drizzle-orm/pg-core").PgTableWithC
 }>;
 export declare const insertSavedViewSchema: z.ZodObject<{
     name: z.ZodString;
-    createdByUserId: z.ZodInt;
     entity: z.ZodString;
     filters: z.ZodObject<{
         matchMode: z.ZodDefault<z.ZodEnum<{
-            any: "any";
             all: "all";
+            any: "any";
         }>>;
         conditions: z.ZodDefault<z.ZodArray<z.ZodObject<{
             field: z.ZodString;
@@ -192,6 +227,9 @@ export declare const insertSavedViewSchema: z.ZodObject<{
         }, z.core.$strip>>>;
     }, z.core.$strip>;
     visibility: z.ZodOptional<z.ZodString>;
+    createdByUserId: z.ZodInt;
+    widgetConfig: z.ZodOptional<z.ZodNullable<z.ZodType<Record<string, unknown>, Record<string, unknown>, z.core.$ZodTypeInternals<Record<string, unknown>, Record<string, unknown>>>>>;
+    roleDefault: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};
@@ -200,8 +238,8 @@ export declare const updateSavedViewSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     filters: z.ZodOptional<z.ZodObject<{
         matchMode: z.ZodDefault<z.ZodEnum<{
-            any: "any";
             all: "all";
+            any: "any";
         }>>;
         conditions: z.ZodDefault<z.ZodArray<z.ZodObject<{
             field: z.ZodString;
@@ -213,17 +251,20 @@ export declare const updateSavedViewSchema: z.ZodObject<{
         private: "private";
         public: "public";
     }>>;
+    widgetConfig: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    roleDefault: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, z.core.$strip>;
 export type InsertSavedView = z.infer<typeof insertSavedViewSchema>;
 export type UpdateSavedView = z.infer<typeof updateSavedViewSchema>;
 export type SavedView = typeof savedViewsTable.$inferSelect;
-export declare const SAVED_VIEW_ENTITIES: readonly ["projects", "people", "resource_requests"];
+export declare const SAVED_VIEW_ENTITIES: readonly ["projects", "people", "resource_requests", "dashboard"];
 export type SavedViewEntity = typeof SAVED_VIEW_ENTITIES[number];
 export declare const listSavedViewsQuerySchema: z.ZodObject<{
     entity: z.ZodEnum<{
         projects: "projects";
-        resource_requests: "resource_requests";
         people: "people";
+        resource_requests: "resource_requests";
+        dashboard: "dashboard";
     }>;
 }, z.core.$strip>;
 export declare const duplicateSavedViewBodySchema: z.ZodOptional<z.ZodObject<{

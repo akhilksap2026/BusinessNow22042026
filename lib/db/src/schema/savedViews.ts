@@ -23,6 +23,8 @@ export const savedViewsTable = pgTable("saved_views", {
   filters: jsonb("filters").$type<SavedViewFilters>().notNull(),
   visibility: text("visibility").notNull().default("private"),
   createdByUserId: integer("created_by_user_id").notNull(),
+  widgetConfig: jsonb("widget_config").$type<Record<string, unknown>>(),
+  roleDefault: text("role_default"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
@@ -38,13 +40,15 @@ export const updateSavedViewSchema = z.object({
   name: z.string().min(1).optional(),
   filters: savedViewFiltersSchema.optional(),
   visibility: z.enum(["private", "public"]).optional(),
+  widgetConfig: z.record(z.string(), z.unknown()).optional(),
+  roleDefault: z.string().nullable().optional(),
 });
 
 export type InsertSavedView = z.infer<typeof insertSavedViewSchema>;
 export type UpdateSavedView = z.infer<typeof updateSavedViewSchema>;
 export type SavedView = typeof savedViewsTable.$inferSelect;
 
-export const SAVED_VIEW_ENTITIES = ["projects", "people", "resource_requests"] as const;
+export const SAVED_VIEW_ENTITIES = ["projects", "people", "resource_requests", "dashboard"] as const;
 export type SavedViewEntity = typeof SAVED_VIEW_ENTITIES[number];
 
 export const listSavedViewsQuerySchema = z.object({

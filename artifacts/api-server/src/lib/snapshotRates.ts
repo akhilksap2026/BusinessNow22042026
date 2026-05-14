@@ -11,8 +11,8 @@
  *  - Errors are swallowed; snapshotting must never block the approve response.
  */
 
-import { eq, and, isNull, sql } from "drizzle-orm";
-import { db, timeEntriesTable, projectsTable, rateCardsTable, usersTable } from "@workspace/db";
+import { eq, and, isNull, sql, lte, desc } from "drizzle-orm";
+import { db, timeEntriesTable, projectsTable, rateCardsTable, usersTable, resourceCostRatesTable } from "@workspace/db";
 
 type RateCard = typeof rateCardsTable.$inferSelect;
 
@@ -74,11 +74,22 @@ export async function snapshotRatesForTimesheet(timesheetId: number): Promise<vo
 
     if (entries.length === 0) return;
 
-    const [allCards, allUsers, allProjects] = await Promise.all([
+    const [allCards, allUsers, allProjects, allCountryRates] = await Promise.all([
       tx.select().from(rateCardsTable),
       tx.select({ id: usersTable.id, role: usersTable.role, costRate: usersTable.costRate }).from(usersTable),
       tx.select({ id: projectsTable.id, rateCardId: projectsTable.rateCardId }).from(projectsTable),
+      // R8 — load all country-based cost rates for lookup
+      tx.select().from(resourceCostRatesTable),
     ]);
+
+    // R8 — for each entry: find most recent country rate effective on work date.
+    // Falls back to user.costRate if no country rate exists.
+    function resolveCountryCostRate(userId: number, workDate: string, defaultCostRate: number): number {
+      const userRates = allCountryRates
+        .filter(r => r.userId === userId && r.effectiveDate <= workDate)
+        .sort((a, b) => b.effectiveDate.localeCompare(a.effectiveDate));
+      return userRates.length > 0 ? Number(userRates[0].rate) : defaultCostRate;
+    }
 
     for (const entry of entries) {
       const workDate  = entry.date;
@@ -89,7 +100,11 @@ export async function snapshotRatesForTimesheet(timesheetId: number): Promise<vo
 
       const card     = resolveCardForDate(allCards, workDate, fallbackCardId);
       const billRate = card ? billRateFromCard(card, effectiveRole) : 0;
-      const costRate = user ? Number(user.costRate) : 0;
+      const baseCostRate = user ? Number(user.costRate) : 0;
+      // R8 — prefer country-specific rate if one is on record for this user
+      const costRate = entry.userId
+        ? resolveCountryCostRate(entry.userId, workDate, baseCostRate)
+        : baseCostRate;
 
       await tx.update(timeEntriesTable)
         .set({ appliedBillRate: String(billRate), appliedCostRate: String(costRate) })

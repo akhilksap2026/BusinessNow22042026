@@ -31,3 +31,6 @@ export * from "./contracts";
 export * from "./projectStatusConfigs";
 export * from "./assets";
 export * from "./risks";
+export * from "./templateTaskDeps";
+export * from "./taskDailyAllocations";
+export * from "./resourceCostRates";

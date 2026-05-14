@@ -1,0 +1,122 @@
+import { z } from "zod/v4";
+export declare const templateTaskDependenciesTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "template_task_dependencies";
+    schema: undefined;
+    columns: {
+        id: import("drizzle-orm/pg-core").PgColumn<{
+            name: "id";
+            tableName: "template_task_dependencies";
+            dataType: "number";
+            columnType: "PgSerial";
+            data: number;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: true;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        predecessorId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "predecessor_id";
+            tableName: "template_task_dependencies";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        successorId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "successor_id";
+            tableName: "template_task_dependencies";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        dependencyType: import("drizzle-orm/pg-core").PgColumn<{
+            name: "dependency_type";
+            tableName: "template_task_dependencies";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        lagDays: import("drizzle-orm/pg-core").PgColumn<{
+            name: "lag_days";
+            tableName: "template_task_dependencies";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        createdAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "created_at";
+            tableName: "template_task_dependencies";
+            dataType: "date";
+            columnType: "PgTimestamp";
+            data: Date;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+    };
+    dialect: "pg";
+}>;
+export declare const insertTemplateTaskDependencySchema: z.ZodObject<{
+    predecessorId: z.ZodInt;
+    successorId: z.ZodInt;
+    dependencyType: z.ZodOptional<z.ZodString>;
+    lagDays: z.ZodOptional<z.ZodInt>;
+}, {
+    out: {};
+    in: {};
+}>;
+export type InsertTemplateTaskDependency = z.infer<typeof insertTemplateTaskDependencySchema>;
+export type TemplateTaskDependency = typeof templateTaskDependenciesTable.$inferSelect;
+//# sourceMappingURL=templateTaskDeps.d.ts.map

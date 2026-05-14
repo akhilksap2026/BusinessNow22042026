@@ -1031,14 +1031,17 @@ export declare const ListTasksQueryParams: zod.ZodObject<{
     projectId: zod.ZodOptional<zod.ZodNumber>;
     assigneeId: zod.ZodOptional<zod.ZodNumber>;
     status: zod.ZodOptional<zod.ZodString>;
+    context: zod.ZodOptional<zod.ZodString>;
 }, "strip", zod.ZodTypeAny, {
     status?: string | undefined;
     projectId?: number | undefined;
     assigneeId?: number | undefined;
+    context?: string | undefined;
 }, {
     status?: string | undefined;
     projectId?: number | undefined;
     assigneeId?: number | undefined;
+    context?: string | undefined;
 }>;
 export declare const ListTasksResponseItem: zod.ZodObject<{
     id: zod.ZodNumber;
@@ -1498,6 +1501,12 @@ export declare const ListUsersResponseItem: zod.ZodObject<{
     department: zod.ZodString;
     costRate: zod.ZodNumber;
     skills: zod.ZodArray<zod.ZodString, "many">;
+    resourceType: zod.ZodOptional<zod.ZodString>;
+    isInternal: zod.ZodOptional<zod.ZodBoolean>;
+    region: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    activeStatus: zod.ZodOptional<zod.ZodString>;
+    holidayCalendarId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    managerId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     createdAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     id: number;
@@ -1510,6 +1519,12 @@ export declare const ListUsersResponseItem: zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
+    region?: string | null | undefined;
+    isInternal?: boolean | undefined;
+    resourceType?: string | undefined;
+    activeStatus?: string | undefined;
+    holidayCalendarId?: number | null | undefined;
+    managerId?: number | null | undefined;
 }, {
     id: number;
     name: string;
@@ -1521,6 +1536,12 @@ export declare const ListUsersResponseItem: zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
+    region?: string | null | undefined;
+    isInternal?: boolean | undefined;
+    resourceType?: string | undefined;
+    activeStatus?: string | undefined;
+    holidayCalendarId?: number | null | undefined;
+    managerId?: number | null | undefined;
 }>;
 export declare const ListUsersResponse: zod.ZodArray<zod.ZodObject<{
     id: zod.ZodNumber;
@@ -1532,6 +1553,12 @@ export declare const ListUsersResponse: zod.ZodArray<zod.ZodObject<{
     department: zod.ZodString;
     costRate: zod.ZodNumber;
     skills: zod.ZodArray<zod.ZodString, "many">;
+    resourceType: zod.ZodOptional<zod.ZodString>;
+    isInternal: zod.ZodOptional<zod.ZodBoolean>;
+    region: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    activeStatus: zod.ZodOptional<zod.ZodString>;
+    holidayCalendarId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    managerId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     createdAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     id: number;
@@ -1544,6 +1571,12 @@ export declare const ListUsersResponse: zod.ZodArray<zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
+    region?: string | null | undefined;
+    isInternal?: boolean | undefined;
+    resourceType?: string | undefined;
+    activeStatus?: string | undefined;
+    holidayCalendarId?: number | null | undefined;
+    managerId?: number | null | undefined;
 }, {
     id: number;
     name: string;
@@ -1555,6 +1588,12 @@ export declare const ListUsersResponse: zod.ZodArray<zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
+    region?: string | null | undefined;
+    isInternal?: boolean | undefined;
+    resourceType?: string | undefined;
+    activeStatus?: string | undefined;
+    holidayCalendarId?: number | null | undefined;
+    managerId?: number | null | undefined;
 }>, "many">;
 /**
  * @summary Create a user
@@ -1604,6 +1643,12 @@ export declare const GetUserResponse: zod.ZodObject<{
     department: zod.ZodString;
     costRate: zod.ZodNumber;
     skills: zod.ZodArray<zod.ZodString, "many">;
+    resourceType: zod.ZodOptional<zod.ZodString>;
+    isInternal: zod.ZodOptional<zod.ZodBoolean>;
+    region: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    activeStatus: zod.ZodOptional<zod.ZodString>;
+    holidayCalendarId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
+    managerId: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     createdAt: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     id: number;
@@ -1616,6 +1661,12 @@ export declare const GetUserResponse: zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
+    region?: string | null | undefined;
+    isInternal?: boolean | undefined;
+    resourceType?: string | undefined;
+    activeStatus?: string | undefined;
+    holidayCalendarId?: number | null | undefined;
+    managerId?: number | null | undefined;
 }, {
     id: number;
     name: string;
@@ -1627,6 +1678,12 @@ export declare const GetUserResponse: zod.ZodObject<{
     department: string;
     costRate: number;
     skills: string[];
+    region?: string | null | undefined;
+    isInternal?: boolean | undefined;
+    resourceType?: string | undefined;
+    activeStatus?: string | undefined;
+    holidayCalendarId?: number | null | undefined;
+    managerId?: number | null | undefined;
 }>;
 /**
  * @summary Update user

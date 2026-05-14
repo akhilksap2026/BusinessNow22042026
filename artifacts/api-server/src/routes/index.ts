@@ -42,6 +42,9 @@ import authLoginRouter from "./authLogin";
 import costEntriesRouter from "./costEntries";
 import risksRouter from "./risks";
 import projectStatusConfigsRouter from "./projectStatusConfigs";
+import templateTaskDepsRouter from "./templateTaskDeps";
+import taskDailyAllocationsRouter from "./taskDailyAllocations";
+import resourceCostRatesRouter from "./resourceCostRates";
 import { denyCustomerRole } from "../middleware/rbac";
 import { verifyRoleClaim } from "../middleware/roleClaim";
 
@@ -101,5 +104,8 @@ router.use(adminPortfolioRouter);
 router.use(costEntriesRouter);
 router.use(risksRouter);
 router.use(projectStatusConfigsRouter);
+router.use(templateTaskDepsRouter);
+router.use(taskDailyAllocationsRouter);
+router.use(resourceCostRatesRouter);
 
 export default router;

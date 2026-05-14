@@ -32,6 +32,8 @@ export const tasksTable = pgTable("tasks", {
   isPhase: boolean("is_phase").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   overrunAlertSentAt: timestamp("overrun_alert_sent_at", { withTimezone: true }),
+  etcOverride: numeric("etc_override", { precision: 8, scale: 2 }),
+  completionPct: integer("completion_pct").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({

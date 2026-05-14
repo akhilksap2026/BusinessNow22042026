@@ -1,0 +1,147 @@
+import { z } from "zod/v4";
+export declare const resourceCostRatesTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "resource_cost_rates";
+    schema: undefined;
+    columns: {
+        id: import("drizzle-orm/pg-core").PgColumn<{
+            name: "id";
+            tableName: "resource_cost_rates";
+            dataType: "number";
+            columnType: "PgSerial";
+            data: number;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: true;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        userId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "user_id";
+            tableName: "resource_cost_rates";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        country: import("drizzle-orm/pg-core").PgColumn<{
+            name: "country";
+            tableName: "resource_cost_rates";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        currency: import("drizzle-orm/pg-core").PgColumn<{
+            name: "currency";
+            tableName: "resource_cost_rates";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        rate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "rate";
+            tableName: "resource_cost_rates";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        effectiveDate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "effective_date";
+            tableName: "resource_cost_rates";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        createdAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "created_at";
+            tableName: "resource_cost_rates";
+            dataType: "date";
+            columnType: "PgTimestamp";
+            data: Date;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+    };
+    dialect: "pg";
+}>;
+export declare const insertResourceCostRateSchema: z.ZodObject<{
+    userId: z.ZodInt;
+    rate: z.ZodString;
+    currency: z.ZodOptional<z.ZodString>;
+    effectiveDate: z.ZodString;
+    country: z.ZodString;
+}, {
+    out: {};
+    in: {};
+}>;
+export declare const updateResourceCostRateSchema: z.ZodObject<{
+    country: z.ZodOptional<z.ZodString>;
+    currency: z.ZodOptional<z.ZodString>;
+    rate: z.ZodOptional<z.ZodNumber>;
+    effectiveDate: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type InsertResourceCostRate = z.infer<typeof insertResourceCostRateSchema>;
+export type UpdateResourceCostRate = z.infer<typeof updateResourceCostRateSchema>;
+export type ResourceCostRate = typeof resourceCostRatesTable.$inferSelect;
+//# sourceMappingURL=resourceCostRates.d.ts.map

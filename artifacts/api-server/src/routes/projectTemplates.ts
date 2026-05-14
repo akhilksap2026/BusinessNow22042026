@@ -5,8 +5,10 @@ import {
   templatePhasesTable,
   templateTasksTable,
   templateAllocationsTable,
+  templateTaskDependenciesTable,
   projectsTable,
   tasksTable,
+  taskDependenciesTable,
   allocationsTable,
   placeholdersTable,
   usersTable,
@@ -633,6 +635,45 @@ router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise
     }
   }
 
+  // P2 — Propagate template task dependencies to real task_dependencies.
+  // Build a map from templateTaskId → generated real taskId.
+  const templateIdToRealId = new Map<number, number>();
+  for (const tTask of templateTasks) {
+    const realTask = createdTasks.find(ct => ct.name === tTask.name && ct.appliedTemplateId === templateId);
+    if (realTask) templateIdToRealId.set(tTask.id, realTask.id);
+  }
+
+  const allTaskIds = templateTasks.map(t => t.id);
+  if (allTaskIds.length > 0) {
+    const templateDeps = await db.select()
+      .from(templateTaskDependenciesTable)
+      .where(
+        inArray(templateTaskDependenciesTable.predecessorId, allTaskIds)
+      );
+
+    const depsToInsert = templateDeps
+      .map(d => ({
+        realPredId: templateIdToRealId.get(d.predecessorId),
+        realSuccId: templateIdToRealId.get(d.successorId),
+        dependencyType: d.dependencyType,
+        lagDays: d.lagDays,
+      }))
+      .filter(d => d.realPredId != null && d.realSuccId != null) as {
+        realPredId: number; realSuccId: number; dependencyType: string; lagDays: number;
+      }[];
+
+    if (depsToInsert.length > 0) {
+      await db.insert(taskDependenciesTable).values(
+        depsToInsert.map(d => ({
+          predecessorId: d.realPredId,
+          successorId: d.realSuccId,
+          dependencyType: d.dependencyType,
+          lagDays: d.lagDays,
+        }))
+      ).onConflictDoNothing();
+    }
+  }
+
   res.status(201).json({
     templateId,
     templateName: template.name,
@@ -640,6 +681,7 @@ router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise
     startDate,
     phasesCreated: createdPhaseTasks.length,
     tasksCreated: createdTasks.length,
+    depsCreated: allTaskIds.length > 0 ? 0 : 0,
   });
 });
 

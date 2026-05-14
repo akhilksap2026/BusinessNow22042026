@@ -332,10 +332,10 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
     dialect: "pg";
 }>;
 export declare const insertChangeOrderSchema: z.ZodObject<{
-    status: z.ZodOptional<z.ZodString>;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    projectId: z.ZodInt;
     title: z.ZodString;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    status: z.ZodOptional<z.ZodString>;
+    projectId: z.ZodInt;
     submittedByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     approvedByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     amount: z.ZodOptional<z.ZodString>;

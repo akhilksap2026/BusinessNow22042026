@@ -423,6 +423,23 @@ export declare const usersTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        resourceType: import("drizzle-orm/pg-core").PgColumn<{
+            name: "resource_type";
+            tableName: "users";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "users";
@@ -481,6 +498,7 @@ export declare const insertUserSchema: z.ZodObject<{
     managerId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     holidayCalendarId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     onboardingDismissed: z.ZodOptional<z.ZodBoolean>;
+    resourceType: z.ZodOptional<z.ZodString>;
 }, {
     out: {};
     in: {};

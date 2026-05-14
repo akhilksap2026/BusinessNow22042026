@@ -26,6 +26,8 @@ import {
   CheckCircle2,
   TrendingUp,
   ArrowRight,
+  BarChart2,
+  Bookmark,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,7 @@ import { formatCurrency } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { authHeaders } from "@/lib/auth-headers";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { useToast } from "@/hooks/use-toast";
 
 function timeAgo(date: string) {
   const diff = Date.now() - new Date(date).getTime();
@@ -117,6 +120,20 @@ function KpiTile({
 
 export default function Dashboard() {
   const [period, setPeriod] = useState<Period>("month");
+  const { toast } = useToast();
+
+  async function handleSaveView() {
+    try {
+      await fetch("/api/saved-views", {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ name: `Dashboard · ${period}`, entity: "dashboard", widgetConfig: { period }, roleDefault: null }),
+      });
+      toast({ title: "View saved", description: `Dashboard period "${period}" saved.` });
+    } catch {
+      toast({ title: "Failed to save view", variant: "destructive" });
+    }
+  }
 
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary({ period });
   const { data: activities, isLoading: isLoadingActivity } = useGetDashboardActivity();
@@ -194,6 +211,9 @@ export default function Dashboard() {
                   <SelectItem value="ytd">Year to Date</SelectItem>
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" onClick={handleSaveView} title="Save dashboard view">
+                <Bookmark className="h-3.5 w-3.5 mr-1.5" /> Save View
+              </Button>
               <Link href="/projects">
                 <Button>New Project</Button>
               </Link>
@@ -508,8 +528,90 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        <PlannedVsActualCard />
       </div>
     </Layout>
+  );
+}
+
+function PlannedVsActualCard() {
+  const { data, isLoading } = useQuery<{ projectId: number; projectName: string; planned: number; actual: number; etc: number; eac: number }[]>({
+    queryKey: ["dashboard-planned-vs-actual"],
+    queryFn: async () => {
+      const res = await fetch("/api/dashboard/planned-vs-actual", { headers: authHeaders() });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const totals = (data ?? []).reduce(
+    (acc, p) => ({ planned: acc.planned + p.planned, actual: acc.actual + p.actual, etc: acc.etc + p.etc, eac: acc.eac + p.eac }),
+    { planned: 0, actual: 0, etc: 0, eac: 0 }
+  );
+  const burnPct = totals.planned > 0 ? Math.round((totals.actual / totals.planned) * 100) : 0;
+
+  return (
+    <Card data-testid="card-planned-vs-actual">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <div>
+          <CardTitle>Planned vs Actual Hours</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">Aggregated across all active projects</p>
+        </div>
+        <BarChart2 className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2"><Skeleton className="h-8 w-full" /><Skeleton className="h-3 w-48" /></div>
+        ) : (data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">No active projects with hour data yet.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-4 mb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Planned</p>
+                <p className="text-lg font-bold tabular-nums">{totals.planned.toFixed(0)}h</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Actual</p>
+                <p className="text-lg font-bold tabular-nums text-indigo-600 dark:text-indigo-400">{totals.actual.toFixed(0)}h</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">ETC</p>
+                <p className="text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400">{totals.etc.toFixed(0)}h</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">EAC</p>
+                <p className="text-lg font-bold tabular-nums text-slate-700 dark:text-slate-300">{totals.eac.toFixed(0)}h</p>
+              </div>
+            </div>
+            <div className="space-y-1 mb-4">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Burn {burnPct}%</span>
+                <span>{totals.actual.toFixed(0)}h of {totals.planned.toFixed(0)}h planned</span>
+              </div>
+              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-2 rounded-full transition-all ${burnPct > 100 ? "bg-red-500" : burnPct > 80 ? "bg-amber-500" : "bg-indigo-500"}`}
+                  style={{ width: `${Math.min(burnPct, 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="space-y-1 max-h-36 overflow-y-auto">
+              {(data ?? []).map(p => (
+                <div key={p.projectId} className="flex items-center justify-between text-xs py-0.5 gap-2">
+                  <span className="truncate text-muted-foreground flex-1 min-w-0">{p.projectName}</span>
+                  <div className="flex items-center gap-3 shrink-0 tabular-nums text-right">
+                    <span>{p.actual.toFixed(0)}h / {p.planned.toFixed(0)}h</span>
+                    <span className={p.etc <= 0 ? "text-red-500" : "text-muted-foreground"}>ETC {p.etc.toFixed(0)}h</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

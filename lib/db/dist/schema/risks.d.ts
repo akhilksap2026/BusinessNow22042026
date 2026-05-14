@@ -1,11 +1,22 @@
+/**
+ * PM-17 — RAID Log (Risks, Assumptions, Issues, Decisions).
+ *
+ * One table per project entry; the `type` column discriminates between the
+ * four RAID categories. The `status` column drives the lifecycle for each type:
+ *
+ *   Risk       → Open | Mitigated | Accepted | Closed
+ *   Assumption → Open | Validated | Invalidated | Closed
+ *   Issue      → Open | In Progress | Resolved | Closed
+ *   Decision   → Pending | Made | Deferred | Closed
+ */
 import { z } from "zod/v4";
-export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
-    name: "opportunities";
+export declare const projectRisksTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "project_risks";
     schema: undefined;
     columns: {
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
-            tableName: "opportunities";
+            tableName: "project_risks";
             dataType: "number";
             columnType: "PgSerial";
             data: number;
@@ -20,9 +31,9 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        accountId: import("drizzle-orm/pg-core").PgColumn<{
-            name: "account_id";
-            tableName: "opportunities";
+        projectId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "project_id";
+            tableName: "project_risks";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -37,9 +48,26 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        name: import("drizzle-orm/pg-core").PgColumn<{
-            name: "name";
-            tableName: "opportunities";
+        type: import("drizzle-orm/pg-core").PgColumn<{
+            name: "type";
+            tableName: "project_risks";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        title: import("drizzle-orm/pg-core").PgColumn<{
+            name: "title";
+            tableName: "project_risks";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -54,15 +82,15 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        stage: import("drizzle-orm/pg-core").PgColumn<{
-            name: "stage";
-            tableName: "opportunities";
+        description: import("drizzle-orm/pg-core").PgColumn<{
+            name: "description";
+            tableName: "project_risks";
             dataType: "string";
             columnType: "PgText";
             data: string;
             driverParam: string;
-            notNull: true;
-            hasDefault: true;
+            notNull: false;
+            hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
@@ -73,41 +101,7 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
         }, {}, {}>;
         probability: import("drizzle-orm/pg-core").PgColumn<{
             name: "probability";
-            tableName: "opportunities";
-            dataType: "number";
-            columnType: "PgInteger";
-            data: number;
-            driverParam: string | number;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        value: import("drizzle-orm/pg-core").PgColumn<{
-            name: "value";
-            tableName: "opportunities";
-            dataType: "string";
-            columnType: "PgNumeric";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        description: import("drizzle-orm/pg-core").PgColumn<{
-            name: "description";
-            tableName: "opportunities";
+            tableName: "project_risks";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -122,15 +116,49 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        closeDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "close_date";
-            tableName: "opportunities";
+        impact: import("drizzle-orm/pg-core").PgColumn<{
+            name: "impact";
+            tableName: "project_risks";
             dataType: "string";
             columnType: "PgText";
             data: string;
             driverParam: string;
             notNull: false;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        mitigation: import("drizzle-orm/pg-core").PgColumn<{
+            name: "mitigation";
+            tableName: "project_risks";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        status: import("drizzle-orm/pg-core").PgColumn<{
+            name: "status";
+            tableName: "project_risks";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
@@ -141,7 +169,7 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
         }, {}, {}>;
         ownerId: import("drizzle-orm/pg-core").PgColumn<{
             name: "owner_id";
-            tableName: "opportunities";
+            tableName: "project_risks";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -156,26 +184,9 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        projectId: import("drizzle-orm/pg-core").PgColumn<{
-            name: "project_id";
-            tableName: "opportunities";
-            dataType: "number";
-            columnType: "PgInteger";
-            data: number;
-            driverParam: string | number;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        closeReason: import("drizzle-orm/pg-core").PgColumn<{
-            name: "close_reason";
-            tableName: "opportunities";
+        targetDate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "target_date";
+            tableName: "project_risks";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -190,9 +201,26 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        createdByUserId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "created_by_user_id";
+            tableName: "project_risks";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
-            tableName: "opportunities";
+            tableName: "project_risks";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -209,7 +237,7 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
         }, {}, {}>;
         updatedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "updated_at";
-            tableName: "opportunities";
+            tableName: "project_risks";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -227,21 +255,22 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
     };
     dialect: "pg";
 }>;
-export declare const insertOpportunitySchema: z.ZodObject<{
-    value: z.ZodOptional<z.ZodString>;
-    name: z.ZodString;
+export declare const insertProjectRiskSchema: z.ZodObject<{
+    type: z.ZodOptional<z.ZodString>;
+    createdByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    title: z.ZodString;
     description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    accountId: z.ZodInt;
+    status: z.ZodOptional<z.ZodString>;
     ownerId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-    projectId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-    stage: z.ZodOptional<z.ZodString>;
-    probability: z.ZodOptional<z.ZodInt>;
-    closeDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    closeReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    projectId: z.ZodInt;
+    probability: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    impact: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    mitigation: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    targetDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};
 }>;
-export type InsertOpportunity = z.infer<typeof insertOpportunitySchema>;
-export type Opportunity = typeof opportunitiesTable.$inferSelect;
-//# sourceMappingURL=opportunities.d.ts.map
+export type InsertProjectRisk = z.infer<typeof insertProjectRiskSchema>;
+export type ProjectRisk = typeof projectRisksTable.$inferSelect;
+//# sourceMappingURL=risks.d.ts.map

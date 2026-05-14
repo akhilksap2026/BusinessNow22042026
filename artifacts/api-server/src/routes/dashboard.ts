@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, projectsTable, invoicesTable, timeEntriesTable, usersTable, allocationsTable, notificationsTable, changeOrdersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, projectsTable, invoicesTable, timeEntriesTable, usersTable, allocationsTable, notificationsTable, changeOrdersTable, tasksTable } from "@workspace/db";
+import { eq, sql, inArray, isNull, ne, and } from "drizzle-orm";
 import {
   GetDashboardSummaryResponse,
   GetDashboardActivityResponse,
@@ -79,6 +79,46 @@ router.get("/dashboard/activity", async (_req, res): Promise<void> => {
     icon: n.type === 'invoice' ? 'receipt' : n.type === 'task' ? 'check' : n.type === 'risk' ? 'alert' : 'bell',
   }));
   res.json(GetDashboardActivityResponse.parse(activity));
+});
+
+router.get("/dashboard/planned-vs-actual", async (_req, res): Promise<void> => {
+  const activeProjects = await db
+    .select({ id: projectsTable.id, name: projectsTable.name })
+    .from(projectsTable)
+    .where(and(isNull(projectsTable.deletedAt), ne(projectsTable.status, "Archived")));
+
+  if (activeProjects.length === 0) { res.json([]); return; }
+
+  const ids = activeProjects.map(p => p.id);
+
+  const [taskTotals, trackedTotals] = await Promise.all([
+    db.select({
+      projectId: tasksTable.projectId,
+      plannedHours: sql<number>`coalesce(sum(${tasksTable.plannedHours}),0)`,
+      estimateHours: sql<number>`coalesce(sum(${tasksTable.estimateHours}),0)`,
+    }).from(tasksTable)
+      .where(and(inArray(tasksTable.projectId, ids), eq(tasksTable.isPhase, false)))
+      .groupBy(tasksTable.projectId),
+    db.select({
+      projectId: timeEntriesTable.projectId,
+      actualHours: sql<number>`coalesce(sum(${timeEntriesTable.hours}),0)`,
+    }).from(timeEntriesTable)
+      .where(inArray(timeEntriesTable.projectId, ids))
+      .groupBy(timeEntriesTable.projectId),
+  ]);
+
+  const result = activeProjects.map(p => {
+    const t = taskTotals.find(r => r.projectId === p.id);
+    const tr = trackedTotals.find(r => r.projectId === p.id);
+    const planned = Number(t?.plannedHours ?? 0);
+    const estimate = Number(t?.estimateHours ?? 0) || planned;
+    const actual = Number(tr?.actualHours ?? 0);
+    const etc = Math.max(0, estimate - actual);
+    const eac = actual + etc;
+    return { projectId: p.id, projectName: p.name, planned, estimate, actual, etc, eac };
+  }).filter(p => p.planned > 0 || p.actual > 0);
+
+  res.json(result);
 });
 
 export default router;

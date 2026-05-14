@@ -1,0 +1,147 @@
+TASK 1: Fix EAC (Estimate at Completion) Formula
+Current Problem
+In pages/project-detail.tsx, section 12.7, the EAC calculation is:
+typescriptEAC = actualHours + (estimateHours - actualHours) 
+// This always equals estimateHours - provides no forecasting value
+What You Need To Do
+Step 1.1: Create new file lib/eac.ts
+typescriptexport interface TaskEAC {
+  actualHours: number;
+  estimateHours: number;
+  completionPct: number;
+  eacHours: number;
+  varianceHours: number;
+  status: 'under' | 'on-track' | 'over';
+}
+
+export function calculateEAC(
+  actualHours: number,
+  estimateHours: number,
+  completionPct: number
+): TaskEAC {
+  // If no work done yet, EAC = estimate
+  if (completionPct === 0 || actualHours === 0) {
+    return {
+      actualHours,
+      estimateHours,
+      completionPct,
+      eacHours: estimateHours,
+      varianceHours: 0,
+      status: 'on-track'
+    };
+  }
+
+  // Calculate Estimate To Complete (ETC)
+  const etc = actualHours * ((1 - completionPct) / completionPct);
+  const eacHours = actualHours + etc;
+  const varianceHours = eacHours - estimateHours;
+
+  // Determine status
+  let status: 'under' | 'on-track' | 'over';
+  const variancePct = estimateHours > 0 ? (varianceHours / estimateHours) : 0;
+  
+  if (variancePct < -0.05) {
+    status = 'under';
+  } else if (variancePct > 0.05) {
+    status = 'over';
+  } else {
+    status = 'on-track';
+  }
+
+  return {
+    actualHours,
+    estimateHours,
+    completionPct,
+    eacHours: Math.round(eacHours * 100) / 100, // 2 decimal places
+    varianceHours: Math.round(varianceHours * 100) / 100,
+    status
+  };
+}
+Step 1.2: Create test file lib/eac.test.ts
+typescriptimport { describe, it, expect } from 'vitest';
+import { calculateEAC } from './eac';
+
+describe('calculateEAC', () => {
+  it('returns estimate when no progress', () => {
+    const result = calculateEAC(0, 10, 0);
+    expect(result.eacHours).toBe(10);
+    expect(result.varianceHours).toBe(0);
+    expect(result.status).toBe('on-track');
+  });
+
+  it('calculates overrun correctly', () => {
+    // 8 hours spent, 50% complete, estimate 10
+    // ETC = 8 * (0.5 / 0.5) = 8
+    // EAC = 8 + 8 = 16
+    const result = calculateEAC(8, 10, 0.5);
+    expect(result.eacHours).toBe(16);
+    expect(result.varianceHours).toBe(6);
+    expect(result.status).toBe('over');
+  });
+
+  it('calculates underrun correctly', () => {
+    // 5 hours spent, 50% complete, estimate 10
+    // ETC = 5 * (0.5 / 0.5) = 5
+    // EAC = 5 + 5 = 10
+    const result = calculateEAC(5, 10, 0.5);
+    expect(result.eacHours).toBe(10);
+    expect(result.varianceHours).toBe(0);
+    expect(result.status).toBe('on-track');
+  });
+
+  it('handles 100% completion', () => {
+    const result = calculateEAC(12, 10, 1.0);
+    // At 100%, EAC should equal actuals
+    expect(result.eacHours).toBe(12);
+    expect(result.varianceHours).toBe(2);
+  });
+});
+Step 1.3: Find the tasks API route handler (GET /api/tasks)
+
+Locate the file that handles GET /api/tasks?projectId=:id
+This is likely in artifacts/api-server/src/routes/tasks.ts
+Find the response mapping function (probably called mapTask or similar)
+
+Step 1.4: Import and use the EAC calculator in the tasks response
+typescriptimport { calculateEAC } from '../../../lib/eac'; // Adjust path as needed
+
+// In the mapTask function or task list response builder, add:
+const completionPct = task.status === 'Completed' ? 1.0 : (task.completionPct || 0);
+const eacData = calculateEAC(
+  task.actualHours || 0,
+  task.estimateHours || 0,
+  completionPct
+);
+
+return {
+  ...task,
+  eacHours: eacData.eacHours,
+  varianceHours: eacData.varianceHours,
+  eacStatus: eacData.status
+};
+Step 1.5: Update the frontend task row display
+
+Open components/project-phases.tsx (or wherever task rows are rendered)
+Find the column that displays estimate hours
+Add EAC display next to it:
+
+tsx// Find something like:
+<TableCell>{task.estimateHours}h</TableCell>
+
+// Add after it:
+<TableCell>
+  <div className="flex items-center gap-2">
+    <span>{task.eacHours}h</span>
+    {task.varianceHours !== 0 && (
+      <Badge variant={
+        task.eacStatus === 'over' ? 'destructive' : 
+        task.eacStatus === 'under' ? 'outline' : 
+        'secondary'
+      }>
+        {task.varianceHours > 0 ? '+' : ''}{task.varianceHours}h
+      </Badge>
+    )}
+  </div>
+</TableCell>
+CHECKPOINT: Run tests with npm test lib/eac.test.ts - all must pass before proceeding.
+STOP HERE and show me the code changes. Do not proceed to Task 2 until I confirm.

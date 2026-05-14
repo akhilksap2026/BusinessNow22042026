@@ -1,11 +1,11 @@
 import { z } from "zod/v4";
-export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
-    name: "contracts";
+export declare const taskDailyAllocationsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "task_daily_allocations";
     schema: undefined;
     columns: {
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
-            tableName: "contracts";
+            tableName: "task_daily_allocations";
             dataType: "number";
             columnType: "PgSerial";
             data: number;
@@ -20,9 +20,9 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        projectId: import("drizzle-orm/pg-core").PgColumn<{
-            name: "project_id";
-            tableName: "contracts";
+        taskId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "task_id";
+            tableName: "task_daily_allocations";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -37,82 +37,14 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        name: import("drizzle-orm/pg-core").PgColumn<{
-            name: "name";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
+        userId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "user_id";
+            tableName: "task_daily_allocations";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
             notNull: true;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        status: import("drizzle-orm/pg-core").PgColumn<{
-            name: "status";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        startDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "start_date";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        endDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "end_date";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        value: import("drizzle-orm/pg-core").PgColumn<{
-            name: "value";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgNumeric";
-            data: string;
-            driverParam: string;
-            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -122,14 +54,14 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        documentUrl: import("drizzle-orm/pg-core").PgColumn<{
-            name: "document_url";
-            tableName: "contracts";
+        date: import("drizzle-orm/pg-core").PgColumn<{
+            name: "date";
+            tableName: "task_daily_allocations";
             dataType: "string";
             columnType: "PgText";
             data: string;
             driverParam: string;
-            notNull: false;
+            notNull: true;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -139,9 +71,26 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        hours: import("drizzle-orm/pg-core").PgColumn<{
+            name: "hours";
+            tableName: "task_daily_allocations";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         notes: import("drizzle-orm/pg-core").PgColumn<{
             name: "notes";
-            tableName: "contracts";
+            tableName: "task_daily_allocations";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -158,7 +107,7 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
         }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
-            tableName: "contracts";
+            tableName: "task_daily_allocations";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -175,7 +124,7 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
         }, {}, {}>;
         updatedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "updated_at";
-            tableName: "contracts";
+            tableName: "task_daily_allocations";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -193,19 +142,21 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
     };
     dialect: "pg";
 }>;
-export declare const insertContractSchema: z.ZodObject<{
-    value: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    name: z.ZodString;
-    status: z.ZodOptional<z.ZodString>;
-    startDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    projectId: z.ZodInt;
+export declare const insertTaskDailyAllocationSchema: z.ZodObject<{
+    date: z.ZodString;
+    userId: z.ZodInt;
+    taskId: z.ZodInt;
     notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    endDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    documentUrl: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    hours: z.ZodOptional<z.ZodString>;
 }, {
     out: {};
     in: {};
 }>;
-export type InsertContract = z.infer<typeof insertContractSchema>;
-export type Contract = typeof contractsTable.$inferSelect;
-//# sourceMappingURL=contracts.d.ts.map
+export declare const updateTaskDailyAllocationSchema: z.ZodObject<{
+    hours: z.ZodOptional<z.ZodNumber>;
+    notes: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type InsertTaskDailyAllocation = z.infer<typeof insertTaskDailyAllocationSchema>;
+export type UpdateTaskDailyAllocation = z.infer<typeof updateTaskDailyAllocationSchema>;
+export type TaskDailyAllocation = typeof taskDailyAllocationsTable.$inferSelect;
+//# sourceMappingURL=taskDailyAllocations.d.ts.map

@@ -34,7 +34,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useUndoableMutation } from "@/hooks/use-undoable-mutation";
-import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch, AlertTriangle, FileText } from "lucide-react";
+import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch, AlertTriangle, FileText, Clock } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface TaskDetailSheetProps {
@@ -101,12 +101,25 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const [addingNote, setAddingNote] = useState(false);
   const [addingDep, setAddingDep] = useState(false);
   const [depForm, setDepForm] = useState({ predecessorId: "", dependencyType: "FS", lagDays: "0" });
+  const [addingDailyAlloc, setAddingDailyAlloc] = useState(false);
+  const [dailyAllocForm, setDailyAllocForm] = useState({ workDate: "", userId: "", hours: "8" });
 
   const { data: dependencies, refetch: refetchDeps } = useQuery<any[]>({
     queryKey: ["task-deps", taskId],
     queryFn: async () => {
       if (!taskId) return [];
       const res = await fetch(`/api/tasks/${taskId}/dependencies`, { headers: authHeaders() });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!taskId,
+  });
+
+  const { data: dailyAllocs, refetch: refetchDailyAllocs } = useQuery<any[]>({
+    queryKey: ["task-daily-allocs", taskId],
+    queryFn: async () => {
+      if (!taskId) return [];
+      const res = await fetch(`/api/tasks/${taskId}/daily-allocations`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json();
     },
@@ -401,21 +414,30 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                           Sum of logged time entries for this task.
                         </TooltipContent>
                       </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className={`rounded border px-2 py-1.5 cursor-help ${Number(task?.etc ?? 0) < 0 ? "bg-red-50 border-red-200" : "bg-slate-50"}`}>
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-                              ETC {Number(task?.etc ?? 0) < 0 && <AlertTriangle className="h-3 w-3 text-red-500" />}
-                            </div>
-                            <div className={`text-sm font-semibold ${Number(task?.etc ?? 0) < 0 ? "text-red-600" : "text-slate-700"}`}>
-                              {(task?.etc ?? 0).toFixed(1)}h
-                            </div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs max-w-[220px]">
-                          Estimate to Complete = Estimate − Actual. Negative means the task is over its estimate.
-                        </TooltipContent>
-                      </Tooltip>
+                      <div className={`rounded border px-2 py-1.5 ${Number(task?.etc ?? 0) < 0 ? "bg-red-50 border-red-200" : "bg-slate-50"}`}>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1 mb-1">
+                          ETC
+                          {(task as any)?.etcOverride != null && <span className="text-[9px] text-violet-600 font-medium">(manual)</span>}
+                          {Number(task?.etc ?? 0) < 0 && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            step="0.25"
+                            className={`h-6 text-xs px-1.5 py-0 ${Number(task?.etc ?? 0) < 0 ? "border-red-300 text-red-600" : ""}`}
+                            defaultValue={Number(task?.etc ?? 0).toFixed(1)}
+                            key={`etc-${taskId}-${(task as any)?.etcOverride}`}
+                            onBlur={(e) => {
+                              if (e.target.value === "") return;
+                              handleUpdateField("etcOverride", Number(parseFloat(e.target.value).toFixed(2)));
+                            }}
+                          />
+                          {(task as any)?.etcOverride != null && (
+                            <button type="button" title="Reset to computed ETC" onClick={() => handleUpdateField("etcOverride", null)}
+                              className="text-xs text-muted-foreground hover:text-foreground leading-none px-0.5">×</button>
+                          )}
+                        </div>
+                      </div>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="rounded border bg-slate-50 px-2 py-1.5 cursor-help">
@@ -449,6 +471,27 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                   <span className="text-sm text-muted-foreground">Billable</span>
                 </label>
               </div>
+
+              {/* Completion % — P14 */}
+              {!isParent && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center justify-between">
+                    <span>Completion</span>
+                    <span className="tabular-nums font-semibold text-foreground">{task?.completionPct ?? 0}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    className="w-full h-1.5 accent-violet-600 cursor-pointer"
+                    key={`cp-${taskId}-${task?.completionPct}`}
+                    defaultValue={task?.completionPct ?? 0}
+                    onMouseUp={(e) => handleUpdateField("completionPct", Number((e.target as HTMLInputElement).value))}
+                    onTouchEnd={(e) => handleUpdateField("completionPct", Number((e.target as HTMLInputElement).value))}
+                  />
+                </div>
+              )}
 
               {/* Approval status */}
               <div className="space-y-1.5">
@@ -612,6 +655,99 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                       />
                       <Button size="sm" className="h-8" onClick={handleAddDep} disabled={!depForm.predecessorId}>Add</Button>
                       <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingDep(false); setDepForm({ predecessorId: "", dependencyType: "FS", lagDays: "0" }); }}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Daily Hours — P6 */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Daily Hours</span>
+                    {(dailyAllocs?.length ?? 0) > 0 && (
+                      <span className="text-xs text-muted-foreground">{dailyAllocs?.length}</span>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingDailyAlloc(true)}>
+                    <Plus className="h-3 w-3 mr-1" /> Allocate
+                  </Button>
+                </div>
+                {dailyAllocs && dailyAllocs.length > 0 && (
+                  <div className="space-y-1">
+                    {dailyAllocs.map((da: any) => (
+                      <div key={da.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-xs text-muted-foreground shrink-0">{da.workDate}</span>
+                          <span className="text-sm">{users?.find((u: any) => u.id === da.userId)?.name ?? `User ${da.userId}`}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-sm font-medium tabular-nums">{da.allocatedHours}h</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0"
+                            onClick={async () => {
+                              await fetch(`/api/tasks/${taskId}/daily-allocations/${da.id}`, { method: "DELETE", headers: authHeaders() });
+                              refetchDailyAllocs();
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(!dailyAllocs?.length) && !addingDailyAlloc && (
+                  <p className="text-sm text-muted-foreground">No daily allocations yet.</p>
+                )}
+                {addingDailyAlloc && (
+                  <div className="mt-2 space-y-2 p-2 border rounded bg-muted/20">
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input
+                        type="date"
+                        className="h-8 text-sm"
+                        value={dailyAllocForm.workDate}
+                        onChange={e => setDailyAllocForm(f => ({ ...f, workDate: e.target.value }))}
+                      />
+                      <Select value={dailyAllocForm.userId} onValueChange={v => setDailyAllocForm(f => ({ ...f, userId: v }))}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Assignee…" /></SelectTrigger>
+                        <SelectContent>
+                          {users?.map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        min={0.25}
+                        max={24}
+                        step={0.25}
+                        className="h-8 text-sm"
+                        placeholder="Hours"
+                        value={dailyAllocForm.hours}
+                        onChange={e => setDailyAllocForm(f => ({ ...f, hours: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="h-8"
+                        disabled={!dailyAllocForm.workDate || !dailyAllocForm.userId}
+                        onClick={async () => {
+                          await fetch(`/api/tasks/${taskId}/daily-allocations`, {
+                            method: "POST",
+                            headers: { ...authHeaders(), "Content-Type": "application/json" },
+                            body: JSON.stringify({ userId: Number(dailyAllocForm.userId), workDate: dailyAllocForm.workDate, allocatedHours: Number(dailyAllocForm.hours) }),
+                          });
+                          setDailyAllocForm({ workDate: "", userId: "", hours: "8" });
+                          setAddingDailyAlloc(false);
+                          refetchDailyAllocs();
+                        }}
+                      >Save</Button>
+                      <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingDailyAlloc(false); setDailyAllocForm({ workDate: "", userId: "", hours: "8" }); }}>Cancel</Button>
                     </div>
                   </div>
                 )}

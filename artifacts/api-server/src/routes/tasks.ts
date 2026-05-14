@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, inArray, asc, sql } from "drizzle-orm";
-import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, timeEntriesTable, usersTable } from "@workspace/db";
+import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, timeEntriesTable, usersTable, taskDependenciesTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import { hasRole } from "../constants/roles";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
@@ -23,20 +23,66 @@ function mapTask(t: typeof tasksTable.$inferSelect, actualHoursById?: Map<number
   const planned = Number(t.plannedHours ?? 0) || Number(t.effort ?? 0);
   const estimate = Number(t.estimateHours ?? 0) || planned;
   const actual = actualHoursById?.get(t.id) ?? 0;
-  const etc = estimate - actual;
-  const eac = actual + Math.abs(etc);
+  const etcOverride = t.etcOverride !== null && t.etcOverride !== undefined ? Number(t.etcOverride) : null;
+  const etc = etcOverride !== null ? etcOverride : estimate - actual;
+  const eac = actual + Math.max(0, etc);
   return {
     ...t,
     effort: Number(t.effort),
     plannedHours: planned,
     estimateHours: estimate,
     actualHours: Number(actual.toFixed(2)),
+    etcOverride: etcOverride,
     etc: Number(etc.toFixed(2)),
     eac: Number(eac.toFixed(2)),
+    completionPct: t.completionPct ?? 0,
     assigneeIds: t.assigneeIds ?? [],
     createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
     updatedAt: t.updatedAt instanceof Date ? t.updatedAt.toISOString() : t.updatedAt,
   };
+}
+
+// P14 — Recursive parent completion rollup.
+// After any task status/completionPct change, recomputes each ancestor's
+// completionPct as the planned-hours-weighted average of its direct children.
+// Fire-and-forget; never throws.
+async function rollupParentCompletion(taskId: number): Promise<void> {
+  try {
+    const [task] = await db.select({ parentTaskId: tasksTable.parentTaskId })
+      .from(tasksTable).where(eq(tasksTable.id, taskId));
+    if (!task?.parentTaskId) return;
+
+    const parentId = task.parentTaskId;
+    const children = await db.select({
+      id: tasksTable.id,
+      status: tasksTable.status,
+      completionPct: tasksTable.completionPct,
+      plannedHours: tasksTable.plannedHours,
+    }).from(tasksTable).where(eq(tasksTable.parentTaskId, parentId));
+
+    if (children.length === 0) return;
+
+    const totalPlanned = children.reduce((s, c) => s + Number(c.plannedHours ?? 0), 0);
+    let weighted = 0;
+    for (const child of children) {
+      const childPct =
+        child.status === "Completed" || child.status === "Done" ? 100
+        : child.status === "In Progress" ? Math.max(Number(child.completionPct ?? 0), 10)
+        : child.status === "Not Started" ? 0
+        : Number(child.completionPct ?? 0);
+      const weight = totalPlanned > 0 ? Number(child.plannedHours ?? 0) / totalPlanned : 1 / children.length;
+      weighted += childPct * weight;
+    }
+    const parentPct = Math.round(Math.min(100, Math.max(0, weighted)));
+    await db.update(tasksTable)
+      .set({ completionPct: parentPct, updatedAt: new Date() })
+      .where(eq(tasksTable.id, parentId));
+
+    // Recurse up the chain
+    await rollupParentCompletion(parentId);
+  } catch (e) {
+    console.error("P14 parent rollup failed:", e);
+  }
 }
 
 // Build a map of taskId → sum of time-entry hours for the given task ids.
@@ -417,6 +463,16 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
 
   const updates: any = { ...parsed.data };
   const body = req.body ?? {};
+
+  // P9 — ETC override
+  if (body.etcOverride !== undefined) {
+    updates.etcOverride = body.etcOverride === null ? null : String(Number(body.etcOverride));
+  }
+  // P14 — explicit completionPct update
+  if (body.completionPct !== undefined) {
+    updates.completionPct = Math.round(Math.min(100, Math.max(0, Number(body.completionPct))));
+  }
+
   // Hours model: accept plannedHours/estimateHours pass-through; mirror planned↔effort.
   if (body.plannedHours !== undefined && body.plannedHours !== null) {
     const planned = Number(body.plannedHours) || 0;
@@ -565,6 +621,11 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
     }
   } catch (err) {
     console.error("Auto-allocate from task assignment failed:", err);
+  }
+
+  // P14 — fire-and-forget parent rollup on status or completion change
+  if (parsed.data.status !== undefined || body.completionPct !== undefined) {
+    void rollupParentCompletion(row.id);
   }
 
   res.json(UpdateTaskResponse.parse(mapTask(row)));

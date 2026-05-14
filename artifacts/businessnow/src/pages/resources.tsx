@@ -138,7 +138,7 @@ function BenchTab() {
         {isLoading ? (
           <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
         ) : filtered.length === 0 ? (
-          <EmptyState icon={<Users className="h-8 w-8 text-muted-foreground" />} title="No bench capacity" description={search ? "No matches for your search." : "All team members are currently assigned to active projects."} />
+          <EmptyState icon={Users} title="No bench capacity" description={search ? "No matches for your search." : "All team members are currently assigned to active projects."} />
         ) : (
           <Table>
             <TableHeader>
@@ -394,6 +394,7 @@ export default function Resources() {
   }
 
   const [capacitySearch, setCapacitySearch] = useState("");
+  const [capacityMode, setCapacityMode] = useState<"pct" | "hrs">("pct");
   const [deptFilter, setDeptFilter] = useState("all");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -755,9 +756,15 @@ export default function Resources() {
 
           <TabsContent value="capacity" className="m-0">
             <Card>
-              <CardHeader>
-                <CardTitle>Capacity Overview</CardTitle>
-                <CardDescription>Current utilization, availability, and skills for all team members</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                <div>
+                  <CardTitle>Capacity Overview</CardTitle>
+                  <CardDescription>Current utilization, availability, and skills for all team members</CardDescription>
+                </div>
+                <div className="flex items-center gap-1 border rounded-md p-0.5 mt-0.5">
+                  <Button size="sm" variant={capacityMode === "pct" ? "secondary" : "ghost"} className="h-6 px-2.5 text-xs" onClick={() => setCapacityMode("pct")}>%</Button>
+                  <Button size="sm" variant={capacityMode === "hrs" ? "secondary" : "ghost"} className="h-6 px-2.5 text-xs" onClick={() => setCapacityMode("hrs")}>hrs</Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -818,15 +825,24 @@ export default function Resources() {
                             <TableCell>{user.department}</TableCell>
                             <TableCell className="text-muted-foreground">{user.role}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Progress
-                                  value={Math.min(user.utilizationPercent, 100)}
-                                  className={`h-2 ${isOverallocated ? "bg-red-100 dark:bg-red-950/50 [&>div]:bg-red-500" : ""}`}
-                                />
-                                <span className={`text-xs font-medium w-10 text-right ${isOverallocated ? "text-red-500" : isUnderutilized ? "text-amber-500" : ""}`}>
-                                  {user.utilizationPercent}%
-                                </span>
-                              </div>
+                              {capacityMode === "pct" ? (
+                                <div className="flex items-center gap-2">
+                                  <Progress
+                                    value={Math.min(user.utilizationPercent, 100)}
+                                    className={`h-2 ${isOverallocated ? "bg-red-100 dark:bg-red-950/50 [&>div]:bg-red-500" : ""}`}
+                                  />
+                                  <span className={`text-xs font-medium w-10 text-right ${isOverallocated ? "text-red-500" : isUnderutilized ? "text-amber-500" : ""}`}>
+                                    {user.utilizationPercent}%
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-sm font-semibold tabular-nums ${isOverallocated ? "text-red-500" : isUnderutilized ? "text-amber-500" : ""}`}>
+                                    {(user.capacity - user.available).toFixed(0)}h
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">/ {user.capacity}h</span>
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="text-right">{user.capacity}</TableCell>
                             <TableCell className={`text-right font-medium ${user.available < 0 ? "text-red-500" : ""}`}>
