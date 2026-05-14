@@ -1,0 +1,203 @@
+You are a QA auditor. Your task is to audit this Replit prototype against a 
+defined set of PSA (Professional Services Automation) requirements. 
+
+⚠️ STRICT RULES:
+- DO NOT modify, refactor, or change any code.
+- DO NOT suggest code changes inline.
+- ONLY observe, navigate, and evaluate what is already built.
+- Your output is a structured audit report ONLY.
+
+---
+
+## AUDIT SCOPE
+
+Evaluate the prototype against the following requirement categories and 
+specific requirements. For each, assess:
+
+  ✅ Implemented — feature is visibly present and functional
+  🟡 Partial — feature exists but is incomplete or missing edge cases
+  ❌ Not Found — no evidence of implementation
+
+---
+
+## CATEGORY 1: TIME ENTRY (14 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| T1  | Role-based time entry — only KSAP consultants (not customers) can enter time, scoped to their assigned Projects and Tasks |
+| T2  | Free-form notes at the time entry level (optional) |
+| T3  | Consultant sees only their own assigned projects and tasks |
+| T4  | Weekly grid view — days of the week × projects, multiple entries per task per day, with category selection and comments |
+| T5  | Time Entry Category selection from a PMO-defined list |
+| T6  | Billable / Not Billable checkbox per time entry |
+| T7  | Time Entry Category carries a default Billable flag that can be overridden by the consultant |
+| T8  | Time entry can be updated and saved throughout the week; submitted only once |
+| T9  | After submission, only PM and Admin can edit or unsubmit time |
+| T10 | Only PM, designated PM, PMO Manager, and Admin can approve weekly time |
+| T11 | Approved + Invoiced time is locked; only PMO Manager or Admin can unlock |
+| T12 | Daily time entered by a consultant cannot exceed 24 hours |
+| T13 | PMO Manager and Admin define and maintain Time Entry Categories used across all projects |
+| T14 | All employees across departments can log time |
+
+---
+
+## CATEGORY 2: PROJECT MANAGEMENT (20 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| P1  | Create Project Templates with task/subtask hierarchy up to 7 levels deep |
+| P2  | Templates support: estimated hours, duration, resource role, predecessors (SS, SF, FF) |
+| P3  | Creating a project from a template auto-generates all tasks from template |
+| P4  | Assign resource names to roles; roles map to tasks when project is created |
+| P5  | Multiple resources assignable per task |
+| P6  | Per-task daily hour allocation (e.g., 4 hrs/day for 10 weeks) with day-by-day override |
+| P7  | Task duration auto-calculated from resource's available hours per day |
+| P8  | Ability to baseline projects |
+| P9  | Planned vs Actual vs ETC tracking |
+| P10 | % complete calculated from hours burned vs planned; ETC as a separate editable field |
+| P11 | Timeline adjusted dynamically by actuals entered |
+| P12 | Gantt chart aligned to project structure hierarchy |
+| P13 | Project hierarchy is collapsible/expandable |
+| P14 | Parent task % complete derived from child tasks |
+| P15 | Project statuses — PMO-definable (e.g., Forecasted, Active, On Hold, Completed) |
+| P16 | Health status — PMO-definable; covers Budget, Hours, Timeline, % Complete, Risks |
+| P17 | (Nice) RAID log, My Tasks, and SmartSheet-style views |
+| P18 | Rate Cards — global template with project-level copy and override, with effective dates |
+| P19 | (Nice) Customer information tied to project |
+| P20 | (Nice) Linked projects / subprojects with dependency tasks |
+
+---
+
+## CATEGORY 3: RESOURCE MANAGEMENT (9 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| R1  | View planned resource allocation by time period (day/week/month), by project — toggle hours vs % |
+| R2  | Forecast and allocate resources on future/non-active projects for capacity analysis |
+| R3  | Allow over-allocation of a resource |
+| R4  | Easy allocation interface — drag timeline, mass allocation by % or hours |
+| R5  | Visual comparison: active project allocation vs forecasted/non-committed allocation |
+| R6  | (Nice) Update project plan tasks from Resource Manager allocation changes |
+| R7  | Track Resource Type: Employee vs Contractor |
+| R8  | Track Resource Cost by Country with local currency (India, Mexico, Euro, USD) |
+| R9  | Organizational hierarchy for management and approvals |
+
+---
+
+## CATEGORY 4: REPORTING & DASHBOARDS (14 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| D1  | Project health and detail views manageable by PMs with flexible field/column filtering |
+| D2  | Widgets: multi-pane with graphs (pie, bar), tables, Gantt, tasks, resources |
+| D3  | Filter dashboard panes by project status |
+| D4  | Default views by Role; user can override their default view |
+| D5  | Ability to save multiple dashboard views |
+| D6  | Dashboard access control by role, user, and customer |
+| D7  | (Nice) Auto-send dashboard reports on a schedule to defined users or groups |
+| D8  | Drill-down and roll-up from widgets into project plans, tasks, resources |
+| D9  | (Nice) Resource Utilization Reports |
+| D10 | (Nice) Resource Capacity Reports |
+| D11 | Project Margin reporting |
+| D12 | Planned vs Actual vs ETC dashboard view |
+| D13 | (Nice) Weekly Status and Steering Committee reports with free-form section and snapshot history |
+| D14 | (Nice) Holiday / Vacation / Sick snapshot view |
+
+---
+
+## CATEGORY 5: COLLABORATION & SECURITY (4 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| C1  | Customer access for collaboration at project level — comments on tasks |
+| C2  | (Nice) Attach documents (SOWs, designs, requirements, emails) |
+| C3  | Access control: restrict CRUD on plans, documents, resources, and rates by role |
+| C4  | (Nice) File sharing with approval sign-off — recorded by who and when |
+
+---
+
+## CATEGORY 6: INTEGRATIONS (4 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| I1  | Integrate with QuickBooks — push approved time or approved invoice to QB automatically |
+| I2  | (Nice) Pull payment info (date, amount) back from QB into the platform |
+| I3  | (Nice) CRM/intake integration for Customer, Deal, SOW |
+| I4  | (Nice) Google Drive or SharePoint document storage integration per project |
+
+---
+
+## CATEGORY 7: INVOICING (6 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| V1  | Generate T&M Customer Invoices from approved time, showing task and comments (sanitizable) |
+| V2  | PM reviews and approves their invoices; PMO can approve any |
+| V3  | Approved invoice sent to QuickBooks (AR) |
+| V4  | PM can generate draft invoices and regenerate until approval; locked on approval |
+| V5  | (Nice) Capture customer payment info — multiple partial payments per invoice |
+| V6  | Manually create Fixed Fee / Payment Milestone invoices; approve and send to QB |
+
+---
+
+## CATEGORY 8: WORKFLOWS & ALERTS (5 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| W1  | (Nice) Friday reminder to consultants to enter time; Monday alert to Consultant, PM, PMO if not entered |
+| W2  | (Nice) Alert PM and PMO when a Payment Milestone is marked complete |
+| W3  | Time submission triggers approval workflow for PM, Delegated PM, PMO, Admin |
+| W4  | Invoice lifecycle workflow: Draft → Approved → Sent to Accounting AR |
+| W5  | Timesheet non-compliance workflow — formal trigger when time is not entered |
+
+---
+
+## CATEGORY 9: PLATFORM & SECURITY (3 Requirements)
+
+| Req | Requirement |
+|-----|-------------|
+| S1  | Multi-tenant — multiple customers on one platform, isolated by access grants |
+| S2  | Rate cards and financials visible only to KSAP roles and PM and above |
+| S3  | Access control defined at Role level and User level for all tools and data |
+
+---
+
+## AUDIT OUTPUT FORMAT
+
+After evaluating all requirements above, produce the following structured report:
+
+---
+
+### 📊 AUDIT SUMMARY TABLE
+
+Produce a table with columns:
+Category | Total Reqs | ✅ Implemented | 🟡 Partial | ❌ Not Found
+
+---
+
+### 📋 DETAILED FINDINGS
+
+For each requirement, one line:
+[Req ID] [Status Emoji] [One-sentence observation of what is or isn't present]
+
+---
+
+### 🚀 COMBINED IMPLEMENTATION ROADMAP
+
+Group all ❌ Not Found and 🟡 Partial items into:
+
+**Quick Wins (Low effort, high value — can be done in 1–3 days each)**
+- List items with brief rationale
+
+**Medium Priority (Meaningful functionality, 1–2 week effort each)**
+- List items with brief rationale
+
+**High Effort / Strategic (Architecture-level or complex, 2–4+ weeks each)**
+- List items with brief rationale
+
+Within each tier, order by business impact (invoicing and time entry first, 
+then project management, then reporting, then integrations).
+
+---
+
+END OF AUDIT PROMPT
