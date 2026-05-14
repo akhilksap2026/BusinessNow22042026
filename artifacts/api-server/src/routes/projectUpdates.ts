@@ -129,6 +129,7 @@ projectUpdatesRouter.get("/projects/:id/health-stats", async (req, res): Promise
   const completed = nonMilestones.filter(t => t.status === "Completed").length;
   const overdue = nonMilestones.filter(t => t.dueDate && t.dueDate < today && t.status !== "Completed").length;
   const blocked = nonMilestones.filter(t => t.status === "Blocked").length;
+  // Milestones due within 7 days that are not yet completed
   const atRisk = tasks.filter(t => t.isMilestone && t.dueDate && t.dueDate > today && t.status !== "Completed" && new Date(t.dueDate).getTime() - Date.now() < 7 * 86400000).length;
   const onTrack = nonMilestones.filter(t => t.status === "In Progress" && (!t.dueDate || t.dueDate >= today)).length;
   const completionPct = total > 0 ? Math.round((completed / total) * 100) : 0;

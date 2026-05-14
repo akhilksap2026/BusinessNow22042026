@@ -1137,7 +1137,7 @@ export default function ProjectDetail() {
           >
             <div className="flex items-center gap-2 mb-1">
               <Target className="h-4 w-4 text-amber-500" />
-              <span className="text-xs font-medium text-muted-foreground">At Risk</span>
+              <span className="text-xs font-medium text-muted-foreground">Milestones Due</span>
             </div>
             <div className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{healthStats?.atRisk ?? "–"}</div>
             <div className="text-xs text-muted-foreground mt-0.5">milestones at risk</div>
