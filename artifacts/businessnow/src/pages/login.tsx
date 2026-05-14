@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, ShieldCheck, Loader2, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useCurrentUser } from "@/contexts/current-user";
 import { toast } from "@/hooks/use-toast";
 
@@ -22,260 +20,172 @@ interface LoginUser {
   avatarUrl?: string | null;
 }
 
+const DEMO_PASSWORDS: Record<string, string> = {
+  "Admin User":        "Admin@2026",
+  "Amara Diallo":      "Amara@2026",
+  "Daniel Osei":       "Daniel@2026",
+  "Leila Hassan":      "Leila@2026",
+  "Marcus Webb":       "Marcus@2026",
+  "Priya Nair":        "Priya@2026",
+  "Raj Krishnamurthy": "Raj@2026",
+  "Sophie Laurent":    "Sophie@2026",
+  "Tom Bridges":       "Tom@2026",
+};
+
+function passwordFor(name: string): string {
+  return DEMO_PASSWORDS[name] ?? `${name.split(" ")[0]}@2026`;
+}
+
 export default function Login() {
   const [, navigate] = useLocation();
   const { isAuthenticated, isLoading: authLoading, loginAs } = useCurrentUser();
   const [users, setUsers] = useState<LoginUser[] | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [pendingUser, setPendingUser] = useState<LoginUser | null>(null);
+
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Already signed in? Bounce straight to the dashboard.
   useEffect(() => {
     if (!authLoading && isAuthenticated) navigate("/");
   }, [authLoading, isAuthenticated, navigate]);
 
-  // Load the public user list (no auth headers needed).
   useEffect(() => {
-    let cancelled = false;
     fetch(`${BASE}/api/auth/users-for-login`)
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return (await r.json()) as LoginUser[];
-      })
-      .then((data) => {
-        if (cancelled) return;
-        setUsers(data);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setFetchError(err?.message ?? "Failed to load users.");
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((data: LoginUser[]) => setUsers(data))
+      .catch(() => {});
   }, []);
 
-  const filteredUsers = useMemo(() => {
-    if (!users) return [];
-    const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.role.toLowerCase().includes(q) ||
-        u.department.toLowerCase().includes(q) ||
-        (u.secondaryRoles ?? []).some((r) => r.toLowerCase().includes(q)),
-    );
-  }, [users, search]);
+  const selectedUser = users?.find(u => u.id.toString() === selectedUserId) ?? null;
+  const allRoles = selectedUser
+    ? [selectedUser.role, ...(selectedUser.secondaryRoles ?? []).filter(r => r !== selectedUser.role)]
+    : [];
+  const hasMultipleRoles = allRoles.length > 1;
+  const password = selectedUser ? passwordFor(selectedUser.name) : "";
 
-  function rolesFor(u: LoginUser): string[] {
-    return [u.role, ...(u.secondaryRoles ?? []).filter((r) => r !== u.role)];
+  function handleUserChange(userId: string) {
+    setSelectedUserId(userId);
+    const u = users?.find(u => u.id.toString() === userId);
+    if (u) {
+      const roles = [u.role, ...(u.secondaryRoles ?? []).filter(r => r !== u.role)];
+      setSelectedRole(roles[0] ?? "");
+    } else {
+      setSelectedRole("");
+    }
   }
 
-  async function doLogin(user: LoginUser, role: string) {
+  async function handleLogin() {
+    if (!selectedUser || !selectedRole) return;
     setSubmitting(true);
     try {
-      await loginAs(user.id, role);
-      toast({
-        title: `Welcome back, ${user.name.split(" ")[0]}`,
-        description: `Signed in as ${role}.`,
-      });
+      await loginAs(selectedUser.id, selectedRole);
+      toast({ title: `Welcome back, ${selectedUser.name.split(" ")[0]}`, description: `Signed in as ${selectedRole}.` });
       navigate("/");
     } catch (err: any) {
-      toast({
-        title: "Sign-in failed",
-        description: err?.message ?? "Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Sign-in failed", description: err?.message ?? "Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   }
 
-  function handleUserClick(u: LoginUser) {
-    const roles = rolesFor(u);
-    if (roles.length <= 1) {
-      void doLogin(u, roles[0]);
-    } else {
-      setPendingUser(u);
-    }
-  }
-
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-6">
-      <div className="w-full max-w-5xl">
-        {/* Brand header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
+    <div className="min-h-screen w-full flex">
+      {/* ── Left panel: form ── */}
+      <div className="w-full md:w-[420px] lg:w-[480px] flex-shrink-0 flex flex-col items-center justify-center bg-white dark:bg-zinc-950 px-10 py-12">
+        {/* Logo */}
+        <div className="w-full max-w-sm">
+          <div className="flex items-center gap-2.5 mb-8">
+            <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-base select-none">
               B
             </div>
-            <span className="text-2xl font-bold tracking-tight">BusinessNow</span>
+            <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">BusinessNow</span>
           </div>
-          <h1 className="text-3xl font-semibold mb-2">Sign in to your workspace</h1>
-          <p className="text-muted-foreground text-sm">
-            Pick a user below to continue. All roles are pre-configured for this demo workspace.
-          </p>
-        </div>
 
-        {/* Role-pick step */}
-        {pendingUser ? (
-          <Card className="max-w-md mx-auto" data-testid="login-role-picker">
-            <CardContent className="pt-6">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mb-4 -ml-2"
-                onClick={() => setPendingUser(null)}
-                disabled={submitting}
-                data-testid="button-back-to-users"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back to users
-              </Button>
-              <div className="flex items-center gap-3 mb-6">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={pendingUser.avatarUrl ?? ""} />
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                    {pendingUser.initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-semibold">{pendingUser.name}</div>
-                  <div className="text-xs text-muted-foreground">{pendingUser.department}</div>
-                </div>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-8">Log in</h1>
+
+          <div className="space-y-5">
+            {/* User ID */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">User ID</Label>
+              <Select value={selectedUserId} onValueChange={handleUserChange} disabled={!users}>
+                <SelectTrigger className="h-11 border-zinc-300 dark:border-zinc-700 focus:ring-indigo-500 bg-white dark:bg-zinc-900">
+                  <SelectValue placeholder={users ? "Select a user…" : "Loading users…"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(users ?? []).map(u => (
+                    <SelectItem key={u.id} value={u.id.toString()}>
+                      <span className="font-mono text-xs text-zinc-400 mr-2">#{u.id}</span>
+                      {u.name}
+                      <span className="ml-2 text-xs text-zinc-400">({u.department})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Role selector (only when user has multiple roles) */}
+            {hasMultipleRoles && (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Role</Label>
+                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                  <SelectTrigger className="h-11 border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allRoles.map(r => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="text-sm font-medium mb-3 flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                This account has multiple roles — pick one to continue
-              </div>
-              <div className="space-y-2">
-                {rolesFor(pendingUser).map((role) => (
-                  <Button
-                    key={role}
-                    variant="outline"
-                    className="w-full justify-between h-auto py-3"
-                    disabled={submitting}
-                    onClick={() => doLogin(pendingUser, role)}
-                    data-testid={`button-pick-role-${role.replace(/\s+/g, "-").toLowerCase()}`}
-                  >
-                    <span className="font-medium">{role}</span>
-                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* Search */}
-            {users && users.length > 6 && (
-              <div className="max-w-md mx-auto mb-6 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            )}
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Password</Label>
+              <div className="relative">
                 <Input
-                  placeholder="Search by name, role, or department"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                  data-testid="input-user-search"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  readOnly
+                  placeholder="Select a user to auto-fill"
+                  className="h-11 pr-10 border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 cursor-default select-none"
                 />
-              </div>
-            )}
-
-            {/* Loading / error states */}
-            {!users && !fetchError && (
-              <div className="flex items-center justify-center py-16 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                Loading users…
-              </div>
-            )}
-            {fetchError && (
-              <Card className="max-w-md mx-auto border-destructive/50">
-                <CardContent className="pt-6 text-center">
-                  <p className="text-sm text-destructive font-medium mb-1">
-                    Could not load the user list.
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    The API server may be starting up. Try refreshing in a few seconds.
-                  </p>
-                  <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-                    Retry
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* User grid */}
-            {users && (
-              <div
-                className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                data-testid="login-user-grid"
-              >
-                {filteredUsers.map((u) => {
-                  const roles = rolesFor(u);
-                  const multi = roles.length > 1;
-                  return (
-                    <button
-                      key={u.id}
-                      onClick={() => handleUserClick(u)}
-                      disabled={submitting}
-                      className={cn(
-                        "group text-left rounded-lg border bg-card p-4 transition-all",
-                        "hover:border-primary hover:shadow-md hover:-translate-y-0.5",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0",
-                      )}
-                      data-testid={`button-login-user-${u.id}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-12 w-12 flex-shrink-0">
-                          <AvatarImage src={u.avatarUrl ?? ""} />
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                            {u.initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-semibold truncate">{u.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {u.department}
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            <Badge variant="secondary" className="text-[10px] font-medium">
-                              {u.role}
-                            </Badge>
-                            {multi &&
-                              roles.slice(1).map((r) => (
-                                <Badge key={r} variant="outline" className="text-[10px]">
-                                  {r}
-                                </Badge>
-                              ))}
-                          </div>
-                        </div>
-                      </div>
-                      {multi && (
-                        <div className="mt-3 text-[11px] text-muted-foreground flex items-center gap-1">
-                          <ShieldCheck className="h-3 w-3" />
-                          {roles.length} roles available
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-                {filteredUsers.length === 0 && (
-                  <div className="col-span-full text-center py-12 text-sm text-muted-foreground">
-                    No users match "{search}".
-                  </div>
+                {password && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 )}
               </div>
-            )}
-          </>
-        )}
+            </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-8">
-          Demo workspace — no password required. Sessions are kept locally in your browser.
-        </p>
+            {/* Log In button */}
+            <Button
+              className="w-full h-11 bg-zinc-900 hover:bg-zinc-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-semibold tracking-wide mt-1"
+              disabled={!selectedUser || submitting}
+              onClick={handleLogin}
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "LOG IN"}
+            </Button>
+          </div>
+
+          <p className="text-center text-xs text-zinc-400 mt-8">
+            Demo workspace — passwords are pre-configured per user.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Right panel: gradient ── */}
+      <div className="hidden md:flex flex-1 items-center justify-center bg-gradient-to-br from-purple-400 via-violet-400 to-pink-400">
+        <div className="text-center text-white/80 space-y-2 select-none">
+          <div className="text-5xl font-bold tracking-tight text-white opacity-20">BusinessNow</div>
+        </div>
       </div>
     </div>
   );
