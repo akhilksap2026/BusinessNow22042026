@@ -375,11 +375,14 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
 
-  const [projectInvoices, allocations, changeOrdersCount, updatesCount] = await Promise.all([
+  const [projectInvoices, allocations, changeOrdersCount, updatesCount, labourCostRows] = await Promise.all([
     db.select().from(invoicesTable).where(eq(invoicesTable.projectId, params.data.id)),
     db.select().from(allocationsTable).where(eq(allocationsTable.projectId, params.data.id)),
     db.select({ count: sql<number>`count(*)::int` }).from(changeOrdersTable).where(eq(changeOrdersTable.projectId, params.data.id)),
     db.select({ count: sql<number>`count(*)::int` }).from(projectUpdatesTable).where(eq(projectUpdatesTable.projectId, params.data.id)),
+    db.select({
+      total: sum(sql<number>`${timeEntriesTable.hours}::numeric * COALESCE(${usersTable.costRate}::numeric, 0)`).mapWith(Number),
+    }).from(timeEntriesTable).leftJoin(usersTable, eq(timeEntriesTable.userId, usersTable.id)).where(eq(timeEntriesTable.projectId, params.data.id)),
   ]);
 
   const budget = Number(project.budget);
@@ -390,6 +393,10 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
   const due = new Date(project.dueDate);
   const daysRemaining = Math.max(0, Math.ceil((due.getTime() - Date.now()) / 86400000));
   const teamSize = new Set(allocations.map(a => a.userId)).size;
+
+  const totalCost = Number(labourCostRows[0]?.total ?? 0);
+  const profitToDate = invoicedAmount - totalCost;
+  const marginPct = invoicedAmount > 0 ? Math.round((profitToDate / invoicedAmount) * 100) : 0;
 
   res.json(GetProjectSummaryResponse.parse({
     projectId: params.data.id,
@@ -403,6 +410,9 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
       changeRequests: changeOrdersCount[0]?.count ?? 0,
       updates: updatesCount[0]?.count ?? 0,
     },
+    profitToDate,
+    marginPct,
+    totalCost,
   }));
 });
 

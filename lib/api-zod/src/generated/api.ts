@@ -358,6 +358,9 @@ export const GetProjectSummaryResponse = zod.object({
     changeRequests: zod.number(),
     updates: zod.number(),
   }).optional(),
+  profitToDate: zod.number().optional(),
+  marginPct: zod.number().optional(),
+  totalCost: zod.number().optional(),
 });
 
 /**

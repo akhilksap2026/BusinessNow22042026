@@ -122,6 +122,9 @@ export interface ProjectSummary {
     changeRequests: number;
     updates: number;
   };
+  profitToDate?: number;
+  marginPct?: number;
+  totalCost?: number;
 }
 
 export interface CreateProjectBody {
