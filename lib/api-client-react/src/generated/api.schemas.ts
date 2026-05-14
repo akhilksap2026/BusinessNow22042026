@@ -132,6 +132,9 @@ export interface CreateProjectBody {
   budgetedHours: number;
   description?: string;
   internalExternal?: string;
+  rateCardId?: number;
+  customerChampion?: string;
+  opportunityId?: number;
 }
 
 export interface UpdateProjectBody {

@@ -128,6 +128,23 @@ router.post("/projects", requirePM, async (req, res): Promise<void> => {
   }
   const [row] = await db.insert(projectsTable).values(parsed.data as any).returning();
   await logAudit({ entityType: "project", entityId: row.id, action: "created", description: `Project "${row.name}" created` });
+
+  // Auto-create the initial SOW budget entry so the budget ledger and
+  // burn-down report are populated from day one. Fire-and-forget; a failure
+  // here does not block the project creation response.
+  if (Number(parsed.data.budget) > 0) {
+    db.insert(budgetEntriesTable).values({
+      projectId: row.id,
+      entryDate: parsed.data.startDate,
+      type: "SOW",
+      description: "Initial SOW — project creation",
+      amount: String(parsed.data.budget),
+      hours: String(parsed.data.budgetedHours ?? 0),
+    }).catch((err: unknown) => {
+      console.error(`[projects] auto-SOW insert failed for project ${row.id}:`, err);
+    });
+  }
+
   res.status(201).json(GetProjectResponse.parse(mapProject(row)));
 });
 

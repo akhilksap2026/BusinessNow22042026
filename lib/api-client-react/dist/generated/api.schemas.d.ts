@@ -85,13 +85,14 @@ export interface Project {
     allocatedHours: number;
     budgetedHours: number;
     completion: number;
-    health: string;
+    health: string | null;
     /** @nullable */
     description?: string | null;
     internalExternal: string;
     isAdminProject?: number;
     opportunityId?: number | null;
     projectGroupId?: number | null;
+    budgetLocked?: boolean;
     deletedAt?: string | null;
     createdAt: string;
     updatedAt: string;
@@ -123,6 +124,9 @@ export interface CreateProjectBody {
     budgetedHours: number;
     description?: string;
     internalExternal?: string;
+    rateCardId?: number;
+    customerChampion?: string;
+    opportunityId?: number;
 }
 export interface UpdateProjectBody {
     name?: string;
@@ -270,6 +274,10 @@ export interface TimeEntry {
     billable: boolean;
     approved: boolean;
     createdAt: string;
+    /** @nullable - Snapshotted bill rate from the rate card effective on the entry's work date. Immutable once set. */
+    appliedBillRate?: number | null;
+    /** @nullable - Snapshotted cost rate at approval time. Not returned for collaborator-role callers. */
+    appliedCostRate?: number | null;
 }
 export interface CreateTimeEntryBody {
     projectId?: number;
@@ -467,7 +475,7 @@ export interface RevenueReport {
 export type ProjectHealthReportProjectsItem = {
     projectId: number;
     projectName: string;
-    health: string;
+    health: string | null;
     completion: number;
     daysRemaining: number;
     budgetUsed: number;
