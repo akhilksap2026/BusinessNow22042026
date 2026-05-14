@@ -1,5 +1,6 @@
 import { authHeaders } from "@/lib/auth-headers";
 import { hasRole } from "@/lib/roles";
+import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { useTaskStatuses } from "@/lib/task-status";

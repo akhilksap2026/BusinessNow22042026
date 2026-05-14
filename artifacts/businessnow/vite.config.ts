@@ -53,6 +53,11 @@ export default defineConfig({
     },
     dedupe: ["react", "react-dom", "@tanstack/react-query"],
   },
+  optimizeDeps: {
+    include: [
+      "@workspace/api-client-react > @tanstack/react-query",
+    ],
+  },
   root: path.resolve(import.meta.dirname),
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
