@@ -25,7 +25,7 @@ import {
   getListProjectsQueryKey,
 } from "@workspace/api-client-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, LayoutTemplate, Calendar, Layers } from "lucide-react";
+import { LayoutTemplate, Calendar, Layers } from "lucide-react";
 
 const TEAM_ROLES = ["Team Member", "Project Manager", "Lead Consultant", "Senior Consultant", "Consultant", "Analyst", "Architect", "QA Engineer", "Business Analyst"];
 
@@ -63,7 +63,7 @@ type MemberConfig = Record<number, { role: string; hoursPerWeek: number }>;
 
 export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [step, setStep] = useState(1);
-  const [mode, setMode] = useState<Mode>("choose");
+  const [mode, setMode] = useState<Mode>("blank");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [startingPoint, setStartingPoint] = useState<"blank" | "template" | "later">("blank");
   const [postCreateTemplateId, setPostCreateTemplateId] = useState<number | null>(null);
@@ -103,7 +103,7 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
 
   function handleClose(v: boolean) {
     if (!v) {
-      setMode("choose");
+      setMode("blank");
       setStep(1);
       setSelectedTemplateId(null);
       setStartingPoint("blank");
@@ -263,13 +263,11 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
   const selectedTemplate = templates?.find(t => t.id === selectedTemplateId);
 
   const getTitle = () => {
-    if (mode === "choose") return "New Project";
     if (mode === "template") return "New Project from Template";
     return "Create New Project";
   };
 
   const getDescription = () => {
-    if (mode === "choose") return "Choose how to start your project";
     if (mode === "template") return selectedTemplate?.name ? `Template: ${selectedTemplate.name}` : "Fill in the project details";
     return `Step ${step} of 5`;
   };
@@ -290,43 +288,6 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>{getDescription()}</DialogDescription>
         </DialogHeader>
-
-        {mode === "choose" && (
-          <div className="space-y-3 py-2">
-            <button
-              type="button"
-              onClick={() => setMode("blank")}
-              className="w-full flex items-start gap-4 p-4 border-2 rounded-xl hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950/20 transition-colors group text-left"
-            >
-              <div className="mt-0.5 p-2.5 rounded-lg bg-muted group-hover:bg-violet-100 dark:group-hover:bg-violet-900/30 transition-colors">
-                <FileText className="h-5 w-5 text-muted-foreground group-hover:text-violet-600" />
-              </div>
-              <div>
-                <p className="font-semibold">Blank Project</p>
-                <p className="text-sm text-muted-foreground mt-0.5">Start from scratch with full customization over all settings.</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setMode("template")}
-              className="w-full flex items-start gap-4 p-4 border-2 rounded-xl hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950/20 transition-colors group text-left"
-            >
-              <div className="mt-0.5 p-2.5 rounded-lg bg-muted group-hover:bg-violet-100 dark:group-hover:bg-violet-900/30 transition-colors">
-                <LayoutTemplate className="h-5 w-5 text-muted-foreground group-hover:text-violet-600" />
-              </div>
-              <div>
-                <p className="font-semibold">From Template</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Use a pre-defined structure with phases and tasks.
-                  {templates && templates.length > 0 && (
-                    <span className="ml-1 text-violet-600 font-medium">{templates.length} template{templates.length !== 1 ? "s" : ""} available.</span>
-                  )}
-                </p>
-              </div>
-            </button>
-          </div>
-        )}
 
         {mode === "template" && (
           <div className="space-y-5">
