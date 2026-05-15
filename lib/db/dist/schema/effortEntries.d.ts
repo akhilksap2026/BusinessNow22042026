@@ -258,6 +258,23 @@ export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        originalRejectorId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "original_rejector_id";
+            tableName: "effort_entries";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         weekStartDate: import("drizzle-orm/pg-core").PgColumn<{
             name: "week_start_date";
             tableName: "effort_entries";
@@ -330,11 +347,11 @@ export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWi
     dialect: "pg";
 }>;
 export declare const insertEffortEntrySchema: z.ZodObject<{
+    resourceId: z.ZodInt;
+    enteredById: z.ZodInt;
     status: z.ZodOptional<z.ZodString>;
     projectId: z.ZodInt;
     taskId: z.ZodInt;
-    resourceId: z.ZodInt;
-    enteredById: z.ZodInt;
     entryDate: z.ZodString;
     durationHours: z.ZodString;
     billableCategory: z.ZodOptional<z.ZodString>;
@@ -344,6 +361,7 @@ export declare const insertEffortEntrySchema: z.ZodObject<{
     exceptionalJustification: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isReplicated: z.ZodOptional<z.ZodBoolean>;
     rejectionReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    originalRejectorId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     weekStartDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     financialPeriodId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
 }, {

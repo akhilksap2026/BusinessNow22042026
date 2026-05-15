@@ -30,6 +30,7 @@ export const effortEntriesTable = pgTable("effort_entries", {
   isReplicated: boolean("is_replicated").notNull().default(false),
   status: text("status").notNull().default("Draft"),
   rejectionReason: text("rejection_reason"),
+  originalRejectorId: integer("original_rejector_id").references(() => usersTable.id, { onDelete: "set null" }),
   weekStartDate: text("week_start_date"),
   financialPeriodId: integer("financial_period_id")
     .references(() => financialPeriodsTable.id, { onDelete: "set null" }),
