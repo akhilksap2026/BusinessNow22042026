@@ -431,8 +431,8 @@ export default function Accounts() {
                 </SelectContent>
               </Select>
             </div>
-            {/* Row 7: Source | Est. Value */}
-            <div className="space-y-1">
+            {/* Row 7: Source */}
+            <div className="col-span-full space-y-1">
               <Label>Source</Label>
               <Select value={form.source || "__none__"} onValueChange={v => setForm(f => ({ ...f, source: v === "__none__" ? "" : v }))}>
                 <SelectTrigger><SelectValue placeholder="— None —" /></SelectTrigger>
@@ -442,24 +442,10 @@ export default function Accounts() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label>Est. Value ($)</Label>
-              <Input type="number" value={form.estValue} onChange={e => setForm(f => ({ ...f, estValue: e.target.value }))} />
-            </div>
             {/* Row 8: Notes */}
             <div className="col-span-full space-y-1">
               <Label>Notes</Label>
               <Textarea rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="resize-y" />
-            </div>
-            {/* Row 9: Account Status */}
-            <div className="col-span-full space-y-1">
-              <Label>Status</Label>
-              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["Active", "Inactive", "Prospect", "At Risk"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
             </div>
             {/* Row 10: Internal account */}
             <div className="col-span-full flex items-center gap-2">
