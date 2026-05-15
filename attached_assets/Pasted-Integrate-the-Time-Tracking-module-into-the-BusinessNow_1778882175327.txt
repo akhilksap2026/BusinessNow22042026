@@ -1,0 +1,77 @@
+Integrate the Time Tracking module into the BusinessNow PSA navigation system and run a full end-to-end validation.
+
+─────────────────────────────────────────
+STEP 1: NAVIGATION INTEGRATION
+─────────────────────────────────────────
+Add "Time Tracking" to the main navigation sidebar with the following sub-items:
+- My Timesheet → /time/timesheet
+- Log Time → /time/new
+- Approvals → /time/approvals (visible only to Managers/Approvers)
+- Time Admin → /settings/time-tracking (visible only to Admins)
+
+Ensure route guards are in place:
+- Unauthenticated users are redirected to login
+- /time/approvals is only accessible to Manager/Approver roles
+- /settings/time-tracking is only accessible to Admin role
+
+─────────────────────────────────────────
+STEP 2: DASHBOARD WIDGET (optional, if dashboard exists)
+─────────────────────────────────────────
+If the application has a dashboard:
+- Add a "This Week's Time" summary widget showing:
+  - Hours logged this week
+  - Utilization rate
+  - Pending approvals count (for managers)
+  - Rejected entries needing correction (for consultants)
+
+─────────────────────────────────────────
+STEP 3: END-TO-END VALIDATION CHECKLIST
+─────────────────────────────────────────
+Execute the following scenarios and confirm each works correctly. Report PASS/FAIL for each.
+
+SCENARIO A — Happy Path (Consultant)
+[ ] Log 8 hours on an active project/task for today → saves as Draft
+[ ] Narrative passes PII check → saves successfully
+[ ] Submit the entry → status changes to Submitted
+[ ] Attempt to edit after submission → blocked (403/read-only)
+
+SCENARIO B — Validation Gates
+[ ] Log 10 minutes on a 15-minute increment project → rejected by validateEffortIncrement
+[ ] Log 20 hours on a day with 15 already logged → rejected by validateDailyHoursCap
+[ ] Log time in a closed financial period → rejected by validateFinancialPeriod
+[ ] Log time 30 days in the future → rejected by validateFutureDateBuffer
+[ ] Log 5 billable hours on a Fixed Bid project at 98/100 hrs → rejected by validateFixedBidCap
+[ ] Submit narrative with "123-45-6789" (SSN) → rejected by PII check
+[ ] Log 9 hours/day without justification → exceptional flag appears, save blocked until justification provided
+
+SCENARIO C — Approval Workflow
+[ ] Manager sees submitted timesheet in approval queue
+[ ] Manager approves all entries → all move to Approved
+[ ] Approved entry does NOT appear if manager tries to approve a second time
+[ ] Manager rejects one entry with a reason → only that entry moves to Rejected
+[ ] Submitter receives rejection notification payload
+[ ] Submitter corrects and resubmits → routes to original rejecting manager
+
+SCENARIO D — Invoice Extraction Guard
+[ ] Call /api/time/invoice-extraction for a project with a mix of Submitted and Approved entries
+[ ] Confirm response contains ONLY Approved entries (FR-537.1)
+
+SCENARIO E — Proxy Flow
+[ ] Admin creates a proxy delegation: User A can log for User B
+[ ] User A selects User B in time entry form
+[ ] Entry is saved with resource_id = B, entered_by_id = A
+[ ] Audit log correctly shows both IDs
+
+SCENARIO F — Replication
+[ ] Click "Copy Previous Week" → current week is populated with prior week entries
+[ ] Attempt to submit without confirmation dialog → blocked
+[ ] Confirm dialog → entries submit successfully
+
+─────────────────────────────────────────
+STEP 4: FINAL BUILD CHECK
+─────────────────────────────────────────
+- Build the full application in production mode
+- Confirm zero build errors and zero console errors on page load
+- Confirm all new routes respond correctly
+- Run all unit tests for the validation service
+- Produce a final summary: modules removed, modules built, test results

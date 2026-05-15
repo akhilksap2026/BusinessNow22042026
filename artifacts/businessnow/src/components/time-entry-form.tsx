@@ -99,19 +99,25 @@ const EXCEPTIONAL_HOURS_THRESHOLD = 8;
 
 interface TimeEntryFormProps {
   entryId?: number;
+  /** Pre-fill values for new entries (used when launched from grid cell) */
+  prefill?: { projectId?: number; taskId?: number; entryDate?: string; resourceId?: number };
+  /** Called after a successful save — overrides the default navigate-to-time behaviour */
+  onSuccess?: () => void;
+  /** Called when Cancel is clicked — overrides the default navigate-to-time behaviour */
+  onCancel?: () => void;
 }
 
-export function TimeEntryForm({ entryId }: TimeEntryFormProps) {
+export function TimeEntryForm({ entryId, prefill, onSuccess, onCancel }: TimeEntryFormProps) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { currentUser, activeRole } = useCurrentUser();
   const currentUserId = currentUser?.id ?? 1;
 
   // ── Form state ──────────────────────────────────────────────────────────────
-  const [resourceId, setResourceId] = useState<number>(currentUserId);
-  const [projectId, setProjectId] = useState<number | "">("");
-  const [taskId, setTaskId] = useState<number | "">("");
-  const [entryDate, setEntryDate] = useState<string>(todayISO());
+  const [resourceId, setResourceId] = useState<number>(prefill?.resourceId ?? currentUserId);
+  const [projectId, setProjectId] = useState<number | "">(prefill?.projectId ?? "");
+  const [taskId, setTaskId] = useState<number | "">(prefill?.taskId ?? "");
+  const [entryDate, setEntryDate] = useState<string>(prefill?.entryDate ?? todayISO());
   const [durationInput, setDurationInput] = useState<string>("");
   const [durationHours, setDurationHours] = useState<number | null>(null);
   const [billableCategory, setBillableCategory] = useState<string>("Billable");
@@ -375,7 +381,7 @@ export function TimeEntryForm({ entryId }: TimeEntryFormProps) {
         title: action === "submit" ? "Time entry submitted" : "Draft saved",
         description: `Entry ${action === "submit" ? "submitted for approval" : "saved as draft"}.`,
       });
-      navigate(`/time?weekStart=${weekStart}`);
+      if (onSuccess) { onSuccess(); } else { navigate(`/time?weekStart=${weekStart}`); }
     } finally {
       setIsSubmitting(false);
     }
@@ -426,7 +432,7 @@ export function TimeEntryForm({ entryId }: TimeEntryFormProps) {
             </div>
           )}
           <div className="pt-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/time")}>
+            <Button variant="outline" size="sm" onClick={() => onCancel ? onCancel() : navigate("/time")}>
               Back to Time Tracking
             </Button>
           </div>
@@ -693,7 +699,7 @@ export function TimeEntryForm({ entryId }: TimeEntryFormProps) {
           <div className="flex items-center justify-between pt-2 border-t">
             <Button
               variant="outline"
-              onClick={() => navigate("/time")}
+              onClick={() => onCancel ? onCancel() : navigate("/time")}
               disabled={isSubmitting}
             >
               Cancel

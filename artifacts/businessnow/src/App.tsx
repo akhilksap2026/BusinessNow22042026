@@ -16,6 +16,7 @@ import Accounts from "@/pages/accounts";
 import TimeTracking from "@/pages/time";
 import TimeNew from "@/pages/time-new";
 import TimeEntryEdit from "@/pages/time-entry-edit";
+import TimeTimesheet from "@/pages/time-timesheet";
 import Resources from "@/pages/resources";
 import Finance from "@/pages/finance";
 import Reports from "@/pages/reports";
@@ -69,6 +70,7 @@ function Router() {
       </Route>
       <Route path="/time" component={TimeTracking} />
       <Route path="/time/new" component={TimeNew} />
+      <Route path="/time/timesheet" component={TimeTimesheet} />
       <Route path="/time/entries/:id/edit" component={TimeEntryEdit} />
       <Route path="/time-tracking"><Redirect to="/time" /></Route>
       <Route path="/resources">
