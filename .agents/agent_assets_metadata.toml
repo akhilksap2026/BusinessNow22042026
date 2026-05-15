@@ -114,3 +114,9 @@ id = "ftmu9_s3By-mhWl1DvQQe"
 uri = "file://BusinessNow-PSA-Business-Rules-v1.0.pdf"
 type = "pdf"
 title = "BusinessNow PSA — Business Rules & Functional Specification v1.0"
+
+[[outputs]]
+id = "TOP3AnWEfnou0MnQH7AXX"
+uri = "file://BusinessNow-PSA-Business-Rules-v1.0.md"
+type = "text"
+title = "BusinessNow PSA — Business Rules v1.0"
