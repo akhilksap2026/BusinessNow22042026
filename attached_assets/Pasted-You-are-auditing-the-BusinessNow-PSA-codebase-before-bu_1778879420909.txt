@@ -1,0 +1,39 @@
+You are auditing the BusinessNow PSA codebase before building a new Time Tracking module. Do NOT make any changes yet. Your task is purely investigative.
+
+Perform the following audit and output a structured report:
+
+1. MODULE INVENTORY
+   - List every top-level module/feature area in the codebase (e.g., Projects, Resources, Invoicing, Time, Reports, Settings, Auth, etc.)
+   - For each module, identify: (a) the entry point file, (b) the route(s) it serves, (c) whether it has a dedicated data model/schema, (d) whether it is referenced in navigation or routing
+
+2. TIME-RELATED CODE SCAN
+   - Search the entire codebase for any existing time tracking, timesheets, effort logging, or hours-related code
+   - List every file that contains time/effort logic, its current state, and whether it is actively routed or orphaned
+   - Flag any partial implementations, placeholder components, or stub APIs
+
+3. DATA MODEL AUDIT
+   - List all database tables or data models currently defined
+   - Identify which models relate to time, effort, projects, tasks, users, and approvals
+   - Note any foreign key relationships or constraints that must be respected
+
+4. DEAD CODE IDENTIFICATION
+   - Identify any modules, components, routes, or files that are:
+     (a) Not referenced in the navigation or routing system
+     (b) Imported nowhere in the codebase
+     (c) Explicitly commented out or marked TODO/STUB/PLACEHOLDER
+   - Produce a list titled "SAFE TO REMOVE" with file paths and reason for each
+
+5. DEPENDENCY MAP
+   - Identify shared utilities, hooks, context providers, or services that multiple modules consume
+   - Flag anything the Time Tracking module will need to reuse (auth context, user/project/task data, API client, notification service)
+
+6. OUTPUT FORMAT
+   Produce a structured report with these exact sections:
+   - Active Modules (table: Module | Entry File | Route | Has Model | Nav Linked)
+   - Existing Time Code (table: File | Purpose | Status: Active / Orphaned / Partial)
+   - Data Models (table: Model Name | File | Related To)
+   - Safe To Remove (table: File/Folder | Reason)
+   - Shared Dependencies Time Tracking Will Need (bulleted list)
+   - Recommended Approach (1 paragraph summary of what to build fresh vs. what to wire into)
+
+Do not modify any file. Output the report only.

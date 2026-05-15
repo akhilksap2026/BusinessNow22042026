@@ -1,0 +1,122 @@
+Build the complete database schema for the Time Tracking module in BusinessNow PSA. Use the existing ORM/database technology already in the project (detect it from the codebase — do not introduce a new one).
+
+Create the following tables/models. Respect all existing foreign key relationships to Users, Projects, and Tasks already in the system.
+
+─────────────────────────────────────────
+TABLE: effort_entries
+─────────────────────────────────────────
+Fields:
+- id (PK, UUID)
+- resource_id (FK → users.id) — the employee whose time this is
+- entered_by_id (FK → users.id) — the person who created the record (may differ from resource_id for proxy entries)
+- project_id (FK → projects.id)
+- task_id (FK → tasks.id)
+- entry_date (DATE, not null)
+- duration_hours (DECIMAL 5,2, not null)
+- billable_category (ENUM: 'Billable', 'Non-Billable', default: 'Non-Billable')
+- original_billable_category (ENUM: 'Billable', 'Non-Billable') — stores pre-override value
+- narrative (TEXT, nullable)
+- is_exceptional (BOOLEAN, default: false)
+- exceptional_justification (TEXT, nullable)
+- is_replicated (BOOLEAN, default: false) — true if copied from prior week
+- status (ENUM: 'Draft', 'Submitted', 'Approved', 'Rejected', 'Processed', default: 'Draft')
+- rejection_reason (TEXT, nullable)
+- week_start_date (DATE) — computed: Monday of entry_date's week
+- financial_period_id (FK → financial_periods.id)
+- created_at, updated_at (timestamps)
+
+─────────────────────────────────────────
+TABLE: effort_audit_log
+─────────────────────────────────────────
+Fields:
+- id (PK, UUID)
+- effort_entry_id (FK → effort_entries.id)
+- action (ENUM: 'Created', 'Updated', 'Submitted', 'Recalled', 'Approved', 'Rejected', 'Override_Billable', 'Proxy_Entry', 'Resubmitted')
+- performed_by_id (FK → users.id)
+- performed_at (TIMESTAMP, not null)
+- previous_value (JSONB / TEXT) — snapshot of changed fields before action
+- new_value (JSONB / TEXT) — snapshot after action
+- notes (TEXT, nullable)
+- is_immutable (BOOLEAN, default: true)
+
+─────────────────────────────────────────
+TABLE: financial_periods
+─────────────────────────────────────────
+Fields:
+- id (PK, UUID)
+- period_name (VARCHAR, e.g., "January 2025")
+- start_date (DATE)
+- end_date (DATE)
+- status (ENUM: 'Open', 'Closed')
+- cfo_override_active (BOOLEAN, default: false)
+- cfo_override_user_id (FK → users.id, nullable)
+- created_at, updated_at
+
+─────────────────────────────────────────
+TABLE: proxy_delegations
+─────────────────────────────────────────
+Fields:
+- id (PK, UUID)
+- proxy_user_id (FK → users.id) — the person acting as proxy
+- target_user_id (FK → users.id) — the absent employee
+- granted_by_id (FK → users.id)
+- valid_from (DATE)
+- valid_until (DATE)
+- is_active (BOOLEAN, default: true)
+- created_at, updated_at
+
+─────────────────────────────────────────
+TABLE: contract_rules (per project)
+─────────────────────────────────────────
+Fields:
+- id (PK, UUID)
+- project_id (FK → projects.id, unique)
+- contract_type (ENUM: 'Time_And_Materials', 'Fixed_Bid')
+- increment_minutes (INTEGER, e.g., 15, 30, 60) — for FR-336.2
+- max_billable_hours (DECIMAL 8,2, nullable) — for fixed-bid cap FR-356.2
+- narrative_required (BOOLEAN, default: false)
+- future_date_buffer_days (INTEGER, default: 7)
+- max_daily_hours (DECIMAL 4,2, default: 24)
+- created_at, updated_at
+
+─────────────────────────────────────────
+TABLE: exceptional_effort_rules (system-wide)
+─────────────────────────────────────────
+Fields:
+- id (PK, UUID)
+- rule_name (VARCHAR)
+- daily_overtime_threshold_hours (DECIMAL 4,2, default: 8)
+- weekly_overtime_threshold_hours (DECIMAL 5,2, default: 40)
+- is_active (BOOLEAN, default: true)
+- created_at, updated_at
+
+─────────────────────────────────────────
+SCHEMA ADDITIONS TO EXISTING TABLES
+─────────────────────────────────────────
+If not already present, add to the projects table:
+- contract_type (ENUM: 'Time_And_Materials', 'Fixed_Bid')
+- status (ENUM: 'Active', 'Closed', 'Financially_Reconciled') — if not existing
+
+If not already present, add to the tasks table:
+- default_billable_category (ENUM: 'Billable', 'Non-Billable', default: 'Non-Billable')
+- status (ENUM: 'Active', 'Closed') — if not existing
+
+─────────────────────────────────────────
+SEED DATA
+─────────────────────────────────────────
+Insert the following seed/reference data:
+1. Two financial periods: current month (Open) and previous month (Closed)
+2. One exceptional effort rule with daily threshold of 8 hours and weekly threshold of 40 hours
+3. For each existing active project in the system, create a contract_rules record with: 
+   - contract_type: 'Time_And_Materials'
+   - increment_minutes: 15
+   - max_daily_hours: 24
+   - future_date_buffer_days: 7
+4. Three proxy_delegations (inactive) as test scaffolding
+5. At least 5 effort_entries in various statuses (Draft, Submitted, Approved, Rejected, Processed) for testing
+
+After completing the schema and seed, confirm:
+- All migrations run cleanly
+- All foreign keys are valid
+- No existing data is broken
+- Print a summary table of all new tables created with row counts

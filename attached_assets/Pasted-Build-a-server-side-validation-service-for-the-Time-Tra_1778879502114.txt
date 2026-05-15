@@ -1,0 +1,103 @@
+Build a server-side validation service for the Time Tracking module. This must be a single, well-organized service module (e.g., effortValidationService.js/ts or equivalent) that other parts of the application call.
+
+Implement the following validation functions. Each must return a structured result: { valid: boolean, errorCode: string | null, errorMessage: string | null }.
+
+─────────────────────────────────────────
+1. validateProjectTaskActive(projectId, taskId)
+─────────────────────────────────────────
+- Fetch project and task status from DB
+- Return invalid if project status is 'Closed' or 'Financially_Reconciled'
+- Return invalid if task status is 'Closed'
+- Error message: "The selected project/task is not available for time entry."
+Implements: FR-336.1, FR-377.1
+
+─────────────────────────────────────────
+2. validateEffortIncrement(durationHours, projectId)
+─────────────────────────────────────────
+- Fetch contract_rules.increment_minutes for the project
+- Convert durationHours to minutes
+- Check if (durationHours * 60) % increment_minutes === 0
+- Return invalid if not evenly divisible
+- Error message: "Duration must be in [X]-minute increments as required by this project's contract."
+Implements: FR-336.2
+
+─────────────────────────────────────────
+3. validateDailyHoursCap(resourceId, entryDate, newDurationHours, projectId, excludeEntryId?)
+─────────────────────────────────────────
+- Fetch contract_rules.max_daily_hours for the project (default 24)
+- Sum all effort_entries.duration_hours for resource_id on entry_date (excluding excludeEntryId if editing)
+- If existingTotal + newDurationHours > max_daily_hours: return invalid
+- Error message: "This entry would exceed the maximum of [X] hours allowed in a single day."
+Implements: FR-376.1
+
+─────────────────────────────────────────
+4. validateFinancialPeriod(entryDate, userId)
+─────────────────────────────────────────
+- Find the financial_period covering entryDate
+- If period.status === 'Closed': check if cfo_override_active is true for this user
+- If closed and no override: return invalid
+- Error message: "Time cannot be logged in a closed financial period."
+Implements: FR-377.2
+
+─────────────────────────────────────────
+5. validateFutureDateBuffer(entryDate, projectId)
+─────────────────────────────────────────
+- Fetch contract_rules.future_date_buffer_days for project
+- Calculate maxAllowedDate = today + buffer days
+- If entryDate > maxAllowedDate: return invalid
+- Error message: "Time cannot be logged more than [X] days in the future."
+Implements: FR-378.1
+
+─────────────────────────────────────────
+6. validateFixedBidCap(projectId, newBillableHours, excludeEntryId?)
+─────────────────────────────────────────
+- Fetch contract_rules where project_id = projectId
+- If contract_type !== 'Fixed_Bid': return valid (not applicable)
+- Sum all approved + submitted billable effort_entries for project (excluding excludeEntryId)
+- If existingBillable + newBillableHours > max_billable_hours: return invalid
+- Error message: "This project has reached its maximum billable hours cap of [X] hours."
+Implements: FR-356.2
+
+─────────────────────────────────────────
+7. validateNarrative(narrative, projectId, contractMandatesNarrative)
+─────────────────────────────────────────
+- If contractMandatesNarrative is true AND narrative is empty/null: return invalid
+- Run PII pattern scan (regex patterns: SSN format \d{3}-\d{2}-\d{4}, credit card 16-digit sequences, explicit PII keywords)
+- If PII detected: return invalid with error "Narrative contains sensitive information. Please remove personal data."
+- Error message for missing: "A work description is required for this project."
+Implements: FR-337.1, FR-337.2
+
+─────────────────────────────────────────
+8. validateExceptionalEffort(durationHours, taskId, resourceId, entryDate)
+─────────────────────────────────────────
+- Fetch active exceptional_effort_rules
+- Check if durationHours > daily_overtime_threshold_hours
+- Check weekly total: sum effort for resource_id in the current week + newDuration vs weekly threshold
+- Return { isExceptional: boolean, reason: string } — not a hard block, but a flag
+Implements: FR-436.1
+
+─────────────────────────────────────────
+9. validateExceptionalJustification(isExceptional, justification)
+─────────────────────────────────────────
+- If isExceptional is true AND justification is null/empty/whitespace-only: return invalid
+- Error message: "A justification is required for exceptional effort entries."
+Implements: FR-436.2
+
+─────────────────────────────────────────
+10. validateProxyAuthorization(proxyUserId, targetUserId)
+─────────────────────────────────────────
+- Query proxy_delegations where proxy_user_id = proxyUserId AND target_user_id = targetUserId
+- Check is_active = true AND today is between valid_from and valid_until
+- Return invalid if no active delegation found
+- Error message: "You are not authorized to enter time on behalf of this user."
+Implements: FR-516.1
+
+─────────────────────────────────────────
+MASTER VALIDATION ORCHESTRATOR
+─────────────────────────────────────────
+Also build: validateEffortEntry(entryPayload, userId, isProxy)
+- Calls all relevant validators in sequence
+- Returns { valid: boolean, errors: Array<{ field: string, errorCode: string, errorMessage: string }> }
+- Stops on first hard error for each field (does not aggregate all errors silently)
+
+All validators must be unit-testable (pure functions where possible, dependency-injected where DB calls are needed). Write 2 unit tests per validator demonstrating a pass and a fail case.
