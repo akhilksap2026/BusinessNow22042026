@@ -375,14 +375,10 @@ export default function Accounts() {
               <Label>Account Name *</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
-            {/* Row 2: Domain | Contract Value */}
-            <div className="space-y-1">
+            {/* Row 2: Domain */}
+            <div className="col-span-full space-y-1">
               <Label>Domain *</Label>
               <Input placeholder="company.com" value={form.domain} onChange={e => setForm(f => ({ ...f, domain: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <Label>Contract Value ($)</Label>
-              <Input type="number" value={form.contractValue} onChange={e => setForm(f => ({ ...f, contractValue: e.target.value }))} />
             </div>
             {/* Row 3: Tier | Region */}
             <div className="space-y-1">
