@@ -134,6 +134,14 @@ router.get("/users/:id", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [row] = await db.select().from(usersTable).where(eq(usersTable.id, params.data.id));
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
+  // FIX 4: collaborators may only view their own profile; PM+ may view any.
+  const _getUserRole = (req as import("../middleware/roleClaim").AuthenticatedRequest).authRole ?? "collaborator";
+  const _getUserCallerId = (req as import("../middleware/roleClaim").AuthenticatedRequest).authUserId;
+  const { hasRole: _hrGetUser } = await import("../constants/roles");
+  if (!_hrGetUser(_getUserRole, "super_user") && _getUserCallerId && row.id !== _getUserCallerId) {
+    res.status(403).json({ error: "Access denied: you may only view your own profile." });
+    return;
+  }
   res.json(GetUserResponse.parse(mapUser(row)));
 });
 

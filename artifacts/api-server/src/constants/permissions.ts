@@ -128,6 +128,32 @@ export const ACCOUNT_PERMISSIONS = {
   "invoicing.approve":         { account_admin: true,  super_user: true,  collaborator: false, customer: false },
   "invoicing.void":            { account_admin: true,  super_user: true,  collaborator: false, customer: false },
 
+  // ── CRM — PROSPECTS & OPPORTUNITIES ──────────────────────────────────────
+  "prospects.view":            { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "prospects.manage":          { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "opportunities.view":        { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "opportunities.manage":      { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+
+  // ── TIME TRACKING — EXTENDED ──────────────────────────────────────────────
+  // viewAll: PM+ can list all users' entries; collaborators see only their own
+  "timeTracking.viewAll":      { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  // logForOthers: PM+ can create time entries on behalf of another userId
+  "timeTracking.logForOthers": { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+
+  // ── TIME OFF ──────────────────────────────────────────────────────────────
+  // viewAll: PM+ sees all requests company-wide; collaborators see only their own
+  "timeOff.viewAll":           { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  // manageCalendars: create/edit/delete holiday calendars (admin-only)
+  "timeOff.manageCalendars":   { account_admin: true,  super_user: false, collaborator: false, customer: false },
+
+  // ── REVENUE RECOGNITION ───────────────────────────────────────────────────
+  "revenue.view":              { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "revenue.manage":            { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+
+  // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+  // inject: create a notification targeting any userId (system/PM use only)
+  "notifications.inject":      { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+
   // ── SPRINTS / EPICS / BACKLOGS ────────────────────────────────────────────
   "sprints.manage":            { account_admin: true,  super_user: true,  collaborator: false, customer: false },
   "epics.manage":              { account_admin: true,  super_user: true,  collaborator: false, customer: false },

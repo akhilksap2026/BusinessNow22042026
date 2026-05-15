@@ -55,11 +55,23 @@ function Router() {
       <Route path="/projects" component={Projects} />
       <Route path="/projects/:id" component={ProjectDetail} />
       <Route path="/accounts" component={Accounts} />
-      <Route path="/prospects" component={Prospects} />
-      <Route path="/opportunities" component={Opportunities} />
+      <Route path="/prospects">
+        <RequirePermission permission="prospects.view">
+          <Prospects />
+        </RequirePermission>
+      </Route>
+      <Route path="/opportunities">
+        <RequirePermission permission="opportunities.view">
+          <Opportunities />
+        </RequirePermission>
+      </Route>
       <Route path="/time" component={TimeTracking} />
       <Route path="/time-tracking"><Redirect to="/time" /></Route>
-      <Route path="/resources" component={Resources} />
+      <Route path="/resources">
+        <RequirePermission permission="resources.capacityPlanning">
+          <Resources />
+        </RequirePermission>
+      </Route>
       <Route path="/finance">
         <RequirePermission permission="invoicing.view">
           <Finance />

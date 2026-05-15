@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, isNull, inArray, ne, sql } from "drizzle-orm";
 import { parsePagination, envelope } from "../lib/pagination";
 import { requirePM } from "../middleware/rbac";
+import { hasRole } from "../constants/roles";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import { db, allocationsTable, usersTable, holidayDatesTable, timeOffRequestsTable, projectsTable, userSkillsTable, skillsTable } from "@workspace/db";
 import { logAudit } from "../lib/audit";
 import { checkOverAllocation } from "../lib/overAllocationGuard";
@@ -128,6 +130,12 @@ router.get("/allocations", async (req, res): Promise<void> => {
   const conditions = [];
   if (qp.success && qp.data.projectId) conditions.push(eq(allocationsTable.projectId, qp.data.projectId));
   if (qp.success && qp.data.userId) conditions.push(eq(allocationsTable.userId, qp.data.userId));
+  // FIX 4: collaborators may only view their own allocations.
+  const _allocCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _allocCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!hasRole(_allocCallerRole, "super_user") && _allocCallerId) {
+    conditions.push(eq(allocationsTable.userId, _allocCallerId));
+  }
   const page = parsePagination(req.query as Record<string, unknown>);
   const baseSelect = conditions.length
     ? db.select().from(allocationsTable).where(and(...conditions))
@@ -795,7 +803,7 @@ router.delete("/allocations/:id", requirePM, async (req, res): Promise<void> => 
 // Returns per-user, per-week availableHours factoring in approved time-off
 // and public holidays (per user's holidayCalendarId). Never negative.
 // ---------------------------------------------------------------------------
-router.get("/resources/heatmap-capacity", async (req, res): Promise<void> => {
+router.get("/resources/heatmap-capacity", requirePM, async (req, res): Promise<void> => {
   const weekCount = Math.min(52, Math.max(1, parseInt(String(req.query.weekCount ?? "12"), 10) || 12));
 
   // Determine weekStart — must be a Monday (YYYY-MM-DD)
@@ -903,7 +911,7 @@ router.get("/resources/heatmap-capacity", async (req, res): Promise<void> => {
   res.json(result);
 });
 
-router.get("/resources/capacity", async (_req, res): Promise<void> => {
+router.get("/resources/capacity", requirePM, async (_req, res): Promise<void> => {
   const allUsers = await db.select().from(usersTable);
   // Exclude external contacts (is_internal=false) from resource pool
   const users = allUsers.filter(u => u.isInternal !== false);
@@ -1160,7 +1168,8 @@ router.post("/resources/suggest", requirePM, async (req, res): Promise<void> => 
 });
 
 // RS-02: Bench report — users with no active hard allocation today.
-router.get("/resources/bench", async (_req, res): Promise<void> => {
+// PM+ only: bench data reveals staffing gaps (operational/strategic data).
+router.get("/resources/bench", requirePM, async (_req, res): Promise<void> => {
   const today = new Date().toISOString().slice(0, 10);
   const users = await db.select().from(usersTable).where(eq(usersTable.isActive, 1));
   const activeAllocs = await db.select({ userId: allocationsTable.userId })

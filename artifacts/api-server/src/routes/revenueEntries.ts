@@ -7,6 +7,7 @@ import {
   DeleteRevenueEntryParams,
 } from "@workspace/api-zod";
 import { z } from "zod";
+import { requireFinance } from "../middleware/rbac";
 
 const UpdateRevenueEntryBody = z.object({
   period: z.string().optional(),
@@ -26,7 +27,7 @@ function mapEntry(r: typeof revenueEntriesTable.$inferSelect) {
   };
 }
 
-router.get("/revenue-entries", async (req, res): Promise<void> => {
+router.get("/revenue-entries", requireFinance, async (req, res): Promise<void> => {
   const qp = ListRevenueEntriesQueryParams.safeParse(req.query);
   let rows;
   if (qp.success && qp.data.projectId) {
@@ -37,14 +38,14 @@ router.get("/revenue-entries", async (req, res): Promise<void> => {
   res.json(rows.map(mapEntry));
 });
 
-router.post("/revenue-entries", async (req, res): Promise<void> => {
+router.post("/revenue-entries", requireFinance, async (req, res): Promise<void> => {
   const parsed = CreateRevenueEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(revenueEntriesTable).values(parsed.data as any).returning();
   res.status(201).json(mapEntry(row));
 });
 
-router.patch("/revenue-entries/:id", async (req, res): Promise<void> => {
+router.patch("/revenue-entries/:id", requireFinance, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parsed = UpdateRevenueEntryBody.safeParse(req.body);
@@ -56,14 +57,14 @@ router.patch("/revenue-entries/:id", async (req, res): Promise<void> => {
   res.json(mapEntry(row));
 });
 
-router.delete("/revenue-entries/:id", async (req, res): Promise<void> => {
+router.delete("/revenue-entries/:id", requireFinance, async (req, res): Promise<void> => {
   const params = DeleteRevenueEntryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   await db.delete(revenueEntriesTable).where(eq(revenueEntriesTable.id, params.data.id));
   res.status(204).send();
 });
 
-router.get("/reports/revenue-by-period", async (_req, res): Promise<void> => {
+router.get("/reports/revenue-by-period", requireFinance, async (_req, res): Promise<void> => {
   const entries = await db.select().from(revenueEntriesTable);
 
   const periodMap = new Map<string, { total: number; byMethod: Record<string, number> }>();

@@ -150,3 +150,48 @@ export const requireCostRateAccess = requirePermission("financials.viewCostRates
 /** Rate-card (billing rate) access: Admin + PM (super_user). Cost rates remain admin-only. */
 export const requireRateCardAccess = requirePermission("financials.viewRateCards");
 
+// ---------------------------------------------------------------------------
+// Additional helpers added during RBAC hardening (additive — no existing
+// function, signature, or export has been modified above this line).
+// ---------------------------------------------------------------------------
+
+/**
+ * requireCollaboratorOrAbove
+ *
+ * Explicit named guard for "any authenticated internal user".
+ * Equivalent to requireRole("collaborator") but self-documenting.
+ * Customers are already blocked globally by denyCustomerRole.
+ */
+export const requireCollaboratorOrAbove = requireRole("collaborator");
+
+/**
+ * assertNotSelfApproval(actorId, ownerId, res)
+ *
+ * Inline guard helper — call AFTER fetching the target entity from DB.
+ * Returns true (and writes a 403) when the actor is trying to approve their
+ * own resource; returns false when the approval is permitted.
+ *
+ * Usage inside a route handler:
+ *   if (assertNotSelfApproval(actorId, existing.userId, res)) return;
+ */
+export function assertNotSelfApproval(
+  actorId: number | undefined,
+  ownerId: number,
+  res: import("express").Response,
+): boolean {
+  if (actorId && actorId === ownerId) {
+    res.status(403).json({ error: "Self-approval is not permitted." });
+    return true;
+  }
+  return false;
+}
+
+/**
+ * requirePermissionGuard(permission)
+ *
+ * Thin re-export alias so route files that already import from rbac.ts can
+ * also access requirePermission without adding a second import from
+ * constants/permissions.ts.
+ */
+export { requirePermission } from "../constants/permissions";
+

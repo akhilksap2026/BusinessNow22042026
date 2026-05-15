@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db, skillCategoriesTable, skillsTable, userSkillsTable, jobRolesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { requireAdmin } from "../middleware/rbac";
+import { requireAdmin, requirePM } from "../middleware/rbac";
+import { hasRole } from "../constants/roles";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import {
   ListSkillsQueryParams,
   CreateSkillCategoryBody,
@@ -118,6 +120,13 @@ router.get("/users/:id/skills", async (req, res): Promise<void> => {
 router.post("/users/:id/skills", async (req, res): Promise<void> => {
   const params = AddUserSkillParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  // FIX 4: collaborators may only manage their own skills; PM+ may manage any.
+  const _addSkillCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _addSkillCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!hasRole(_addSkillCallerRole, "super_user") && _addSkillCallerId && params.data.id !== _addSkillCallerId) {
+    res.status(403).json({ error: "Access denied: you may only manage your own skills." });
+    return;
+  }
   const parsed = AddUserSkillBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
@@ -146,8 +155,15 @@ router.post("/users/:id/skills", async (req, res): Promise<void> => {
 router.patch("/users/:id/skills/:skillId", async (req, res): Promise<void> => {
   const userId = parseInt(req.params.id);
   const skillId = parseInt(req.params.skillId);
-  const { proficiencyLevel, value } = req.body;
   if (isNaN(userId) || isNaN(skillId)) { res.status(400).json({ error: "Invalid ids" }); return; }
+  // FIX 4: collaborators may only update their own skill entries; PM+ may update any.
+  const _patchSkillCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _patchSkillCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!hasRole(_patchSkillCallerRole, "super_user") && _patchSkillCallerId && userId !== _patchSkillCallerId) {
+    res.status(403).json({ error: "Access denied: you may only manage your own skills." });
+    return;
+  }
+  const { proficiencyLevel, value } = req.body;
   const newLevel = proficiencyLevel ?? value ?? "Independent";
   const [row] = await db.update(userSkillsTable)
     .set({ proficiencyLevel: newLevel, updatedAt: new Date() })
@@ -163,6 +179,13 @@ router.patch("/users/:id/skills/:skillId", async (req, res): Promise<void> => {
 router.delete("/users/:id/skills/:skillId", async (req, res): Promise<void> => {
   const params = RemoveUserSkillParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  // FIX 4: collaborators may only remove their own skills; PM+ may remove any.
+  const _delSkillCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _delSkillCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!hasRole(_delSkillCallerRole, "super_user") && _delSkillCallerId && params.data.id !== _delSkillCallerId) {
+    res.status(403).json({ error: "Access denied: you may only manage your own skills." });
+    return;
+  }
   await db.delete(userSkillsTable).where(
     and(eq(userSkillsTable.userId, params.data.id), eq(userSkillsTable.skillId, params.data.skillId))
   );

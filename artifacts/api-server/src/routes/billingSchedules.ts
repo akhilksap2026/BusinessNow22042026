@@ -25,7 +25,7 @@ function mapSchedule(r: typeof billingSchedulesTable.$inferSelect) {
   };
 }
 
-router.get("/billing-schedules", async (req, res): Promise<void> => {
+router.get("/billing-schedules", requireFinance, async (req, res): Promise<void> => {
   const qp = ListBillingSchedulesQueryParams.safeParse(req.query);
   let rows;
   if (qp.success && qp.data.projectId) {
@@ -43,7 +43,7 @@ router.post("/billing-schedules", requireFinance, async (req, res): Promise<void
   res.status(201).json(mapSchedule(row));
 });
 
-router.get("/billing-schedules/:id", async (req, res): Promise<void> => {
+router.get("/billing-schedules/:id", requireFinance, async (req, res): Promise<void> => {
   const params = GetBillingScheduleParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [row] = await db.select().from(billingSchedulesTable).where(eq(billingSchedulesTable.id, params.data.id));

@@ -27,7 +27,8 @@ function mapEntry(r: typeof costEntriesTable.$inferSelect) {
 }
 
 // GET /api/cost-entries?projectId=N[&costCategory=xxx]
-router.get("/cost-entries", async (req, res): Promise<void> => {
+// Project cost data restricted to PM-level and above.
+router.get("/cost-entries", requirePM, async (req, res): Promise<void> => {
   const projectId = req.query.projectId ? parseInt(String(req.query.projectId), 10) : NaN;
   const categoryFilter = typeof req.query.costCategory === "string" ? req.query.costCategory : undefined;
 

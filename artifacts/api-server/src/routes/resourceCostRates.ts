@@ -30,7 +30,8 @@ function mapRow(r: typeof resourceCostRatesTable.$inferSelect) {
 }
 
 // GET /api/resource-cost-rates?userId=N
-router.get("/resource-cost-rates", async (req, res): Promise<void> => {
+// Cost rates are salary proxies — restricted to account_admin only.
+router.get("/resource-cost-rates", requireAdmin, async (req, res): Promise<void> => {
   const userId = req.query.userId ? parseInt(String(req.query.userId), 10) : null;
   const rows = userId
     ? await db.select().from(resourceCostRatesTable)

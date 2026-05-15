@@ -249,6 +249,14 @@ router.get("/time-entries/guardrail-context", async (req, res): Promise<void> =>
     res.status(400).json({ error: "userId and weekStart required" });
     return;
   }
+  // FIX 4: collaborators may only query guardrail context for themselves.
+  const { hasRole: _hrGrc } = await import("../constants/roles");
+  const _grcCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _grcCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!_hrGrc(_grcCallerRole, "super_user") && _grcCallerId && userId !== _grcCallerId) {
+    res.status(403).json({ error: "Access denied: you may only query guardrail context for yourself." });
+    return;
+  }
   const weekEnd = getWeekEnd(weekStart);
 
   const allocs = await db
@@ -354,6 +362,13 @@ router.get("/time-entries", async (req, res): Promise<void> => {
   if (qp.success && qp.data.userId) conditions.push(eq(timeEntriesTable.userId, qp.data.userId));
   if (qp.success && qp.data.startDate) conditions.push(gte(timeEntriesTable.date, qp.data.startDate));
   if (qp.success && qp.data.endDate) conditions.push(lte(timeEntriesTable.date, qp.data.endDate));
+  // FIX 4: collaborators may only list their own time entries.
+  const { hasRole: _hrTE } = await import("../constants/roles");
+  const _teListRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _teListId = (req as AuthenticatedRequest).authUserId;
+  if (!_hrTE(_teListRole, "super_user") && _teListId) {
+    conditions.push(eq(timeEntriesTable.userId, _teListId));
+  }
   const page = parsePagination(req.query as Record<string, unknown>);
   const baseSelect = conditions.length
     ? db.select().from(timeEntriesTable).where(and(...conditions))
@@ -377,6 +392,14 @@ router.get("/time-entries", async (req, res): Promise<void> => {
 router.post("/time-entries", async (req, res): Promise<void> => {
   const parsed = CreateTimeEntryBody.strict().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // FIX 4: collaborators may only log time for themselves.
+  const { hasRole: _hrPost } = await import("../constants/roles");
+  const _postTeRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _postTeId = (req as AuthenticatedRequest).authUserId;
+  if (!_hrPost(_postTeRole, "super_user") && _postTeId && parsed.data.userId !== _postTeId) {
+    res.status(403).json({ error: "Collaborators may only log time for themselves." });
+    return;
+  }
   // Sprint 1 / Phase 2.1: numeric floors. Hours must be > 0 and <= 24 (single day).
   if (!Number.isFinite(parsed.data.hours) || parsed.data.hours <= 0 || parsed.data.hours > 24) {
     res.status(400).json({ error: "hours must be > 0 and <= 24" });
@@ -484,6 +507,13 @@ router.patch("/time-entries/:id", async (req, res): Promise<void> => {
   const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Time entry not found" }); return; }
+  // FIX 4: collaborators may only edit their own time entries.
+  const { hasRole: _hrPatchTE } = await import("../constants/roles");
+  const _patchTECallerId = (req as AuthenticatedRequest).authUserId;
+  if (!_hrPatchTE(role, "super_user") && _patchTECallerId && existing.userId !== _patchTECallerId) {
+    res.status(403).json({ error: "Access denied: you may only edit your own time entries." });
+    return;
+  }
   const settings = await getGovernanceSettings();
   const dateErr = checkEntryEditable(existing, role, settings);
   if (dateErr) { res.status(dateErr.status).json({ error: dateErr.error }); return; }

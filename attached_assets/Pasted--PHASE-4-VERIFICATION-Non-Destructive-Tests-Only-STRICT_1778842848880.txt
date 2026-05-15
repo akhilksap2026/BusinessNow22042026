@@ -1,0 +1,76 @@
+## PHASE 4 — VERIFICATION (Non-Destructive Tests Only)
+
+🔒 STRICT RULES FOR THIS PHASE:
+
+1. DO NOT modify any application source files
+2. DO NOT modify any existing test files
+3. ADD new test files only — in the existing test directory 
+   using the existing test framework and patterns already 
+   present in the project
+4. Mirror the exact import style, describe/it/test structure, 
+   and assertion library already used in existing tests
+5. If no test framework exists, flag with ⚠️ NO TEST FRAMEWORK 
+   FOUND and provide test cases as commented pseudo-code only
+
+### Tests to add (new files only):
+
+For each permission gap fixed in Phase 3, add one test block:
+
+describe('[Module] — RBAC', () => {
+  // Use the roles from the existing ROLES constant — 
+  // do not hardcode role strings
+
+  it('authorized role → 200', ...)   // happy path
+  it('unauthorized role → 403', ...) // wrong role
+  it('unauthenticated → 401', ...)   // no token
+  it('self-approval → 403', ...)     // only for approve routes
+  it('cross-user IDOR → 403', ...)   // only for ID-scoped routes
+});
+
+After writing tests, run them. Fix ONLY failing tests caused 
+by the new test code itself (e.g., import errors, missing mocks).
+DO NOT change application code to make tests pass — if a test 
+fails because the guard is not working, that is a finding, 
+not a test bug. Report it separately.
+
+---
+
+## FINAL REPORT
+
+After all phases, produce:
+
+### BusinessNow PSA — RBAC Audit Report
+
+| # | Module | Issue Found | Severity | File:Line | Fix Applied | Test Added |
+|---|--------|-------------|----------|-----------|-------------|------------|
+
+Summary:
+- Total issues found: X
+- Critical: X | High: X | Medium: X | Low: X
+- Auto-fixed (additive only): X
+- Flagged for manual review (⚠️): X
+- Self-approval vectors closed: Yes / No / Partial
+- Frontend + Backend both enforced: Yes / No / Partial
+- costRate never exposed to Employee/Customer: Yes / No
+- Audit log coverage added: Yes / No / Partial
+- All new tests passing: Yes / No
+- Application functionality unchanged: Yes / ⚠️ (list items)
+
+---
+
+## OVERRIDING CONSTRAINTS (Apply Throughout All Phases)
+
+- Observe before building — never assume what exists
+- Extend before creating — if something already handles 
+  part of this, build on it
+- Central config over inline checks — add to the existing 
+  permissions file, not new scattered conditionals
+- Enforce at both layers — UI hiding is UX; API blocking 
+  is security. Both are required
+- Flag uncertainty — if you cannot determine correct 
+  behaviour from the codebase alone, mark ⚠️ and surface 
+  it. Never guess and auto-apply
+- One fix at a time — apply FIX 1 through FIX 7 
+  sequentially, awaiting confirmation between each
+- Least surprise — every change should feel like it was 
+  always part of the existing codebase

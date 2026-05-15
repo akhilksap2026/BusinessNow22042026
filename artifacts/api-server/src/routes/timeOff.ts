@@ -2,7 +2,9 @@ import { Router, type IRouter } from "express";
 import { db, timeOffRequestsTable, holidayCalendarsTable, holidayDatesTable, notificationsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { checkTimeOffAllocationConflicts } from "../lib/timeOffAllocationConflict";
-import { requirePM } from "../middleware/rbac";
+import { requireAdmin, requirePM } from "../middleware/rbac";
+import { hasRole } from "../constants/roles";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import {
   ListTimeOffRequestsQueryParams,
   CreateTimeOffRequestBody,
@@ -48,6 +50,14 @@ function dateRange(start: string, end: string): string[] {
 router.post("/time-off-requests", async (req, res): Promise<void> => {
   const parsed = CreateTimeOffRequestBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // FIX 4: collaborators may only submit time-off for themselves.
+  const _torCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _torCallerId = (req as AuthenticatedRequest).authUserId;
+  const _torTargetId = (parsed.data as any).userId;
+  if (!hasRole(_torCallerRole, "super_user") && _torCallerId && _torTargetId !== _torCallerId) {
+    res.status(403).json({ error: "Collaborators may only submit time-off requests for themselves." });
+    return;
+  }
 
   const { userId, startDate, endDate } = parsed.data as any;
 
@@ -142,6 +152,16 @@ router.patch("/time-off-requests/:id", requirePM, async (req, res): Promise<void
 router.delete("/time-off-requests/:id", async (req, res): Promise<void> => {
   const params = DeleteTimeOffRequestParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  // FIX 4: collaborators may only delete their own time-off requests; PM+ may delete any.
+  const _delCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _delCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!hasRole(_delCallerRole, "super_user") && _delCallerId) {
+    const [_delExisting] = await db.select({ userId: timeOffRequestsTable.userId }).from(timeOffRequestsTable).where(eq(timeOffRequestsTable.id, params.data.id));
+    if (_delExisting && _delExisting.userId !== _delCallerId) {
+      res.status(403).json({ error: "Access denied: you may only delete your own time-off requests." });
+      return;
+    }
+  }
   await db.delete(timeOffRequestsTable).where(eq(timeOffRequestsTable.id, params.data.id));
   res.status(204).send();
 });
@@ -159,14 +179,14 @@ router.get("/holiday-calendars", async (_req, res): Promise<void> => {
   })));
 });
 
-router.post("/holiday-calendars", async (req, res): Promise<void> => {
+router.post("/holiday-calendars", requireAdmin, async (req, res): Promise<void> => {
   const { name, description } = req.body;
   if (!name) { res.status(400).json({ error: "name required" }); return; }
   const [cal] = await db.insert(holidayCalendarsTable).values({ name, description }).returning();
   res.status(201).json({ ...cal, holidays: [] });
 });
 
-router.post("/holiday-calendars/:id/dates", async (req, res): Promise<void> => {
+router.post("/holiday-calendars/:id/dates", requireAdmin, async (req, res): Promise<void> => {
   const calendarId = parseInt(req.params.id);
   const { name, date } = req.body;
   if (!name || !date) { res.status(400).json({ error: "name and date required" }); return; }
@@ -181,13 +201,13 @@ router.get("/holiday-calendars/:id/dates", async (req, res): Promise<void> => {
   res.json(rows.map(d => ({ ...d, createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : d.createdAt })));
 });
 
-router.delete("/holiday-calendars/:id/dates/:dateId", async (req, res): Promise<void> => {
+router.delete("/holiday-calendars/:id/dates/:dateId", requireAdmin, async (req, res): Promise<void> => {
   const dateId = parseInt(req.params.dateId);
   await db.delete(holidayDatesTable).where(eq(holidayDatesTable.id, dateId));
   res.status(204).send();
 });
 
-router.patch("/holiday-calendars/:id", async (req, res): Promise<void> => {
+router.patch("/holiday-calendars/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid calendar id" }); return; }
   const { name, description } = req.body;
@@ -200,7 +220,7 @@ router.patch("/holiday-calendars/:id", async (req, res): Promise<void> => {
   res.json({ ...cal, createdAt: cal.createdAt instanceof Date ? cal.createdAt.toISOString() : cal.createdAt, holidays: dates });
 });
 
-router.delete("/holiday-calendars/:id", async (req, res): Promise<void> => {
+router.delete("/holiday-calendars/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid calendar id" }); return; }
   await db.delete(holidayDatesTable).where(eq(holidayDatesTable.calendarId, id));

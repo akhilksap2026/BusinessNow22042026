@@ -5,7 +5,9 @@ import { db, timesheetsTable, notificationsTable, timesheetRowsTable, timeSettin
 import { getGovernanceSettings, checkTimesheetStatusChangeable, checkTimesheetEditable } from "../lib/governance";
 import { checkEffortOverrun } from "../lib/effortOverrunCheck";
 import { snapshotRatesForTimesheet } from "../lib/snapshotRates";
-import { requirePM } from "../middleware/rbac";
+import { requirePM, assertNotSelfApproval } from "../middleware/rbac";
+import { hasRole } from "../constants/roles";
+import { logAudit } from "../lib/audit";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import { checkProjectNotClosed } from "../lib/closedProjectGuard";
 import {
@@ -78,6 +80,12 @@ router.get("/timesheets", async (req, res): Promise<void> => {
   if (qp.success && qp.data.userId) conditions.push(eq(timesheetsTable.userId, qp.data.userId));
   if (qp.success && qp.data.status) conditions.push(eq(timesheetsTable.status, qp.data.status));
   if (qp.success && qp.data.weekStart) conditions.push(eq(timesheetsTable.weekStart, qp.data.weekStart));
+  // FIX 4: collaborators may only see their own timesheets.
+  const _listCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _listCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!hasRole(_listCallerRole, "super_user") && _listCallerId) {
+    conditions.push(eq(timesheetsTable.userId, _listCallerId));
+  }
   const rows = conditions.length
     ? await db.select().from(timesheetsTable).where(and(...conditions))
     : await db.select().from(timesheetsTable);
@@ -87,6 +95,13 @@ router.get("/timesheets", async (req, res): Promise<void> => {
 router.post("/timesheets", async (req, res): Promise<void> => {
   const parsed = CreateTimesheetBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  // FIX 4: collaborators can only create timesheets for themselves.
+  const _createCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _createCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!hasRole(_createCallerRole, "super_user") && _createCallerId && parsed.data.userId !== _createCallerId) {
+    res.status(403).json({ error: "Collaborators may only create timesheets for themselves." });
+    return;
+  }
   const existing = await db.select().from(timesheetsTable)
     .where(and(eq(timesheetsTable.userId, parsed.data.userId), eq(timesheetsTable.weekStart, parsed.data.weekStart)));
   if (existing.length > 0) {
@@ -102,6 +117,13 @@ router.get("/timesheets/:id", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [row] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
   if (!row) { res.status(404).json({ error: "Timesheet not found" }); return; }
+  // FIX 4: collaborators may only view their own timesheets.
+  const _getCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const _getCallerId = (req as AuthenticatedRequest).authUserId;
+  if (!hasRole(_getCallerRole, "super_user") && _getCallerId && row.userId !== _getCallerId) {
+    res.status(403).json({ error: "Access denied: you may only view your own timesheets." });
+    return;
+  }
   res.json(GetTimesheetResponse.parse(mapTimesheet(row)));
 });
 
@@ -121,6 +143,16 @@ router.patch("/timesheets/:id", async (req, res): Promise<void> => {
   if (tsUpdates.totalHours !== undefined) tsUpdates.totalHours = String(tsUpdates.totalHours);
   if (tsUpdates.billableHours !== undefined) tsUpdates.billableHours = String(tsUpdates.billableHours);
   const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  // FIX 3/4: Approving or rejecting via PATCH requires PM-level and must not
+  // be a self-approval (mirrors guards on POST /timesheets/:id/approve).
+  if (tsUpdates.status === "Approved" || tsUpdates.status === "Rejected") {
+    if (!hasRole(role, "super_user")) {
+      res.status(403).json({ error: "Insufficient permissions: PM-level required to approve or reject timesheets." });
+      return;
+    }
+    const [_sheetForCheck] = await db.select({ userId: timesheetsTable.userId }).from(timesheetsTable).where(eq(timesheetsTable.id, params.data.id));
+    if (_sheetForCheck && assertNotSelfApproval((req as AuthenticatedRequest).authUserId, _sheetForCheck.userId, res)) return;
+  }
   const settings = await getGovernanceSettings();
   // Sprint 1 / Phase 3.8: wrap the entire withdraw / hours-update flow in a
   // single txn so a concurrent PATCH cannot interleave the read-then-write
@@ -232,6 +264,19 @@ router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void
     res.status(403).json({ error: "You cannot approve your own timesheet." });
     return;
   }
+  // FIX 5: Re-validate actor's current role from DB to guard against stale-header privilege escalation.
+  if (actorId) {
+    const [_actorUser] = await db.select({ role: usersTable.role, activeStatus: usersTable.activeStatus })
+      .from(usersTable).where(eq(usersTable.id, actorId));
+    if (!_actorUser || _actorUser.activeStatus !== "active") {
+      res.status(403).json({ error: "Actor account is not active or does not exist." });
+      return;
+    }
+    if (!hasRole(_actorUser.role, "super_user")) {
+      res.status(403).json({ error: "Actor no longer has sufficient permissions to approve timesheets." });
+      return;
+    }
+  }
   {
     const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
     const settings = await getGovernanceSettings();
@@ -250,6 +295,8 @@ router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void
     } as any)
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
+  // FIX 7: Audit log for timesheet approval (privileged mutation).
+  void logAudit({ entityType: "timesheet", entityId: String(params.data.id), action: "approved", userId: actorId, details: `Timesheet id=${params.data.id} approved by userId=${actorId}` });
   await notifyUsers([existing.userId], "timesheet_approved",
     `Your timesheet for the week of ${existing.weekStart} has been approved.`, existing.id);
   // Snapshot bill/cost rates active on each entry's WORK DATE. Fire-and-forget.
@@ -261,7 +308,7 @@ router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void
 });
 
 // Undo approval: returns timesheet to Submitted and clears Approved + Rejected audit fields.
-router.post("/timesheets/:id/unapprove", async (req, res): Promise<void> => {
+router.post("/timesheets/:id/unapprove", requirePM, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, id));

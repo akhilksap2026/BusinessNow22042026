@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, notificationsTable } from "@workspace/db";
+import { requirePM } from "../middleware/rbac";
+import type { AuthenticatedRequest } from "../middleware/roleClaim";
 import {
   ListNotificationsResponse,
   MarkNotificationReadParams,
@@ -18,12 +20,23 @@ function mapNotification(n: typeof notificationsTable.$inferSelect) {
   };
 }
 
-router.get("/notifications", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(notificationsTable).orderBy(notificationsTable.timestamp);
+router.get("/notifications", async (req, res): Promise<void> => {
+  // Scope: each user only sees their own notifications unless PM+.
+  const callerId = (req as AuthenticatedRequest).authUserId;
+  const callerRole = (req as unknown as AuthenticatedRequest).authRole ?? "collaborator";
+  const { hasRole } = await import("../constants/roles");
+  const isPM = hasRole(callerRole, "super_user");
+  const { eq: eqDrizzle } = await import("drizzle-orm");
+  const rows = isPM
+    ? await db.select().from(notificationsTable).orderBy(notificationsTable.timestamp)
+    : await db.select().from(notificationsTable)
+        .where(callerId ? eqDrizzle(notificationsTable.userId, callerId) : eqDrizzle(notificationsTable.userId, -1))
+        .orderBy(notificationsTable.timestamp);
   res.json(ListNotificationsResponse.parse(rows.map(mapNotification)));
 });
 
-router.post("/notifications", async (req, res): Promise<void> => {
+// POST /notifications — PM+ only; prevents arbitrary feed injection by collaborators.
+router.post("/notifications", requirePM, async (req, res): Promise<void> => {
   const { type, message, userId, projectId, projectName, entityType, entityId } = req.body;
   if (!type || !message) { res.status(400).json({ error: "type and message required" }); return; }
   const [row] = await db.insert(notificationsTable).values({

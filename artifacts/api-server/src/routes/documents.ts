@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, documentsTable, documentVersionsTable, documentTemplatesTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { hasRole } from "../constants/roles";
+import { requireAdmin } from "../middleware/rbac";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
 
 const router = Router();
@@ -132,7 +133,7 @@ router.get("/document-templates", async (_req, res) => {
   return res.json(rows.map(mapTemplate));
 });
 
-router.post("/document-templates", async (req, res) => {
+router.post("/document-templates", requireAdmin, async (req, res) => {
   const role = (req.headers["x-user-role"] as string) ?? "Viewer";
   // Admins manage the template library — everyone else is read-only.
   if (role !== "Admin" && role !== "account_admin") return res.status(403).json({ error: "Admin access required" });
@@ -148,7 +149,7 @@ router.post("/document-templates", async (req, res) => {
   return res.status(201).json(mapTemplate(row));
 });
 
-router.patch("/document-templates/:id", async (req, res) => {
+router.patch("/document-templates/:id", requireAdmin, async (req, res) => {
   const role = (req.headers["x-user-role"] as string) ?? "Viewer";
   if (role !== "Admin" && role !== "account_admin") return res.status(403).json({ error: "Admin access required" });
   const id = Number(req.params.id);
@@ -164,7 +165,7 @@ router.patch("/document-templates/:id", async (req, res) => {
   return res.json(mapTemplate(row));
 });
 
-router.delete("/document-templates/:id", async (req, res) => {
+router.delete("/document-templates/:id", requireAdmin, async (req, res) => {
   const role = (req.headers["x-user-role"] as string) ?? "Viewer";
   if (role !== "Admin" && role !== "account_admin") return res.status(403).json({ error: "Admin access required" });
   const id = Number(req.params.id);
