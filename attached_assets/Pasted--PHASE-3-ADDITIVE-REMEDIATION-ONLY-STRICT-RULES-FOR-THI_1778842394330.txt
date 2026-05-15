@@ -1,0 +1,91 @@
+## PHASE 3 — ADDITIVE REMEDIATION ONLY
+
+🔒 STRICT RULES FOR THIS PHASE — READ BEFORE WRITING A SINGLE LINE:
+
+1. DO NOT delete any existing file, function, route, or middleware
+2. DO NOT rename any existing function, variable, or export
+3. DO NOT change any existing function signature
+4. DO NOT rewrite existing role checks — only ADD to them
+5. Only create NEW files where a gap truly requires one
+6. Only add NEW lines to existing files — never remove or replace
+7. If a file already has a partial RBAC check, wrap or extend it —
+   do not replace it
+8. For every file you touch, show a before/after diff with exact 
+   line numbers so changes can be reviewed
+9. If a fix requires restructuring existing logic, flag it with 
+   ⚠️ REQUIRES REVIEW and do NOT auto-apply it — surface it for 
+   my decision
+
+Apply fixes in this exact order — one at a time, awaiting 
+confirmation before the next:
+
+### FIX ORDER
+
+FIX 1 — Extend the existing permissions registry
+   - Find the existing roles/permissions config (identified in Phase 1)
+   - ADD any missing role constants or permission keys to it
+   - DO NOT remove or rename any existing keys
+   - DO NOT change the structure or export format
+
+FIX 2 — Extend the existing requireRole middleware
+   - Find the existing middleware function (identified in Phase 1)
+   - If a blockSelfApproval check is missing, ADD it as a 
+     separate exported function in the SAME file
+   - DO NOT modify the existing requireRole function body
+   - DO NOT change its signature or export name
+
+FIX 3 — Add missing guards to unprotected API routes
+   - For each unprotected route found in Phase 2:
+     - ADD the existing requireRole/requirePermission call 
+       as a new middleware argument on that route
+     - DO NOT change the route handler function itself
+     - Show exact before/after for each route line changed
+
+FIX 4 — Add ownership checks where missing
+   - For PM/Designated PM scoped routes missing ownership 
+     verification:
+     - ADD an ownership check INSIDE the existing route handler,
+       at the TOP of the function body, before any other logic
+     - Use the existing DB query pattern already present in 
+       the file — do not introduce new query libraries
+     - If the handler is too complex to safely add to, 
+       flag with ⚠️ REQUIRES REVIEW
+
+FIX 5 — Add DB role re-validation on sensitive mutations
+   - Sensitive operations: approve, invoice-generate, 
+     role-assign, force-edit, deactivate-user
+   - ADD a fresh DB lookup for the user's current role at 
+     the top of the handler, using the existing DB client 
+     already imported in that file
+   - ADD early return with 403 if role has changed or 
+     account is deactivated
+   - DO NOT change any logic below the new guard lines
+
+FIX 6 — Add frontend route guards where missing
+   - Find the existing frontend auth guard component 
+     (identified in Phase 1)
+   - Wrap only the unprotected Wouter routes with it
+   - DO NOT modify the guard component itself
+   - DO NOT change any existing protected routes
+
+FIX 7 — Add audit log entries for privileged actions
+   - For role assignment, timesheet force-edit, invoice 
+     generation, and user deactivation:
+     - ADD an audit log insert AFTER the successful DB 
+       mutation in the existing handler
+     - Use the existing audit_logs table and DB client 
+       already in the file — do not create a new logging 
+       utility unless none exists
+     - If no audit_logs table exists, flag with 
+       ⚠️ REQUIRES SCHEMA ADDITION and do not auto-apply
+
+For every fix, output:
+
+FILE: <exact path>
+CHANGE TYPE: New file | Added lines | Extended existing function
+LINES AFFECTED: <line numbers>
+BEFORE:
+  <exact existing code>
+AFTER:
+  <exact new code with additions highlighted>
+RISK: Low | Medium | ⚠️ Requires Review
