@@ -44,7 +44,7 @@ import {
 import { Link } from "wouter";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Building2, MoreHorizontal, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen } from "lucide-react";
+import { Plus, Search, Building2, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -234,7 +234,7 @@ export default function Accounts() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More options">
-                              <MoreHorizontal className="h-4 w-4" />
+                              <Pencil className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -310,7 +310,7 @@ export default function Accounts() {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreHorizontal className="h-4 w-4" />
+                                      <Pencil className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>More options</TooltipContent>
