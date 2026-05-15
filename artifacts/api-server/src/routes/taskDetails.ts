@@ -146,6 +146,25 @@ router.post("/tasks/:id/notes", async (req, res): Promise<void> => {
   res.status(201).json(mapNote(row, user.name));
 });
 
+router.patch("/tasks/:taskId/notes/:noteId", async (req, res): Promise<void> => {
+  const noteId = parseInt(req.params.noteId);
+  if (isNaN(noteId)) { res.status(400).json({ error: "Invalid note id" }); return; }
+  const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
+  if (!content) { res.status(400).json({ error: "content is required" }); return; }
+  const requesterId = Number(req.headers["x-user-id"] ?? 0);
+  const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
+  const [existing] = await db.select().from(taskNotesTable).where(eq(taskNotesTable.id, noteId));
+  if (!existing) { res.status(404).json({ error: "Note not found" }); return; }
+  const owner = requesterId && existing.userId === requesterId;
+  if (!owner && !hasRole(role, "super_user")) {
+    res.status(403).json({ error: "Only the note author or a PM can edit this note." });
+    return;
+  }
+  const [row] = await db.update(taskNotesTable).set({ content, updatedAt: new Date() }).where(eq(taskNotesTable.id, noteId)).returning();
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, row.userId));
+  res.json(mapNote(row, user?.name ?? null));
+});
+
 router.delete("/tasks/:taskId/notes/:noteId", async (req, res): Promise<void> => {
   const noteId = parseInt(req.params.noteId);
   if (isNaN(noteId)) { res.status(400).json({ error: "Invalid note id" }); return; }

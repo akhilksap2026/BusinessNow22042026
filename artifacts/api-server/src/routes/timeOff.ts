@@ -187,6 +187,19 @@ router.delete("/holiday-calendars/:id/dates/:dateId", async (req, res): Promise<
   res.status(204).send();
 });
 
+router.patch("/holiday-calendars/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid calendar id" }); return; }
+  const { name, description } = req.body;
+  if (!name || typeof name !== "string" || !name.trim()) { res.status(400).json({ error: "name is required" }); return; }
+  const updates: any = { name: name.trim() };
+  if (description !== undefined) updates.description = description || null;
+  const [cal] = await db.update(holidayCalendarsTable).set(updates).where(eq(holidayCalendarsTable.id, id)).returning();
+  if (!cal) { res.status(404).json({ error: "Calendar not found" }); return; }
+  const dates = await db.select().from(holidayDatesTable).where(eq(holidayDatesTable.calendarId, id));
+  res.json({ ...cal, createdAt: cal.createdAt instanceof Date ? cal.createdAt.toISOString() : cal.createdAt, holidays: dates });
+});
+
 router.delete("/holiday-calendars/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid calendar id" }); return; }

@@ -6,6 +6,15 @@ import {
   CreateRevenueEntryBody,
   DeleteRevenueEntryParams,
 } from "@workspace/api-zod";
+import { z } from "zod";
+
+const UpdateRevenueEntryBody = z.object({
+  period: z.string().optional(),
+  amount: z.number().optional(),
+  method: z.string().optional(),
+  notes: z.string().nullable().optional(),
+  recognizedAt: z.string().optional(),
+});
 
 const router: IRouter = Router();
 
@@ -33,6 +42,18 @@ router.post("/revenue-entries", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(revenueEntriesTable).values(parsed.data as any).returning();
   res.status(201).json(mapEntry(row));
+});
+
+router.patch("/revenue-entries/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const parsed = UpdateRevenueEntryBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const updates: any = { ...parsed.data };
+  if (updates.amount !== undefined) updates.amount = String(updates.amount);
+  const [row] = await db.update(revenueEntriesTable).set(updates).where(eq(revenueEntriesTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Revenue entry not found" }); return; }
+  res.json(mapEntry(row));
 });
 
 router.delete("/revenue-entries/:id", async (req, res): Promise<void> => {

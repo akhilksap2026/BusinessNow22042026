@@ -31,6 +31,18 @@ router.post("/skill-categories", requireAdmin, async (req, res): Promise<void> =
   res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
 });
 
+router.patch("/skill-categories/:id", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { name, description } = req.body;
+  if (!name || typeof name !== "string" || !name.trim()) { res.status(400).json({ error: "name is required" }); return; }
+  const updates: any = { name: name.trim() };
+  if (description !== undefined) updates.description = description || null;
+  const [row] = await db.update(skillCategoriesTable).set(updates).where(eq(skillCategoriesTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Category not found" }); return; }
+  res.json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
+});
+
 router.delete("/skill-categories/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeleteSkillCategoryParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
@@ -54,6 +66,22 @@ router.post("/skills", requireAdmin, async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(skillsTable).values(parsed.data).returning();
   res.status(201).json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
+});
+
+router.patch("/skills/:id", requireAdmin, async (req, res): Promise<void> => {
+  const params = DeleteSkillParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const { name, categoryId, skillType, section, description, isActive } = req.body;
+  const updates: any = {};
+  if (name !== undefined) updates.name = name;
+  if (categoryId !== undefined) updates.categoryId = categoryId;
+  if (skillType !== undefined) updates.skillType = skillType;
+  if (section !== undefined) updates.section = section || null;
+  if (description !== undefined) updates.description = description || null;
+  if (isActive !== undefined) updates.isActive = isActive;
+  const [row] = await db.update(skillsTable).set(updates).where(eq(skillsTable.id, params.data.id)).returning();
+  if (!row) { res.status(404).json({ error: "Skill not found" }); return; }
+  res.json({ ...row, createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt });
 });
 
 router.delete("/skills/:id", requireAdmin, async (req, res): Promise<void> => {
