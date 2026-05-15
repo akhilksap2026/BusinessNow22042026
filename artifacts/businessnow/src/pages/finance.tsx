@@ -450,9 +450,6 @@ export default function Finance() {
             <TabsTrigger value="schedules" className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4" /> Billing Schedules
             </TabsTrigger>
-            <TabsTrigger value="revenue" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> Revenue Recognition
-            </TabsTrigger>
             <TabsTrigger value="projects" className="flex items-center gap-2">
               <FileText className="h-4 w-4" /> Contracts
             </TabsTrigger>
@@ -637,100 +634,6 @@ export default function Finance() {
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                               <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteScheduleId(s.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="revenue" className="m-0 space-y-4">
-            {revReport && revReport.periods.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Revenue by Period</CardTitle>
-                  <CardDescription>
-                    Total recognised: <strong>${revReport.totalRecognized.toLocaleString()}</strong>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={revReport.periods} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis dataKey="period" tick={{ fontSize: 12 }} />
-                      <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 12 }} />
-                      <RechartsTooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
-                      <Legend />
-                      {revReport.methods.map((m, i) => (
-                        <Bar key={m} dataKey={`byMethod.${m}`} name={m} stackId="a" fill={COLORS[i % COLORS.length]} radius={i === revReport.methods.length - 1 ? [4, 4, 0, 0] : [0,0,0,0]} />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Revenue Entries</CardTitle>
-                  <CardDescription>Log recognised revenue by project and accounting period</CardDescription>
-                </div>
-                <Button size="sm" onClick={() => setIsRevenueOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" /> Recognise Revenue
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {isLoadingRevenue ? (
-                  <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-                ) : revenueEntries?.length === 0 ? (
-                  <EmptyState
-                    icon={TrendingUp}
-                    title="No revenue entries"
-                    description="Record recognised revenue against projects and periods."
-                    action={{ label: "Recognise Revenue", onClick: () => setIsRevenueOpen(true) }}
-                  />
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Project</TableHead>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Recognised At</TableHead>
-                        <TableHead>Notes</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(revenueEntries ?? []).filter(e => {
-                        if (!searchQuery) return true;
-                        const q = searchQuery.toLowerCase();
-                        const pName = projects?.find(p => p.id === e.projectId)?.name?.toLowerCase() ?? "";
-                        return pName.includes(q) || (e.period ?? "").toLowerCase().includes(q) || (e.method ?? "").toLowerCase().includes(q);
-                      }).map(e => (
-                        <TableRow key={e.id}>
-                          <TableCell className="font-medium">{projects?.find(p => p.id === e.projectId)?.name ?? `#${e.projectId}`}</TableCell>
-                          <TableCell>{e.period}</TableCell>
-                          <TableCell><Badge variant="outline" className="text-xs font-normal">{e.method}</Badge></TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{e.recognizedAt}</TableCell>
-                          <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{e.notes ?? "—"}</TableCell>
-                          <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
-                            ${Number(e.amount).toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-0.5">
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => setEditingRevenue(e)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteRevenueId(e.id)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>
