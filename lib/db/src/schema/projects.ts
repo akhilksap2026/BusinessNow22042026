@@ -33,6 +33,7 @@ export const projectsTable = pgTable("projects", {
   // changes with 403 budget_locked. Account Admin can unlock via
   // PATCH /projects/:id/unlock-budget.
   budgetLocked: boolean("budget_locked").notNull().default(false),
+  contractType: text("contract_type").notNull().default("Time_And_Materials"),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
