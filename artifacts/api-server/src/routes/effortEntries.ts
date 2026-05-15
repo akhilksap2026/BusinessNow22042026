@@ -9,7 +9,7 @@
  */
 
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, inArray, sql, desc, asc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, asc, gte, lte, ilike, or } from "drizzle-orm";
 import {
   db,
   effortEntriesTable,
@@ -17,6 +17,8 @@ import {
   contractRulesTable,
   proxyDelegationsTable,
   notificationsTable,
+  financialPeriodsTable,
+  exceptionalEffortRulesTable,
 } from "@workspace/db";
 import { requireAdmin, requireFinance } from "../middleware/rbac";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
@@ -693,4 +695,97 @@ router.delete("/time/proxy-delegations/:id", requireAdmin, async (req: Request, 
   res.status(204).send();
 });
 
+// ─── Financial Periods ────────────────────────────────────────────────────────
+
+router.get("/time/financial-periods", requireAdmin, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await db.select().from(financialPeriodsTable).orderBy(desc(financialPeriodsTable.startDate));
+  res.json({ data: rows });
+});
+
+router.post("/time/financial-periods", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const { periodName, startDate, endDate, status = "Open", cfoOverrideActive = false, cfoOverrideUserId } = req.body as any;
+  if (!periodName || !startDate || !endDate) { apiErr(res, 400, "MISSING_FIELDS", "periodName, startDate and endDate are required."); return; }
+  if (endDate <= startDate) { apiErr(res, 400, "INVALID_RANGE", "endDate must be after startDate."); return; }
+
+  const [row] = await db.insert(financialPeriodsTable).values({
+    periodName,
+    startDate,
+    endDate,
+    status,
+    cfoOverrideActive: Boolean(cfoOverrideActive),
+    cfoOverrideUserId: cfoOverrideUserId ?? null,
+    updatedAt: new Date(),
+  } as any).returning();
+  res.status(201).json({ data: row });
+});
+
+router.patch("/time/financial-periods/:id", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const id = Number(req.params.id as string);
+  const [existing] = await db.select().from(financialPeriodsTable).where(eq(financialPeriodsTable.id, id)).limit(1);
+  if (!existing) { apiErr(res, 404, "NOT_FOUND", "Financial period not found."); return; }
+
+  const { status, cfoOverrideActive, cfoOverrideUserId, periodName, startDate, endDate } = req.body as any;
+  const patch: Record<string, any> = { updatedAt: new Date() };
+  if (status !== undefined)           patch.status = status;
+  if (cfoOverrideActive !== undefined) patch.cfoOverrideActive = Boolean(cfoOverrideActive);
+  if (cfoOverrideUserId !== undefined) patch.cfoOverrideUserId = cfoOverrideUserId;
+  if (periodName !== undefined)        patch.periodName = periodName;
+  if (startDate !== undefined)         patch.startDate = startDate;
+  if (endDate !== undefined)           patch.endDate = endDate;
+
+  const [updated] = await db.update(financialPeriodsTable).set(patch).where(eq(financialPeriodsTable.id, id)).returning();
+  res.json({ data: updated });
+});
+
+// ─── Exceptional Effort Rules ─────────────────────────────────────────────────
+
+router.get("/time/exceptional-effort-rules", requireAdmin, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await db.select().from(exceptionalEffortRulesTable).orderBy(desc(exceptionalEffortRulesTable.id));
+  res.json({ data: rows });
+});
+
+router.patch("/time/exceptional-effort-rules/:id", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const id = Number(req.params.id as string);
+  const [existing] = await db.select().from(exceptionalEffortRulesTable).where(eq(exceptionalEffortRulesTable.id, id)).limit(1);
+  if (!existing) { apiErr(res, 404, "NOT_FOUND", "Rule not found."); return; }
+
+  const { dailyOvertimeThresholdHours, weeklyOvertimeThresholdHours, isActive } = req.body as any;
+  const patch: Record<string, any> = { updatedAt: new Date() };
+  if (dailyOvertimeThresholdHours !== undefined)  patch.dailyOvertimeThresholdHours = String(dailyOvertimeThresholdHours);
+  if (weeklyOvertimeThresholdHours !== undefined) patch.weeklyOvertimeThresholdHours = String(weeklyOvertimeThresholdHours);
+  if (isActive !== undefined)                     patch.isActive = Boolean(isActive);
+
+  const [updated] = await db.update(exceptionalEffortRulesTable).set(patch).where(eq(exceptionalEffortRulesTable.id, id)).returning();
+  res.json({ data: updated });
+});
+
+// ─── Audit Log Viewer ─────────────────────────────────────────────────────────
+
+router.get("/time/audit-log", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const { userId, action, dateFrom, dateTo, entryId, limit = "100", offset = "0" } = req.query as any;
+
+  const conditions = [];
+  if (userId)   conditions.push(eq(effortAuditLogTable.performedById, Number(userId)));
+  if (action)   conditions.push(eq(effortAuditLogTable.action, action));
+  if (entryId)  conditions.push(eq(effortAuditLogTable.effortEntryId, Number(entryId)));
+  if (dateFrom) conditions.push(gte(effortAuditLogTable.performedAt, new Date(dateFrom)));
+  if (dateTo)   conditions.push(lte(effortAuditLogTable.performedAt, new Date(dateTo + "T23:59:59Z")));
+
+  const lim = Math.min(Number(limit) || 100, 500);
+  const off = Number(offset) || 0;
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [rows, [{ count }]] = await Promise.all([
+    db.select().from(effortAuditLogTable)
+      .where(where)
+      .orderBy(desc(effortAuditLogTable.performedAt))
+      .limit(lim).offset(off),
+    db.select({ count: sql<number>`count(*)::int` }).from(effortAuditLogTable).where(where),
+  ]);
+
+  res.json({ data: rows, total: count, limit: lim, offset: off });
+});
+
 export default router;
+
