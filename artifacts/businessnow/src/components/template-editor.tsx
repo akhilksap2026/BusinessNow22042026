@@ -36,7 +36,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronRight,
-  LayoutTemplate, Archive, ArchiveRestore, GripVertical, Users, GitBranch,
+  LayoutTemplate, Archive, ArchiveRestore, GripVertical, Users,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -1002,119 +1002,6 @@ function AllocationsSection({ templateId, totalDays }: { templateId: number; tot
   );
 }
 
-// ─── Template Task Dependencies section (P2) ─────────────────────────────────
-
-function TemplateDepsSection({ templateId, allTasks }: { templateId: number; allTasks: TemplateTask[] }) {
-  const { toast } = useToast();
-  const { data: deps, refetch } = useQuery<any[]>({
-    queryKey: ["template-task-deps", templateId],
-    queryFn: async () => {
-      const r = await fetch(`/api/project-templates/${templateId}/task-dependencies`, { headers: authHeaders() });
-      if (!r.ok) return [];
-      return r.json();
-    },
-  });
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ predecessorId: "", successorId: "", dependencyType: "FS", lagDays: "0" });
-
-  async function handleAdd() {
-    if (!form.predecessorId || !form.successorId) return;
-    const r = await fetch(`/api/project-templates/${templateId}/task-dependencies`, {
-      method: "POST",
-      headers: { ...authHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ predecessorId: Number(form.predecessorId), successorId: Number(form.successorId), dependencyType: form.dependencyType, lagDays: Number(form.lagDays) }),
-    });
-    if (!r.ok) { toast({ title: "Failed to add dependency", variant: "destructive" }); return; }
-    setForm({ predecessorId: "", successorId: "", dependencyType: "FS", lagDays: "0" });
-    setAdding(false);
-    refetch();
-  }
-
-  async function handleDelete(id: number) {
-    await fetch(`/api/project-templates/${templateId}/task-dependencies/${id}`, { method: "DELETE", headers: authHeaders() });
-    refetch();
-  }
-
-  const taskName = (id: number) => allTasks.find(t => t.id === id)?.name ?? `Task #${id}`;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm flex items-center gap-2">
-          <GitBranch className="h-4 w-4 text-muted-foreground" />
-          Task Dependencies
-          {(deps?.length ?? 0) > 0 && <span className="text-xs text-muted-foreground font-normal">{deps!.length} defined</span>}
-        </h3>
-        {!adding && (
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setAdding(true)}>
-            <Plus className="h-3.5 w-3.5" /> Add Dependency
-          </Button>
-        )}
-      </div>
-
-      {(!deps || deps.length === 0) && !adding && (
-        <p className="text-sm text-muted-foreground">No dependencies defined. Tasks run in parallel unless linked.</p>
-      )}
-
-      {deps && deps.length > 0 && (
-        <div className="space-y-1.5">
-          {deps.map((dep: any) => (
-            <div key={dep.id} className="flex items-center justify-between gap-2 group py-1.5 px-3 rounded border bg-muted/30">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span className="text-sm font-medium truncate">{taskName(dep.predecessorId)}</span>
-                <span className="text-xs font-mono bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">{dep.dependencyType}</span>
-                <span className="text-sm truncate">{taskName(dep.successorId)}</span>
-                {dep.lagDays > 0 && <span className="text-xs text-muted-foreground shrink-0">+{dep.lagDays}d lag</span>}
-              </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0" onClick={() => handleDelete(dep.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {adding && (
-        <div className="space-y-2 p-3 border rounded bg-muted/20">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Predecessor (runs first)</Label>
-              <Select value={form.predecessorId} onValueChange={v => setForm(f => ({ ...f, predecessorId: v }))}>
-                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select task…" /></SelectTrigger>
-                <SelectContent>
-                  {allTasks.filter(t => String(t.id) !== form.successorId).map(t => (
-                    <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Successor (runs after)</Label>
-              <Select value={form.successorId} onValueChange={v => setForm(f => ({ ...f, successorId: v }))}>
-                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select task…" /></SelectTrigger>
-                <SelectContent>
-                  {allTasks.filter(t => String(t.id) !== form.predecessorId).map(t => (
-                    <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={form.dependencyType} onValueChange={v => setForm(f => ({ ...f, dependencyType: v }))}>
-              <SelectTrigger className="h-8 text-sm w-24"><SelectValue /></SelectTrigger>
-              <SelectContent>{["FS","SS","FF","SF"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
-            <Input type="number" min={0} className="h-8 text-sm w-28" placeholder="Lag days" value={form.lagDays} onChange={e => setForm(f => ({ ...f, lagDays: e.target.value }))} />
-            <Button size="sm" className="h-8" onClick={handleAdd} disabled={!form.predecessorId || !form.successorId}>Add</Button>
-            <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAdding(false); setForm({ predecessorId: "", successorId: "", dependencyType: "FS", lagDays: "0" }); }}>Cancel</Button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main TemplateEditor ──────────────────────────────────────────────────────
 
 interface TemplateEditorProps {
@@ -1380,9 +1267,6 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
           </Card>
         )}
       </div>
-
-      {/* P2 — Task Dependencies */}
-      <TemplateDepsSection templateId={templateId} allTasks={phases.flatMap(ph => ph.tasks)} />
 
       {/* Allocations */}
       <AllocationsSection templateId={templateId} totalDays={template.totalDurationDays} />
