@@ -27,7 +27,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3, ChevronDown, ChevronUp, CalendarDays } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Briefcase, CalendarRange, AlertTriangle, Search, Mail, DollarSign, LayoutList, UserCheck, MessageSquare, RefreshCw, Ban, Send, Grid3x3, ChevronDown, ChevronUp, CalendarDays, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -416,6 +416,8 @@ export default function Resources() {
   const [acceptAltSubmitting, setAcceptAltSubmitting] = useState<number | null>(null);
   const [declineAltSubmitting, setDeclineAltSubmitting] = useState<number | null>(null);
 
+  const [deleteRequestId, setDeleteRequestId] = useState<number | null>(null);
+  const [deletingRequest, setDeletingRequest] = useState(false);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
   const [chatMessages, setChatMessages] = useState<Record<number, any[]>>({});
   const [chatInput, setChatInput] = useState("");
@@ -579,6 +581,25 @@ export default function Resources() {
       setBlockRequestId(null);
     } catch {
       toast({ title: "Failed to block request", variant: "destructive" });
+    }
+  }
+
+  async function handleDeleteRequest() {
+    if (!deleteRequestId) return;
+    setDeletingRequest(true);
+    try {
+      const res = await fetch(`/api/resource-requests/${deleteRequestId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListResourceRequestsQueryKey() });
+      toast({ title: "Resource request deleted" });
+      setDeleteRequestId(null);
+    } catch {
+      toast({ title: "Failed to delete request", variant: "destructive" });
+    } finally {
+      setDeletingRequest(false);
     }
   }
 
@@ -1051,6 +1072,11 @@ export default function Resources() {
                               <MessageSquare className="h-3.5 w-3.5 mr-1" /> {isChatOpen ? "Hide" : "Chat"} {threadMsgs.length > 0 && `(${threadMsgs.length})`}
                             </Button>
                           )}
+                          {req.status !== "Fulfilled" && (
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500 self-start" onClick={() => setDeleteRequestId(req.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -1277,6 +1303,22 @@ export default function Resources() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Request confirmation */}
+      <Dialog open={!!deleteRequestId} onOpenChange={(o) => { if (!o) setDeleteRequestId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Resource Request</DialogTitle>
+            <DialogDescription>This resource request will be permanently deleted and cannot be recovered.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteRequestId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteRequest} disabled={deletingRequest}>
+              {deletingRequest ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Propose Alternative dialog */}
       <Dialog open={proposeAltOpen} onOpenChange={setProposeAltOpen}>

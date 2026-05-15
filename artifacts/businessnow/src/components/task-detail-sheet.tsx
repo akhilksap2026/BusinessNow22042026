@@ -34,7 +34,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useUndoableMutation } from "@/hooks/use-undoable-mutation";
-import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch, AlertTriangle, FileText, Clock } from "lucide-react";
+import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch, AlertTriangle, FileText, Clock, Pencil } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface TaskDetailSheetProps {
@@ -99,6 +99,8 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const [addingComment, setAddingComment] = useState(false);
   const [addingChecklist, setAddingChecklist] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
+  const [editNoteId, setEditNoteId] = useState<number | null>(null);
+  const [editNoteContent, setEditNoteContent] = useState("");
   const [addingDep, setAddingDep] = useState(false);
   const [depForm, setDepForm] = useState({ predecessorId: "", dependencyType: "FS", lagDays: "0" });
   const [addingDailyAlloc, setAddingDailyAlloc] = useState(false);
@@ -217,6 +219,22 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
       queryClient.invalidateQueries({ queryKey: getListTaskNotesQueryKey(taskId) });
     } catch {
       toast({ title: "Failed to delete note", variant: "destructive" });
+    }
+  }
+
+  async function handleSaveEditNote() {
+    if (!taskId || editNoteId === null || !editNoteContent.trim()) return;
+    try {
+      await fetch(`/api/tasks/${taskId}/notes/${editNoteId}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ content: editNoteContent.trim() }),
+      });
+      queryClient.invalidateQueries({ queryKey: getListTaskNotesQueryKey(taskId) });
+      setEditNoteId(null);
+      setEditNoteContent("");
+    } catch {
+      toast({ title: "Failed to update note", variant: "destructive" });
     }
   }
 
@@ -852,7 +870,8 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                       <p className="text-sm text-muted-foreground">No notes yet.</p>
                     )}
                     {notes?.map((note) => {
-                      const canDelete = note.userId === currentUserId || hasRole(activeRole, "super_user");
+                      const canEdit = note.userId === currentUserId || hasRole(activeRole, "super_user");
+                      const isEditing = editNoteId === note.id;
                       return (
                         <div key={note.id} className="flex gap-3 group">
                           <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
@@ -867,17 +886,43 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                                 {note.createdAt ? formatDistanceToNow(new Date(note.createdAt), { addSuffix: true }) : ""}
                               </span>
                             </div>
-                            <p className="text-sm text-slate-700 mt-0.5 break-words whitespace-pre-wrap">{note.content}</p>
+                            {isEditing ? (
+                              <div className="mt-1 space-y-2">
+                                <Textarea
+                                  className="text-sm resize-none"
+                                  rows={3}
+                                  value={editNoteContent}
+                                  onChange={e => setEditNoteContent(e.target.value)}
+                                  autoFocus
+                                />
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={handleSaveEditNote} disabled={!editNoteContent.trim()}>Save</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => { setEditNoteId(null); setEditNoteContent(""); }}>Cancel</Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-700 mt-0.5 break-words whitespace-pre-wrap">{note.content}</p>
+                            )}
                           </div>
-                          {canDelete && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground flex-shrink-0"
-                              onClick={() => handleDeleteNote(note.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                          {canEdit && !isEditing && (
+                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground"
+                                onClick={() => { setEditNoteId(note.id); setEditNoteContent(note.content); }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground"
+                                onClick={() => handleDeleteNote(note.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           )}
                         </div>
                       );

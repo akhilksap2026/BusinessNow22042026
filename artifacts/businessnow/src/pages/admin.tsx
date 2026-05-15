@@ -849,6 +849,12 @@ export default function Admin() {
   const [newSkillSection, setNewSkillSection] = useState("");
   const [newSkillDescription, setNewSkillDescription] = useState("");
   const [deleteSkillId, setDeleteSkillId] = useState<number | null>(null);
+  const [editSkillId, setEditSkillId] = useState<number | null>(null);
+  const [editSkillForm, setEditSkillForm] = useState({ name: "", categoryId: "", skillType: "Level", section: "", description: "" });
+  const [renameCalendarId, setRenameCalendarId] = useState<number | null>(null);
+  const [renameCalendarName, setRenameCalendarName] = useState("");
+  const [renameCalendarDesc, setRenameCalendarDesc] = useState("");
+  const [renamingCalendar, setRenamingCalendar] = useState(false);
 
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [skillsUser, setSkillsUser] = useState<{ id: number; name: string } | null>(null);
@@ -1452,6 +1458,51 @@ export default function Admin() {
     }
   }
 
+  async function handleSaveSkillEdit() {
+    if (!editSkillId || !editSkillForm.name) return;
+    const BASE = (typeof window !== "undefined" ? (window as any).__BASE_URL__ : "") || import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+    try {
+      const r = await fetch(`${BASE}/api/skills/${editSkillId}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          name: editSkillForm.name,
+          categoryId: editSkillForm.categoryId ? parseInt(editSkillForm.categoryId) : undefined,
+          skillType: editSkillForm.skillType,
+          section: editSkillForm.section || undefined,
+          description: editSkillForm.description || undefined,
+        }),
+      });
+      if (!r.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListSkillsQueryKey() });
+      toast({ title: "Skill updated" });
+      setEditSkillId(null);
+    } catch {
+      toast({ title: "Failed to update skill", variant: "destructive" });
+    }
+  }
+
+  async function handleRenameCalendar() {
+    if (!renameCalendarId || !renameCalendarName) return;
+    const BASE = (typeof window !== "undefined" ? (window as any).__BASE_URL__ : "") || import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+    setRenamingCalendar(true);
+    try {
+      const r = await fetch(`${BASE}/api/holiday-calendars/${renameCalendarId}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ name: renameCalendarName, description: renameCalendarDesc || undefined }),
+      });
+      if (!r.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListHolidayCalendarsQueryKey() });
+      toast({ title: "Calendar renamed" });
+      setRenameCalendarId(null);
+    } catch {
+      toast({ title: "Failed to rename calendar", variant: "destructive" });
+    } finally {
+      setRenamingCalendar(false);
+    }
+  }
+
   async function handleSaveRateCard() {
     if (!rcForm.name) return;
     try {
@@ -1853,9 +1904,17 @@ export default function Admin() {
                               {cat && <Badge variant="secondary" className="text-xs">{cat.name}</Badge>}
                               {!skill.isActive && <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>}
                             </div>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteSkillId(skill.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center gap-0.5">
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => {
+                                setEditSkillId(skill.id);
+                                const s = skill as any; setEditSkillForm({ name: s.name, categoryId: s.categoryId ? String(s.categoryId) : "", skillType: s.skillType ?? "Level", section: s.section ?? "", description: s.description ?? "" });
+                              }}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteSkillId(skill.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
@@ -2354,9 +2413,14 @@ export default function Admin() {
                             {cal.description && <p className="text-xs text-muted-foreground mt-0.5">{cal.description}</p>}
                             <p className="text-xs text-muted-foreground mt-0.5">{cal.holidays?.length ?? 0} holidays</p>
                           </div>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={(e) => { e.stopPropagation(); setDeleteCalendarId(cal.id); }}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={(e) => { e.stopPropagation(); setRenameCalendarId(cal.id); setRenameCalendarName(cal.name); setRenameCalendarDesc(cal.description ?? ""); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={(e) => { e.stopPropagation(); setDeleteCalendarId(cal.id); }}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -3045,6 +3109,55 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!editSkillId} onOpenChange={(o) => { if (!o) setEditSkillId(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Skill</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label>Skill Name *</Label>
+              <Input value={editSkillForm.name} onChange={e => setEditSkillForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Category</Label>
+                <Select value={editSkillForm.categoryId || "none"} onValueChange={v => setEditSkillForm(f => ({ ...f, categoryId: v === "none" ? "" : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {(categories ?? []).map((c: any) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Skill Type</Label>
+                <Select value={editSkillForm.skillType} onValueChange={v => setEditSkillForm(f => ({ ...f, skillType: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Level">Level</SelectItem>
+                    <SelectItem value="Certification">Certification</SelectItem>
+                    <SelectItem value="Language">Language</SelectItem>
+                    <SelectItem value="Domain">Domain</SelectItem>
+                    <SelectItem value="Tool">Tool</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Section</Label>
+              <Input placeholder="Optional grouping section" value={editSkillForm.section} onChange={e => setEditSkillForm(f => ({ ...f, section: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input placeholder="Optional description" value={editSkillForm.description} onChange={e => setEditSkillForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditSkillId(null)}>Cancel</Button>
+            <Button onClick={handleSaveSkillEdit} disabled={!editSkillForm.name}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!deleteSkillId} onOpenChange={() => setDeleteSkillId(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete Skill</DialogTitle><DialogDescription>This skill will be removed from all team members.</DialogDescription></DialogHeader>
@@ -3154,6 +3267,28 @@ export default function Admin() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setCalendarDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateCalendar} disabled={!newCalendarName}>Create Calendar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!renameCalendarId} onOpenChange={(o) => { if (!o) setRenameCalendarId(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Rename Calendar</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label>Calendar Name *</Label>
+              <Input value={renameCalendarName} onChange={e => setRenameCalendarName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input placeholder="Optional description" value={renameCalendarDesc} onChange={e => setRenameCalendarDesc(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameCalendarId(null)}>Cancel</Button>
+            <Button onClick={handleRenameCalendar} disabled={!renameCalendarName || renamingCalendar}>
+              {renamingCalendar ? "Saving…" : "Save Changes"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

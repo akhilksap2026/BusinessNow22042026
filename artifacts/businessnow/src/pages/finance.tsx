@@ -97,8 +97,10 @@ export default function Finance() {
   }
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [deleteScheduleId, setDeleteScheduleId] = useState<number | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<any>(null);
   const [isRevenueOpen, setIsRevenueOpen] = useState(false);
   const [deleteRevenueId, setDeleteRevenueId] = useState<number | null>(null);
+  const [editingRevenue, setEditingRevenue] = useState<any>(null);
 
   const [scheduleForm, setScheduleForm] = useState({ projectId: "", name: "", triggerType: "Date", triggerValue: "", action: "CreateInvoice", amount: "", percentOfBudget: "" });
   const [revenueForm, setRevenueForm] = useState({ projectId: "", period: new Date().toISOString().substring(0, 7), amount: "", method: "Percentage of Completion", notes: "", recognizedAt: new Date().toISOString().split("T")[0] });
@@ -133,6 +135,42 @@ export default function Finance() {
   const createSchedule = useCreateBillingSchedule();
   const deleteSchedule = useDeleteBillingSchedule();
   const triggerSchedule = useTriggerBillingSchedule();
+  const updateScheduleMut = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+      const r = await fetch(`${BASE}/api/billing-schedules/${id}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(data),
+      });
+      if (!r.ok) throw new Error("Failed to update schedule");
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListBillingSchedulesQueryKey() });
+      toast({ title: "Schedule updated" });
+      setEditingSchedule(null);
+    },
+    onError: () => toast({ title: "Failed to update schedule", variant: "destructive" }),
+  });
+  const updateRevenueMut = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+      const r = await fetch(`${BASE}/api/revenue-entries/${id}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(data),
+      });
+      if (!r.ok) throw new Error("Failed to update revenue entry");
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListRevenueEntriesQueryKey() });
+      toast({ title: "Revenue entry updated" });
+      setEditingRevenue(null);
+    },
+    onError: () => toast({ title: "Failed to update revenue entry", variant: "destructive" }),
+  });
 
   const { data: revenueEntries, isLoading: isLoadingRevenue } = useListRevenueEntries({ projectId: filterProjectId });
   const createRevenue = useCreateRevenueEntry();
@@ -553,6 +591,9 @@ export default function Finance() {
                               <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleTrigger(s.id)} disabled={triggerSchedule.isPending}>
                                 <Zap className="h-3 w-3 mr-1" /> Fire
                               </Button>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => setEditingSchedule(s)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
                               <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteScheduleId(s.id)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -643,9 +684,14 @@ export default function Finance() {
                             ${Number(e.amount).toLocaleString()}
                           </TableCell>
                           <TableCell>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteRevenueId(e.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center gap-0.5">
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => setEditingRevenue(e)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteRevenueId(e.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -877,6 +923,125 @@ export default function Finance() {
               <Button variant="outline" onClick={() => setIsRevenueOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateRevenue} disabled={!revenueForm.projectId || !revenueForm.amount || createRevenue.isPending}>
                 {createRevenue.isPending ? "Saving…" : "Record Revenue"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editingSchedule} onOpenChange={(o) => { if (!o) setEditingSchedule(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Billing Schedule</DialogTitle>
+            </DialogHeader>
+            {editingSchedule && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Schedule Name *</Label>
+                  <Input value={editingSchedule.name} onChange={e => setEditingSchedule((s: any) => ({ ...s, name: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Trigger Type</Label>
+                    <Select value={editingSchedule.triggerType} onValueChange={v => setEditingSchedule((s: any) => ({ ...s, triggerType: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Date">Date</SelectItem>
+                        <SelectItem value="TaskComplete">Task Completion</SelectItem>
+                        <SelectItem value="PhaseComplete">Phase Completion</SelectItem>
+                        <SelectItem value="Manual">Manual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Trigger Value</Label>
+                    <Input placeholder={editingSchedule.triggerType === "Date" ? "YYYY-MM-DD" : "Task or phase ID"} value={editingSchedule.triggerValue ?? ""} onChange={e => setEditingSchedule((s: any) => ({ ...s, triggerValue: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Fixed Amount ($)</Label>
+                    <Input type="number" step="0.01" value={editingSchedule.amount ?? ""} onChange={e => setEditingSchedule((s: any) => ({ ...s, amount: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>% of Budget</Label>
+                    <Input type="number" step="0.1" value={editingSchedule.percentOfBudget ?? ""} onChange={e => setEditingSchedule((s: any) => ({ ...s, percentOfBudget: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingSchedule(null)}>Cancel</Button>
+              <Button onClick={() => editingSchedule && updateScheduleMut.mutate({
+                id: editingSchedule.id,
+                data: {
+                  name: editingSchedule.name,
+                  triggerType: editingSchedule.triggerType,
+                  triggerValue: editingSchedule.triggerValue || undefined,
+                  amount: editingSchedule.amount ? parseFloat(String(editingSchedule.amount)) : undefined,
+                  percentOfBudget: editingSchedule.percentOfBudget ? parseFloat(String(editingSchedule.percentOfBudget)) : undefined,
+                },
+              })} disabled={!editingSchedule?.name || updateScheduleMut.isPending}>
+                {updateScheduleMut.isPending ? "Saving…" : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editingRevenue} onOpenChange={(o) => { if (!o) setEditingRevenue(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Revenue Entry</DialogTitle>
+            </DialogHeader>
+            {editingRevenue && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Period *</Label>
+                    <Input type="month" value={editingRevenue.period} onChange={e => setEditingRevenue((r: any) => ({ ...r, period: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Recognised At</Label>
+                    <Input type="date" value={editingRevenue.recognizedAt ?? ""} onChange={e => setEditingRevenue((r: any) => ({ ...r, recognizedAt: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Amount *</Label>
+                    <Input type="number" step="0.01" value={editingRevenue.amount} onChange={e => setEditingRevenue((r: any) => ({ ...r, amount: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Method</Label>
+                    <Select value={editingRevenue.method} onValueChange={v => setEditingRevenue((r: any) => ({ ...r, method: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Percentage of Completion">Percentage of Completion</SelectItem>
+                        <SelectItem value="Completed Contract">Completed Contract</SelectItem>
+                        <SelectItem value="Time & Materials">Time &amp; Materials</SelectItem>
+                        <SelectItem value="Milestone">Milestone</SelectItem>
+                        <SelectItem value="Straight Line">Straight Line</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Notes</Label>
+                  <Input placeholder="Optional notes" value={editingRevenue.notes ?? ""} onChange={e => setEditingRevenue((r: any) => ({ ...r, notes: e.target.value }))} />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingRevenue(null)}>Cancel</Button>
+              <Button onClick={() => editingRevenue && updateRevenueMut.mutate({
+                id: editingRevenue.id,
+                data: {
+                  period: editingRevenue.period,
+                  amount: parseFloat(String(editingRevenue.amount)),
+                  method: editingRevenue.method,
+                  notes: editingRevenue.notes || null,
+                  recognizedAt: editingRevenue.recognizedAt || undefined,
+                },
+              })} disabled={!editingRevenue?.period || !editingRevenue?.amount || updateRevenueMut.isPending}>
+                {updateRevenueMut.isPending ? "Saving…" : "Save Changes"}
               </Button>
             </DialogFooter>
           </DialogContent>
