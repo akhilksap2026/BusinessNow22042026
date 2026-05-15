@@ -358,26 +358,6 @@ export default function Finance() {
           breadcrumbs={[{ label: "Finance" }]}
         />
 
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          {(["Total Invoiced", "Total Paid", "Outstanding", "Overdue"] as const).map((label, i) => {
-            const vals = [summary?.totalInvoiced, summary?.totalPaid, summary?.totalOutstanding, summary?.totalOverdue];
-            const colors = ["", "text-green-600 dark:text-green-400", "", "text-destructive"];
-            return (
-              <Card key={label}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
-                  <CardTitle className="text-sm font-medium">{label}</CardTitle>
-                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="px-3 pb-2 pt-0">
-                  {isLoadingSummary ? <Skeleton className="h-5 w-24" /> : (
-                    <div className={`text-lg font-bold tracking-tight ${colors[i]}`}>${vals[i]?.toLocaleString()}</div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
         <div className="flex items-center gap-3 flex-wrap">
           <Select onValueChange={v => setFilterProjectId(v ? parseInt(v) : undefined)}>
             <SelectTrigger className="w-[220px]">
@@ -397,6 +377,42 @@ export default function Finance() {
             />
           </div>
         </div>
+
+        {(() => {
+          const projectInvoices = filterProjectId
+            ? (invoices ?? []).filter((inv: any) => inv.projectId === filterProjectId)
+            : null;
+          const kpi = projectInvoices
+            ? {
+                totalInvoiced: projectInvoices.reduce((s: number, r: any) => s + Number(r.total), 0),
+                totalPaid: projectInvoices.filter((r: any) => r.status === "Paid").reduce((s: number, r: any) => s + Number(r.total), 0),
+                totalOutstanding: projectInvoices.filter((r: any) => r.status === "Approved" || r.status === "In Review").reduce((s: number, r: any) => s + Number(r.total), 0),
+                totalOverdue: projectInvoices.filter((r: any) => r.status === "Overdue").reduce((s: number, r: any) => s + Number(r.total), 0),
+              }
+            : summary;
+          const isLoading = filterProjectId ? isLoadingInvoices : isLoadingSummary;
+          return (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              {(["Total Invoiced", "Total Paid", "Outstanding", "Overdue"] as const).map((label, i) => {
+                const vals = [kpi?.totalInvoiced, kpi?.totalPaid, kpi?.totalOutstanding, kpi?.totalOverdue];
+                const colors = ["", "text-green-600 dark:text-green-400", "", "text-destructive"];
+                return (
+                  <Card key={label}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
+                      <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                      <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent className="px-3 pb-2 pt-0">
+                      {isLoading ? <Skeleton className="h-5 w-24" /> : (
+                        <div className={`text-lg font-bold tracking-tight ${colors[i]}`}>${(vals[i] ?? 0).toLocaleString()}</div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         <Tabs defaultValue="invoices" className="w-full">
           <TabsList className="mb-4">
