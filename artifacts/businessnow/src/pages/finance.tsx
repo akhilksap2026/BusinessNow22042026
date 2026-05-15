@@ -49,6 +49,7 @@ type ContractRow = {
 export default function Finance() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [filterAccountId, setFilterAccountId] = useState<number | undefined>();
   const [filterProjectId, setFilterProjectId] = useState<number | undefined>();
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -359,12 +360,34 @@ export default function Finance() {
         />
 
         <div className="flex items-center gap-3 flex-wrap">
-          <Select onValueChange={v => setFilterProjectId(v ? parseInt(v) : undefined)}>
+          <Select
+            value={filterAccountId ? String(filterAccountId) : "all"}
+            onValueChange={v => {
+              setFilterAccountId(v !== "all" ? parseInt(v) : undefined);
+              setFilterProjectId(undefined);
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filter by account…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All accounts</SelectItem>
+              {accounts?.map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select
+            value={filterProjectId ? String(filterProjectId) : "all"}
+            onValueChange={v => setFilterProjectId(v !== "all" ? parseInt(v) : undefined)}
+          >
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Filter by project…" />
             </SelectTrigger>
             <SelectContent>
-              {projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+              <SelectItem value="all">All projects</SelectItem>
+              {(filterAccountId
+                ? projects?.filter(p => (p as any).accountId === filterAccountId)
+                : projects
+              )?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <div className="relative flex-1 min-w-[200px] max-w-xs">
@@ -379,18 +402,20 @@ export default function Finance() {
         </div>
 
         {(() => {
-          const projectInvoices = filterProjectId
+          const filteredForKpi = filterProjectId
             ? (invoices ?? []).filter((inv: any) => inv.projectId === filterProjectId)
+            : filterAccountId
+            ? (invoices ?? []).filter((inv: any) => inv.accountId === filterAccountId)
             : null;
-          const kpi = projectInvoices
+          const kpi = filteredForKpi
             ? {
-                totalInvoiced: projectInvoices.reduce((s: number, r: any) => s + Number(r.total), 0),
-                totalPaid: projectInvoices.filter((r: any) => r.status === "Paid").reduce((s: number, r: any) => s + Number(r.total), 0),
-                totalOutstanding: projectInvoices.filter((r: any) => r.status === "Approved" || r.status === "In Review").reduce((s: number, r: any) => s + Number(r.total), 0),
-                totalOverdue: projectInvoices.filter((r: any) => r.status === "Overdue").reduce((s: number, r: any) => s + Number(r.total), 0),
+                totalInvoiced: filteredForKpi.reduce((s: number, r: any) => s + Number(r.total), 0),
+                totalPaid: filteredForKpi.filter((r: any) => r.status === "Paid").reduce((s: number, r: any) => s + Number(r.total), 0),
+                totalOutstanding: filteredForKpi.filter((r: any) => r.status === "Approved" || r.status === "In Review").reduce((s: number, r: any) => s + Number(r.total), 0),
+                totalOverdue: filteredForKpi.filter((r: any) => r.status === "Overdue").reduce((s: number, r: any) => s + Number(r.total), 0),
               }
             : summary;
-          const isLoading = filterProjectId ? isLoadingInvoices : isLoadingSummary;
+          const isLoading = (filterProjectId || filterAccountId) ? isLoadingInvoices : isLoadingSummary;
           return (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               {(["Total Invoiced", "Total Paid", "Outstanding", "Overdue"] as const).map((label, i) => {
@@ -443,6 +468,7 @@ export default function Finance() {
                   const search = searchQuery.toLowerCase();
                   const filtered = (invoices ?? []).filter(inv => {
                     if (filterProjectId && (inv as any).projectId !== filterProjectId) return false;
+                    if (filterAccountId && (inv as any).accountId !== filterAccountId) return false;
                     if (!search) return true;
                     const pName = projects?.find(p => p.id === (inv as any).projectId)?.name?.toLowerCase() ?? "";
                     const aName = accounts?.find(a => a.id === (inv as any).accountId)?.name?.toLowerCase() ?? "";
