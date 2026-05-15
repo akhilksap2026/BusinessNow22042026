@@ -126,6 +126,27 @@ export const ACCOUNT_PERMISSIONS = {
   "invoicing.approve":         { account_admin: true,  super_user: true,  collaborator: false, customer: false },
   "invoicing.void":            { account_admin: true,  super_user: true,  collaborator: false, customer: false },
 
+  // ── CRM — PROSPECTS & OPPORTUNITIES ──────────────────────────────────────
+  "prospects.view":            { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "prospects.manage":          { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "opportunities.view":        { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "opportunities.manage":      { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+
+  // ── TIME TRACKING — EXTENDED ──────────────────────────────────────────────
+  "timeTracking.viewAll":      { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "timeTracking.logForOthers": { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+
+  // ── TIME OFF ──────────────────────────────────────────────────────────────
+  "timeOff.viewAll":           { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "timeOff.manageCalendars":   { account_admin: true,  super_user: false, collaborator: false, customer: false },
+
+  // ── REVENUE RECOGNITION ───────────────────────────────────────────────────
+  "revenue.view":              { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+  "revenue.manage":            { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+
+  // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+  "notifications.inject":      { account_admin: true,  super_user: true,  collaborator: false, customer: false },
+
   // ── SPRINTS / EPICS / BACKLOGS ────────────────────────────────────────────
   "sprints.manage":            { account_admin: true,  super_user: true,  collaborator: false, customer: false },
   "epics.manage":              { account_admin: true,  super_user: true,  collaborator: false, customer: false },
