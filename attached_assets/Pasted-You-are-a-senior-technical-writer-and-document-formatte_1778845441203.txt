@@ -1,0 +1,150 @@
+You are a senior technical writer and document formatter 
+working on BusinessNow PSA by KSAP Technology.
+
+The business rules document has been fully authored and saved as:
+  BusinessNow-PSA-Business-Rules-DRAFT.md
+
+Read that file completely before doing anything else.
+
+Your task in this prompt is to:
+1. Run a quality check on the draft
+2. Fix any gaps found
+3. Generate the final production-quality PDF
+
+---
+
+## STEP 1 — QUALITY AUDIT (Before Generating PDF)
+
+Read BusinessNow-PSA-Business-Rules-DRAFT.md and verify 
+every item in this checklist. Fix any failures before 
+proceeding to PDF generation.
+
+COMPLETENESS CHECKS:
+✅ Section 0 Executive Summary — present and 3–5 paragraphs
+✅ Section 1 System Overview — all 4 subsections present
+✅ Section 2 — every role from discovery has a subsection
+✅ Section 3 — every module from discovery has a subsection
+   with all 8 sub-sections (3.N.1 through 3.N.8)
+✅ Section 4 — all 4 cross-module rule categories present
+✅ Section 5 — all 3 system constraint categories present
+✅ Section 6 Glossary — every term used in the doc is defined
+✅ Section 7 Index — every BR code from Sections 2–5 is listed
+
+CONTENT QUALITY CHECKS:
+✅ No code, SQL, variable names, or file paths in the document
+✅ No table column names or database terms anywhere
+✅ Every business rule is a complete English sentence
+✅ Every BR code is unique — run a duplicate check
+✅ BR codes follow the format BR-[MOD]-[NNN] consistently
+✅ Every state transition has a named actor and trigger
+✅ Every calculation is described in plain business English
+✅ Role names are consistent throughout — no variations
+
+STRUCTURAL CHECKS:
+✅ Every section starts on a logical boundary
+✅ All tables are complete — no empty cells without reason
+✅ Glossary is in alphabetical order
+✅ Section 7 index is sorted by module code then number
+
+Output a quality audit report:
+| Check | Pass / Fail | Issue Found | Fix Applied |
+|-------|-------------|-------------|-------------|
+
+Fix every failure before generating the PDF.
+Save the corrected version as:
+  BusinessNow-PSA-Business-Rules-FINAL.md
+
+---
+
+## STEP 2 — PDF GENERATION
+
+Generate a professional PDF from 
+BusinessNow-PSA-Business-Rules-FINAL.md using ReportLab.
+
+BRANDING & LAYOUT:
+
+Page Setup:
+- A4 page size
+- Margins: 20mm top, 20mm bottom, 25mm left, 25mm right
+
+Header (every page):
+- Navy background bar (#1B2A4A)
+- White text: "BusinessNow PSA  |  Business Rules & 
+  Functional Specification  |  KSAP Technology"
+- Right-aligned: "v1.0 — Confidential"
+
+Footer (every page):
+- Light grey line above footer
+- Left: "© KSAP Technology — Internal Use Only"
+- Right: "Page X of Y"
+
+Cover Page:
+- Full navy header block top third of page
+- Large white title: "BusinessNow PSA"
+- Subtitle: "Business Rules & Functional Specification"
+- Below header block:
+  Prepared by:   KSAP Technology Product Team
+  Version:       1.0
+  Date:          [Today's date]
+  Classification: Confidential — Internal Use Only
+- KSAP Technology name in navy at bottom of cover
+
+Table of Contents (page 2):
+- Auto-generated from all section and subsection headings
+- Includes page numbers
+- Clickable links if ReportLab supports it
+- Heading: "Table of Contents" in navy
+
+Body Formatting:
+- Section headings (SECTION N): Navy background, 
+  white bold text, full width
+- Module headings (MODULE N): Navy left border, 
+  dark navy text, light grey background
+- Subsection headings (3.N.1 etc.): Bold navy text, 
+  no background
+- Body text: 10pt, dark grey (#2D2D2D), 
+  1.4 line spacing
+- Business rules (BR-XXX-NNN): Displayed in a 
+  light blue shaded box (#EBF4FF) with left border 
+  in navy — makes rules scannable at a glance
+- Tables: Alternating row shading, navy header row 
+  with white text, full width
+- State transition flows: Displayed in a light grey 
+  box with monospace font
+- Each new Section starts on a new page
+- Each new Module (3.N) starts on a new page
+
+---
+
+## STEP 3 — VALIDATION
+
+After generating the PDF, verify:
+✅ Cover page renders correctly with all metadata
+✅ Table of contents is present with page numbers
+✅ Every section heading appears correctly
+✅ BR code boxes are visually distinct and readable
+✅ Tables render without overflow or truncation
+✅ Header and footer appear on every page
+✅ Page numbers are correct and sequential
+✅ No raw Markdown syntax appears in the PDF (#, **, __, etc.)
+✅ Document is readable at standard zoom (100%)
+
+If any check fails, fix and regenerate. 
+Do not deliver a broken PDF.
+
+---
+
+## DELIVERABLE
+
+Save the final PDF as:
+  BusinessNow-PSA-Business-Rules-v1.0.pdf
+
+Present it for download.
+
+Final confirmation message must read:
+"DELIVERED: BusinessNow-PSA-Business-Rules-v1.0.pdf
+ Pages: [X]
+ Business Rules Documented: [X]
+ Modules Covered: [X]
+ Roles Documented: [X]
+ Quality Audit: All checks passed"

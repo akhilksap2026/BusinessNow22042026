@@ -1,0 +1,177 @@
+You are a senior business analyst working on BusinessNow PSA 
+by KSAP Technology.
+
+You have already completed the discovery phase. The inventory 
+is saved in discovery-notes.md in the project root. 
+Read that file first before doing anything else.
+
+Your task in this prompt is to author the complete Business 
+Rules & Functional Specification document — in structured 
+Markdown — based entirely on what was discovered. 
+
+Do NOT scan the codebase again from scratch. Use discovery-notes.md 
+as your source of truth. Only dip back into specific code files 
+if you need to verify a specific rule or constraint.
+
+Do NOT generate the PDF yet. Write the Markdown document only.
+
+---
+
+## INTERNET REFERENCE (PERMITTED)
+
+You may search the internet to:
+- Understand standard PSA business terminology for modules found
+- Cross-check how platforms like Rocketlane, Kantata, Certinia, 
+  and Mavenlink describe similar rules
+- Find correct business language for calculations and workflows
+
+Use internet context ONLY to name things correctly and write 
+clear business English. Do NOT add any rule that is not 
+confirmed in the discovery inventory.
+
+---
+
+## DOCUMENT STRUCTURE TO PRODUCE
+
+Write the document in this exact structure:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUSINESSNOW PSA
+Business Rules & Functional Specification
+Prepared by: KSAP Technology
+Version: 1.0 | Confidential
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 0 — EXECUTIVE SUMMARY
+  3–5 paragraphs:
+  - What BusinessNow PSA is and the business problem it solves
+  - The type of organisation it is built for
+  - Core modules it contains (from discovery)
+  - Key roles and their relationships
+  - Primary business value delivered
+
+SECTION 1 — SYSTEM OVERVIEW
+  1.1 Purpose of the System
+  1.2 Intended Users
+  1.3 Scope (in scope / out of scope)
+  1.4 Key Concepts & Terminology
+      One plain-English paragraph per term found in discovery
+
+SECTION 2 — ROLES & ACCESS CONTROL
+  For every role in the discovery inventory:
+
+  2.X — [Role Name]
+    Definition: Who holds this role and their responsibility
+    Scope of Access: What data and modules they can reach
+    
+    Permissions Table:
+    | Capability | Allowed? | Conditions |
+    |------------|----------|------------|
+    
+    Hard Restrictions:
+    - Bullet list of things this role can NEVER do
+    
+    Business Rules:
+    BR-ROLE-[NNN]: [Rule in plain English]
+
+SECTION 3 — MODULE BUSINESS RULES
+  For every module in the discovery inventory, 
+  produce a complete subsection:
+
+  ━━━━━━━━━━━━━━━━━━━━━
+  MODULE [N]: [NAME]
+  ━━━━━━━━━━━━━━━━━━━━━
+
+  3.N.1 Purpose
+    What business problem does this module solve?
+
+  3.N.2 Who Uses This Module
+    Which roles and in what capacity?
+
+  3.N.3 Key Entities Managed
+    Plain-English description of each entity and 
+    its key attributes
+
+  3.N.4 Core Functionality
+    Every operation described as:
+    "[Role] can [action] a [entity] when [condition]"
+
+  3.N.5 Workflow & State Transitions
+    Lifecycle as a plain-English flow:
+    [State A] → (trigger) → [State B]
+    Every state defined. Every trigger identified.
+    Every actor named.
+
+  3.N.6 Business Rules
+    Numbered and categorised:
+
+    CREATION RULES
+    BR-[MOD]-[NNN]: [Rule]
+
+    EDITING RULES
+    BR-[MOD]-[NNN]: [Rule]
+
+    VALIDATION RULES
+    BR-[MOD]-[NNN]: [Rule]
+
+    CALCULATION RULES
+    BR-[MOD]-[NNN]: [Rule]
+
+    APPROVAL RULES
+    BR-[MOD]-[NNN]: [Rule]
+
+    LOCKING RULES
+    BR-[MOD]-[NNN]: [Rule]
+
+    DELETION RULES
+    BR-[MOD]-[NNN]: [Rule]
+
+  3.N.7 Integration Points
+    How this module connects to others
+
+  3.N.8 Restrictions & Exceptions
+    Edge cases and special conditions
+
+SECTION 4 — CROSS-MODULE BUSINESS RULES
+  4.1 Data Integrity Rules
+  4.2 Workflow Sequencing Rules
+  4.3 Financial Integrity Rules
+  4.4 Audit & Compliance Rules
+
+SECTION 5 — SYSTEM-WIDE CONSTRAINTS
+  5.1 Hard System Limits (cannot be overridden by any role)
+  5.2 Data Immutability Rules
+  5.3 Role Separation Rules (segregation of duties)
+
+SECTION 6 — GLOSSARY
+  Every business term used — alphabetical — plain English
+
+SECTION 7 — BUSINESS RULES INDEX
+  Flat list of every BR code in the document.
+  Format:
+  BR-[MOD]-[NNN] | [One-line summary] | Section Ref
+
+---
+
+## WRITING STANDARDS — ENFORCE THROUGHOUT
+
+✅ Zero code, SQL, or technical terms anywhere in the document
+✅ Every sentence in plain business English
+✅ Every business rule as a complete sentence
+✅ Every calculation described in business terms, not formulas
+✅ Every role named consistently (match Section 2 names exactly)
+✅ Every BR code unique — no duplicates
+✅ Section 7 index must contain every BR code from Sections 2–5
+
+---
+
+## DELIVERABLE
+
+Save the complete document as:
+  BusinessNow-PSA-Business-Rules-DRAFT.md
+in the project root.
+
+Do not generate a PDF yet — that is Prompt 3.
+
+When complete, end with this exact line:
+"DRAFT COMPLETE — Ready for Prompt 3"

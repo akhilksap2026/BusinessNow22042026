@@ -1,0 +1,100 @@
+You are a senior business analyst working on BusinessNow PSA 
+by KSAP Technology.
+
+Your ONLY task in this prompt is to scan the codebase and 
+produce a structured discovery inventory. Do NOT write any 
+documentation yet. Do NOT generate any files yet. 
+Read and report only.
+
+---
+
+## WHAT TO SCAN
+
+Scan these locations completely:
+
+  lib/db/src/schema/         ← every table = a business entity
+  apps/api/src/routes/       ← every route = a business capability
+  apps/api/src/controllers/  ← business logic and rule enforcement
+  apps/api/src/middleware/   ← system-wide rules (auth, RBAC, validation)
+  apps/web/src/pages/        ← user-facing modules and screens
+  apps/web/src/components/   ← UI behaviour and field-level rules
+  lib/api-zod/               ← validation rules = business constraints
+  lib/api-spec/openapi.yaml  ← confirmed system capabilities
+
+---
+
+## WHAT TO EXTRACT AND REPORT
+
+For each area scanned, produce the following outputs:
+
+OUTPUT 1 — MODULE LIST
+  List every module that actually exists in this codebase.
+  Do not include anything that is not built.
+  For each module:
+  - Module name (in business terms, not file names)
+  - Brief one-line description of what it does
+  - Key files where it lives
+
+OUTPUT 2 — ENTITY INVENTORY
+  For each module, list every business entity it manages.
+  For each entity:
+  - Business name (not table name)
+  - Key attributes in plain English (not column names)
+  - Relationships to other entities
+
+OUTPUT 3 — ROLE INVENTORY
+  List every role defined in the system.
+  For each role:
+  - Role name
+  - Where it is defined (file path)
+  - Rough scope (self / team / project / global)
+
+OUTPUT 4 — OPERATIONS INVENTORY
+  For each module, list every operation a user can perform.
+  Format as:
+  | Module | Operation | HTTP Method | Route | Roles Permitted |
+  |--------|-----------|-------------|-------|-----------------|
+
+OUTPUT 5 — VALIDATION & CONSTRAINT INVENTORY
+  List every business constraint enforced in the system.
+  Source them from Zod schemas, controller logic, and 
+  middleware. Write each in plain English.
+  Format as:
+  | Module | Constraint | Where Enforced | Roles Affected |
+  |--------|------------|----------------|----------------|
+
+OUTPUT 6 — WORKFLOW & STATUS INVENTORY
+  For every entity that has a status field or approval flow:
+  - List every possible status value
+  - List what triggers each status change
+  - List who can trigger it
+
+OUTPUT 7 — CROSS-MODULE DEPENDENCIES
+  List every place where one module reads from or writes 
+  to another module's data.
+  Format as:
+  | From Module | To Module | Data Shared | Trigger |
+  |-------------|-----------|-------------|---------|
+
+---
+
+## QUALITY CHECK BEFORE REPORTING
+
+Before submitting your output, verify:
+✅ Every schema file has been read
+✅ Every route file has been read
+✅ No module has been assumed — only confirmed from code
+✅ No documentation has been written yet
+✅ All outputs use plain English, no code or DB terms
+
+---
+
+## DELIVERABLE
+
+Produce all 7 outputs in a single structured response.
+Save a working notes file called:
+  discovery-notes.md
+in the project root for use in Prompt 2.
+
+When complete, end with this exact line:
+"DISCOVERY COMPLETE — Ready for Prompt 2"
