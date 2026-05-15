@@ -1308,7 +1308,7 @@ export function TimesheetGrid({ userId, weekStartDay = 1, initialWeekStart }: { 
                                 title={isParentLeaf ? "Time accumulates from child tasks — log on a leaf task instead" : multiEntry ? "Multiple entries — use clock icon to add more" : isLocked ? "Timesheet is locked" : "Click to edit · Tab to advance"}
                                 className={cn(
                                   "w-full min-h-[32px] px-1 rounded text-sm font-medium transition-colors",
-                                  canClick && "hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer dark:hover:bg-indigo-900/20",
+                                  canClick && "border border-input hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer dark:hover:bg-indigo-900/20 dark:hover:border-indigo-700",
                                   !canClick && "cursor-default",
                                   isParentLeaf && "text-muted-foreground/60 italic cursor-not-allowed",
                                   hours > 0 && !isParentLeaf && "text-foreground",
