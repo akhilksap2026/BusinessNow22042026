@@ -482,32 +482,7 @@ export function CreateProjectWizard({
               {/* ── Step 1: Basics ────────────────────────────── */}
               {step === 1 && (
                 <div className="space-y-4">
-                  <FormField
-                    control={blankForm.control}
-                    name="internalExternal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Project Type</FormLabel>
-                        <div className="flex gap-3">
-                          {(["External", "Internal"] as const).map(opt => (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => {
-                                field.onChange(opt);
-                                blankForm.setValue("accountId", 0 as any);
-                                blankForm.setValue("opportunityId", undefined);
-                              }}
-                              className={`flex-1 py-2 rounded-md border text-sm font-medium transition-colors ${field.value === opt ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
-                            >
-                              {opt}
-                            </button>
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* 1. Account */}
                   <FormField
                     control={blankForm.control}
                     name="accountId"
@@ -557,6 +532,47 @@ export function CreateProjectWizard({
                     )}
                   />
 
+                  {/* 2. Project Name */}
+                  <FormField
+                    control={blankForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Name</FormLabel>
+                        <FormControl><Input placeholder="Enter project name" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* 3. Project Type */}
+                  <FormField
+                    control={blankForm.control}
+                    name="internalExternal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Type</FormLabel>
+                        <div className="flex gap-3">
+                          {(["External", "Internal"] as const).map(opt => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                field.onChange(opt);
+                                blankForm.setValue("accountId", 0 as any);
+                                blankForm.setValue("opportunityId", undefined);
+                              }}
+                              className={`flex-1 py-2 rounded-md border text-sm font-medium transition-colors ${field.value === opt ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   {/* Opportunity linkage — only for External projects with a won opp for this account */}
                   {watchedInternalExternal === "External" && Number(watchedAccountId) > 0 && wonOpportunities.length > 0 && (
                     <FormField
@@ -593,7 +609,7 @@ export function CreateProjectWizard({
                     />
                   )}
 
-                  {/* Customer Champion — External projects only */}
+                  {/* 4. Customer Champion — External projects only */}
                   {watchedInternalExternal === "External" && (
                     <FormField
                       control={blankForm.control}
@@ -612,17 +628,8 @@ export function CreateProjectWizard({
                       )}
                     />
                   )}
-                  <FormField
-                    control={blankForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Project Name</FormLabel>
-                        <FormControl><Input placeholder="Enter project name" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
+                  {/* 5. Description */}
                   <FormField
                     control={blankForm.control}
                     name="description"
