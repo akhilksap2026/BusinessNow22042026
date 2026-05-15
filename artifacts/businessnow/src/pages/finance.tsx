@@ -384,7 +384,6 @@ export default function Finance() {
               <SelectValue placeholder="Filter by project…" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All projects</SelectItem>
               {projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
