@@ -20,7 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus, FileText, ExternalLink } from "lucide-react";
+import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus, FileText, ExternalLink, ArrowUpRight } from "lucide-react";
+import { useLocation } from "wouter";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ type ContractRow = {
 };
 
 export default function Finance() {
+  const [, setLocation] = useLocation();
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterAccountId, setFilterAccountId] = useState<number | undefined>();
@@ -783,7 +785,7 @@ export default function Finance() {
                           <TableHead>Start</TableHead>
                           <TableHead>End</TableHead>
                           <TableHead>Document</TableHead>
-                          <TableHead className="w-[60px]"></TableHead>
+                          <TableHead className="w-[48px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -792,7 +794,28 @@ export default function Finance() {
                           return (
                             <TableRow key={c.id}>
                               <TableCell className="font-medium">{c.name}</TableCell>
-                              <TableCell>{project?.name ?? `#${c.projectId}`}</TableCell>
+                              <TableCell>
+                                {project ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setLocation(`/projects/${project.id}`)}
+                                    className="flex flex-col items-start gap-0.5 text-left hover:underline group"
+                                  >
+                                    <span className="text-sm font-medium group-hover:text-primary flex items-center gap-1">
+                                      {project.name}
+                                      <ArrowUpRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                      <StatusBadge status={project.status} className="text-[10px] px-1.5 py-0" />
+                                      {project.health && (
+                                        <StatusBadge status={project.health} className="text-[10px] px-1.5 py-0" />
+                                      )}
+                                    </div>
+                                  </button>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
                               <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
                               <TableCell className="text-right tabular-nums">
                                 {c.value === null ? "—" : `$${c.value.toLocaleString()}`}
@@ -814,14 +837,16 @@ export default function Finance() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditContract(c)}>
-                                    <Pencil className="h-4 w-4" />
+                                {project && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setLocation(`/projects/${project.id}`)}
+                                  >
+                                    <ArrowUpRight className="h-4 w-4" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteContractId(c.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
+                                )}
                               </TableCell>
                             </TableRow>
                           );
