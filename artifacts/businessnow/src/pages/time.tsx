@@ -82,6 +82,11 @@ export default function TimeTracking() {
 
   const [requestOpen, setRequestOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+
+  // Activity tab filters
+  const [activityProjectFilter, setActivityProjectFilter] = useState("");
+  const [activityUserFilter, setActivityUserFilter] = useState("");
+  const [activityBillableFilter, setActivityBillableFilter] = useState<"all" | "billable" | "non-billable">("all");
   const [form, setForm] = useState({ userId: "1", type: "PTO", startDate: "", endDate: "", notes: "", durationType: "Full Day", customHours: "", notifyProjectOwners: false, additionalEmails: "" });
 
   const updateTimeEntry = useUpdateTimeEntry();
@@ -445,9 +450,7 @@ export default function TimeTracking() {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="entries">Time Entries</TabsTrigger>
-            <TabsTrigger value="by-project">By Project</TabsTrigger>
-            <TabsTrigger value="by-user">By User</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="time-off" className="flex items-center gap-2">
               <CalendarOff className="h-3.5 w-3.5" /> Time Off
               {pendingTimeOff.length > 0 && (
@@ -664,116 +667,213 @@ export default function TimeTracking() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="entries" className="m-0">
-            <Card>
-              <CardHeader><CardTitle>Recent Time Entries</CardTitle></CardHeader>
-              <CardContent>
-                {isLoadingEntries ? (
-                  <div className="space-y-4">{[1,2,3,4].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-                ) : entries?.length === 0 ? (
-                  <EmptyState icon={Clock} title="No time entries found" description="Log time against a project to get started." />
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>User</TableHead>
-                        <TableHead>Project</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-center">Billable</TableHead>
-                        <TableHead className="text-center">Status</TableHead>
-                        <TableHead className="text-right">Hours</TableHead>
-                        <TableHead className="w-[80px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {entries?.map(entry => (
-                        <TableRow key={entry.id}>
-                          <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{getUser(entry.userId)?.name}</TableCell>
-                          <TableCell className="font-medium">{getProject(entry.projectId!)?.name}</TableCell>
-                          <TableCell className="max-w-[300px] truncate">{entry.description}</TableCell>
-                          <TableCell className="text-center">
-                            {entry.billable ? <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100 border-none dark:bg-green-900/30 dark:text-green-400">Yes</Badge> : <Badge variant="secondary">No</Badge>}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {entry.approved ?
-                              <span className="flex items-center justify-center gap-1 text-xs text-green-600 font-medium"><CheckCircle2 className="h-3 w-3" /> Approved</span> :
-                              <span className="flex items-center justify-center gap-1 text-xs text-amber-600 font-medium"><AlertCircle className="h-3 w-3" /> Pending</span>
-                            }
-                          </TableCell>
-                          <TableCell className="text-right font-medium">{entry.hours}h</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1 justify-end">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditEntry(entry as any)}>
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Edit entry</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteEntryId(entry.id)}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Delete entry</TooltipContent>
-                              </Tooltip>
+          <TabsContent value="activity" className="m-0">
+            {/* ── Breakdown panels ───────────────────────────────────────── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* By Project */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Hours by Project</CardTitle>
+                  <CardDescription className="text-xs">Relative share of total logged time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingSummary ? (
+                    <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
+                  ) : !summary?.byProject?.length ? (
+                    <p className="text-sm text-muted-foreground">No data yet.</p>
+                  ) : (() => {
+                    const maxH = Math.max(...summary.byProject.map(p => p.hours), 1);
+                    return (
+                      <div className="space-y-3">
+                        {summary.byProject.map(item => (
+                          <div key={item.projectId}>
+                            <div className="flex items-center justify-between text-sm mb-1">
+                              <span className="font-medium truncate max-w-[70%]">{item.projectName}</span>
+                              <span className="text-muted-foreground tabular-nums flex-shrink-0 ml-2">{item.hours}h</span>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-indigo-500 transition-all"
+                                style={{ width: `${Math.round((item.hours / maxH) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
 
-          <TabsContent value="by-project" className="m-0">
-            <Card>
-              <CardHeader><CardTitle>Hours by Project</CardTitle><CardDescription>Summary of time logged per project</CardDescription></CardHeader>
-              <CardContent>
-                {isLoadingSummary ? (
-                  <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-                ) : (
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Project Name</TableHead><TableHead className="text-right">Total Hours</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {summary?.byProject.map(item => (
-                        <TableRow key={item.projectId}>
-                          <TableCell className="font-medium">{item.projectName}</TableCell>
-                          <TableCell className="text-right">{item.hours}h</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              {/* By User */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Hours by Team Member</CardTitle>
+                  <CardDescription className="text-xs">Relative share of total logged time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingSummary ? (
+                    <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
+                  ) : !summary?.byUser?.length ? (
+                    <p className="text-sm text-muted-foreground">No data yet.</p>
+                  ) : (() => {
+                    const maxH = Math.max(...summary.byUser.map(u => u.hours), 1);
+                    return (
+                      <div className="space-y-3">
+                        {summary.byUser.map(item => (
+                          <div key={item.userId}>
+                            <div className="flex items-center justify-between text-sm mb-1">
+                              <span className="font-medium truncate max-w-[70%]">{item.userName}</span>
+                              <span className="text-muted-foreground tabular-nums flex-shrink-0 ml-2">{item.hours}h</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-violet-500 transition-all"
+                                style={{ width: `${Math.round((item.hours / maxH) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
 
-          <TabsContent value="by-user" className="m-0">
+            {/* ── All entries with filters ────────────────────────────────── */}
             <Card>
-              <CardHeader><CardTitle>Hours by User</CardTitle><CardDescription>Summary of time logged per team member</CardDescription></CardHeader>
-              <CardContent>
-                {isLoadingSummary ? (
-                  <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-                ) : (
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Team Member</TableHead><TableHead className="text-right">Total Hours</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {summary?.byUser.map(item => (
-                        <TableRow key={item.userId}>
-                          <TableCell className="font-medium">{item.userName}</TableCell>
-                          <TableCell className="text-right">{item.hours}h</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <CardTitle>All Entries</CardTitle>
+                    <CardDescription className="mt-0.5">Every logged time entry — filter to drill down</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select value={activityProjectFilter} onValueChange={setActivityProjectFilter}>
+                      <SelectTrigger className="h-8 w-[160px] text-sm">
+                        <SelectValue placeholder="All projects" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all">All projects</SelectItem>
+                        {projects?.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={activityUserFilter} onValueChange={setActivityUserFilter}>
+                      <SelectTrigger className="h-8 w-[150px] text-sm">
+                        <SelectValue placeholder="All members" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all">All members</SelectItem>
+                        {users?.map(u => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={activityBillableFilter} onValueChange={v => setActivityBillableFilter(v as any)}>
+                      <SelectTrigger className="h-8 w-[140px] text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All entries</SelectItem>
+                        <SelectItem value="billable">Billable only</SelectItem>
+                        <SelectItem value="non-billable">Non-billable</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {(activityProjectFilter || activityUserFilter || activityBillableFilter !== "all") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs text-muted-foreground"
+                        onClick={() => { setActivityProjectFilter(""); setActivityUserFilter(""); setActivityBillableFilter("all"); }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoadingEntries ? (
+                  <div className="space-y-4 p-6">{[1,2,3,4].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : (() => {
+                  const filtered = (entries ?? []).filter(entry => {
+                    if (activityProjectFilter && activityProjectFilter !== "__all" && String(entry.projectId) !== activityProjectFilter) return false;
+                    if (activityUserFilter && activityUserFilter !== "__all" && String(entry.userId) !== activityUserFilter) return false;
+                    if (activityBillableFilter === "billable" && !entry.billable) return false;
+                    if (activityBillableFilter === "non-billable" && entry.billable) return false;
+                    return true;
+                  });
+                  if (filtered.length === 0) return (
+                    <div className="p-6">
+                      <EmptyState icon={Clock} title="No entries match" description="Adjust the filters above to see entries." />
+                    </div>
+                  );
+                  const totalFiltered = filtered.reduce((s, e) => s + e.hours, 0);
+                  const billableFiltered = filtered.filter(e => e.billable).reduce((s, e) => s + e.hours, 0);
+                  return (
+                    <>
+                      <div className="flex items-center gap-4 px-4 py-2 border-b bg-muted/30 text-xs text-muted-foreground">
+                        <span>{filtered.length} {filtered.length === 1 ? "entry" : "entries"}</span>
+                        <span className="text-foreground font-medium">{totalFiltered}h total</span>
+                        <span>{billableFiltered}h billable ({totalFiltered > 0 ? Math.round((billableFiltered / totalFiltered) * 100) : 0}%)</span>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>User</TableHead>
+                            <TableHead>Project</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="text-center">Billable</TableHead>
+                            <TableHead className="text-center">Status</TableHead>
+                            <TableHead className="text-right">Hours</TableHead>
+                            <TableHead className="w-[80px]"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filtered.map(entry => (
+                            <TableRow key={entry.id}>
+                              <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
+                              <TableCell>{getUser(entry.userId)?.name}</TableCell>
+                              <TableCell className="font-medium">{getProject(entry.projectId!)?.name}</TableCell>
+                              <TableCell className="max-w-[280px] truncate">{entry.description}</TableCell>
+                              <TableCell className="text-center">
+                                {entry.billable
+                                  ? <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100 border-none dark:bg-green-900/30 dark:text-green-400">Yes</Badge>
+                                  : <Badge variant="secondary">No</Badge>}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {entry.approved
+                                  ? <span className="flex items-center justify-center gap-1 text-xs text-green-600 font-medium"><CheckCircle2 className="h-3 w-3" /> Approved</span>
+                                  : <span className="flex items-center justify-center gap-1 text-xs text-amber-600 font-medium"><AlertCircle className="h-3 w-3" /> Pending</span>}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">{entry.hours}h</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1 justify-end">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditEntry(entry as any)}>
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Edit entry</TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteEntryId(entry.id)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Delete entry</TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
