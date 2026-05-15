@@ -397,9 +397,6 @@ export default function Finance() {
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button size="sm" variant="outline" onClick={() => setIsContractOpen(true)}>
-            <FilePlus className="h-4 w-4 mr-2" /> New Contract
-          </Button>
         </div>
 
         <Tabs defaultValue="invoices" className="w-full">
@@ -704,14 +701,9 @@ export default function Finance() {
 
           <TabsContent value="contracts" className="m-0">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Contracts</CardTitle>
-                  <CardDescription>Master agreements, SOWs, and other contract documents tied to projects.</CardDescription>
-                </div>
-                <Button size="sm" onClick={() => { setEditingContract(null); resetContractForm(); setIsContractOpen(true); }}>
-                  <FilePlus className="h-4 w-4 mr-2" /> New Contract
-                </Button>
+              <CardHeader>
+                <CardTitle>Contracts</CardTitle>
+                <CardDescription>Master agreements, SOWs, and other contract documents tied to projects.</CardDescription>
               </CardHeader>
               <CardContent>
                 {(() => {
