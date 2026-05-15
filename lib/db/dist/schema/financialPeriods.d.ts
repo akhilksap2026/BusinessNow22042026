@@ -1,11 +1,11 @@
 import { z } from "zod/v4";
-export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
-    name: "contracts";
+export declare const financialPeriodsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "financial_periods";
     schema: undefined;
     columns: {
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
-            tableName: "contracts";
+            tableName: "financial_periods";
             dataType: "number";
             columnType: "PgSerial";
             data: number;
@@ -20,26 +20,43 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        projectId: import("drizzle-orm/pg-core").PgColumn<{
-            name: "project_id";
-            tableName: "contracts";
-            dataType: "number";
-            columnType: "PgInteger";
-            data: number;
-            driverParam: string | number;
+        periodName: import("drizzle-orm/pg-core").PgColumn<{
+            name: "period_name";
+            tableName: "financial_periods";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
             notNull: true;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
-            enumValues: undefined;
+            enumValues: [string, ...string[]];
             baseColumn: never;
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        name: import("drizzle-orm/pg-core").PgColumn<{
-            name: "name";
-            tableName: "contracts";
+        startDate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "start_date";
+            tableName: "financial_periods";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        endDate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "end_date";
+            tableName: "financial_periods";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -56,7 +73,7 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
         }, {}, {}>;
         status: import("drizzle-orm/pg-core").PgColumn<{
             name: "status";
-            tableName: "contracts";
+            tableName: "financial_periods";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -71,47 +88,30 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        startDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "start_date";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
+        cfoOverrideActive: import("drizzle-orm/pg-core").PgColumn<{
+            name: "cfo_override_active";
+            tableName: "financial_periods";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
+            notNull: true;
+            hasDefault: true;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
+            enumValues: undefined;
             baseColumn: never;
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        endDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "end_date";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        value: import("drizzle-orm/pg-core").PgColumn<{
-            name: "value";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgNumeric";
-            data: string;
-            driverParam: string;
+        cfoOverrideUserId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "cfo_override_user_id";
+            tableName: "financial_periods";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
             notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
@@ -122,43 +122,9 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        documentUrl: import("drizzle-orm/pg-core").PgColumn<{
-            name: "document_url";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        notes: import("drizzle-orm/pg-core").PgColumn<{
-            name: "notes";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
-            tableName: "contracts";
+            tableName: "financial_periods";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -175,7 +141,7 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
         }, {}, {}>;
         updatedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "updated_at";
-            tableName: "contracts";
+            tableName: "financial_periods";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -193,19 +159,17 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
     };
     dialect: "pg";
 }>;
-export declare const insertContractSchema: z.ZodObject<{
-    name: z.ZodString;
+export declare const insertFinancialPeriodSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodString>;
-    startDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    projectId: z.ZodInt;
-    value: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    endDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    documentUrl: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    startDate: z.ZodString;
+    periodName: z.ZodString;
+    endDate: z.ZodString;
+    cfoOverrideActive: z.ZodOptional<z.ZodBoolean>;
+    cfoOverrideUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
 }, {
     out: {};
     in: {};
 }>;
-export type InsertContract = z.infer<typeof insertContractSchema>;
-export type Contract = typeof contractsTable.$inferSelect;
-//# sourceMappingURL=contracts.d.ts.map
+export type InsertFinancialPeriod = z.infer<typeof insertFinancialPeriodSchema>;
+export type FinancialPeriod = typeof financialPeriodsTable.$inferSelect;
+//# sourceMappingURL=financialPeriods.d.ts.map

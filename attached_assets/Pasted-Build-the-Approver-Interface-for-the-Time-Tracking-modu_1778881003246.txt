@@ -1,0 +1,71 @@
+Build the Approver Interface for the Time Tracking module. This is for users with 'Manager' or 'Approver' roles.
+
+─────────────────────────────────────────
+COMPONENT 1: ApprovalQueue
+Route: /time/approvals
+─────────────────────────────────────────
+Layout: list of submitted timesheets pending the logged-in approver's action
+
+Each queue item shows:
+- Submitter name + avatar
+- Week period (e.g., "Oct 28 – Nov 3")
+- Total hours submitted
+- Billable vs Non-Billable split
+- Days since submitted (highlight red if > 48 hours)
+- Number of exceptional entries flagged
+- [Review] button
+
+Filters:
+- By project
+- By status (Submitted / Resubmitted / All)
+- By submission date range
+
+─────────────────────────────────────────
+COMPONENT 2: TimesheetReviewScreen
+Route: /time/approvals/:submitterId/:weekStart
+─────────────────────────────────────────
+Shows the full weekly grid (read-only for submitter, actionable for approver).
+
+For each entry row, approver sees:
+- Entry details (project, task, hours, date, narrative)
+- Billable category badge
+- Exceptional flag + justification (if flagged)
+- Audit trail toggle (expandable: shows creation, any edits, proxy info)
+- Action buttons per entry: [Approve] [Reject]
+
+─────────────────────────────────────────
+LINE-ITEM REJECTION (FR-496.1)
+─────────────────────────────────────────
+- Approver can reject individual entries without affecting others in the same submission
+- Clicking [Reject] on a single entry opens a rejection reason modal (required field, non-whitespace)
+- On confirmation: only that entry moves to Rejected; others remain Submitted or get Approved independently
+- Implement: FR-496.1, FR-476.2
+
+─────────────────────────────────────────
+BULK APPROVE
+─────────────────────────────────────────
+- [Approve All] button at the top — approves all Submitted entries in the current week's review
+- [Approve Selected] for checkbox-selected entries
+
+─────────────────────────────────────────
+REJECTION MODAL
+─────────────────────────────────────────
+- Textarea: "Reason for rejection" (required, min 10 chars, no whitespace-only)
+- [Cancel] [Confirm Rejection]
+- After rejection: entry immediately shows red in the grid, and a notification is queued to the submitter
+
+─────────────────────────────────────────
+BILLABLE OVERRIDE PANEL (for Authorized_Approver role)
+─────────────────────────────────────────
+- On each entry, show a "Category Override" control if user has the right role
+- Toggle between Billable / Non-Billable with a confirmation step
+- Show the original category in muted text after override
+- Implement: FR-357.1, FR-357.2
+
+─────────────────────────────────────────
+RESUBMISSION ROUTING
+─────────────────────────────────────────
+- Resubmitted entries (previously Rejected, now resubmitted) are flagged with a "↩ Resubmitted" badge
+- They appear directly in the original rejector's queue (routed by server, not UI logic)
+- Show diff: what changed since rejection (compare current hours/narrative vs. the rejected version from audit log)
+- Implement: FR-496.2

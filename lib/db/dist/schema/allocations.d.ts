@@ -433,12 +433,13 @@ export declare const allocationsTable: import("drizzle-orm/pg-core").PgTableWith
 }>;
 export declare const insertAllocationSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    role: z.ZodString;
     startDate: z.ZodString;
     projectId: z.ZodInt;
+    role: z.ZodString;
     userId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-    totalHours: z.ZodOptional<z.ZodString>;
     endDate: z.ZodString;
+    totalHours: z.ZodOptional<z.ZodString>;
+    source: z.ZodOptional<z.ZodString>;
     placeholderRole: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     placeholderId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     hoursPerWeek: z.ZodOptional<z.ZodString>;
@@ -447,7 +448,6 @@ export declare const insertAllocationSchema: z.ZodObject<{
     methodValue: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     percentOfCapacity: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isSoftAllocation: z.ZodOptional<z.ZodBoolean>;
-    source: z.ZodOptional<z.ZodString>;
     isTimesheetApprover: z.ZodOptional<z.ZodBoolean>;
     isLeaveApprover: z.ZodOptional<z.ZodBoolean>;
     isOverride: z.ZodOptional<z.ZodBoolean>;

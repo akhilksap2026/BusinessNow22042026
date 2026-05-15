@@ -256,14 +256,14 @@ export declare const projectRisksTable: import("drizzle-orm/pg-core").PgTableWit
     dialect: "pg";
 }>;
 export declare const insertProjectRiskSchema: z.ZodObject<{
-    type: z.ZodOptional<z.ZodString>;
-    createdByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-    title: z.ZodString;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     status: z.ZodOptional<z.ZodString>;
     ownerId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     projectId: z.ZodInt;
     probability: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    title: z.ZodString;
+    type: z.ZodOptional<z.ZodString>;
+    createdByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     impact: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     mitigation: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     targetDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;

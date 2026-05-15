@@ -34,4 +34,10 @@ export * from "./risks";
 export * from "./templateTaskDeps";
 export * from "./taskDailyAllocations";
 export * from "./resourceCostRates";
+export * from "./financialPeriods";
+export * from "./effortEntries";
+export * from "./effortAuditLog";
+export * from "./proxyDelegations";
+export * from "./contractRules";
+export * from "./exceptionalEffortRules";
 //# sourceMappingURL=index.d.ts.map

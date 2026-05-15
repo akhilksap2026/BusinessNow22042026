@@ -190,6 +190,40 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        customerEmail: import("drizzle-orm/pg-core").PgColumn<{
+            name: "customer_email";
+            tableName: "opportunities";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        customerPhone: import("drizzle-orm/pg-core").PgColumn<{
+            name: "customer_phone";
+            tableName: "opportunities";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "opportunities";
@@ -228,16 +262,18 @@ export declare const opportunitiesTable: import("drizzle-orm/pg-core").PgTableWi
     dialect: "pg";
 }>;
 export declare const insertOpportunitySchema: z.ZodObject<{
-    value: z.ZodOptional<z.ZodString>;
-    name: z.ZodString;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     accountId: z.ZodInt;
+    name: z.ZodString;
     ownerId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     projectId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     stage: z.ZodOptional<z.ZodString>;
     probability: z.ZodOptional<z.ZodInt>;
+    value: z.ZodOptional<z.ZodString>;
     closeDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     closeReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    customerEmail: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    customerPhone: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};

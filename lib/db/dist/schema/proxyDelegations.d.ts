@@ -1,11 +1,11 @@
 import { z } from "zod/v4";
-export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
-    name: "contracts";
+export declare const proxyDelegationsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "proxy_delegations";
     schema: undefined;
     columns: {
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
-            tableName: "contracts";
+            tableName: "proxy_delegations";
             dataType: "number";
             columnType: "PgSerial";
             data: number;
@@ -20,9 +20,9 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        projectId: import("drizzle-orm/pg-core").PgColumn<{
-            name: "project_id";
-            tableName: "contracts";
+        proxyUserId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "proxy_user_id";
+            tableName: "proxy_delegations";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -37,82 +37,14 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        name: import("drizzle-orm/pg-core").PgColumn<{
-            name: "name";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
+        targetUserId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "target_user_id";
+            tableName: "proxy_delegations";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
             notNull: true;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        status: import("drizzle-orm/pg-core").PgColumn<{
-            name: "status";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        startDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "start_date";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        endDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "end_date";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        value: import("drizzle-orm/pg-core").PgColumn<{
-            name: "value";
-            tableName: "contracts";
-            dataType: "string";
-            columnType: "PgNumeric";
-            data: string;
-            driverParam: string;
-            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -122,14 +54,31 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        documentUrl: import("drizzle-orm/pg-core").PgColumn<{
-            name: "document_url";
-            tableName: "contracts";
+        grantedById: import("drizzle-orm/pg-core").PgColumn<{
+            name: "granted_by_id";
+            tableName: "proxy_delegations";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        validFrom: import("drizzle-orm/pg-core").PgColumn<{
+            name: "valid_from";
+            tableName: "proxy_delegations";
             dataType: "string";
             columnType: "PgText";
             data: string;
             driverParam: string;
-            notNull: false;
+            notNull: true;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -139,26 +88,43 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        notes: import("drizzle-orm/pg-core").PgColumn<{
-            name: "notes";
-            tableName: "contracts";
+        validUntil: import("drizzle-orm/pg-core").PgColumn<{
+            name: "valid_until";
+            tableName: "proxy_delegations";
             dataType: "string";
             columnType: "PgText";
             data: string;
             driverParam: string;
-            notNull: false;
+            notNull: true;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
             enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        isActive: import("drizzle-orm/pg-core").PgColumn<{
+            name: "is_active";
+            tableName: "proxy_delegations";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
             baseColumn: never;
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
-            tableName: "contracts";
+            tableName: "proxy_delegations";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -175,7 +141,7 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
         }, {}, {}>;
         updatedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "updated_at";
-            tableName: "contracts";
+            tableName: "proxy_delegations";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -193,19 +159,17 @@ export declare const contractsTable: import("drizzle-orm/pg-core").PgTableWithCo
     };
     dialect: "pg";
 }>;
-export declare const insertContractSchema: z.ZodObject<{
-    name: z.ZodString;
-    status: z.ZodOptional<z.ZodString>;
-    startDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    projectId: z.ZodInt;
-    value: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    endDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    documentUrl: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+export declare const insertProxyDelegationSchema: z.ZodObject<{
+    isActive: z.ZodOptional<z.ZodBoolean>;
+    proxyUserId: z.ZodInt;
+    targetUserId: z.ZodInt;
+    grantedById: z.ZodInt;
+    validFrom: z.ZodString;
+    validUntil: z.ZodString;
 }, {
     out: {};
     in: {};
 }>;
-export type InsertContract = z.infer<typeof insertContractSchema>;
-export type Contract = typeof contractsTable.$inferSelect;
-//# sourceMappingURL=contracts.d.ts.map
+export type InsertProxyDelegation = z.infer<typeof insertProxyDelegationSchema>;
+export type ProxyDelegation = typeof proxyDelegationsTable.$inferSelect;
+//# sourceMappingURL=proxyDelegations.d.ts.map

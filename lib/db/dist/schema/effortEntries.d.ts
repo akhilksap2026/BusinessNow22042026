@@ -1,11 +1,11 @@
 import { z } from "zod/v4";
-export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
-    name: "change_orders";
+export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "effort_entries";
     schema: undefined;
     columns: {
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
-            tableName: "change_orders";
+            tableName: "effort_entries";
             dataType: "number";
             columnType: "PgSerial";
             data: number;
@@ -20,9 +20,9 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        projectId: import("drizzle-orm/pg-core").PgColumn<{
-            name: "project_id";
-            tableName: "change_orders";
+        resourceId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "resource_id";
+            tableName: "effort_entries";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -37,26 +37,60 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        crNumber: import("drizzle-orm/pg-core").PgColumn<{
-            name: "cr_number";
-            tableName: "change_orders";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
+        enteredById: import("drizzle-orm/pg-core").PgColumn<{
+            name: "entered_by_id";
+            tableName: "effort_entries";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
+            enumValues: undefined;
             baseColumn: never;
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        title: import("drizzle-orm/pg-core").PgColumn<{
-            name: "title";
-            tableName: "change_orders";
+        projectId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "project_id";
+            tableName: "effort_entries";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        taskId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "task_id";
+            tableName: "effort_entries";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        entryDate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "entry_date";
+            tableName: "effort_entries";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -71,9 +105,43 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        description: import("drizzle-orm/pg-core").PgColumn<{
-            name: "description";
-            tableName: "change_orders";
+        durationHours: import("drizzle-orm/pg-core").PgColumn<{
+            name: "duration_hours";
+            tableName: "effort_entries";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        billableCategory: import("drizzle-orm/pg-core").PgColumn<{
+            name: "billable_category";
+            tableName: "effort_entries";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        originalBillableCategory: import("drizzle-orm/pg-core").PgColumn<{
+            name: "original_billable_category";
+            tableName: "effort_entries";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -88,13 +156,30 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        amount: import("drizzle-orm/pg-core").PgColumn<{
-            name: "amount";
-            tableName: "change_orders";
+        narrative: import("drizzle-orm/pg-core").PgColumn<{
+            name: "narrative";
+            tableName: "effort_entries";
             dataType: "string";
-            columnType: "PgNumeric";
+            columnType: "PgText";
             data: string;
             driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        isExceptional: import("drizzle-orm/pg-core").PgColumn<{
+            name: "is_exceptional";
+            tableName: "effort_entries";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
             notNull: true;
             hasDefault: true;
             isPrimaryKey: false;
@@ -105,13 +190,30 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        additionalHours: import("drizzle-orm/pg-core").PgColumn<{
-            name: "additional_hours";
-            tableName: "change_orders";
+        exceptionalJustification: import("drizzle-orm/pg-core").PgColumn<{
+            name: "exceptional_justification";
+            tableName: "effort_entries";
             dataType: "string";
-            columnType: "PgNumeric";
+            columnType: "PgText";
             data: string;
             driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        isReplicated: import("drizzle-orm/pg-core").PgColumn<{
+            name: "is_replicated";
+            tableName: "effort_entries";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
             notNull: true;
             hasDefault: true;
             isPrimaryKey: false;
@@ -124,7 +226,7 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
         }, {}, {}>;
         status: import("drizzle-orm/pg-core").PgColumn<{
             name: "status";
-            tableName: "change_orders";
+            tableName: "effort_entries";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -139,9 +241,43 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        submittedByUserId: import("drizzle-orm/pg-core").PgColumn<{
-            name: "submitted_by_user_id";
-            tableName: "change_orders";
+        rejectionReason: import("drizzle-orm/pg-core").PgColumn<{
+            name: "rejection_reason";
+            tableName: "effort_entries";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        weekStartDate: import("drizzle-orm/pg-core").PgColumn<{
+            name: "week_start_date";
+            tableName: "effort_entries";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        financialPeriodId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "financial_period_id";
+            tableName: "effort_entries";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -156,147 +292,9 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        approvedByUserId: import("drizzle-orm/pg-core").PgColumn<{
-            name: "approved_by_user_id";
-            tableName: "change_orders";
-            dataType: "number";
-            columnType: "PgInteger";
-            data: number;
-            driverParam: string | number;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        requestedDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "requested_date";
-            tableName: "change_orders";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        submittedDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "submitted_date";
-            tableName: "change_orders";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        decisionDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "decision_date";
-            tableName: "change_orders";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        approvedDate: import("drizzle-orm/pg-core").PgColumn<{
-            name: "approved_date";
-            tableName: "change_orders";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        newResourceRole: import("drizzle-orm/pg-core").PgColumn<{
-            name: "new_resource_role";
-            tableName: "change_orders";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        documentLink: import("drizzle-orm/pg-core").PgColumn<{
-            name: "document_link";
-            tableName: "change_orders";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        linkedTaskTitles: import("drizzle-orm/pg-core").PgColumn<{
-            name: "linked_task_titles";
-            tableName: "change_orders";
-            dataType: "json";
-            columnType: "PgJson";
-            data: string[];
-            driverParam: unknown;
-            notNull: false;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {
-            $type: string[];
-        }>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
-            tableName: "change_orders";
+            tableName: "effort_entries";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -313,7 +311,7 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
         }, {}, {}>;
         updatedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "updated_at";
-            tableName: "change_orders";
+            tableName: "effort_entries";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -331,27 +329,27 @@ export declare const changeOrdersTable: import("drizzle-orm/pg-core").PgTableWit
     };
     dialect: "pg";
 }>;
-export declare const insertChangeOrderSchema: z.ZodObject<{
+export declare const insertEffortEntrySchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodString>;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     projectId: z.ZodInt;
-    submittedByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-    approvedByUserId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-    amount: z.ZodOptional<z.ZodString>;
-    crNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    title: z.ZodString;
-    additionalHours: z.ZodOptional<z.ZodString>;
-    requestedDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    submittedDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    decisionDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    approvedDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    newResourceRole: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    documentLink: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    linkedTaskTitles: z.ZodOptional<z.ZodNullable<z.ZodType<string[], string[], z.core.$ZodTypeInternals<string[], string[]>>>>;
+    taskId: z.ZodInt;
+    resourceId: z.ZodInt;
+    enteredById: z.ZodInt;
+    entryDate: z.ZodString;
+    durationHours: z.ZodString;
+    billableCategory: z.ZodOptional<z.ZodString>;
+    originalBillableCategory: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    narrative: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    isExceptional: z.ZodOptional<z.ZodBoolean>;
+    exceptionalJustification: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    isReplicated: z.ZodOptional<z.ZodBoolean>;
+    rejectionReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    weekStartDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    financialPeriodId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
 }, {
     out: {};
     in: {};
 }>;
-export type InsertChangeOrder = z.infer<typeof insertChangeOrderSchema>;
-export type ChangeOrder = typeof changeOrdersTable.$inferSelect;
-//# sourceMappingURL=changeOrders.d.ts.map
+export type InsertEffortEntry = z.infer<typeof insertEffortEntrySchema>;
+export type EffortEntry = typeof effortEntriesTable.$inferSelect;
+//# sourceMappingURL=effortEntries.d.ts.map

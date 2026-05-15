@@ -1,0 +1,56 @@
+Build the Admin Settings section for the Time Tracking module. Accessible only to users with the 'Admin' role.
+
+Route: /settings/time-tracking
+
+─────────────────────────────────────────
+SECTION 1: Financial Periods
+─────────────────────────────────────────
+- Table of all financial periods with columns: Period Name | Start | End | Status | CFO Override
+- [Add Period] button: form with period name, start date, end date, status (Open/Closed)
+- Toggle to change period status Open ↔ Closed
+- CFO Override toggle: when enabled for a period, allows designated user to post into closed period
+- CFO Override user selector: which user gets this exception
+
+─────────────────────────────────────────
+SECTION 2: Contract Rules (per Project)
+─────────────────────────────────────────
+- Searchable project list
+- Click a project to open its contract rules form:
+  - Contract Type: Time & Materials | Fixed Bid
+  - Minimum Increment (minutes): 15 / 30 / 60 (radio)
+  - Max Billable Hours Cap (only for Fixed Bid): numeric input
+  - Narrative Required: Yes / No toggle
+  - Future Date Buffer (days): numeric input (default 7)
+  - Max Daily Hours: numeric input (default 24)
+- Show current utilization for Fixed Bid projects: "X of Y hours used (Z% consumed)"
+
+─────────────────────────────────────────
+SECTION 3: Exceptional Effort Rules
+─────────────────────────────────────────
+- Form to edit the active exceptional effort rule:
+  - Daily overtime threshold (hours)
+  - Weekly overtime threshold (hours)
+  - Is Active toggle
+- Note: changes here affect all future time entries immediately
+
+─────────────────────────────────────────
+SECTION 4: Proxy Delegations
+─────────────────────────────────────────
+- Table: Proxy User | Target User | Granted By | Valid From | Valid Until | Active | Actions
+- [New Delegation] form:
+  - Proxy User (searchable user selector)
+  - Target User (searchable user selector, cannot be same as proxy)
+  - Valid From / Valid Until date range picker
+- [Deactivate] action per delegation (soft deactivate, not delete)
+- Expired delegations shown in muted state with "Expired" badge
+
+─────────────────────────────────────────
+SECTION 5: Audit Log Viewer (read-only)
+─────────────────────────────────────────
+- Search/filter interface for the effort_audit_log table
+- Filters: user, action type, date range, entry ID
+- Table: Timestamp | Entry ID | Action | Performed By | Previous Value | New Value
+- All records read-only — no edit or delete capability on audit records (immutable)
+- Export to CSV button
+
+All admin forms must show confirmation dialogs before saving changes to contract rules or financial periods (irreversible or high-impact changes).

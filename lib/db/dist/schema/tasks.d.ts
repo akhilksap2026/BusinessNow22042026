@@ -490,6 +490,23 @@ export declare const tasksTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        defaultBillableCategory: import("drizzle-orm/pg-core").PgColumn<{
+            name: "default_billable_category";
+            tableName: "tasks";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "tasks";
@@ -554,6 +571,7 @@ export declare const insertTaskSchema: z.ZodObject<{
     overrunAlertSentAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
     etcOverride: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     completionPct: z.ZodOptional<z.ZodInt>;
+    defaultBillableCategory: z.ZodOptional<z.ZodString>;
 }, {
     out: {};
     in: {};
@@ -670,8 +688,8 @@ export declare const taskNotesTable: import("drizzle-orm/pg-core").PgTableWithCo
     dialect: "pg";
 }>;
 export declare const insertTaskNoteSchema: z.ZodObject<{
-    userId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     taskId: z.ZodInt;
+    userId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     content: z.ZodString;
 }, {
     out: {};

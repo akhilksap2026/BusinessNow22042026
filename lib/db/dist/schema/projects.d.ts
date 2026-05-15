@@ -394,6 +394,23 @@ export declare const projectsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        contractType: import("drizzle-orm/pg-core").PgColumn<{
+            name: "contract_type";
+            tableName: "projects";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         deletedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "deleted_at";
             tableName: "projects";
@@ -449,10 +466,9 @@ export declare const projectsTable: import("drizzle-orm/pg-core").PgTableWithCol
     dialect: "pg";
 }>;
 export declare const insertProjectSchema: z.ZodObject<{
-    name: z.ZodString;
-    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    status: z.ZodOptional<z.ZodString>;
     accountId: z.ZodInt;
+    name: z.ZodString;
+    status: z.ZodOptional<z.ZodString>;
     ownerId: z.ZodInt;
     startDate: z.ZodString;
     dueDate: z.ZodString;
@@ -462,6 +478,7 @@ export declare const insertProjectSchema: z.ZodObject<{
     budgetedHours: z.ZodOptional<z.ZodString>;
     completion: z.ZodOptional<z.ZodInt>;
     health: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     rateCardId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     customerChampion: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     templateId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
@@ -471,6 +488,7 @@ export declare const insertProjectSchema: z.ZodObject<{
     opportunityId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     projectGroupId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     budgetLocked: z.ZodOptional<z.ZodBoolean>;
+    contractType: z.ZodOptional<z.ZodString>;
     deletedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
 }, {
     out: {};
