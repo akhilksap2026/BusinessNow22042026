@@ -6,10 +6,10 @@ import {
   createOpportunity,
   updateOpportunity,
   deleteOpportunity,
-  convertOpportunityToProject,
   listAccounts,
 } from "@workspace/api-client-react";
 import { Opportunity } from "@workspace/api-client-react";
+import { CreateProjectWizard, type CreateProjectPrefill } from "@/components/create-project-wizard";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -90,10 +90,10 @@ export default function OpportunitiesPage() {
   const [selected, setSelected] = useState<Opportunity | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [showConvert, setShowConvert] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [wizardPrefill, setWizardPrefill] = useState<CreateProjectPrefill | undefined>(undefined);
   const [form, setForm] = useState({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "" });
   const [editForm, setEditForm] = useState({ name: "", stage: "Discovery", probability: "", value: "", description: "", closeDate: "" });
-  const [projectForm, setProjectForm] = useState({ name: "", billingType: "Fixed Fee", startDate: "", dueDate: "" });
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["opportunities"],
@@ -148,26 +148,17 @@ export default function OpportunitiesPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["opportunities"] }); setSelected(null); },
   });
 
-  const convertMut = useMutation({
-    mutationFn: () => convertOpportunityToProject(selected!.id, {
-      name: projectForm.name || selected!.name,
-      billingType: projectForm.billingType,
-      startDate: projectForm.startDate,
-      dueDate: projectForm.dueDate,
-    }),
-    onSuccess: async () => {
-      qc.invalidateQueries({ queryKey: ["opportunities"] });
-      qc.invalidateQueries({ queryKey: ["projects"] });
-      setShowConvert(false);
-      // Refresh selected opportunity so the linked project card appears immediately
-      try {
-        const res = await fetch(`${BASE_URL}/api/opportunities/${selected!.id}`, {
-          headers: authHeaders(),
-        });
-        if (res.ok) setSelected(await res.json());
-      } catch { /* keep sheet open with old data */ }
-    },
-  });
+  function openCreateProject(o: Opportunity) {
+    setSelected(o);
+    setWizardPrefill({
+      name: o.name,
+      accountId: o.accountId ?? undefined,
+      budget: o.value ?? undefined,
+      description: o.description ?? undefined,
+      opportunityId: o.id,
+    });
+    setShowWizard(true);
+  }
 
   function resetForm() {
     setForm({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "" });
@@ -245,12 +236,12 @@ export default function OpportunitiesPage() {
         {view === "kanban" ? (
           <KanbanBoard opportunities={opportunities} onSelect={setSelected} onStageChange={(id, stage) => updateMut.mutate({ id, stage })} />
         ) : (
-          <OpportunityTable opportunities={opportunities} onSelect={setSelected} onDelete={id => deleteMut.mutate(id)} onConvert={o => { setSelected(o); setShowConvert(true); }} />
+          <OpportunityTable opportunities={opportunities} onSelect={setSelected} onDelete={id => deleteMut.mutate(id)} onConvert={o => openCreateProject(o)} />
         )}
       </div>
 
       {/* Detail Sheet */}
-      <Sheet open={!!selected && !showConvert} onOpenChange={v => { if (!v) setSelected(null); }}>
+      <Sheet open={!!selected && !showWizard} onOpenChange={v => { if (!v) setSelected(null); }}>
         <SheetContent className="w-full sm:w-[460px] overflow-y-auto">
           {selected && (
             <>
@@ -266,7 +257,11 @@ export default function OpportunitiesPage() {
                       Edit
                     </Button>
                     {selected.stage === "Won" && !selected.projectId && (
-                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowConvert(true)}>
+                      <Button
+                        size="sm"
+                        className="gap-1.5 bg-green-600 hover:bg-green-700 text-white border-transparent"
+                        onClick={() => openCreateProject(selected)}
+                      >
                         <FolderPlus className="h-3.5 w-3.5" /> Create Project
                       </Button>
                     )}
@@ -319,7 +314,18 @@ export default function OpportunitiesPage() {
                   </Select>
                 </div>
 
-                <Button variant="destructive" size="sm" onClick={() => deleteMut.mutate(selected.id)}>Delete Opportunity</Button>
+                <div className="flex items-center gap-2">
+                  {selected.stage === "Won" && !selected.projectId && (
+                    <Button
+                      className="gap-1.5 bg-green-600 hover:bg-green-700 text-white border-transparent"
+                      size="sm"
+                      onClick={() => openCreateProject(selected)}
+                    >
+                      <FolderPlus className="h-3.5 w-3.5" /> Create Project
+                    </Button>
+                  )}
+                  <Button variant="destructive" size="sm" onClick={() => deleteMut.mutate(selected.id)}>Delete Opportunity</Button>
+                </div>
               </div>
             </>
           )}
@@ -378,49 +384,16 @@ export default function OpportunitiesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Convert to Project Dialog */}
-      <Dialog open={showConvert} onOpenChange={v => setShowConvert(v)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Create Project from Opportunity</DialogTitle></DialogHeader>
-          {selected && (
-            <div className="space-y-3 py-2">
-              <p className="text-sm text-slate-600">Creating a project from <strong>{selected.name}</strong></p>
-              <div className="space-y-1">
-                <Label>Project Name *</Label>
-                <Input value={projectForm.name || selected.name} onChange={e => setProjectForm(f => ({ ...f, name: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>Billing Type</Label>
-                <Select value={projectForm.billingType} onValueChange={v => setProjectForm(f => ({ ...f, billingType: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["Fixed Fee", "Time & Materials", "Retainer", "Milestone"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>Start Date *</Label>
-                  <Input type="date" value={projectForm.startDate} onChange={e => setProjectForm(f => ({ ...f, startDate: e.target.value }))} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Due Date *</Label>
-                  <Input type="date" value={projectForm.dueDate} onChange={e => setProjectForm(f => ({ ...f, dueDate: e.target.value }))} />
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConvert(false)}>Cancel</Button>
-            <Button
-              onClick={() => convertMut.mutate()}
-              disabled={!(projectForm.name || selected?.name) || !projectForm.startDate || !projectForm.dueDate || convertMut.isPending}
-            >
-              {convertMut.isPending ? "Creating…" : "Create Project"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateProjectWizard
+        open={showWizard}
+        onOpenChange={v => {
+          setShowWizard(v);
+          if (!v) {
+            qc.invalidateQueries({ queryKey: ["opportunities"] });
+          }
+        }}
+        prefill={wizardPrefill}
+      />
       {/* Edit Opportunity Dialog */}
       <Dialog open={showEdit} onOpenChange={v => setShowEdit(v)}>
         <DialogContent className="max-w-lg">

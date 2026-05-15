@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -61,7 +61,23 @@ type Mode = "choose" | "blank" | "template";
 
 type MemberConfig = Record<number, { role: string; hoursPerWeek: number }>;
 
-export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export type CreateProjectPrefill = {
+  name?: string;
+  accountId?: number;
+  budget?: number;
+  description?: string;
+  opportunityId?: number;
+};
+
+export function CreateProjectWizard({
+  open,
+  onOpenChange,
+  prefill,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  prefill?: CreateProjectPrefill;
+}) {
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState<Mode>("blank");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
@@ -100,6 +116,22 @@ export function CreateProjectWizard({ open, onOpenChange }: { open: boolean; onO
     resolver: zodResolver(templateProjectSchema),
     defaultValues: { name: "", budget: undefined },
   });
+
+  useEffect(() => {
+    if (open && prefill) {
+      blankForm.reset({
+        name: prefill.name ?? "",
+        description: prefill.description ?? "",
+        billingType: "Fixed Fee",
+        budget: prefill.budget ?? 0,
+        budgetedHours: 0,
+        teamMembers: [],
+        internalExternal: "External",
+        ...(prefill.accountId ? { accountId: prefill.accountId } : {}),
+        ...(prefill.opportunityId ? { opportunityId: prefill.opportunityId } : {}),
+      });
+    }
+  }, [open]);
 
   function handleClose(v: boolean) {
     if (!v) {
