@@ -368,17 +368,6 @@ export function CreateProjectWizard({
                   <form onSubmit={templateForm.handleSubmit(onSubmitFromTemplate)} className="space-y-4">
                     <FormField
                       control={templateForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Project Name</FormLabel>
-                          <FormControl><Input placeholder="Enter project name" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={templateForm.control}
                       name="accountId"
                       render={({ field }) => (
                         <FormItem>
@@ -393,6 +382,17 @@ export function CreateProjectWizard({
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={templateForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Project Name</FormLabel>
+                          <FormControl><Input placeholder="Enter project name" {...field} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -482,36 +482,6 @@ export function CreateProjectWizard({
               {/* ── Step 1: Basics ────────────────────────────── */}
               {step === 1 && (
                 <div className="space-y-4">
-                  <FormField
-                    control={blankForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Project Name</FormLabel>
-                        <FormControl><Input placeholder="Enter project name" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={blankForm.control}
-                    name="description"
-                    render={({ field }) => {
-                      const empty = !field.value || !String(field.value).trim();
-                      return (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl><Textarea placeholder="Project description" {...field} /></FormControl>
-                          {empty && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                              Tip: adding a description makes this project much easier to find and understand later.
-                            </p>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
                   <FormField
                     control={blankForm.control}
                     name="internalExternal"
@@ -642,6 +612,36 @@ export function CreateProjectWizard({
                       )}
                     />
                   )}
+                  <FormField
+                    control={blankForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Name</FormLabel>
+                        <FormControl><Input placeholder="Enter project name" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={blankForm.control}
+                    name="description"
+                    render={({ field }) => {
+                      const empty = !field.value || !String(field.value).trim();
+                      return (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl><Textarea placeholder="Project description" {...field} /></FormControl>
+                          {empty && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                              Tip: adding a description makes this project much easier to find and understand later.
+                            </p>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
                 </div>
               )}
 
