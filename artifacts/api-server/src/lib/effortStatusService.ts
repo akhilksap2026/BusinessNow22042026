@@ -295,6 +295,7 @@ const INVOICING_TOKEN = process.env.INVOICING_SERVICE_TOKEN ?? "dev-invoicing-to
 export async function markProcessed(
   entryIds: number[],
   callerToken: string,
+  performedById: number,
   dbInstance: Db = defaultDb,
 ): Promise<void> {
   if (callerToken !== INVOICING_TOKEN) {
@@ -320,10 +321,9 @@ export async function markProcessed(
     .set({ status: "Processed", updatedAt: new Date() })
     .where(inArray(effortEntriesTable.id, entryIds));
 
-  // System-level audit — performer = 0 (sentinel for invoicing system)
   for (const e of entries) {
     await writeAudit(
-      e.id, "Processed", 0,
+      e.id, "Processed", performedById,
       { status: "Approved" }, { status: "Processed" },
       "Marked processed by invoicing service.", dbInstance,
     );
