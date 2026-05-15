@@ -306,6 +306,7 @@ export default function OpportunitiesPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <Button variant="destructive" size="sm" onClick={() => deleteMut.mutate(selected.id)}>Delete Opportunity</Button>
                   {selected.stage === "Won" && !selected.projectId && (
                     <Button
                       className="gap-1.5 bg-green-600 hover:bg-green-700 text-white border-transparent"
@@ -315,7 +316,6 @@ export default function OpportunitiesPage() {
                       <FolderPlus className="h-3.5 w-3.5" /> Create Project
                     </Button>
                   )}
-                  <Button variant="destructive" size="sm" onClick={() => deleteMut.mutate(selected.id)}>Delete Opportunity</Button>
                 </div>
               </div>
             </>
