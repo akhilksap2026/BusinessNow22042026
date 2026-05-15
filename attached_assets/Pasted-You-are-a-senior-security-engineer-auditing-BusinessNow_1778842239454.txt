@@ -1,0 +1,122 @@
+You are a senior security engineer auditing BusinessNow PSA, a 
+Professional Services Automation platform built by KSAP Technology.
+
+Stack context:
+- Backend: Express 5, Node.js 20+, Drizzle ORM, PostgreSQL
+- Frontend: React 18 + Vite, Wouter (routing), React Query, Zod
+- Auth: Session/JWT-based
+- Monorepo: pnpm — packages under lib/ (db, api-spec, api-zod, api-client-react)
+- RBAC middleware: exists in codebase — audit and extend it, do not replace it
+
+Canonical roles for BusinessNow PSA:
+  1. Employee (Consultant)    — self-scoped only
+  2. Project Manager (PM)     — owned projects + resources
+  3. Designated PM            — assigned project scope only
+  4. PMO Manager              — all projects, PMO config, billing oversight
+  5. Admin                    — full system access
+  6. Customer (Portal)        — read-only, own project deliverables only
+
+---
+
+## PHASE 1 — DISCOVERY
+
+Scan the full codebase and produce an inventory:
+
+1. Locate the central roles/permissions config:
+   - Check lib/db/src/schema/ for a roles or users schema
+   - Check any middleware/ folder for requireRole() or similar guards
+   - Check lib/api-zod/ and lib/api-spec/openapi.yaml for role 
+     enums or permission schemas
+
+2. Map every API route to its guard status. Output:
+
+| Route | Method | Module | Required Role(s) | Guard Present? | Guard Location |
+|-------|--------|--------|-----------------|----------------|----------------|
+
+   Modules to cover:
+   - Time Entry & Approval
+   - Project & Plan Management (including templates, baselines)
+   - Resource Management & Allocation
+   - Billing, Invoicing & Rate Cards
+   - Opportunities / CRM
+   - Dashboards & Reports
+   - Notifications
+   - User Management & Org Hierarchy
+   - System Settings & PMO Config
+   - Customer Portal
+
+3. Map every React route (Wouter) to its frontend guard status:
+
+| Frontend Route | Module | Required Role(s) | Guard Present? | Guard Type |
+|----------------|--------|-----------------|----------------|------------|
+
+4. Identify where roles are currently stored and passed:
+   - Are roles embedded in the JWT payload or fetched from DB?
+   - Is there a role-switching mechanism (multi-role users)?
+   - Is there a session invalidation mechanism when roles change?
+
+---
+
+## PHASE 2 — GAP ANALYSIS
+
+For every resource identified in Phase 1, check the following.
+Severity: Critical / High / Medium / Low.
+
+### PSA-Specific Checks
+
+TIMESHEET MODULE:
+- [ ] Can an Employee approve their own timesheet? (Critical)
+- [ ] Can a PM approve timesheets for projects they don't own? (High)
+- [ ] Is the 24-hour-per-day cap enforced at the API layer, not just UI? (High)
+- [ ] Can submitted/approved/invoiced time be edited by anyone other 
+      than PMO Manager or Admin? (Critical)
+- [ ] Are the unsubmit and force-edit endpoints protected with 
+      PM + Admin guard only? (Critical)
+
+PROJECT MODULE:
+- [ ] Can an Employee create or assign projects? (Critical)
+- [ ] Can a PM edit projects they don't own? (High)
+- [ ] Can a Designated PM access projects they are not designated on? (High)
+- [ ] Is baselining restricted to PM, PMO Manager, Admin only? (Medium)
+- [ ] Can a Customer portal user access any project other than 
+      their own? (Critical)
+
+BILLING & INVOICING:
+- [ ] Are rate card create/edit endpoints restricted to 
+      PMO Manager + Admin? (Critical)
+- [ ] Can any non-admin role view costRate (internal cost data)? (High)
+- [ ] Are invoice generation and approval endpoints properly 
+      restricted? (High)
+- [ ] Is PMO category configuration (Time Entry Categories) 
+      locked to PMO Manager + Admin? (Medium)
+
+RESOURCE MANAGEMENT:
+- [ ] Can an Employee view other employees' allocation or 
+      rate data? (High)
+- [ ] Can a PM modify resource allocations on projects 
+      they don't own? (High)
+- [ ] Is the hard/soft allocation type change restricted 
+      to PM-level and above? (Medium)
+
+USER MANAGEMENT:
+- [ ] Is role assignment/promotion restricted to Admin only? (Critical)
+- [ ] Can any user demote or deactivate another user? (Critical)
+- [ ] Is the org hierarchy management restricted to Admin? (High)
+- [ ] Is there an audit log for every role change? (High)
+
+DASHBOARD & REPORTS:
+- [ ] Are financial dashboards (margin, cost rates, revenue) 
+      restricted to PMO Manager + Admin? (High)
+- [ ] Can an Employee access company-wide aggregate reports? (High)
+- [ ] Are Customer portal users seeing only their project's 
+      deliverables? (Critical)
+
+GENERAL CHECKS:
+- [ ] Frontend-only guards — any route hidden in UI but 
+      unprotected at API? (Critical)
+- [ ] IDOR risks — can User A access User B's timesheets or 
+      project data by manipulating IDs? (Critical)
+- [ ] Are roles re-validated from DB on sensitive operations 
+      or blindly trusted from token? (High)
+- [ ] Are there hardcoded role strings scattered across 
+      route files instead of a central constant? (Medium)
