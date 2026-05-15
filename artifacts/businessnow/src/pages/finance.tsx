@@ -450,9 +450,6 @@ export default function Finance() {
             <TabsTrigger value="schedules" className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4" /> Billing Schedules
             </TabsTrigger>
-            <TabsTrigger value="projects" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" /> Contracts
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="invoices" className="m-0">
@@ -647,104 +644,6 @@ export default function Finance() {
             </Card>
           </TabsContent>
 
-          {/* ── Contracts tab (projects view) ───────────────────── */}
-          <TabsContent value="projects" className="m-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Contracts</CardTitle>
-                <CardDescription>Master agreements, SOWs, and other contract documents tied to projects.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                {(() => {
-                  const q = searchQuery.toLowerCase();
-                  const filtered = (projects ?? [])
-                    .filter((p: any) => !p.deletedAt)
-                    .filter((p: any) => {
-                      if (!q) return true;
-                      const owner = users?.find((u: any) => u.id === p.ownerId);
-                      return (
-                        p.name.toLowerCase().includes(q) ||
-                        (owner?.name ?? "").toLowerCase().includes(q) ||
-                        (p.status ?? "").toLowerCase().includes(q) ||
-                        (p.health ?? "").toLowerCase().includes(q) ||
-                        (p.internalExternal ?? "").toLowerCase().includes(q)
-                      );
-                    });
-                  if (filtered.length === 0) {
-                    return (
-                      <div className="py-12 text-center text-muted-foreground text-sm">
-                        {q ? `No projects match "${searchQuery}".` : "No projects found."}
-                      </div>
-                    );
-                  }
-                  return (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Project Name</TableHead>
-                          <TableHead>Owner</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Health</TableHead>
-                          <TableHead className="text-right">Tracked Hrs</TableHead>
-                          <TableHead className="text-right">Allocated Hrs</TableHead>
-                          <TableHead className="w-[48px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filtered.map((p: any) => {
-                          const owner = users?.find((u: any) => u.id === p.ownerId);
-                          return (
-                            <TableRow key={p.id}>
-                              <TableCell>
-                                <button
-                                  type="button"
-                                  onClick={() => setLocation(`/projects/${p.id}`)}
-                                  className="text-sm font-medium text-left hover:text-primary hover:underline"
-                                >
-                                  {p.name}
-                                </button>
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">
-                                {owner?.name ?? "—"}
-                              </TableCell>
-                              <TableCell>
-                                {p.internalExternal && (
-                                  <Badge variant="outline" className="text-xs">{p.internalExternal}</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <StatusBadge status={p.status} />
-                              </TableCell>
-                              <TableCell>
-                                {p.health ? <StatusBadge status={p.health} /> : <span className="text-muted-foreground text-sm">—</span>}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums text-sm">
-                                {p.trackedHours != null ? `${p.trackedHours}h` : "0h"}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums text-sm">
-                                {p.allocatedHours != null ? `${Number(p.allocatedHours).toLocaleString()}h` : "—"}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => setLocation(`/projects/${p.id}`)}
-                                >
-                                  <ArrowUpRight className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
 
         <InvoiceDetail invoice={selectedInvoice} open={!!selectedInvoice} onOpenChange={(o) => !o && setSelectedInvoice(null)} />
