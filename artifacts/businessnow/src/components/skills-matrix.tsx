@@ -114,7 +114,7 @@ export default function SkillsMatrix() {
     );
   }
 
-  const skills = (allSkills as Skill[] ?? []).filter(s => (s as any).isActive !== 0);
+  const skills = ((allSkills ?? []) as unknown as Skill[]).filter(s => (s as any).isActive !== 0);
 
   // Group skills by category
   const categoryMap = new Map<number | null, Skill[]>();

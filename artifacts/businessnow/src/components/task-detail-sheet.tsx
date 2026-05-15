@@ -158,7 +158,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const currentUserId = currentUser?.id ?? 1;
 
   const { data: task } = useGetTask(taskId ?? 0, {
-    query: { enabled: !!taskId },
+    query: { enabled: !!taskId } as any,
   });
 
   function invalidate() {
@@ -289,9 +289,9 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                     <Milestone className="h-3 w-3" /> Milestone
                   </Badge>
                 )}
-                {task?.approvalStatus && task.approvalStatus !== "none" && (
+                {(task as any)?.approvalStatus && (task as any).approvalStatus !== "none" && (
                   <Badge variant="outline" className="flex items-center gap-1 capitalize">
-                    <Shield className="h-3 w-3" /> {task.approvalStatus}
+                    <Shield className="h-3 w-3" /> {(task as any).approvalStatus}
                   </Badge>
                 )}
               </div>
@@ -497,7 +497,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center justify-between">
                     <span>Completion</span>
-                    <span className="tabular-nums font-semibold text-foreground">{task?.completionPct ?? 0}%</span>
+                    <span className="tabular-nums font-semibold text-foreground">{(task as any)?.completionPct ?? 0}%</span>
                   </label>
                   <input
                     type="range"
@@ -505,8 +505,8 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
                     max={100}
                     step={5}
                     className="w-full h-1.5 accent-violet-600 cursor-pointer"
-                    key={`cp-${taskId}-${task?.completionPct}`}
-                    defaultValue={task?.completionPct ?? 0}
+                    key={`cp-${taskId}-${(task as any)?.completionPct}`}
+                    defaultValue={(task as any)?.completionPct ?? 0}
                     onMouseUp={(e) => handleUpdateField("completionPct", Number((e.target as HTMLInputElement).value))}
                     onTouchEnd={(e) => handleUpdateField("completionPct", Number((e.target as HTMLInputElement).value))}
                   />
@@ -516,7 +516,7 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
               {/* Approval status */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Approval Status</label>
-                <Select defaultValue={task?.approvalStatus ?? "none"} onValueChange={(v) => handleUpdateField("approvalStatus", v)}>
+                <Select defaultValue={(task as any)?.approvalStatus ?? "none"} onValueChange={(v) => handleUpdateField("approvalStatus", v)}>
                   <SelectTrigger className="h-8 w-48">
                     <SelectValue />
                   </SelectTrigger>

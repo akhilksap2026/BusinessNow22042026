@@ -154,7 +154,7 @@ export function ApplyTemplateModal({ open, onOpenChange, projectId, projectStart
                       </div>
                       {(phase.tasks ?? []).length > 0 && (
                         <div className="mt-1 space-y-0.5 ml-3">
-                          {phase.tasks.map(task => (
+                          {(phase.tasks ?? []).map(task => (
                             <div key={task.id} className="flex items-center justify-between text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3" />

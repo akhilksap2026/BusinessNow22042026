@@ -162,10 +162,10 @@ export function CreateProjectWizard({
           status: "Draft",
           ownerId: values.ownerId,
           internalExternal: values.internalExternal,
-          rateCardId: values.rateCardId ? Number(values.rateCardId) : undefined,
+          rateCardId: (values as any).rateCardId ? Number((values as any).rateCardId) : undefined,
           customerChampion: values.customerChampion?.trim() || undefined,
           opportunityId: values.opportunityId ? Number(values.opportunityId) : undefined,
-        }
+        } as any
       });
 
       if (values.teamMembers.length > 0) {
@@ -179,7 +179,7 @@ export function CreateProjectWizard({
               hoursPerWeek: memberConfig[userId]?.hoursPerWeek ?? 40,
               role: memberConfig[userId]?.role ?? "Team Member",
               isSoftAllocation: true,
-            }
+            } as any
           })
         ));
       }

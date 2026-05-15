@@ -107,7 +107,7 @@ const ROLE_LABELS: Record<RoleValue, string> = {
 };
 
 function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: number; userName: string; allSkills: { id: number; name: string; categoryId: number }[]; onClose: () => void }) {
-  const { data: userSkills, isLoading } = useGetUserSkills({ userId });
+  const { data: userSkills, isLoading } = useGetUserSkills(userId);
   const addSkill = useAddUserSkill();
   const removeSkill = useRemoveUserSkill();
   const queryClient = useQueryClient();
@@ -120,7 +120,7 @@ function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: nu
   async function handleAdd() {
     if (!addSkillId) return;
     try {
-      await addSkill.mutateAsync({ userId, data: { skillId: parseInt(addSkillId) } });
+      await addSkill.mutateAsync({ id: userId, data: { skillId: parseInt(addSkillId) } });
       queryClient.invalidateQueries({ queryKey: ["getUserSkills", userId] });
       setAddSkillId("");
       toast({ title: "Skill added" });
@@ -131,7 +131,7 @@ function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: nu
 
   async function handleRemove(skillId: number) {
     try {
-      await removeSkill.mutateAsync({ userId, skillId });
+      await removeSkill.mutateAsync({ id: userId, skillId });
       queryClient.invalidateQueries({ queryKey: ["getUserSkills", userId] });
       toast({ title: "Skill removed" });
     } catch {
@@ -1576,7 +1576,7 @@ export default function Admin() {
     if (!newSkillName) return;
     try {
       await createSkill.mutateAsync({
-        data: { name: newSkillName, categoryId: newSkillCategoryId ? parseInt(newSkillCategoryId) : undefined, skillType: newSkillType, section: newSkillSection || undefined, description: newSkillDescription || undefined }
+        data: { name: newSkillName, categoryId: newSkillCategoryId ? parseInt(newSkillCategoryId) : undefined, section: newSkillSection || undefined, description: newSkillDescription || undefined } as any
       });
       queryClient.invalidateQueries({ queryKey: getListSkillsQueryKey() });
       toast({ title: "Skill created" });
@@ -1863,10 +1863,10 @@ export default function Admin() {
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell>{user.department}{user.region ? <span className="text-muted-foreground ml-1 text-xs">· {user.region}</span> : null}</TableCell>
+                              <TableCell>{user.department}{(user as any).region ? <span className="text-muted-foreground ml-1 text-xs">· {(user as any).region}</span> : null}</TableCell>
                               <TableCell>
-                                {user.activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
-                                  : user.activeStatus === "inactive" ? <Badge variant="secondary" className="text-xs text-muted-foreground">Inactive</Badge>
+                                {(user as any).activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
+                                  : (user as any).activeStatus === "inactive" ? <Badge variant="secondary" className="text-xs text-muted-foreground">Inactive</Badge>
                                   : <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border">Active</Badge>}
                                 {(user as any).isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
                               </TableCell>
@@ -4067,7 +4067,7 @@ export default function Admin() {
         <UserSkillsDialog
           userId={skillsUser.id}
           userName={skillsUser.name}
-          allSkills={(skills ?? []).map(s => ({ id: s.id, name: s.name, categoryId: s.categoryId }))}
+          allSkills={(skills ?? []).filter(s => s.categoryId != null).map(s => ({ id: s.id, name: s.name, categoryId: s.categoryId! }))}
           onClose={() => setSkillsUser(null)}
         />
       )}
@@ -4295,7 +4295,7 @@ function PlaceholdersCatalog({ base }: { base: string }) {
       title="Delete placeholder"
       description="Existing allocations referencing this placeholder will keep their text role label. This action cannot be undone."
       confirmLabel="Delete"
-      onConfirm={() => deleteConfirmId !== null && confirmDelete(deleteConfirmId)}
+      onConfirm={() => { if (deleteConfirmId !== null) confirmDelete(deleteConfirmId); }}
       destructive
     />
     <Card>

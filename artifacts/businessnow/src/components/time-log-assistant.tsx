@@ -204,7 +204,7 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
 
   const currentDay = selectedDays[currentDayIdx] ?? today;
 
-  const { data: allocations } = useListAllocations({ userId }, { query: { enabled: !!userId } });
+  const { data: allocations } = useListAllocations({ userId }, { query: { enabled: !!userId } as any });
   const { data: projects } = useListProjects();
   const { data: weekEntries } = useListTimeEntries(
     { userId, startDate: weekDays[0], endDate: weekDays[4] },
@@ -214,7 +214,7 @@ export function TimeLogAssistant({ open, onClose }: TimeLogAssistantProps) {
     selectedProjectId && selectedProjectId !== "INTERNAL"
       ? { projectId: selectedProjectId as number, assigneeId: userId }
       : undefined,
-    { query: { enabled: !!selectedProjectId && selectedProjectId !== "INTERNAL" } },
+    { query: { enabled: !!selectedProjectId && selectedProjectId !== "INTERNAL" } as any },
   );
   const { data: categories } = useListTimeCategories();
   const { data: timeSettings } = useQuery({

@@ -92,7 +92,7 @@ export default function TimeTracking() {
 
   const { data: logFormTasks } = useListTasks(
     logForm.projectId ? { projectId: parseInt(logForm.projectId) } : undefined,
-    { query: { enabled: !!logForm.projectId } },
+    { query: { enabled: !!logForm.projectId } as any },
   );
   // A leaf task is one that has no children (no other task references it as parent)
   // and is not itself a phase. Match the task schema field name `parentTaskId`.
@@ -691,7 +691,7 @@ export default function TimeTracking() {
                         <TableRow key={entry.id}>
                           <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
                           <TableCell>{getUser(entry.userId)?.name}</TableCell>
-                          <TableCell className="font-medium">{getProject(entry.projectId)?.name}</TableCell>
+                          <TableCell className="font-medium">{getProject(entry.projectId!)?.name}</TableCell>
                           <TableCell className="max-w-[300px] truncate">{entry.description}</TableCell>
                           <TableCell className="text-center">
                             {entry.billable ? <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100 border-none dark:bg-green-900/30 dark:text-green-400">Yes</Badge> : <Badge variant="secondary">No</Badge>}
@@ -1125,7 +1125,7 @@ export default function TimeTracking() {
                     .map(entry => (
                       <TableRow key={entry.id}>
                         <TableCell className="text-xs">{entry.date}</TableCell>
-                        <TableCell className="text-xs truncate max-w-[120px]">{getProject(entry.projectId)?.name}</TableCell>
+                        <TableCell className="text-xs truncate max-w-[120px]">{getProject(entry.projectId!)?.name}</TableCell>
                         <TableCell className="text-xs text-muted-foreground truncate max-w-[120px]">{entry.description || "—"}</TableCell>
                         <TableCell className="text-center">
                           {entry.billable

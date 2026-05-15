@@ -273,7 +273,7 @@ export default function OpportunitiesPage() {
                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-md border border-green-200 bg-green-50 hover:bg-green-100 transition-colors cursor-pointer">
                           <FolderOpen className="h-4 w-4 text-green-600 flex-shrink-0" />
                           <span className="text-sm font-medium text-green-800 truncate flex-1">
-                            {selected.projectName ?? `Project #${selected.projectId}`}
+                            {(selected as any).projectName ?? `Project #${selected.projectId}`}
                           </span>
                           <ArrowUpRight className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
                         </div>

@@ -34,10 +34,10 @@ export function OnboardingChecklist() {
 
   const isAdmin = currentUser?.role === "Admin" || currentUser?.role === "account_admin";
 
-  const { data: users } = useListUsers(undefined, { query: { enabled: isAdmin } });
-  const { data: projects } = useListProjects(undefined, { query: { enabled: isAdmin } });
-  const { data: allocations } = useListAllocations(undefined, { query: { enabled: isAdmin } });
-  const { data: timesheets } = useListTimesheets(undefined, { query: { enabled: isAdmin } });
+  const { data: users } = useListUsers();
+  const { data: projects } = useListProjects();
+  const { data: allocations } = useListAllocations();
+  const { data: timesheets } = useListTimesheets();
 
   const dismissed = Boolean((currentUser as any)?.onboardingDismissed);
 

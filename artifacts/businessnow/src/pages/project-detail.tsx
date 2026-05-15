@@ -64,7 +64,7 @@ export default function ProjectDetail() {
   });
 
   const { data: projectTimeEntries } = useListTimeEntries({ projectId }, {
-    query: { enabled: !!projectId }
+    query: { enabled: !!projectId } as any
   });
 
   const queryClient = useQueryClient();
@@ -132,7 +132,7 @@ export default function ProjectDetail() {
   // ── Budget entries ────────────────────────────────────────────────────────
   const isPM = hasRole(viewerRole, "super_user");
   const { data: budgetEntries } = useListProjectBudgetEntries(projectId, {
-    query: { enabled: !!projectId },
+    query: { enabled: !!projectId } as any,
   });
   const createBudgetEntry = useCreateProjectBudgetEntry();
   const [budgetHistoryOpen, setBudgetHistoryOpen] = useState(false);
@@ -293,7 +293,7 @@ export default function ProjectDetail() {
         id: projectId,
         data: {
           entryDate: budgetEntryForm.entryDate,
-          type: budgetEntryForm.type,
+          type: budgetEntryForm.type as any,
           description: budgetEntryForm.description.trim(),
           amount: parseFloat(budgetEntryForm.amount) || 0,
           hours: parseFloat(budgetEntryForm.hours) || 0,
@@ -1044,7 +1044,7 @@ export default function ProjectDetail() {
         title="Delete cost entry"
         description="This will permanently remove this cost entry. This action cannot be undone."
         confirmLabel="Delete"
-        onConfirm={() => deleteCostEntryId !== null && confirmDeleteCostEntry(deleteCostEntryId)}
+        onConfirm={() => { if (deleteCostEntryId !== null) confirmDeleteCostEntry(deleteCostEntryId); }}
         destructive
       />
       <div className="space-y-4">
@@ -1159,14 +1159,14 @@ export default function ProjectDetail() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight">
-                {summary?.marginPct !== undefined ? `${summary.marginPct}%` : "—"}
+                {(summary as any)?.marginPct !== undefined ? `${(summary as any).marginPct}%` : "—"}
               </div>
               <p className={cn(
                 "text-xs mt-2",
-                (summary?.profitToDate ?? 0) < 0 ? "text-destructive" : "text-muted-foreground"
+                ((summary as any)?.profitToDate ?? 0) < 0 ? "text-destructive" : "text-muted-foreground"
               )}>
-                {summary?.profitToDate !== undefined
-                  ? `${summary.profitToDate >= 0 ? "+" : ""}${summary.profitToDate.toLocaleString()} ${(project as any).budgetCurrency ?? "USD"}`
+                {(summary as any)?.profitToDate !== undefined
+                  ? `${(summary as any).profitToDate >= 0 ? "+" : ""}${(summary as any).profitToDate.toLocaleString()} ${(project as any).budgetCurrency ?? "USD"}`
                   : "No data yet"}
               </p>
             </CardContent>
@@ -1250,8 +1250,8 @@ export default function ProjectDetail() {
               <TabsTrigger value="changes" className="flex items-center gap-1.5">
                 <PackagePlus className="h-4 w-4" />
                 Change Requests
-                {(summary?.badgeCounts?.changeRequests ?? 0) > 0 && (
-                  <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{summary!.badgeCounts!.changeRequests}</span>
+                {((summary as any)?.badgeCounts?.changeRequests ?? 0) > 0 && (
+                  <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{(summary as any).badgeCounts.changeRequests}</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
@@ -1269,8 +1269,8 @@ export default function ProjectDetail() {
               <TabsTrigger value="updates" className="flex items-center gap-1.5">
                 <Bell className="h-4 w-4" />
                 Updates
-                {(summary?.badgeCounts?.updates ?? 0) > 0 && (
-                  <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{summary!.badgeCounts!.updates}</span>
+                {((summary as any)?.badgeCounts?.updates ?? 0) > 0 && (
+                  <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{(summary as any).badgeCounts.updates}</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="raid" className="flex items-center gap-1.5">
@@ -1479,7 +1479,7 @@ export default function ProjectDetail() {
                     </TableHeader>
                     <TableBody>
                       {allocations?.map(allocation => {
-                        const user = getUser(allocation.userId);
+                        const user = getUser((allocation as any).userId);
                         const needsReview = (allocation as any).status === "needs_review";
                         return (
                           <TableRow key={allocation.id} className={needsReview ? "bg-amber-50/60" : ""}>
@@ -1507,12 +1507,12 @@ export default function ProjectDetail() {
                             <TableCell className="text-right font-medium">{allocation.hoursPerWeek}h</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1 justify-end">
-                                {!allocation.userId && isPM && (
+                                {!(allocation as any).userId && isPM && (
                                   <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => { setFillAllocId(allocation.id); setFillUserId(""); }}>
                                     Fill
                                   </Button>
                                 )}
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: allocation.userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek, hoursPerDay: (allocation as any).hoursPerDay, totalHours: (allocation as any).totalHours, percentOfCapacity: (allocation as any).percentOfCapacity, allocationMethod: (allocation as any).allocationMethod, isSoftAllocation: (allocation as any).isSoftAllocation ?? false, isTimesheetApprover: (allocation as any).isTimesheetApprover ?? false, isLeaveApprover: (allocation as any).isLeaveApprover ?? false })}>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditAlloc({ id: allocation.id, userId: (allocation as any).userId, role: allocation.role, startDate: allocation.startDate, endDate: allocation.endDate, hoursPerWeek: allocation.hoursPerWeek, hoursPerDay: (allocation as any).hoursPerDay, totalHours: (allocation as any).totalHours, percentOfCapacity: (allocation as any).percentOfCapacity, allocationMethod: (allocation as any).allocationMethod, isSoftAllocation: (allocation as any).isSoftAllocation ?? false, isTimesheetApprover: (allocation as any).isTimesheetApprover ?? false, isLeaveApprover: (allocation as any).isLeaveApprover ?? false })}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteAllocId(allocation.id)}>
