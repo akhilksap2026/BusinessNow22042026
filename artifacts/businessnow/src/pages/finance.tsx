@@ -6,7 +6,7 @@ import {
   useGetFinanceSummary, useListInvoices, useListAccounts, useListProjects, getListInvoicesQueryKey,
   useListBillingSchedules, useCreateBillingSchedule, useDeleteBillingSchedule, useTriggerBillingSchedule, getListBillingSchedulesQueryKey,
   useListRevenueEntries, useCreateRevenueEntry, useDeleteRevenueEntry, useGetRevenueByPeriodReport, getListRevenueEntriesQueryKey,
-  useUpdateInvoice, useListUsers,
+  useUpdateInvoice, useListUsers, useUpdateProject, useListRateCards, useListOpportunities, getListProjectsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -63,6 +63,20 @@ export default function Finance() {
   const [editInvoice, setEditInvoice] = useState<any>(null);
   const [invoiceEditForm, setInvoiceEditForm] = useState({ description: "", amount: "", dueDate: "", status: "" });
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
+
+  const [editContractProject, setEditContractProject] = useState<any>(null);
+  const [editContractForm, setEditContractForm] = useState<{
+    name: string; status: string; health: string; budget: string; budgetedHours: string;
+    description: string; startDate: string; dueDate: string; billingType: string;
+    ownerId: string; rateCardId: string; internalExternal: string;
+    customerChampion: string; opportunityId: string; accountId: string;
+  }>({
+    name: "", status: "", health: "", budget: "", budgetedHours: "", description: "",
+    startDate: "", dueDate: "", billingType: "Fixed Fee",
+    ownerId: "", rateCardId: "", internalExternal: "External",
+    customerChampion: "", opportunityId: "", accountId: "",
+  });
+  const [editContractDateError, setEditContractDateError] = useState<string | null>(null);
 
   const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
   const deleteInvoiceMut = useMutation({
@@ -180,6 +194,67 @@ export default function Finance() {
   const deleteRevenue = useDeleteRevenueEntry();
   const { data: revReport } = useGetRevenueByPeriodReport();
   const { data: users } = useListUsers();
+  const { data: rateCards } = useListRateCards();
+  const { data: opportunities } = useListOpportunities();
+  const updateProject = useUpdateProject();
+
+  function openEditContract(p: any) {
+    setEditContractProject(p);
+    setEditContractDateError(null);
+    setEditContractForm({
+      name: p.name ?? "",
+      status: p.status ?? "",
+      health: p.health ?? "",
+      budget: p.budget != null ? String(p.budget) : "",
+      budgetedHours: p.budgetedHours != null ? String(p.budgetedHours) : "",
+      description: p.description ?? "",
+      startDate: p.startDate ?? "",
+      dueDate: p.dueDate ?? "",
+      billingType: p.billingType ?? "Fixed Fee",
+      ownerId: p.ownerId != null ? String(p.ownerId) : "",
+      rateCardId: p.rateCardId != null ? String(p.rateCardId) : "",
+      internalExternal: p.internalExternal ?? "External",
+      customerChampion: p.customerChampion ?? "",
+      opportunityId: p.opportunityId != null ? String(p.opportunityId) : "",
+      accountId: p.accountId != null ? String(p.accountId) : "",
+    });
+  }
+
+  async function handleSaveEditContract() {
+    setEditContractDateError(null);
+    if (editContractForm.startDate && editContractForm.dueDate &&
+        new Date(editContractForm.dueDate) < new Date(editContractForm.startDate)) {
+      setEditContractDateError("Due date must be on or after start date.");
+      return;
+    }
+    try {
+      await updateProject.mutateAsync({
+        id: editContractProject.id,
+        data: {
+          name: editContractForm.name,
+          status: editContractForm.status,
+          health: editContractForm.health,
+          description: editContractForm.description,
+          startDate: editContractForm.startDate || undefined,
+          dueDate: editContractForm.dueDate || undefined,
+          billingType: editContractForm.billingType || undefined,
+          ownerId: editContractForm.ownerId ? Number(editContractForm.ownerId) : undefined,
+          rateCardId: editContractForm.rateCardId ? Number(editContractForm.rateCardId) : null,
+          internalExternal: editContractForm.internalExternal || undefined,
+          customerChampion: editContractForm.customerChampion?.trim() || null,
+          opportunityId: editContractForm.opportunityId ? Number(editContractForm.opportunityId) : null,
+          accountId: editContractForm.accountId ? Number(editContractForm.accountId) : undefined,
+          budget: parseFloat(editContractForm.budget) || 0,
+          budgetedHours: parseFloat(editContractForm.budgetedHours) || 0,
+        } as any,
+      });
+      queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+      toast({ title: "Contract updated" });
+      setEditContractProject(null);
+    } catch {
+      toast({ title: "Failed to update contract", variant: "destructive" });
+    }
+  }
 
 
   async function handleCreateSchedule() {
@@ -826,10 +901,10 @@ export default function Finance() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => setLocation(`/projects/${p.id}`)}
+                                  className="h-8 w-8 text-muted-foreground hover:text-indigo-600"
+                                  onClick={() => openEditContract(p)}
                                 >
-                                  <ArrowUpRight className="h-4 w-4" />
+                                  <Pencil className="h-4 w-4" />
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -846,6 +921,187 @@ export default function Finance() {
 
         <InvoiceDetail invoice={selectedInvoice} open={!!selectedInvoice} onOpenChange={(o) => !o && setSelectedInvoice(null)} />
         <CreateInvoiceDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+
+        {/* ── Edit Contract dialog ───────────────────────────────────────── */}
+        <Dialog open={!!editContractProject} onOpenChange={open => { if (!open) setEditContractProject(null); }}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Contract</DialogTitle>
+              <DialogDescription>Update project details. All changes are applied on save.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-1">
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Basics</p>
+                <div className="space-y-1.5">
+                  <Label>Project Name *</Label>
+                  <Input value={editContractForm.name} onChange={e => setEditContractForm(f => ({ ...f, name: e.target.value }))} placeholder="Project name" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={editContractForm.description}
+                    onChange={e => setEditContractForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="Project description"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="border-t" />
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Classification</p>
+                <div className="space-y-1.5">
+                  <Label>Project Type</Label>
+                  <div className="flex gap-3">
+                    {(["External", "Internal"] as const).map(opt => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setEditContractForm(f => ({ ...f, internalExternal: opt }))}
+                        className={`flex-1 py-2 rounded-md border text-sm font-medium transition-colors ${editContractForm.internalExternal === opt ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Account</Label>
+                  <Select
+                    value={editContractForm.accountId}
+                    onValueChange={v => setEditContractForm(f => ({ ...f, accountId: v, opportunityId: "" }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+                    <SelectContent>
+                      {(accounts ?? []).map((acc: any) => (
+                        <SelectItem key={acc.id} value={acc.id.toString()}>{acc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editContractForm.internalExternal === "External" && (
+                  <div className="space-y-1.5">
+                    <Label>Customer Champion</Label>
+                    <Input
+                      value={editContractForm.customerChampion}
+                      onChange={e => setEditContractForm(f => ({ ...f, customerChampion: e.target.value }))}
+                      placeholder="Primary contact at client"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="border-t" />
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Timeline & Billing</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Start Date *</Label>
+                    <Input
+                      type="date"
+                      value={editContractForm.startDate}
+                      onChange={e => { setEditContractForm(f => ({ ...f, startDate: e.target.value })); setEditContractDateError(null); }}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Due Date *</Label>
+                    <Input
+                      type="date"
+                      value={editContractForm.dueDate}
+                      onChange={e => { setEditContractForm(f => ({ ...f, dueDate: e.target.value })); setEditContractDateError(null); }}
+                    />
+                  </div>
+                </div>
+                {editContractDateError && <p className="text-xs text-destructive">{editContractDateError}</p>}
+                <div className="space-y-1.5">
+                  <Label>Billing Type</Label>
+                  <Select value={editContractForm.billingType} onValueChange={v => setEditContractForm(f => ({ ...f, billingType: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Fixed Fee", "T&M", "Retainer"].map(bt => (
+                        <SelectItem key={bt} value={bt}>{bt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Budget ($)</Label>
+                    <Input type="number" min={0} value={editContractForm.budget} onChange={e => setEditContractForm(f => ({ ...f, budget: e.target.value }))} placeholder="0" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Budgeted Hours</Label>
+                    <Input type="number" min={0} value={editContractForm.budgetedHours} onChange={e => setEditContractForm(f => ({ ...f, budgetedHours: e.target.value }))} placeholder="0" />
+                  </div>
+                </div>
+              </div>
+              <div className="border-t" />
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Team & Configuration</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Project Owner *</Label>
+                    <Select value={editContractForm.ownerId} onValueChange={v => setEditContractForm(f => ({ ...f, ownerId: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select owner" /></SelectTrigger>
+                      <SelectContent>
+                        {(users ?? []).map((u: any) => (
+                          <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Rate Card</Label>
+                    <Select
+                      value={editContractForm.rateCardId || "__none__"}
+                      onValueChange={v => setEditContractForm(f => ({ ...f, rateCardId: v === "__none__" ? "" : v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {(rateCards ?? []).map((rc: any) => (
+                          <SelectItem key={rc.id} value={rc.id.toString()}>{rc.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+              <div className="border-t" />
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status & Health</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Status</Label>
+                    <Select value={editContractForm.status} onValueChange={v => setEditContractForm(f => ({ ...f, status: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["Draft", "Not Started", "Started", "At Risk", "On Hold", "Completed"].map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Health</Label>
+                    <Select value={editContractForm.health} onValueChange={v => setEditContractForm(f => ({ ...f, health: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["On Track", "At Risk", "Off Track"].map(h => (
+                          <SelectItem key={h} value={h}>{h}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditContractProject(null)}>Cancel</Button>
+              <Button onClick={handleSaveEditContract} disabled={!editContractForm.name || !editContractForm.ownerId || updateProject.isPending}>
+                {updateProject.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
           <DialogContent>
