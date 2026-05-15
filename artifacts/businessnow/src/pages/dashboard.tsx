@@ -7,6 +7,8 @@ import {
   useGetProjectHealthReport,
   useListInvoices,
 } from "@workspace/api-client-react";
+import { useCurrentUser } from "@/contexts/current-user";
+import { hasRole } from "@/lib/roles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -28,6 +30,7 @@ import {
   ArrowRight,
   BarChart2,
   Bookmark,
+  Plus,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -115,6 +118,113 @@ function KpiTile({
         </CardContent>
       </Card>
     </Link>
+  );
+}
+
+function ThisWeekTimeWidget() {
+  const { currentUser, activeRole } = useCurrentUser();
+  const userId = currentUser?.id ?? 0;
+  const isManager = hasRole(activeRole, "super_user");
+
+  const today = new Date();
+  const mon = new Date(today);
+  mon.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const weekStart = mon.toISOString().slice(0, 10);
+
+  const { data: summary } = useQuery<{
+    totalHours: number;
+    billableHours: number;
+    utilizationPct: number;
+  }>({
+    queryKey: ["dashboard-week-time-summary", userId, weekStart],
+    queryFn: async () => {
+      const r = await fetch(
+        `/api/time/weekly-summary?resourceId=${userId}&weekStart=${weekStart}`,
+        { headers: authHeaders() },
+      );
+      if (!r.ok) return { totalHours: 0, billableHours: 0, utilizationPct: 0 };
+      return r.json();
+    },
+    enabled: !!userId,
+  });
+
+  const { data: pendingData } = useQuery<{ data: any[]; total?: number }>({
+    queryKey: ["dashboard-pending-approvals"],
+    queryFn: async () => {
+      const r = await fetch("/api/time/entries?status=Submitted", { headers: authHeaders() });
+      if (!r.ok) return { data: [] };
+      return r.json();
+    },
+    enabled: isManager,
+  });
+
+  const { data: rejectedData } = useQuery<{ data: any[] }>({
+    queryKey: ["dashboard-rejected-entries", userId],
+    queryFn: async () => {
+      const r = await fetch(
+        `/api/time/entries?resourceId=${userId}&status=Rejected`,
+        { headers: authHeaders() },
+      );
+      if (!r.ok) return { data: [] };
+      return r.json();
+    },
+    enabled: !!userId,
+  });
+
+  const totalHours = summary?.totalHours ?? 0;
+  const utilPct = summary?.utilizationPct ?? 0;
+  const pendingCount = pendingData?.data?.length ?? 0;
+  const rejectedCount = rejectedData?.data?.length ?? 0;
+
+  const utilColor =
+    utilPct >= 70 && utilPct <= 90 ? "text-emerald-600"
+    : utilPct > 90 ? "text-amber-600"
+    : "text-slate-500";
+
+  return (
+    <Card className="border-l-4 border-l-indigo-400">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">This Week&apos;s Time</CardTitle>
+        <div className="h-6 w-6 rounded flex items-center justify-center bg-indigo-100 text-indigo-700">
+          <Clock className="h-3.5 w-3.5" />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-bold tracking-tight">{totalHours.toFixed(1)}h</span>
+          <span className={`text-sm font-medium ${utilColor}`}>{utilPct}% utilization</span>
+        </div>
+        <div className="flex flex-wrap gap-3 text-xs">
+          {isManager && pendingCount > 0 && (
+            <Link href="/time/approvals">
+              <span className="text-amber-700 underline-offset-2 hover:underline cursor-pointer font-medium">
+                {pendingCount} pending approval{pendingCount !== 1 ? "s" : ""}
+              </span>
+            </Link>
+          )}
+          {rejectedCount > 0 && (
+            <Link href="/time/timesheet">
+              <span className="text-red-600 underline-offset-2 hover:underline cursor-pointer font-medium">
+                {rejectedCount} rejected — needs correction
+              </span>
+            </Link>
+          )}
+          {!isManager && rejectedCount === 0 && pendingCount === 0 && (
+            <span className="text-muted-foreground">No action needed</span>
+          )}
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Link href="/time/new">
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+              <Plus className="h-3 w-3" /> Log Time
+            </Button>
+          </Link>
+          <Link href="/time/timesheet">
+            <Button size="sm" variant="ghost" className="h-7 text-xs">View Timesheet</Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -222,6 +332,8 @@ export default function Dashboard() {
         />
 
         <OnboardingChecklist />
+
+        <ThisWeekTimeWidget />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiTile

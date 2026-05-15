@@ -44,7 +44,11 @@ import {
   Sun,
   Moon,
   Monitor,
+  Plus,
+  CheckCircle2,
+  Settings2,
 } from "lucide-react";
+import { hasRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -94,7 +98,6 @@ const WORKSPACE_SECTIONS: NavSection[] = [
       { href: "/accounts", label: "Accounts", icon: Users },
       { href: "/prospects", label: "Prospects", icon: UserSearch },
       { href: "/opportunities", label: "Opportunities", icon: TrendingUp },
-      { href: "/time", label: "Time Tracking", icon: Clock },
       { href: "/resources", label: "Resources", icon: CalendarDays },
     ],
   },
@@ -437,6 +440,33 @@ export function Layout({ children }: { children: ReactNode }) {
     catch { return false; }
   });
 
+  const isTimeActive = location.startsWith("/time") || location === "/settings/time-tracking";
+  const [timeNavOpen, setTimeNavOpen] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("timeNavOpen");
+      return stored === null ? true : stored !== "false";
+    } catch { return true; }
+  });
+  const effectiveTimeNavOpen = timeNavOpen || isTimeActive;
+
+  function toggleTimeNav() {
+    setTimeNavOpen(v => {
+      const next = !v;
+      try { localStorage.setItem("timeNavOpen", String(next)); } catch {}
+      return next;
+    });
+  }
+
+  const isApprover = hasRole(activeRole, "super_user");
+  const isAdmin = activeRole === "account_admin";
+
+  const TIME_SUB_ITEMS = [
+    { href: "/time/timesheet", label: "My Timesheet", icon: CalendarDays },
+    { href: "/time/new",       label: "Log Time",      icon: Plus },
+    ...(isApprover ? [{ href: "/time/approvals",          label: "Approvals",  icon: CheckCircle2 }] : []),
+    ...(isAdmin    ? [{ href: "/settings/time-tracking",  label: "Time Admin", icon: Settings2    }] : []),
+  ];
+
   function toggleCollapsed() {
     setCollapsed(v => {
       const next = !v;
@@ -533,6 +563,38 @@ export function Layout({ children }: { children: ReactNode }) {
                 </SheetClose>
               );
             })}
+            {/* Time Tracking sub-items in mobile nav */}
+            {section.title === "Workspace" && (
+              <div className="ml-2 mt-0.5">
+                <p className="px-3 pt-1 pb-0.5 text-[10px] font-medium tracking-wide text-muted-foreground/70 flex items-center gap-1.5">
+                  <Clock className="h-3 w-3" /> Time Tracking
+                </p>
+                <div className="ml-4 border-l border-border pl-2 space-y-0.5">
+                  {TIME_SUB_ITEMS.map(sub => {
+                    const SubIcon = sub.icon;
+                    const active = isActive(sub.href);
+                    return (
+                      <SheetClose asChild key={sub.href}>
+                        <Link href={sub.href}>
+                          <div
+                            role="link"
+                            aria-current={active ? "page" : undefined}
+                            onClick={onNavigate}
+                            className={cn(
+                              "flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors cursor-pointer",
+                              active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                          >
+                            <SubIcon className="h-3.5 w-3.5 shrink-0" />
+                            {sub.label}
+                          </div>
+                        </Link>
+                      </SheetClose>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
@@ -633,6 +695,69 @@ export function Layout({ children }: { children: ReactNode }) {
                     <NavItem item={item} />
                   </div>
                 ))}
+                {/* Time Tracking expandable group — injected after Workspace section */}
+                {section.title === "Workspace" && (
+                  <div className="ml-2 mt-0.5">
+                    {collapsed ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link href="/time">
+                            <div
+                              role="link"
+                              aria-label="Time Tracking"
+                              className={cn(
+                                "flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-colors cursor-pointer outline-none",
+                                "focus-visible:ring-2 focus-visible:ring-ring",
+                                isTimeActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                              )}
+                            >
+                              <Clock className="h-5 w-5" />
+                            </div>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" sideOffset={8}>Time Tracking</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <>
+                        <button
+                          onClick={toggleTimeNav}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 w-full rounded-md transition-colors cursor-pointer outline-none text-left",
+                            "focus-visible:ring-2 focus-visible:ring-ring",
+                            isTimeActive ? "text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          <Clock className="h-4 w-4 shrink-0" />
+                          <span className="flex-1 text-sm">Time Tracking</span>
+                          <ChevronDown className={cn("h-3 w-3 transition-transform duration-150", effectiveTimeNavOpen && "rotate-180")} />
+                        </button>
+                        {effectiveTimeNavOpen && (
+                          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-3">
+                            {TIME_SUB_ITEMS.map(sub => {
+                              const SubIcon = sub.icon;
+                              const active = isActive(sub.href);
+                              return (
+                                <Link key={sub.href} href={sub.href}>
+                                  <div
+                                    role="link"
+                                    aria-current={active ? "page" : undefined}
+                                    className={cn(
+                                      "flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors cursor-pointer",
+                                      active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                    )}
+                                  >
+                                    <SubIcon className="h-3.5 w-3.5 shrink-0" />
+                                    {sub.label}
+                                  </div>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
