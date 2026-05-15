@@ -59,6 +59,7 @@ function fmt(n: number | null | undefined) {
 export default function Accounts() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [selected, setSelected] = useState<Account | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -176,6 +177,7 @@ export default function Accounts() {
 
   const filtered = accounts.filter(a => {
     const q = search.toLowerCase();
+    if (statusFilter !== "All" && a.status !== statusFilter) return false;
     return a.name.toLowerCase().includes(q) || a.domain.toLowerCase().includes(q);
   });
 
@@ -194,11 +196,25 @@ export default function Accounts() {
 
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <CardTitle>All Accounts</CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search accounts…" value={search} onChange={e => setSearch(e.target.value)} />
+              <div className="flex items-center gap-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Statuses</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                    <SelectItem value="Churned">Churned</SelectItem>
+                    <SelectItem value="Prospect">Prospect</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input className="pl-9" placeholder="Search accounts…" value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
               </div>
             </div>
           </CardHeader>

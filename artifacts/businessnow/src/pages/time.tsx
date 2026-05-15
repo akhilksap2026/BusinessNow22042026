@@ -214,6 +214,7 @@ export default function TimeTracking() {
   const rejectTs = useRejectTimesheet();
   const [approvalRejectId, setApprovalRejectId] = useState<number | null>(null);
   const [approvalRejectNote, setApprovalRejectNote] = useState("");
+  const [approvalSearch, setApprovalSearch] = useState("");
   const [detailUserId, setDetailUserId] = useState<number | null>(null);
   const [selectedTsIds, setSelectedTsIds] = useState<Set<number>>(new Set());
   const [messageDraft, setMessageDraft] = useState("");
@@ -269,17 +270,19 @@ export default function TimeTracking() {
 
   const submittedCount = allWeekTimesheets?.filter(t => t.status === "Submitted").length ?? 0;
 
-  const userApprovalRows = (users ?? []).map(user => {
-    const ts = allWeekTimesheets?.find(t => t.userId === user.id);
-    const entries = allWeekEntries?.filter(e => e.userId === user.id) ?? [];
-    const totalHours = ts ? ts.totalHours : entries.reduce((s, e) => s + e.hours, 0);
-    const billableHours = ts ? ts.billableHours : entries.filter(e => e.billable).reduce((s, e) => s + e.hours, 0);
-    const billablePct = totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0;
-    const capacity = (user as any).capacity ?? 40;
-    const utilPct = capacity > 0 ? Math.round((totalHours / capacity) * 100) : 0;
-    const status = ts?.status ?? (entries.length > 0 ? "Draft" : "Not Submitted");
-    return { user, ts, totalHours, billableHours, billablePct, capacity, utilPct, status };
-  });
+  const userApprovalRows = (users ?? [])
+    .filter(user => !approvalSearch || (user as any).name?.toLowerCase().includes(approvalSearch.toLowerCase()))
+    .map(user => {
+      const ts = allWeekTimesheets?.find(t => t.userId === user.id);
+      const entries = allWeekEntries?.filter(e => e.userId === user.id) ?? [];
+      const totalHours = ts ? ts.totalHours : entries.reduce((s, e) => s + e.hours, 0);
+      const billableHours = ts ? ts.billableHours : entries.filter(e => e.billable).reduce((s, e) => s + e.hours, 0);
+      const billablePct = totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0;
+      const capacity = (user as any).capacity ?? 40;
+      const utilPct = capacity > 0 ? Math.round((totalHours / capacity) * 100) : 0;
+      const status = ts?.status ?? (entries.length > 0 ? "Draft" : "Not Submitted");
+      return { user, ts, totalHours, billableHours, billablePct, capacity, utilPct, status };
+    });
 
   async function handleApprovalsApprove(tsId: number) {
     try {
@@ -468,6 +471,16 @@ export default function TimeTracking() {
                     <CardDescription>Review and approve team timesheets for the selected week</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        className="pl-8 h-8 w-44 text-sm"
+                        placeholder="Filter by name…"
+                        value={approvalSearch}
+                        onChange={e => setApprovalSearch(e.target.value)}
+                        aria-label="Filter approvals by name"
+                      />
+                    </div>
                     {canApproveTimesheets && selectedTsIds.size > 0 && (
                       <Button size="sm" onClick={handleBulkApprove}>
                         Bulk Approve ({selectedTsIds.size})

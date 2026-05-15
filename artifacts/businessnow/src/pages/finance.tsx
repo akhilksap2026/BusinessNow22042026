@@ -427,6 +427,7 @@ export default function Finance() {
                 {(() => {
                   const search = searchQuery.toLowerCase();
                   const filtered = (invoices ?? []).filter(inv => {
+                    if (filterProjectId && (inv as any).projectId !== filterProjectId) return false;
                     if (!search) return true;
                     const pName = projects?.find(p => p.id === (inv as any).projectId)?.name?.toLowerCase() ?? "";
                     const aName = accounts?.find(a => a.id === (inv as any).accountId)?.name?.toLowerCase() ?? "";

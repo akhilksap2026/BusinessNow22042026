@@ -506,15 +506,15 @@ export default function Projects() {
                 <Archive className="h-4 w-4" />
                 Archived Projects
                 {archivedProjects.length > 0 && (
-                  <Badge variant="secondary">{archivedProjects.length}</Badge>
+                  <Badge variant="secondary">{archivedProjects.filter(p => !searchText || p.name.toLowerCase().includes(searchText.toLowerCase())).length}</Badge>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoadingArchived ? (
                 <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
-              ) : archivedProjects.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">No archived projects.</p>
+              ) : archivedProjects.filter(p => !searchText || p.name.toLowerCase().includes(searchText.toLowerCase())).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">{searchText ? "No archived projects match your search." : "No archived projects."}</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -525,7 +525,7 @@ export default function Projects() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {archivedProjects.map(p => (
+                    {archivedProjects.filter(p => !searchText || p.name.toLowerCase().includes(searchText.toLowerCase())).map(p => (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.name}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">
