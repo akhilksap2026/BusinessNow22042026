@@ -88,7 +88,7 @@ router.post("/resource-requests", async (req, res): Promise<void> => {
 });
 
 router.patch("/resource-requests/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   const parsed = UpdateResourceRequestBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const updates: any = { ...parsed.data, updatedAt: new Date() };
@@ -107,7 +107,7 @@ router.patch("/resource-requests/:id", requirePM, async (req, res): Promise<void
 });
 
 router.delete("/resource-requests/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   await db.delete(resourceRequestCommentsTable).where(eq(resourceRequestCommentsTable.requestId, id));
   await db.delete(resourceRequestsTable).where(eq(resourceRequestsTable.id, id));
   res.status(204).end();
@@ -116,7 +116,7 @@ router.delete("/resource-requests/:id", requirePM, async (req, res): Promise<voi
 // ─── Status transitions ───────────────────────────────────────────────────────
 
 router.patch("/resource-requests/:id/status", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   const { status, assignedUserId, rejectionReason, blockedReason, ignoresSoftAllocations } = req.body;
   if (!status) { res.status(400).json({ error: "status required" }); return; }
 
@@ -216,7 +216,7 @@ router.patch("/resource-requests/:id/status", requirePM, async (req, res): Promi
 // POST /api/resource-requests/:id/action
 // Actions: in_review | propose_alternative | reject | accept_alternative | decline_alternative
 router.post("/resource-requests/:id/action", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   const { action, assignedToUserId, alternativeResourceId, alternativeReason, rejectionReason } = req.body ?? {};
 
   if (!action) { res.status(400).json({ error: "action is required" }); return; }
@@ -316,7 +316,7 @@ router.post("/resource-requests/:id/action", requirePM, async (req, res): Promis
 // ─── Comments (approver ↔ requester chat) ────────────────────────────────────
 
 router.get("/resource-requests/:id/comments", async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   const rows = await db
     .select()
     .from(resourceRequestCommentsTable)
@@ -325,7 +325,7 @@ router.get("/resource-requests/:id/comments", async (req, res): Promise<void> =>
 });
 
 router.post("/resource-requests/:id/comments", async (req, res): Promise<void> => {
-  const requestId = parseInt(req.params.id, 10);
+  const requestId = parseInt(req.params.id as string, 10);
   const { userId, message } = req.body;
   if (!userId || !message) { res.status(400).json({ error: "userId and message required" }); return; }
   const [row] = await db.insert(resourceRequestCommentsTable).values({ requestId, userId, message }).returning();

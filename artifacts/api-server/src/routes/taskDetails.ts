@@ -34,14 +34,14 @@ function mapChecklist(r: typeof taskChecklistsTable.$inferSelect) {
 }
 
 router.get("/tasks/:id/comments", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.id);
+  const taskId = parseInt(req.params.id as string);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const rows = await db.select().from(taskCommentsTable).where(eq(taskCommentsTable.taskId, taskId));
   res.json(rows.map(mapComment));
 });
 
 router.post("/tasks/:id/comments", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.id);
+  const taskId = parseInt(req.params.id as string);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const { userId, content, isPrivate, parentCommentId } = req.body;
   if (!userId || !content) { res.status(400).json({ error: "userId and content required" }); return; }
@@ -56,21 +56,21 @@ router.post("/tasks/:id/comments", async (req, res): Promise<void> => {
 });
 
 router.delete("/tasks/:id/comments/:commentId", async (req, res): Promise<void> => {
-  const commentId = parseInt(req.params.commentId);
+  const commentId = parseInt(req.params.commentId as string);
   if (isNaN(commentId)) { res.status(400).json({ error: "Invalid comment id" }); return; }
   await db.delete(taskCommentsTable).where(eq(taskCommentsTable.id, commentId));
   res.status(204).send();
 });
 
 router.get("/tasks/:id/checklist", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.id);
+  const taskId = parseInt(req.params.id as string);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const rows = await db.select().from(taskChecklistsTable).where(eq(taskChecklistsTable.taskId, taskId));
   res.json(rows.map(mapChecklist));
 });
 
 router.post("/tasks/:id/checklist", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.id);
+  const taskId = parseInt(req.params.id as string);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const { name, order } = req.body;
   if (!name) { res.status(400).json({ error: "name required" }); return; }
@@ -84,7 +84,7 @@ router.post("/tasks/:id/checklist", async (req, res): Promise<void> => {
 });
 
 router.patch("/tasks/:id/checklist/:itemId", async (req, res): Promise<void> => {
-  const itemId = parseInt(req.params.itemId);
+  const itemId = parseInt(req.params.itemId as string);
   if (isNaN(itemId)) { res.status(400).json({ error: "Invalid item id" }); return; }
   const updates: Record<string, unknown> = {};
   if (req.body.name !== undefined) updates.name = req.body.name;
@@ -96,7 +96,7 @@ router.patch("/tasks/:id/checklist/:itemId", async (req, res): Promise<void> => 
 });
 
 router.delete("/tasks/:id/checklist/:itemId", async (req, res): Promise<void> => {
-  const itemId = parseInt(req.params.itemId);
+  const itemId = parseInt(req.params.itemId as string);
   if (isNaN(itemId)) { res.status(400).json({ error: "Invalid item id" }); return; }
   await db.delete(taskChecklistsTable).where(eq(taskChecklistsTable.id, itemId));
   res.status(204).send();
@@ -104,7 +104,7 @@ router.delete("/tasks/:id/checklist/:itemId", async (req, res): Promise<void> =>
 
 // ─── TASK NOTES ─────────────────────────────────────────────────────────────
 router.get("/tasks/:id/notes", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.id);
+  const taskId = parseInt(req.params.id as string);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const rows = await db
     .select({
@@ -132,7 +132,7 @@ router.get("/tasks/:id/notes", async (req, res): Promise<void> => {
 });
 
 router.post("/tasks/:id/notes", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.id);
+  const taskId = parseInt(req.params.id as string);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
   if (!content) { res.status(400).json({ error: "content is required" }); return; }
@@ -147,7 +147,7 @@ router.post("/tasks/:id/notes", async (req, res): Promise<void> => {
 });
 
 router.patch("/tasks/:taskId/notes/:noteId", async (req, res): Promise<void> => {
-  const noteId = parseInt(req.params.noteId);
+  const noteId = parseInt(req.params.noteId as string);
   if (isNaN(noteId)) { res.status(400).json({ error: "Invalid note id" }); return; }
   const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
   if (!content) { res.status(400).json({ error: "content is required" }); return; }
@@ -161,12 +161,12 @@ router.patch("/tasks/:taskId/notes/:noteId", async (req, res): Promise<void> => 
     return;
   }
   const [row] = await db.update(taskNotesTable).set({ content, updatedAt: new Date() }).where(eq(taskNotesTable.id, noteId)).returning();
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, row.userId));
-  res.json(mapNote(row, user?.name ?? null));
+  const [user] = row.userId ? await db.select().from(usersTable).where(eq(usersTable.id, row.userId)) : [];
+  res.json(mapNote(row, user?.name ?? undefined));
 });
 
 router.delete("/tasks/:taskId/notes/:noteId", async (req, res): Promise<void> => {
-  const noteId = parseInt(req.params.noteId);
+  const noteId = parseInt(req.params.noteId as string);
   if (isNaN(noteId)) { res.status(400).json({ error: "Invalid note id" }); return; }
   const [existing] = await db.select().from(taskNotesTable).where(eq(taskNotesTable.id, noteId));
   if (!existing) { res.sendStatus(204); return; }

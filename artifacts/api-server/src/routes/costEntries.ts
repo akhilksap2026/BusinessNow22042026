@@ -11,7 +11,7 @@ const CreateCostEntryBody = z.object({
   entryDate:             z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "entryDate must be YYYY-MM-DD"),
   description:           z.string().min(1, "description is required"),
   amount:                z.union([z.number(), z.string()]).transform(v => Number(v)),
-  costCategory:          z.enum(COST_CATEGORIES as [string, ...string[]], {
+  costCategory:          z.enum(COST_CATEGORIES as unknown as [string, ...string[]], {
                            message: `costCategory must be one of: ${COST_CATEGORIES.join(", ")}`,
                          }),
   externalTransactionId: z.string().optional(),
@@ -92,7 +92,7 @@ router.post("/cost-entries", requirePM, async (req, res): Promise<void> => {
 
 // DELETE /api/cost-entries/:id
 router.delete("/cost-entries/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const [existing] = await db

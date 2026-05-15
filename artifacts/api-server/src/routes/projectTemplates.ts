@@ -178,14 +178,14 @@ router.post("/project-templates", requirePM, async (req, res): Promise<void> => 
 });
 
 router.get("/project-templates/:id", async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   const result = await getTemplateWithPhases(id);
   if (!result) { res.status(404).json({ error: "Not found" }); return; }
   res.json(result);
 });
 
 router.put("/project-templates/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   const parsed = TemplateBodySchema.partial().extend({ isArchived: z.boolean().optional() }).safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const { name, description, billingType, totalDurationDays, accountId, isArchived, autoAllocate } = parsed.data;
@@ -208,7 +208,7 @@ router.put("/project-templates/:id", requirePM, async (req, res): Promise<void> 
 });
 
 router.delete("/project-templates/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   await db.delete(templateAllocationsTable).where(eq(templateAllocationsTable.templateId, id));
   await db.delete(templateTasksTable).where(eq(templateTasksTable.templateId, id));
   await db.delete(templatePhasesTable).where(eq(templatePhasesTable.templateId, id));
@@ -219,7 +219,7 @@ router.delete("/project-templates/:id", requireAdmin, async (req, res): Promise<
 // ─── Template Phases ─────────────────────────────────────────────────────────
 
 router.get("/project-templates/:id/phases", async (req, res): Promise<void> => {
-  const templateId = parseInt(req.params.id, 10);
+  const templateId = parseInt(req.params.id as string, 10);
   const phases = await db
     .select()
     .from(templatePhasesTable)
@@ -229,7 +229,7 @@ router.get("/project-templates/:id/phases", async (req, res): Promise<void> => {
 });
 
 router.post("/project-templates/:id/phases", requirePM, async (req, res): Promise<void> => {
-  const templateId = parseInt(req.params.id, 10);
+  const templateId = parseInt(req.params.id as string, 10);
   const parsed = TemplatePhaseBodySchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const phaseErr = checkPhaseDateOrder(parsed.data);
@@ -249,7 +249,7 @@ router.post("/project-templates/:id/phases", requirePM, async (req, res): Promis
 });
 
 router.put("/template-phases/:phaseId", requirePM, async (req, res): Promise<void> => {
-  const phaseId = parseInt(req.params.phaseId, 10);
+  const phaseId = parseInt(req.params.phaseId as string, 10);
   const parsed = TemplatePhasePatchSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const phaseErr = checkPhaseDateOrder(parsed.data);
@@ -271,7 +271,7 @@ router.put("/template-phases/:phaseId", requirePM, async (req, res): Promise<voi
 });
 
 router.delete("/template-phases/:phaseId", requirePM, async (req, res): Promise<void> => {
-  const phaseId = parseInt(req.params.phaseId, 10);
+  const phaseId = parseInt(req.params.phaseId as string, 10);
   await db.delete(templateTasksTable).where(eq(templateTasksTable.templatePhaseId, phaseId));
   // Detach allocations from the deleted phase rather than dropping them — the
   // allocation itself is still meaningful (placeholder/user + day range), only the
@@ -287,7 +287,7 @@ router.delete("/template-phases/:phaseId", requirePM, async (req, res): Promise<
 // ─── Template Tasks ───────────────────────────────────────────────────────────
 
 router.get("/template-phases/:phaseId/tasks", async (req, res): Promise<void> => {
-  const phaseId = parseInt(req.params.phaseId, 10);
+  const phaseId = parseInt(req.params.phaseId as string, 10);
   const tasks = await db
     .select()
     .from(templateTasksTable)
@@ -297,7 +297,7 @@ router.get("/template-phases/:phaseId/tasks", async (req, res): Promise<void> =>
 });
 
 router.post("/template-phases/:phaseId/tasks", requirePM, async (req, res): Promise<void> => {
-  const phaseId = parseInt(req.params.phaseId, 10);
+  const phaseId = parseInt(req.params.phaseId as string, 10);
   const [phase] = await db
     .select()
     .from(templatePhasesTable)
@@ -339,7 +339,7 @@ router.post("/template-phases/:phaseId/tasks", requirePM, async (req, res): Prom
 });
 
 router.put("/template-tasks/:taskId", requirePM, async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.taskId, 10);
+  const taskId = parseInt(req.params.taskId as string, 10);
   const parsed = TemplateTaskBodySchema.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const { name, parentTaskId, relativeDueDateOffset, effort, billableDefault, categoryId, priority, assigneeRolePlaceholder, order } = parsed.data;
@@ -393,7 +393,7 @@ router.put("/template-tasks/:taskId", requirePM, async (req, res): Promise<void>
 });
 
 router.delete("/template-tasks/:taskId", requirePM, async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.taskId, 10);
+  const taskId = parseInt(req.params.taskId as string, 10);
   await db.delete(templateTasksTable).where(eq(templateTasksTable.id, taskId));
   res.status(204).end();
 });
@@ -401,7 +401,7 @@ router.delete("/template-tasks/:taskId", requirePM, async (req, res): Promise<vo
 // ─── Template Allocations ────────────────────────────────────────────────────
 
 router.get("/project-templates/:id/allocations", async (req, res): Promise<void> => {
-  const templateId = parseInt(req.params.id, 10);
+  const templateId = parseInt(req.params.id as string, 10);
   const rows = await db
     .select()
     .from(templateAllocationsTable)
@@ -411,7 +411,7 @@ router.get("/project-templates/:id/allocations", async (req, res): Promise<void>
 });
 
 router.post("/project-templates/:id/allocations", requirePM, async (req, res): Promise<void> => {
-  const templateId = parseInt(req.params.id, 10);
+  const templateId = parseInt(req.params.id as string, 10);
   const [template] = await db
     .select()
     .from(projectTemplatesTable)
@@ -463,7 +463,7 @@ router.post("/project-templates/:id/allocations", requirePM, async (req, res): P
 });
 
 router.put("/template-allocations/:allocId", requirePM, async (req, res): Promise<void> => {
-  const allocId = parseInt(req.params.allocId, 10);
+  const allocId = parseInt(req.params.allocId as string, 10);
   const [existing] = await db
     .select()
     .from(templateAllocationsTable)
@@ -505,14 +505,14 @@ router.put("/template-allocations/:allocId", requirePM, async (req, res): Promis
 });
 
 router.delete("/template-allocations/:allocId", requirePM, async (req, res): Promise<void> => {
-  const allocId = parseInt(req.params.allocId, 10);
+  const allocId = parseInt(req.params.allocId as string, 10);
   await db.delete(templateAllocationsTable).where(eq(templateAllocationsTable.id, allocId));
   res.status(204).end();
 });
 
 // Aggregate summary: per-role totals + grand totals
 router.get("/project-templates/:id/allocations/summary", async (req, res): Promise<void> => {
-  const templateId = parseInt(req.params.id, 10);
+  const templateId = parseInt(req.params.id as string, 10);
   const rows = await db
     .select()
     .from(templateAllocationsTable)
@@ -549,7 +549,7 @@ router.get("/project-templates/:id/allocations/summary", async (req, res): Promi
 // Supports multi-template composition: call multiple times on same project.
 
 router.post("/project-templates/:id/apply", requirePM, async (req, res): Promise<void> => {
-  const templateId = parseInt(req.params.id, 10);
+  const templateId = parseInt(req.params.id as string, 10);
   const { projectId, startDate } = req.body;
   if (!projectId || !startDate) {
     res.status(400).json({ error: "projectId and startDate are required" });
@@ -867,7 +867,7 @@ router.post("/projects/from-template", requirePM, async (req, res): Promise<void
 // preserving the template task hierarchy (parentTaskId chain) via a templateTaskId → realTaskId map.
 
 router.post("/projects/:id/apply-template", requirePM, async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   const { templateId, phaseName } = req.body ?? {};
   if (!templateId || typeof templateId !== "number") {
     res.status(400).json({ error: "templateId (number) is required" });

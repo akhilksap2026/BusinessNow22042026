@@ -66,7 +66,7 @@ router.post("/resource-cost-rates", requireAdmin, async (req, res): Promise<void
 
 // PATCH /api/resource-cost-rates/:id
 router.patch("/resource-cost-rates/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(String(req.params.id), 10);
+  const id = parseInt(String(req.params.id as string), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const parsed = UpdateBody.safeParse(req.body);
@@ -89,7 +89,7 @@ router.patch("/resource-cost-rates/:id", requireAdmin, async (req, res): Promise
 
 // DELETE /api/resource-cost-rates/:id
 router.delete("/resource-cost-rates/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(String(req.params.id), 10);
+  const id = parseInt(String(req.params.id as string), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(resourceCostRatesTable)
     .where(eq(resourceCostRatesTable.id, id));

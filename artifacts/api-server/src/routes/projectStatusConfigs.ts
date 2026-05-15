@@ -13,7 +13,7 @@ router.get("/project-status-configs", async (_req, res): Promise<void> => {
 });
 
 router.patch("/project-status-configs/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const updates: Record<string, unknown> = {};
   if (req.body.displayLabel !== undefined) updates.displayLabel = req.body.displayLabel;

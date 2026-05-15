@@ -309,7 +309,7 @@ router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void
 
 // Undo approval: returns timesheet to Submitted and clears Approved + Rejected audit fields.
 router.post("/timesheets/:id/unapprove", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [existing] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Timesheet not found" }); return; }
@@ -422,7 +422,7 @@ router.post("/timesheets/bulk-approve", requirePM, async (req, res): Promise<voi
 
 // ─── Timesheet Messages (in-context conversation) ────────────────────────────
 router.get("/timesheets/:id/messages", async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   const rows = await db.select().from(timesheetMessagesTable)
     .where(eq(timesheetMessagesTable.timesheetId, id))
@@ -431,7 +431,7 @@ router.get("/timesheets/:id/messages", async (req, res): Promise<void> => {
 });
 
 router.post("/timesheets/:id/messages", async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   const { userId, body } = req.body ?? {};
   if (!userId || !body) { res.status(400).json({ error: "userId and body required" }); return; }
@@ -558,7 +558,7 @@ router.post("/timesheets/import-allocations", async (req: AuthenticatedRequest, 
 });
 
 router.delete("/timesheet-rows/:id", async (req, res): Promise<void> => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(timesheetRowsTable).where(eq(timesheetRowsTable.id, id));
   res.sendStatus(204);

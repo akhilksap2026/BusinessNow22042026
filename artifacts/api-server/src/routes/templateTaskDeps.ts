@@ -14,7 +14,7 @@ const CreateDepBody = z.object({
 
 // GET /api/template-tasks/:taskId/dependencies
 router.get("/template-tasks/:taskId/dependencies", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.taskId, 10);
+  const taskId = parseInt(req.params.taskId as string, 10);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid taskId" }); return; }
 
   const [asSuccessor, asPredecessor] = await Promise.all([
@@ -30,7 +30,7 @@ router.get("/template-tasks/:taskId/dependencies", async (req, res): Promise<voi
 // POST /api/template-tasks/:taskId/dependencies
 // Body: { predecessorId, dependencyType?, lagDays? }
 router.post("/template-tasks/:taskId/dependencies", requirePM, async (req, res): Promise<void> => {
-  const successorId = parseInt(String(req.params.taskId), 10);
+  const successorId = parseInt(String(req.params.taskId as string), 10);
   if (isNaN(successorId)) { res.status(400).json({ error: "Invalid taskId" }); return; }
 
   const parsed = CreateDepBody.safeParse(req.body);
@@ -66,7 +66,7 @@ router.post("/template-tasks/:taskId/dependencies", requirePM, async (req, res):
 
 // DELETE /api/template-task-dependencies/:id
 router.delete("/template-task-dependencies/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(String(req.params.id), 10);
+  const id = parseInt(String(req.params.id as string), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(templateTaskDependenciesTable)
     .where(eq(templateTaskDependenciesTable.id, id));
@@ -75,7 +75,7 @@ router.delete("/template-task-dependencies/:id", requirePM, async (req, res): Pr
 
 // GET /api/template-tasks/:templateId/all-dependencies — bulk fetch for entire template
 router.get("/project-templates/:templateId/task-dependencies", async (req, res): Promise<void> => {
-  const templateId = parseInt(req.params.templateId, 10);
+  const templateId = parseInt(req.params.templateId as string, 10);
   if (isNaN(templateId)) { res.status(400).json({ error: "Invalid templateId" }); return; }
 
   // Get all template task IDs for this template

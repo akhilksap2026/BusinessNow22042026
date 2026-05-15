@@ -477,6 +477,7 @@ export const ListTasksQueryParams = zod.object({
   projectId: zod.coerce.number().optional(),
   assigneeId: zod.coerce.number().optional(),
   status: zod.coerce.string().optional(),
+  context: zod.coerce.string().optional(),
 });
 
 export const ListTasksResponseItem = zod.object({

@@ -1,0 +1,131 @@
+Build the complete REST API layer for the Time Tracking module. Use the existing API framework/router in the project (detect from codebase). Apply the existing authentication middleware to all routes.
+
+─────────────────────────────────────────
+EFFORT ENTRIES — CRUD
+─────────────────────────────────────────
+POST   /api/time/entries
+  - Body: { resourceId, projectId, taskId, entryDate, durationHours, narrative?, billableCategory?, exceptionalJustification? }
+  - If requester's userId ≠ resourceId: call validateProxyAuthorization first
+  - Run validateEffortEntry orchestrator — return 422 with all field errors if invalid
+  - Run autoCategorizEntry to set billable_category if not provided
+  - Check isExceptional via validateExceptionalEffort — set is_exceptional flag
+  - Set entered_by_id = authenticated userId (distinct from resourceId for proxy)
+  - Save as Draft, write Created audit record
+  - Return 201 with created entry
+
+GET    /api/time/entries
+  - Query params: resourceId, weekStart, status, projectId
+  - Returns entries matching filters; apply authorization (user sees own entries, approver sees team entries)
+
+GET    /api/time/entries/:id
+  - Returns single entry with full audit log history
+
+PATCH  /api/time/entries/:id
+  - Body: any editable fields
+  - Block if status is not 'Draft' or 'Rejected' (return 403 "Record is locked")
+  - Re-run all validations on updated data
+  - Write Updated audit record
+
+DELETE /api/time/entries/:id
+  - Block if status is not 'Draft' (return 403)
+  - Hard delete or soft delete depending on project convention
+
+─────────────────────────────────────────
+LIFECYCLE ACTIONS
+─────────────────────────────────────────
+POST /api/time/entries/submit
+  - Body: { entryIds: [] }
+  - Calls effortStatusService.submitEffort
+  - If any entries are replicated, require confirmationToken in body; 422 if absent
+
+POST /api/time/entries/:id/recall
+  - Calls effortStatusService.recallEffort
+
+POST /api/time/entries/:id/approve
+  - Requires role: 'Approver' or 'Manager'
+  - Calls effortStatusService.approveEffort
+
+POST /api/time/entries/:id/reject
+  - Body: { rejectionReason: string }
+  - Requires role: 'Approver' or 'Manager'
+  - Calls effortStatusService.rejectEffort
+  - Queues rejection notification (email/in-app) to resource_id's contact
+
+POST /api/time/entries/:id/resubmit
+  - Calls effortStatusService.resubmitEffort
+  - Routes to original rejector (stored on record)
+
+POST /api/time/entries/:id/override-category
+  - Body: { newCategory: 'Billable' | 'Non-Billable' }
+  - Requires role: 'Authorized_Approver'
+  - Calls billableCategorizationService.overrideBillableCategory
+
+─────────────────────────────────────────
+WEEKLY VIEW & AGGREGATION
+─────────────────────────────────────────
+GET /api/time/weekly-view
+  - Query: resourceId, weekStart (YYYY-MM-DD, Monday)
+  - Returns weeklyAggregationService.getWeeklyTimesheetView result
+  - Marks cross-month weeks with separate blocks
+
+GET /api/time/weekly-summary
+  - Query: resourceId, weekStart
+  - Returns { billableTotal, nonBillableTotal, utilizationRate }
+
+─────────────────────────────────────────
+REPLICATION
+─────────────────────────────────────────
+POST /api/time/replicate-week
+  - Body: { resourceId, currentWeekStart }
+  - Calls effortReplicationService.replicatePreviousWeek
+  - Returns { created, skipped }
+
+POST /api/time/confirm-replication
+  - Body: { resourceId, weekStart }
+  - Returns confirmationToken (JWT or UUID stored server-side)
+
+─────────────────────────────────────────
+INVOICE EXTRACTION (protected)
+─────────────────────────────────────────
+GET /api/time/invoice-extraction
+  - Query: projectId, startDate, endDate
+  - Requires role: 'Finance' or 'System'
+  - Returns ONLY Approved entries via getInvoiceExtractionPayload
+  - Hard-coded status filter cannot be removed by any query param
+
+─────────────────────────────────────────
+AUDIT LOG
+─────────────────────────────────────────
+GET /api/time/entries/:id/audit
+  - Returns full audit log for an entry, sorted by performed_at ASC
+  - All users can view audit of their own entries; admins see all
+
+─────────────────────────────────────────
+CONTRACT RULES (admin)
+─────────────────────────────────────────
+GET    /api/time/contract-rules/:projectId
+PATCH  /api/time/contract-rules/:projectId
+  - Requires role: 'Admin'
+  - Updates increment, cap, narrative requirements, future buffer
+
+─────────────────────────────────────────
+PROXY DELEGATIONS (admin)
+─────────────────────────────────────────
+GET    /api/time/proxy-delegations?userId=
+POST   /api/time/proxy-delegations
+  - Body: { proxyUserId, targetUserId, validFrom, validUntil }
+DELETE /api/time/proxy-delegations/:id
+
+─────────────────────────────────────────
+ERROR FORMAT
+─────────────────────────────────────────
+All error responses must follow:
+{ 
+  error: { 
+    code: "VALIDATION_FAILED" | "UNAUTHORIZED" | "LOCKED" | "PERIOD_CLOSED" | ..., 
+    message: "Human-readable description", 
+    fields?: [{ field: string, message: string }] 
+  } 
+}
+
+After building all endpoints, run a quick connectivity check — call each endpoint with a minimal test payload and confirm routes respond (even if with validation errors). List all routes registered with their HTTP method and path.

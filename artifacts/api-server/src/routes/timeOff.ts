@@ -187,7 +187,7 @@ router.post("/holiday-calendars", requireAdmin, async (req, res): Promise<void> 
 });
 
 router.post("/holiday-calendars/:id/dates", requireAdmin, async (req, res): Promise<void> => {
-  const calendarId = parseInt(req.params.id);
+  const calendarId = parseInt(req.params.id as string);
   const { name, date } = req.body;
   if (!name || !date) { res.status(400).json({ error: "name and date required" }); return; }
   const [row] = await db.insert(holidayDatesTable).values({ calendarId, name, date }).returning();
@@ -195,20 +195,20 @@ router.post("/holiday-calendars/:id/dates", requireAdmin, async (req, res): Prom
 });
 
 router.get("/holiday-calendars/:id/dates", async (req, res): Promise<void> => {
-  const calendarId = parseInt(req.params.id);
+  const calendarId = parseInt(req.params.id as string);
   if (isNaN(calendarId)) { res.status(400).json({ error: "Invalid calendar id" }); return; }
   const rows = await db.select().from(holidayDatesTable).where(eq(holidayDatesTable.calendarId, calendarId));
   res.json(rows.map(d => ({ ...d, createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : d.createdAt })));
 });
 
 router.delete("/holiday-calendars/:id/dates/:dateId", requireAdmin, async (req, res): Promise<void> => {
-  const dateId = parseInt(req.params.dateId);
+  const dateId = parseInt(req.params.dateId as string);
   await db.delete(holidayDatesTable).where(eq(holidayDatesTable.id, dateId));
   res.status(204).send();
 });
 
 router.patch("/holiday-calendars/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid calendar id" }); return; }
   const { name, description } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) { res.status(400).json({ error: "name is required" }); return; }
@@ -221,7 +221,7 @@ router.patch("/holiday-calendars/:id", requireAdmin, async (req, res): Promise<v
 });
 
 router.delete("/holiday-calendars/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid calendar id" }); return; }
   await db.delete(holidayDatesTable).where(eq(holidayDatesTable.calendarId, id));
   await db.delete(holidayCalendarsTable).where(eq(holidayCalendarsTable.id, id));

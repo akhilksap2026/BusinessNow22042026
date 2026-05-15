@@ -71,14 +71,14 @@ router.post("/prospects", requirePM, async (req, res) => {
 });
 
 router.get("/prospects/:id", async (req, res) => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   const [row] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, id));
   if (!row) return res.status(404).json({ error: "Not found" });
   return res.json(mapProspect(row));
 });
 
 router.patch("/prospects/:id", requirePM, async (req, res) => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   const parsed = ProspectPatchSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
   const { name, contactName, contactEmail, contactPhone, status, source, estimatedValue, notes, ownerId } = parsed.data;
@@ -87,7 +87,7 @@ router.patch("/prospects/:id", requirePM, async (req, res) => {
   if (contactName !== undefined) updates.contactName = contactName;
   if (contactEmail !== undefined) updates.contactEmail = contactEmail;
   if (contactPhone !== undefined) updates.contactPhone = contactPhone;
-  if (status !== undefined) updates.status = status;
+  if (status !== undefined) updates.status = status ?? undefined;
   if (source !== undefined) updates.source = source;
   if (estimatedValue !== undefined) updates.estimatedValue = estimatedValue ? String(estimatedValue) : null;
   if (notes !== undefined) updates.notes = notes;
@@ -98,13 +98,13 @@ router.patch("/prospects/:id", requirePM, async (req, res) => {
 });
 
 router.delete("/prospects/:id", requirePM, async (req, res) => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   await db.delete(prospectsTable).where(eq(prospectsTable.id, id));
   return res.status(204).send();
 });
 
 router.post("/prospects/:id/convert", requirePM, async (req, res) => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   const { tier, region, domain, contractValue } = req.body;
   if (!tier || !region || !domain) return res.status(400).json({ error: "tier, region, domain required" });
 

@@ -76,7 +76,7 @@ router.post("/contracts", requireFinance, async (req, res): Promise<void> => {
 });
 
 router.patch("/contracts/:id", requireFinance, async (req, res): Promise<void> => {
-  const id = parseInt(String(req.params.id), 10);
+  const id = parseInt(String(req.params.id as string), 10);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
@@ -110,7 +110,7 @@ router.patch("/contracts/:id", requireFinance, async (req, res): Promise<void> =
 });
 
 router.delete("/contracts/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(String(req.params.id), 10);
+  const id = parseInt(String(req.params.id as string), 10);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;

@@ -39,7 +39,7 @@ router.post("/tax-codes", requireAdmin, async (req, res): Promise<void> => {
 });
 
 router.put("/tax-codes/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { name, rate, description, isDefault, isActive } = req.body;
   const updates: Record<string, unknown> = {};
@@ -54,7 +54,7 @@ router.put("/tax-codes/:id", requireAdmin, async (req, res): Promise<void> => {
 });
 
 router.delete("/tax-codes/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(taxCodesTable).where(eq(taxCodesTable.id, id));
   res.status(204).send();
@@ -85,7 +85,7 @@ router.post("/time-categories", requireAdmin, async (req, res): Promise<void> =>
 });
 
 router.put("/time-categories/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { name, description, isActive, defaultBillable, sortOrder } = req.body;
   const updates: Record<string, unknown> = {};
@@ -114,7 +114,7 @@ router.put("/time-categories/reorder", requireAdmin, async (req, res): Promise<v
 });
 
 router.delete("/time-categories/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(timeCategoriesTable).where(eq(timeCategoriesTable.id, id));
   res.status(204).send();
@@ -151,7 +151,7 @@ router.post("/activity-defaults", requireAdmin, async (req, res): Promise<void> 
 });
 
 router.put("/activity-defaults/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { activityName, billable, categoryId, defaultFieldValues, isActive } = req.body;
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -166,7 +166,7 @@ router.put("/activity-defaults/:id", requireAdmin, async (req, res): Promise<voi
 });
 
 router.delete("/activity-defaults/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(activityDefaultsTable).where(eq(activityDefaultsTable.id, id));
   res.status(204).send();

@@ -190,7 +190,7 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
 // The user can only change their own flag (no admin escalation needed),
 // since this is purely a UI-affordance preference.
 router.patch("/users/:id/onboarding-dismissed", async (req, res): Promise<void> => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   const actor = Number(req.headers["x-user-id"] ?? 0);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   if (!actor || actor !== id) { res.status(403).json({ error: "Can only update your own onboarding state" }); return; }
@@ -201,7 +201,7 @@ router.patch("/users/:id/onboarding-dismissed", async (req, res): Promise<void> 
 });
 
 router.patch("/users/:id/secondary-roles", requireAdmin, async (req, res): Promise<void> => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { secondaryRoles } = req.body;
   if (!Array.isArray(secondaryRoles)) { res.status(400).json({ error: "secondaryRoles must be an array" }); return; }
@@ -247,7 +247,7 @@ router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {
 
 // Reactivate a soft-deleted user.
 router.post("/users/:id/reactivate", requireAdmin, async (req, res): Promise<void> => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [row] = await db.update(usersTable)
     .set({ isActive: 1, activeStatus: "active", updatedAt: new Date() } as any)

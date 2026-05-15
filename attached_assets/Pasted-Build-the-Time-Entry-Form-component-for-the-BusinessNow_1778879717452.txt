@@ -1,0 +1,72 @@
+Build the Time Entry Form component for the BusinessNow PSA Time Tracking module. Match the existing UI framework, component library, and design system detected in the codebase.
+
+COMPONENT: TimeEntryForm
+Route: /time/new and /time/entries/:id/edit
+
+─────────────────────────────────────────
+FORM FIELDS (in order)
+─────────────────────────────────────────
+1. Resource (dropdown)
+   - Default: logged-in user
+   - If user has proxy_delegation role: show a "Logging for" selector with delegated users
+   - When a proxy target is selected, show a visible badge: "Entering on behalf of [Name]"
+
+2. Project (dropdown)
+   - Fetch active projects the resource is assigned to
+   - Closed/Financially_Reconciled projects must NOT appear
+   - On selection: load contract rules for this project (increment, narrative requirement, fixed-bid cap info)
+   - Show a subtle indicator if the project is Fixed-Bid: "Fixed-Bid Project — [X] hours remaining of [Y]"
+
+3. Task (dropdown, filtered by selected project)
+   - Only Active tasks
+   - Shows auto-detected billable category badge next to each option: 🟢 Billable / ⚪ Non-Billable
+
+4. Date (date picker)
+   - Default: today
+   - Disable past dates in closed financial periods
+   - Disable future dates beyond the configured buffer (end of current week by default)
+   - Visually mark closed-period dates as unavailable
+
+5. Duration (hours input)
+   - Accept decimal or HH:MM format, convert internally to decimal hours
+   - Show increment hint below field: "Must be in 15-minute increments" (driven by contract rules)
+   - Validate on blur — show inline error immediately
+
+6. Billable Category (read-only display)
+   - Auto-set from task selection
+   - Not editable by standard users
+   - If user has 'Authorized_Approver' role: show an override toggle with confirmation dialog
+
+7. Narrative / Work Description (textarea)
+   - Character counter (max 1000 chars)
+   - If contract requires narrative: show red asterisk and "Required for this project"
+   - On blur: run client-side PII pattern check (SSN, credit card regex) — show inline warning immediately
+
+8. Exceptional Justification (textarea — conditional)
+   - Hidden by default
+   - Appears automatically when duration triggers the exceptional effort rule (> 8 hours/day or weekly threshold exceeded)
+   - Show banner: "⚠ This entry exceeds the standard threshold. A justification is required."
+
+─────────────────────────────────────────
+BEHAVIOR
+─────────────────────────────────────────
+- All validations run client-side on blur for immediate feedback
+- Final validation runs server-side on submit — display returned errors inline on fields
+- On successful save: show success toast, redirect to Weekly Timesheet view for the entry's week
+- On edit of a non-Draft entry: show read-only view with lock icon and "This entry cannot be edited (Status: [X])"
+
+─────────────────────────────────────────
+SUBMISSION STATES
+─────────────────────────────────────────
+Two action buttons at the bottom:
+- "Save as Draft" — saves without submitting
+- "Save & Submit" — saves and calls the submit endpoint; if replicated flag is present, show confirmation dialog first
+
+─────────────────────────────────────────
+CONFIRMATION DIALOG (for replicated entries)
+─────────────────────────────────────────
+When submitting a timesheet containing replicated entries, show a modal:
+Title: "Confirm Replicated Time"
+Body: "This timesheet was populated from a previous week. Please confirm all hours, projects, and tasks are accurate for the current week before submitting."
+Actions: [Cancel] [I Confirm — Submit Timesheet]
+Implement: FR-416.2

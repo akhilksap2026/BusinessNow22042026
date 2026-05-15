@@ -277,7 +277,7 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
             message: `Project status changed from "${existing.status}" to "${row.status}".`,
             entityType: "project",
             entityId: String(row.id),
-          });
+          } as any);
         }
       } catch { /* non-blocking */ }
     })();
@@ -308,7 +308,7 @@ router.patch("/projects/:id", requirePM, async (req, res): Promise<void> => {
 // does not swallow ":id/unlock-budget" as a param match (different method +
 // extra path segment — no conflict in practice, but keep the order explicit).
 router.patch("/projects/:id/unlock-budget", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const reason = typeof (req.body as any).reason === "string"
     ? ((req.body as any).reason as string).trim()
@@ -354,7 +354,7 @@ router.delete("/projects/:id", requirePM, async (req, res): Promise<void> => {
 });
 
 router.post("/projects/:id/restore", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const [row] = await db.update(projectsTable).set({ deletedAt: null } as any).where(eq(projectsTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Project not found" }); return; }
@@ -418,7 +418,7 @@ router.get("/projects/:id/summary", async (req, res): Promise<void> => {
 
 // ─── Quoted vs Actual ─────────────────────────────────────────────────────────
 router.get("/projects/:id/quoted-vs-actual", async (req, res): Promise<void> => {
-  const projectId = parseInt(String(req.params.id), 10);
+  const projectId = parseInt(String(req.params.id as string), 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
 
   const phases = await db.select().from(tasksTable).where(
@@ -472,7 +472,7 @@ router.get("/projects/:id/quoted-vs-actual", async (req, res): Promise<void> => 
 
 // ─── Burn Chart ───────────────────────────────────────────────────────────────
 router.get("/projects/:id/burn-chart", async (req, res): Promise<void> => {
-  const projectId = parseInt(String(req.params.id), 10);
+  const projectId = parseInt(String(req.params.id as string), 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
 
   const granularity = req.query.granularity === "month" ? "month" : "week";
@@ -545,7 +545,7 @@ router.get("/projects/:id/burn-chart", async (req, res): Promise<void> => {
 
 // ─── Shift Dates ──────────────────────────────────────────────────────────────
 router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
 
   const { days, fromTaskId } = req.body;
@@ -604,8 +604,8 @@ router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<vo
     const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
     if (project) {
       await db.update(projectsTable).set({
-        startDate: shiftDate(project.startDate),
-        dueDate: shiftDate(project.dueDate),
+        startDate: shiftDate(project.startDate) ?? undefined,
+        dueDate: shiftDate(project.dueDate) ?? undefined,
       }).where(eq(projectsTable.id, projectId));
     }
   }
@@ -616,7 +616,7 @@ router.post("/projects/:id/shift-dates", requirePM, async (req, res): Promise<vo
 
 // ── Gantt data ────────────────────────────────────────────────────────────────
 router.get("/projects/:id/gantt", async (req, res): Promise<void> => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid project id" }); return; }
 
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
@@ -719,7 +719,7 @@ function mapBudgetEntry(b: typeof budgetEntriesTable.$inferSelect) {
 }
 
 router.get("/projects/:id/budget-entries", async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
   const rows = await db
     .select()
@@ -748,7 +748,7 @@ router.get("/projects/:id/budget-entries", async (req, res): Promise<void> => {
 // inserted automatically by the /change-orders approval flow — exposing that
 // type here would let users double-count the budget.
 router.post("/projects/:id/budget-entries", requirePM, async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }

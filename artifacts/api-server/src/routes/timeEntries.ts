@@ -551,7 +551,7 @@ router.patch("/time-entries/:id", async (req, res): Promise<void> => {
 });
 
 router.post("/time-entries/:id/reject", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   const reason = String(req.body?.rejectionNote ?? req.body?.reason ?? "").trim();
   const [existing] = await db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, id));

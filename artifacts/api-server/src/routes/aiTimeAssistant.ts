@@ -339,11 +339,11 @@ router.post("/ai/billable-anomaly-check", async (req, res): Promise<void> => {
 // existing functionality. Draft and Rejected weeks are hard blockers (the user
 // must act on them to clear them); Submitted weeks are returned as informational
 // only (awaiting approval is not the user's fault and shouldn't block logging).
-router.get("/ai/pending-timesheet-audit", async (req, res) => {
+router.get("/ai/pending-timesheet-audit", async (req, res): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
   const userId = Number(req.query.userId);
   if (!userId || Number.isNaN(userId)) {
-    return res.status(400).json({ error: "userId required" });
+    res.status(400).json({ error: "userId required" }); return;
   }
 
   // Self-only enforcement: only the user themselves (or an admin/PM) may audit.
@@ -351,7 +351,7 @@ router.get("/ai/pending-timesheet-audit", async (req, res) => {
   const callerRole = authReq.authRole;
   const isPrivileged = callerRole === "account_admin" || callerRole === "super_user";
   if (callerId !== userId && !isPrivileged) {
-    return res.status(403).json({ error: "Forbidden" });
+    res.status(403).json({ error: "Forbidden" }); return;
   }
 
   // Resolve current-week start (Mon, ISO yyyy-MM-dd). Use the configured

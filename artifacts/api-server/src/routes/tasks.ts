@@ -110,7 +110,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
   if (qp.success && qp.data.projectId) conditions.push(eq(tasksTable.projectId, qp.data.projectId));
   if (qp.success && qp.data.status) conditions.push(eq(tasksTable.status, qp.data.status));
   // T3 — When context=timesheet, scope results to tasks assigned to the requesting user.
-  if (qp.success && qp.data.context === "timesheet") {
+  if (qp.success && (qp.data as any).context === "timesheet") {
     const userId = Number((req as any).headers?.["x-user-id"]);
     if (Number.isFinite(userId) && userId > 0) {
       conditions.push(sql`${tasksTable.assigneeIds} @> ARRAY[${userId}]::integer[]`);

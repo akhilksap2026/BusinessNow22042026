@@ -50,7 +50,7 @@ function mapRisk(r: typeof projectRisksTable.$inferSelect) {
 
 // GET /projects/:projectId/risks  — list RAID items for a project (optionally filter by type)
 router.get("/projects/:projectId/risks", async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.projectId, 10);
+  const projectId = parseInt(req.params.projectId as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
   const typeFilter = typeof req.query.type === "string" ? req.query.type : undefined;
   const conditions = [eq(projectRisksTable.projectId, projectId)];
@@ -86,7 +86,7 @@ router.post("/project-risks", requirePM, async (req, res): Promise<void> => {
 
 // PATCH /project-risks/:id  — update a RAID item
 router.patch("/project-risks/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid risk id" }); return; }
   const parsed = UpdateRiskBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
@@ -110,7 +110,7 @@ router.patch("/project-risks/:id", requirePM, async (req, res): Promise<void> =>
 
 // DELETE /project-risks/:id
 router.delete("/project-risks/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid risk id" }); return; }
   const [row] = await db.delete(projectRisksTable).where(eq(projectRisksTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "RAID item not found" }); return; }

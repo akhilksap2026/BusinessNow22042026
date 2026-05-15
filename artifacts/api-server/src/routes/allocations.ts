@@ -544,10 +544,10 @@ router.post("/allocations", requirePM, async (req, res): Promise<void> => {
   const computeRes = await computeAllocationFields({
     startDate: parsed.data.startDate,
     endDate: parsed.data.endDate,
-    allocationMethod: req.body.allocationMethod ?? parsed.data.allocationMethod,
+    allocationMethod: req.body.allocationMethod ?? undefined,
     methodValue: req.body.methodValue,
     hoursPerWeek: parsed.data.hoursPerWeek,
-    userId: parsed.data.userId ?? null,
+    userId: (parsed.data as any).userId ?? null,
   });
   if (!computeRes.ok) { res.status(400).json({ error: computeRes.error }); return; }
   const computed = computeRes.value;
@@ -649,7 +649,7 @@ router.post("/allocations", requirePM, async (req, res): Promise<void> => {
     ...parsed.data,
     // Auto-fill role from roleLabel for placeholder allocations
     role: parsed.data.role ?? (roleLabel || "Placeholder"),
-    placeholderRole: roleLabel || parsed.data.placeholderRole || null,
+    placeholderRole: roleLabel || (req.body.placeholderRole as string | undefined) || null,
     userId: parsed.data.userId ?? null,
     isSoftAllocation,
     placeholderId,
@@ -697,7 +697,7 @@ router.patch("/allocations/:id", requirePM, async (req, res): Promise<void> => {
   // Recompute derived fields if any input changed
   const inputsChanged = parsed.data.startDate !== undefined || parsed.data.endDate !== undefined
     || parsed.data.hoursPerWeek !== undefined || req.body.methodValue !== undefined
-    || req.body.allocationMethod !== undefined || parsed.data.userId !== undefined;
+    || req.body.allocationMethod !== undefined || (parsed.data as any).userId !== undefined;
   if (inputsChanged) {
     const computeRes = await computeAllocationFields({
       startDate: parsed.data.startDate ?? existing.startDate,
@@ -705,7 +705,7 @@ router.patch("/allocations/:id", requirePM, async (req, res): Promise<void> => {
       allocationMethod: req.body.allocationMethod ?? existing.allocationMethod,
       methodValue: req.body.methodValue ?? (existing.methodValue !== null ? Number(existing.methodValue) : (parsed.data.hoursPerWeek ?? Number(existing.hoursPerWeek))),
       hoursPerWeek: parsed.data.hoursPerWeek ?? Number(existing.hoursPerWeek),
-      userId: parsed.data.userId ?? existing.userId ?? null,
+      userId: (parsed.data as any).userId ?? existing.userId ?? null,
     });
     if (!computeRes.ok) { res.status(400).json({ error: computeRes.error }); return; }
     const computed = computeRes.value;
@@ -734,8 +734,8 @@ router.patch("/allocations/:id", requirePM, async (req, res): Promise<void> => {
 
 // Cascade-delete: remove all allocations for a user on a project (when removed from project)
 router.delete("/projects/:projectId/users/:userId/allocations", requirePM, async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.projectId);
-  const userId = parseInt(req.params.userId);
+  const projectId = parseInt(req.params.projectId as string);
+  const userId = parseInt(req.params.userId as string);
   if (isNaN(projectId) || isNaN(userId)) { res.status(400).json({ error: "Invalid id" }); return; }
   const removed = await db.delete(allocationsTable)
     .where(and(eq(allocationsTable.projectId, projectId), eq(allocationsTable.userId, userId)))
@@ -754,7 +754,7 @@ router.delete("/projects/:projectId/users/:userId/allocations", requirePM, async
 
 // RS-01 — Fill a placeholder allocation with a named user.
 router.post("/allocations/:id/fill", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const userId = Number(req.body.userId);
   if (!userId) { res.status(400).json({ error: "userId required" }); return; }

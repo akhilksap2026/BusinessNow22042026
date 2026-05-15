@@ -39,7 +39,7 @@ async function resolveTemplate(body: string, projectId: number): Promise<string>
 }
 
 projectUpdatesRouter.get("/projects/:id/updates", async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
 
   const updates = await db.select().from(projectUpdatesTable)
@@ -68,7 +68,7 @@ projectUpdatesRouter.get("/projects/:id/updates", async (req, res): Promise<void
 });
 
 projectUpdatesRouter.post("/projects/:id/updates", async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
 
   const { subject, body = "", type = "internal", recipientUserIds = [] } = req.body ?? {};
@@ -118,7 +118,7 @@ projectUpdatesRouter.post("/projects/:id/updates", async (req, res): Promise<voi
 });
 
 projectUpdatesRouter.get("/projects/:id/health-stats", async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
 
   const today = new Date().toISOString().slice(0, 10);

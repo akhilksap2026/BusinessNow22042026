@@ -1,0 +1,78 @@
+Build the following business services for the Time Tracking module. These sit between the API layer and the database.
+
+─────────────────────────────────────────
+SERVICE 1: effortStatusService
+─────────────────────────────────────────
+Implement the effort lifecycle state machine with these valid transitions:
+
+Draft → Submitted (by resource_id owner or proxy)
+Submitted → Approved (by authorized approver only)
+Submitted → Rejected (by authorized approver only, rejection_reason required)
+Submitted → Draft (Recall action, only if not yet Processed/Approved)
+Rejected → Submitted (Resubmission, routes back to original rejector)
+Approved → Processed (by invoicing/billing system call only)
+
+Functions to implement:
+- submitEffort(entryIds, submittingUserId): transitions Draft → Submitted, logs to audit trail, timestamps
+- recallEffort(entryIds, userId): transitions Submitted → Draft, removes from approval queue
+- approveEffort(entryIds, approverId): transitions Submitted → Approved, writes audit record
+- rejectEffort(entryId, approverId, rejectionReason): transitions Submitted → Rejected, validates reason is non-empty and non-whitespace, writes audit record, triggers rejection notification payload
+- resubmitEffort(entryId, userId): transitions Rejected → Submitted, routes to original_rejector_id stored on the record
+- markProcessed(entryIds): transitions Approved → Processed (gated — only callable by invoicing service)
+
+Rules:
+- Any invalid transition must throw a typed error with a meaningful message
+- Every state transition must write an immutable record to effort_audit_log
+- submittingUserId must match resource_id OR have a valid proxy_delegation
+
+Implements: FR-456.1, FR-456.2, FR-457.1, FR-457.2, FR-476.1, FR-476.2, FR-476.3, FR-496.1, FR-496.2
+
+─────────────────────────────────────────
+SERVICE 2: billableCategorizationService
+─────────────────────────────────────────
+Functions:
+- autoCategorizEntry(taskId): fetches task.default_billable_category, returns it as the entry's billable_category
+- overrideBillableCategory(entryId, newCategory, overridingUserId): 
+  (a) checks user has 'Authorized_Approver' role
+  (b) stores original_billable_category = current value
+  (c) updates billable_category = newCategory
+  (d) writes an Override_Billable audit record with previous and new values
+  (e) returns updated entry
+- getBillableSummaryForWeek(resourceId, weekStartDate): returns { totalBillable, totalNonBillable, utilizationRate }
+  - utilizationRate = totalBillable / (standardWeeklyHours - holidayHours) * 100
+  - standardWeeklyHours = 40 (configurable), holidayHours = 0 unless holiday calendar is present
+
+Implements: FR-356.1, FR-357.1, FR-357.2, FR-397.1, FR-397.2
+
+─────────────────────────────────────────
+SERVICE 3: weeklyAggregationService
+─────────────────────────────────────────
+Functions:
+- getWeeklyTimesheetView(resourceId, weekStartDate): 
+  Returns all effort_entries for the resource in Mon–Sun of the given week
+  Grouped by: project → task → daily entries
+  Includes: dailyTotals, weekTotal, billableTotal, nonBillableTotal, utilizationRate
+  Cross-month flag: if weekStartDate and weekEndDate span two calendar months, return two separate aggregation blocks (Month A block and Month B block)
+- getInvoiceExtractionPayload(projectId, startDate, endDate):
+  Returns ONLY effort_entries with status = 'Approved'
+  Hard filter — must append status='Approved' regardless of query parameters passed in
+  Never returns Draft, Submitted, Rejected, or Processed records
+
+Implements: FR-396.1, FR-396.2, FR-397.1, FR-397.2, FR-537.1
+
+─────────────────────────────────────────
+SERVICE 4: effortReplicationService
+─────────────────────────────────────────
+Functions:
+- replicatePreviousWeek(resourceId, currentWeekStart, userId):
+  (a) Fetch all finalized entries from the previous week (Mon–Sun before currentWeekStart)
+  (b) For each entry: check if project is still 'Active' — skip if Closed, accumulate skipped list
+  (c) Create new Draft entries for the current week with dates shifted +7 days
+  (d) Set is_replicated = true on all new entries
+  (e) Return { created: [...], skipped: [{ project, reason }] }
+- confirmReplicatedSubmission(timesheetId, userId):
+  Before submitting any timesheet where is_replicated = true, this must be called first
+  Records that user explicitly confirmed accuracy
+  Returns confirmation token that submit endpoint requires
+
+Implements: FR-416.1, FR-416.2

@@ -7,7 +7,7 @@ const router: IRouter = Router();
 
 // List baselines for a project
 router.get("/projects/:id/baselines", async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
   const rows = await db.select().from(baselinesTable).where(eq(baselinesTable.projectId, projectId));
   res.json(rows.map(b => ({
@@ -20,7 +20,7 @@ router.get("/projects/:id/baselines", async (req, res): Promise<void> => {
 
 // Create a baseline snapshot for a project
 router.post("/projects/:id/baselines", requirePM, async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.id, 10);
+  const projectId = parseInt(req.params.id as string, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
   const { name, notes } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
@@ -63,7 +63,7 @@ router.post("/projects/:id/baselines", requirePM, async (req, res): Promise<void
 
 // Delete a baseline — PM+ only; baselines are otherwise immutable records
 router.delete("/baselines/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(baselinesTable).where(eq(baselinesTable.id, id));
   res.sendStatus(204);

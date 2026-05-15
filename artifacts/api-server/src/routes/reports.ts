@@ -255,7 +255,7 @@ router.get("/reports/budget-vs-actuals", requirePermission("reports.view"), requ
 });
 
 router.get("/reports/burn-down/:projectId", requirePermission("reports.view"), async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.projectId, 10);
+  const projectId = parseInt(req.params.projectId as string, 10);
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
   if (!project) { res.status(404).json({ error: "Not found" }); return; }
 

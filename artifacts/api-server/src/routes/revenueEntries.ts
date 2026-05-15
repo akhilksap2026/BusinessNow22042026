@@ -46,7 +46,7 @@ router.post("/revenue-entries", requireFinance, async (req, res): Promise<void> 
 });
 
 router.patch("/revenue-entries/:id", requireFinance, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parsed = UpdateRevenueEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }

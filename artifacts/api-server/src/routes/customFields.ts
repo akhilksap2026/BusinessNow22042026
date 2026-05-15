@@ -64,7 +64,7 @@ router.post("/custom-field-definitions", requireAdmin, async (req, res): Promise
 });
 
 router.put("/custom-field-definitions/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const b = req.body ?? {};
   const updates: Record<string, unknown> = {};
@@ -117,7 +117,7 @@ router.post("/custom-field-sections", requireAdmin, async (req, res): Promise<vo
 });
 
 router.put("/custom-field-sections/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const b = req.body ?? {};
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -133,7 +133,7 @@ router.put("/custom-field-sections/:id", requireAdmin, async (req, res): Promise
 });
 
 router.delete("/custom-field-sections/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   // Detach fields that reference this section (set sectionId=null)
   await db.update(customFieldDefinitionsTable).set({ sectionId: null } as any).where(eq(customFieldDefinitionsTable.sectionId, id));
@@ -142,7 +142,7 @@ router.delete("/custom-field-sections/:id", requireAdmin, async (req, res): Prom
 });
 
 router.delete("/custom-field-definitions/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(customFieldDefinitionsTable).where(eq(customFieldDefinitionsTable.id, id));
   res.sendStatus(204);

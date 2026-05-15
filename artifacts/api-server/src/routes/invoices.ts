@@ -101,7 +101,7 @@ router.get("/invoices/finance-summary", requireFinance, async (_req, res): Promi
 });
 
 router.get("/invoices/project-summary/:projectId", requireFinance, async (req, res): Promise<void> => {
-  const projectId = Number(req.params.projectId);
+  const projectId = Number(req.params.projectId as string);
   if (!projectId || isNaN(projectId)) { res.status(400).json({ error: "Invalid projectId" }); return; }
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
@@ -189,7 +189,7 @@ router.delete("/invoices/:id", requireFinance, async (req, res): Promise<void> =
 
 // Generate a draft invoice from an approved timesheet
 router.post("/invoices/from-timesheet/:id", requireFinance, async (req, res): Promise<void> => {
-  const timesheetId = parseInt(req.params.id, 10);
+  const timesheetId = parseInt(req.params.id as string, 10);
   if (isNaN(timesheetId)) { res.status(400).json({ error: "Invalid timesheet id" }); return; }
 
   const [ts] = await db.select().from(timesheetsTable).where(eq(timesheetsTable.id, timesheetId));
@@ -216,7 +216,7 @@ router.post("/invoices/from-timesheet/:id", requireFinance, async (req, res): Pr
 
   // Determine the primary project and its account
   const projectIds = [...new Set(entries.map(e => e.projectId))];
-  const [primaryProject] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectIds[0]));
+  const [primaryProject] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectIds[0]!));
   const accountId = primaryProject?.accountId;
 
   if (!accountId) { res.status(400).json({ error: "Project has no associated account for billing" }); return; }
@@ -242,7 +242,7 @@ router.post("/invoices/from-timesheet/:id", requireFinance, async (req, res): Pr
 
 // V5 — Multiple partial payments per invoice.
 router.get("/invoices/:id/payments", requireFinance, async (req, res): Promise<void> => {
-  const invoiceId = req.params.id;
+  const invoiceId = req.params.id as string;
   const rows = await db.select()
     .from(invoicePaymentsTable)
     .where(eq(invoicePaymentsTable.invoiceId, invoiceId))
@@ -255,7 +255,7 @@ router.get("/invoices/:id/payments", requireFinance, async (req, res): Promise<v
 });
 
 router.post("/invoices/:id/payments", requireFinance, async (req, res): Promise<void> => {
-  const invoiceId = req.params.id;
+  const invoiceId = req.params.id as string;
   const { amount, paymentDate, reference, notes, recordedByUserId } = req.body;
   if (!amount || !paymentDate) {
     res.status(400).json({ error: "amount and paymentDate are required" });

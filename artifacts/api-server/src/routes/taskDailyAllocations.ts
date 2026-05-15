@@ -29,7 +29,7 @@ function mapRow(r: typeof taskDailyAllocationsTable.$inferSelect) {
 
 // GET /api/tasks/:taskId/daily-allocations
 router.get("/tasks/:taskId/daily-allocations", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.taskId, 10);
+  const taskId = parseInt(req.params.taskId as string, 10);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid taskId" }); return; }
 
   const rows = await db.select().from(taskDailyAllocationsTable)
@@ -40,7 +40,7 @@ router.get("/tasks/:taskId/daily-allocations", async (req, res): Promise<void> =
 
 // POST /api/tasks/:taskId/daily-allocations
 router.post("/tasks/:taskId/daily-allocations", requirePM, async (req, res): Promise<void> => {
-  const taskId = parseInt(String(req.params.taskId), 10);
+  const taskId = parseInt(String(req.params.taskId as string), 10);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid taskId" }); return; }
 
   const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, taskId));
@@ -68,7 +68,7 @@ router.post("/tasks/:taskId/daily-allocations", requirePM, async (req, res): Pro
 
 // PATCH /api/task-daily-allocations/:id
 router.patch("/task-daily-allocations/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(String(req.params.id), 10);
+  const id = parseInt(String(req.params.id as string), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const parsed = UpdateBody.safeParse(req.body);
@@ -89,7 +89,7 @@ router.patch("/task-daily-allocations/:id", requirePM, async (req, res): Promise
 
 // DELETE /api/task-daily-allocations/:id
 router.delete("/task-daily-allocations/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(String(req.params.id), 10);
+  const id = parseInt(String(req.params.id as string), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(taskDailyAllocationsTable)
     .where(eq(taskDailyAllocationsTable.id, id));

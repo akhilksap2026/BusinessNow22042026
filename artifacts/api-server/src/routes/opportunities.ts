@@ -43,8 +43,8 @@ async function mapOpportunity(row: typeof opportunitiesTable.$inferSelect) {
     ownerId: row.ownerId,
     projectId: row.projectId,
     closeReason: row.closeReason ?? null,
-    customerEmail: row.customerEmail ?? null,
-    customerPhone: row.customerPhone ?? null,
+    customerEmail: (row as any).customerEmail ?? null,
+    customerPhone: (row as any).customerPhone ?? null,
     projectName,
     accountName,
     ownerName,
@@ -83,19 +83,19 @@ router.post("/opportunities", requirePM, async (req, res) => {
     ownerId: ownerId ? Number(ownerId) : null,
     customerEmail: customerEmail || null,
     customerPhone: customerPhone || null,
-  }).returning();
+  } as any).returning();
   return res.status(201).json(await mapOpportunity(row));
 });
 
 router.get("/opportunities/:id", async (req, res) => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   const [row] = await db.select().from(opportunitiesTable).where(eq(opportunitiesTable.id, id));
   if (!row) return res.status(404).json({ error: "Not found" });
   return res.json(await mapOpportunity(row));
 });
 
 router.patch("/opportunities/:id", requirePM, async (req, res) => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
 
   // Load existing for transition checks
   const [existing] = await db.select().from(opportunitiesTable).where(eq(opportunitiesTable.id, id));
@@ -115,10 +115,10 @@ router.patch("/opportunities/:id", requirePM, async (req, res) => {
   if (closeDate !== undefined) updates.closeDate = closeDate;
   if (ownerId !== undefined) updates.ownerId = ownerId ? Number(ownerId) : null;
   if (closeReason !== undefined) updates.closeReason = closeReason || null;
-  if (customerEmail !== undefined) updates.customerEmail = customerEmail || null;
-  if (customerPhone !== undefined) updates.customerPhone = customerPhone || null;
+  if (customerEmail !== undefined) (updates as any).customerEmail = customerEmail || null;
+  if (customerPhone !== undefined) (updates as any).customerPhone = customerPhone || null;
 
-  const [row] = await db.update(opportunitiesTable).set(updates).where(eq(opportunitiesTable.id, id)).returning();
+  const [row] = await db.update(opportunitiesTable).set(updates as any).where(eq(opportunitiesTable.id, id)).returning();
   if (!row) return res.status(404).json({ error: "Not found" });
 
   // Probability-triggered soft allocation: if probability crosses ≥70 threshold AND a project is linked
@@ -134,7 +134,7 @@ router.patch("/opportunities/:id", requirePM, async (req, res) => {
       if (existingAllocs.length === 0) {
         const today = new Date().toISOString().slice(0, 10);
         const threeMonths = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
-        await db.insert(allocationsTable).values({
+        await (db.insert(allocationsTable) as any).values({
           projectId: row.projectId,
           userId: row.ownerId,
           role: "Owner",
@@ -171,13 +171,13 @@ router.patch("/opportunities/:id", requirePM, async (req, res) => {
 });
 
 router.delete("/opportunities/:id", requirePM, async (req, res) => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   await db.delete(opportunitiesTable).where(eq(opportunitiesTable.id, id));
   return res.status(204).send();
 });
 
 router.post("/opportunities/:id/convert-to-project", requirePM, async (req, res) => {
-  const id = Number(req.params.id);
+  const id = Number(req.params.id as string);
   const { name, billingType, startDate, dueDate, ownerId } = req.body;
   if (!name || !startDate || !dueDate) return res.status(400).json({ error: "name, startDate, dueDate required" });
 

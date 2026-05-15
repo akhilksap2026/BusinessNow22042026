@@ -1,0 +1,71 @@
+Build the Weekly Timesheet Grid — the primary workspace for consultants to view, manage, and submit their week's time.
+
+COMPONENT: WeeklyTimesheetView
+Route: /time/timesheet (default: current week)
+Query params: weekStart (YYYY-MM-DD), resourceId (optional, for managers viewing a team member)
+
+─────────────────────────────────────────
+LAYOUT: GRID STRUCTURE
+─────────────────────────────────────────
+Rows: one row per Project + Task combination
+Columns: Mon | Tue | Wed | Thu | Fri | Sat | Sun | Total | Category
+
+Each cell shows:
+- Hours logged for that day on that project/task (editable if Draft)
+- Clicking a cell opens the TimeEntryForm in a slide-over/drawer for that day/project/task
+- Empty cells show "+" to invite entry
+
+Footer row:
+- Daily totals for each column
+- Weekly total (far right)
+- Billable total and Non-Billable total below the grid
+
+─────────────────────────────────────────
+CROSS-MONTH HANDLING
+─────────────────────────────────────────
+If the week spans two calendar months (e.g., Oct 30 – Nov 5):
+- Show a vertical divider between the month-boundary days
+- Show two separate totals blocks: "October: X hrs" and "November: Y hrs"
+- Implement: FR-396.2
+
+─────────────────────────────────────────
+HEADER AREA
+─────────────────────────────────────────
+- Week navigator: [← Prev Week] [Oct 30 – Nov 5, 2025] [Next Week →]
+- Status badge for the week: Draft | Partially Submitted | Submitted | Approved | Mixed
+- Utilization rate chip: "Utilization: 87% this week" (from billableCategorizationService)
+- "Copy Previous Week" button — calls replication API, shows spinner, then confirmation dialog
+
+─────────────────────────────────────────
+ENTRY STATUS INDICATORS
+─────────────────────────────────────────
+Each cell/entry shows a colored status dot:
+- Draft: grey
+- Submitted: blue
+- Approved: green
+- Rejected: red (with hover tooltip showing rejection reason)
+- Processed: purple
+
+─────────────────────────────────────────
+BULK ACTIONS (bottom bar, appears on selection)
+─────────────────────────────────────────
+- Select all Draft entries checkbox
+- "Submit Selected" button → calls /api/time/entries/submit with selected IDs
+- "Recall Selected" button → visible only for Submitted entries
+
+─────────────────────────────────────────
+SIDEBAR SUMMARY PANEL
+─────────────────────────────────────────
+Collapsible panel on the right side showing:
+- Total hours this week: XX.X
+- Billable: XX.X hrs
+- Non-Billable: XX.X hrs
+- Utilization rate: XX%
+- Fixed-bid cap warnings (if any project is near cap: "Project X: 97/100 hrs used")
+- Exceptional entries flagged this week (count with link to those entries)
+
+─────────────────────────────────────────
+PROXY MODE BANNER
+─────────────────────────────────────────
+If resourceId in query params differs from logged-in user:
+- Show a persistent orange banner at top: "⚡ Proxy Mode — Managing timesheet for [Full Name]. All entries will be attributed to them and logged under your name."

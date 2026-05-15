@@ -6,7 +6,7 @@ import { requirePM } from "../middleware/rbac";
 const router: IRouter = Router();
 
 router.get("/tasks/:id/dependencies", async (req, res): Promise<void> => {
-  const taskId = parseInt(req.params.id, 10);
+  const taskId = parseInt(req.params.id as string, 10);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const deps = await db.select().from(taskDependenciesTable).where(
     or(eq(taskDependenciesTable.predecessorId, taskId), eq(taskDependenciesTable.successorId, taskId))
@@ -44,7 +44,7 @@ async function wouldCreateCycle(predecessorId: number, successorId: number): Pro
 }
 
 router.post("/tasks/:id/dependencies", requirePM, async (req, res): Promise<void> => {
-  const successorId = parseInt(req.params.id, 10);
+  const successorId = parseInt(req.params.id as string, 10);
   if (isNaN(successorId)) { res.status(400).json({ error: "Invalid task id" }); return; }
   const { predecessorId, dependencyType = "FS", lagDays = 0 } = req.body;
   if (!predecessorId) { res.status(400).json({ error: "predecessorId is required" }); return; }
@@ -87,7 +87,7 @@ router.post("/tasks/:id/dependencies", requirePM, async (req, res): Promise<void
 });
 
 router.patch("/task-dependencies/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { lagDays } = req.body;
   const lag = parseInt(lagDays, 10);
@@ -98,7 +98,7 @@ router.patch("/task-dependencies/:id", requirePM, async (req, res): Promise<void
 });
 
 router.delete("/task-dependencies/:id", requirePM, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(taskDependenciesTable).where(eq(taskDependenciesTable.id, id));
   res.sendStatus(204);

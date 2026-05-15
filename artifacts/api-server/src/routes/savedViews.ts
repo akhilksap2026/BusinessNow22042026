@@ -26,10 +26,10 @@ function isAdminLike(req: Request): boolean {
   return hasRole(role, "super_user");
 }
 
-savedViewsRouter.get("/saved-views", async (req: Request, res: Response) => {
+savedViewsRouter.get("/saved-views", async (req: Request, res: Response): Promise<void> => {
   const parsed = listSavedViewsQuerySchema.safeParse(req.query);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid query", issues: parsed.error.issues });
+    res.status(400).json({ error: "Invalid query", issues: parsed.error.issues }); return;
   }
   const userId = getCurrentUserId(req);
   const { entity } = parsed.data;
@@ -46,35 +46,35 @@ savedViewsRouter.get("/saved-views", async (req: Request, res: Response) => {
   res.json(out);
 });
 
-savedViewsRouter.post("/saved-views", requirePM, async (req: Request, res: Response) => {
+savedViewsRouter.post("/saved-views", requirePM, async (req: Request, res: Response): Promise<void> => {
   const userId = getCurrentUserId(req);
-  if (!userId) return res.status(400).json({ error: "x-user-id header required" });
+  if (!userId) { res.status(400).json({ error: "x-user-id header required" }); return; }
 
   const body = insertSavedViewSchema.safeParse({ ...req.body, createdByUserId: userId });
-  if (!body.success) return res.status(400).json({ error: "Invalid body", issues: body.error.issues });
+  if (!body.success) { res.status(400).json({ error: "Invalid body", issues: body.error.issues }); return; }
   if (!SAVED_VIEW_ENTITIES.includes(body.data.entity as any)) {
-    return res.status(400).json({ error: "Invalid entity" });
+    res.status(400).json({ error: "Invalid entity" }); return;
   }
 
   const [created] = await db.insert(savedViewsTable).values(body.data).returning();
   res.status(201).json({ ...created, isOwner: true });
 });
 
-savedViewsRouter.put("/saved-views/:id", requirePM, async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
-  if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+savedViewsRouter.put("/saved-views/:id", requirePM, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const userId = getCurrentUserId(req);
-  if (!userId) return res.status(400).json({ error: "x-user-id header required" });
+  if (!userId) { res.status(400).json({ error: "x-user-id header required" }); return; }
 
   const body = updateSavedViewSchema.safeParse(req.body);
-  if (!body.success) return res.status(400).json({ error: "Invalid body", issues: body.error.issues });
+  if (!body.success) { res.status(400).json({ error: "Invalid body", issues: body.error.issues }); return; }
 
   const [existing] = await db.select().from(savedViewsTable).where(eq(savedViewsTable.id, id)).limit(1);
-  if (!existing) return res.status(404).json({ error: "Not found" });
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
 
   const owner = existing.createdByUserId === userId;
   const adminOnPublic = isAdminLike(req) && existing.visibility === "public";
-  if (!owner && !adminOnPublic) return res.status(403).json({ error: "Forbidden" });
+  if (!owner && !adminOnPublic) { res.status(403).json({ error: "Forbidden" }); return; }
 
   const [updated] = await db
     .update(savedViewsTable)
@@ -84,34 +84,34 @@ savedViewsRouter.put("/saved-views/:id", requirePM, async (req: Request, res: Re
   res.json({ ...updated, isOwner: updated.createdByUserId === userId });
 });
 
-savedViewsRouter.delete("/saved-views/:id", requirePM, async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
-  if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+savedViewsRouter.delete("/saved-views/:id", requirePM, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const userId = getCurrentUserId(req);
-  if (!userId) return res.status(400).json({ error: "x-user-id header required" });
+  if (!userId) { res.status(400).json({ error: "x-user-id header required" }); return; }
 
   const [existing] = await db.select().from(savedViewsTable).where(eq(savedViewsTable.id, id)).limit(1);
-  if (!existing) return res.status(404).json({ error: "Not found" });
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
 
   const owner = existing.createdByUserId === userId;
   const adminOnPublic = isAdminLike(req) && existing.visibility === "public";
-  if (!owner && !adminOnPublic) return res.status(403).json({ error: "Forbidden" });
+  if (!owner && !adminOnPublic) { res.status(403).json({ error: "Forbidden" }); return; }
 
   await db.delete(savedViewsTable).where(eq(savedViewsTable.id, id));
   res.status(204).send();
 });
 
-savedViewsRouter.post("/saved-views/:id/duplicate", requirePM, async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
-  if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+savedViewsRouter.post("/saved-views/:id/duplicate", requirePM, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const userId = getCurrentUserId(req);
-  if (!userId) return res.status(400).json({ error: "x-user-id header required" });
+  if (!userId) { res.status(400).json({ error: "x-user-id header required" }); return; }
 
   const [existing] = await db.select().from(savedViewsTable).where(eq(savedViewsTable.id, id)).limit(1);
-  if (!existing) return res.status(404).json({ error: "Not found" });
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
 
   const filtersValid = savedViewFiltersSchema.safeParse(existing.filters);
-  if (!filtersValid.success) return res.status(500).json({ error: "Source view has invalid filters" });
+  if (!filtersValid.success) { res.status(500).json({ error: "Source view has invalid filters" }); return; }
 
   const newName = (req.body?.name as string | undefined)?.trim() || `${existing.name} (copy)`;
   const [created] = await db

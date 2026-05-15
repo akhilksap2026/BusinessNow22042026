@@ -34,7 +34,7 @@ router.post("/skill-categories", requireAdmin, async (req, res): Promise<void> =
 });
 
 router.patch("/skill-categories/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { name, description } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) { res.status(400).json({ error: "name is required" }); return; }
@@ -153,8 +153,8 @@ router.post("/users/:id/skills", async (req, res): Promise<void> => {
 });
 
 router.patch("/users/:id/skills/:skillId", async (req, res): Promise<void> => {
-  const userId = parseInt(req.params.id);
-  const skillId = parseInt(req.params.skillId);
+  const userId = parseInt(req.params.id as string);
+  const skillId = parseInt(req.params.skillId as string);
   if (isNaN(userId) || isNaN(skillId)) { res.status(400).json({ error: "Invalid ids" }); return; }
   // FIX 4: collaborators may only update their own skill entries; PM+ may update any.
   const _patchSkillCallerRole = (req as AuthenticatedRequest).authRole ?? "collaborator";
@@ -236,7 +236,7 @@ router.post("/job-roles", requireAdmin, async (req, res): Promise<void> => {
 });
 
 router.delete("/job-roles/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(jobRolesTable).where(eq(jobRolesTable.id, id));
   res.status(204).send();
