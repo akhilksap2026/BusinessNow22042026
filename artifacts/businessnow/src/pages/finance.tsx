@@ -860,7 +860,6 @@ export default function Finance() {
                           <TableHead>Health</TableHead>
                           <TableHead className="text-right">Tracked Hrs</TableHead>
                           <TableHead className="text-right">Allocated Hrs</TableHead>
-                          <TableHead className="w-[48px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -896,16 +895,6 @@ export default function Finance() {
                               </TableCell>
                               <TableCell className="text-right tabular-nums text-sm">
                                 {p.allocatedHours != null ? `${Number(p.allocatedHours).toLocaleString()}h` : "—"}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-indigo-600"
-                                  onClick={() => openEditProjectContract(p)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
                               </TableCell>
                             </TableRow>
                           );
