@@ -390,7 +390,7 @@ router.get("/time-entries", async (req, res): Promise<void> => {
 });
 
 router.post("/time-entries", async (req, res): Promise<void> => {
-  const parsed = CreateTimeEntryBody.strict().safeParse(req.body);
+  const parsed = CreateTimeEntryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   // FIX 4: collaborators may only log time for themselves.
   const { hasRole: _hrPost } = await import("../constants/roles");
