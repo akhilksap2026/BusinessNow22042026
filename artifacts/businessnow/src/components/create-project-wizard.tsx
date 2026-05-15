@@ -308,10 +308,15 @@ export function CreateProjectWizard({
   const watchedInternalExternal = blankForm.watch("internalExternal");
   const watchedTeamMembers = blankForm.watch("teamMembers");
   const watchedBillingType = blankForm.watch("billingType");
+  const watchedOpportunityId = blankForm.watch("opportunityId");
 
   const wonOpportunities = (allOpportunities as any[] | undefined)?.filter(
     (o: any) => o.accountId === Number(watchedAccountId) && o.stage === "Won" && !o.projectId
   ) ?? [];
+
+  const selectedOpportunity = watchedOpportunityId
+    ? (allOpportunities as any[] | undefined)?.find((o: any) => o.id === Number(watchedOpportunityId))
+    : undefined;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -627,6 +632,36 @@ export function CreateProjectWizard({
                         </FormItem>
                       )}
                     />
+                  )}
+
+                  {/* 4a. Customer Email & Phone — pre-filled from linked opportunity */}
+                  {watchedInternalExternal === "External" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium leading-none">
+                          Customer Email
+                        </label>
+                        <Input
+                          type="email"
+                          value={selectedOpportunity?.customerEmail ?? ""}
+                          readOnly
+                          placeholder={selectedOpportunity ? "Not set on opportunity" : "Link an opportunity above"}
+                          className="bg-muted/50 cursor-default"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium leading-none">
+                          Customer Phone
+                        </label>
+                        <Input
+                          type="tel"
+                          value={selectedOpportunity?.customerPhone ?? ""}
+                          readOnly
+                          placeholder={selectedOpportunity ? "Not set on opportunity" : "Link an opportunity above"}
+                          className="bg-muted/50 cursor-default"
+                        />
+                      </div>
+                    </div>
                   )}
 
                   {/* 5. Description */}
