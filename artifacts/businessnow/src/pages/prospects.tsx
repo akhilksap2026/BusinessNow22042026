@@ -396,8 +396,8 @@ export default function ProspectsPage() {
       <Dialog open={showCreate} onOpenChange={v => { setShowCreate(v); if (!v) resetForm(); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Add Prospect</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
-            <div className="col-span-2 space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+            <div className="col-span-full space-y-1">
               <Label>Company Name *</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
@@ -434,7 +434,7 @@ export default function ProspectsPage() {
               <Label>Est. Value ($)</Label>
               <Input type="number" value={form.estimatedValue} onChange={e => setForm(f => ({ ...f, estimatedValue: e.target.value }))} />
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Notes</Label>
               <Textarea rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
@@ -459,7 +459,7 @@ export default function ProspectsPage() {
                 <Label>Domain *</Label>
                 <Input placeholder="company.com" value={convertForm.domain} onChange={e => setConvertForm(f => ({ ...f, domain: e.target.value }))} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Account Tier</Label>
                   <Select value={convertForm.tier} onValueChange={v => setConvertForm(f => ({ ...f, tier: v }))}>
@@ -497,8 +497,8 @@ export default function ProspectsPage() {
       <Dialog open={showEdit} onOpenChange={v => setShowEdit(v)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Edit Prospect</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
-            <div className="col-span-2 space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+            <div className="col-span-full space-y-1">
               <Label>Name *</Label>
               <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
             </div>
@@ -537,7 +537,7 @@ export default function ProspectsPage() {
               <Label>Est. Value ($)</Label>
               <Input type="number" value={editForm.estimatedValue} onChange={e => setEditForm(f => ({ ...f, estimatedValue: e.target.value }))} />
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Notes</Label>
               <Textarea rows={3} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
             </div>

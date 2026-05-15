@@ -857,7 +857,7 @@ export default function TimeTracking() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Start Date *</Label>
                 <Input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
@@ -947,7 +947,7 @@ export default function TimeTracking() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Date *</Label>
                 <Input type="date" value={logForm.date} onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))} />
@@ -1083,7 +1083,7 @@ export default function TimeTracking() {
           ) : (
             <div className="space-y-2">
               {/* Summary row */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                 {[
                   { label: "Total Hours", value: `${detailEntries.reduce((s, e) => s + e.hours, 0)}h` },
                   { label: "Billable", value: `${detailEntries.filter(e => e.billable).reduce((s, e) => s + e.hours, 0)}h` },

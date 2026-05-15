@@ -1570,7 +1570,7 @@ export default function Resources() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-lg border p-3 text-center">
                     <div className="text-2xl font-bold">{profileUser.capacity}h</div>
                     <div className="text-xs text-muted-foreground mt-0.5">Weekly Capacity</div>
@@ -1819,7 +1819,7 @@ export default function Resources() {
                 className="bg-muted"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Start Date</Label>
                 <Input

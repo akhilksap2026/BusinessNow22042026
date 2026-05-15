@@ -833,7 +833,7 @@ export default function Finance() {
                 <Label>Schedule Name *</Label>
                 <Input placeholder="e.g. 50% Milestone Invoice" value={scheduleForm.name} onChange={e => setScheduleForm(f => ({ ...f, name: e.target.value }))} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Trigger Type</Label>
                   <Select value={scheduleForm.triggerType} onValueChange={v => setScheduleForm(f => ({ ...f, triggerType: v }))}>
@@ -851,7 +851,7 @@ export default function Finance() {
                   <Input placeholder={scheduleForm.triggerType === "Date" ? "YYYY-MM-DD" : "Task or phase ID"} value={scheduleForm.triggerValue} onChange={e => setScheduleForm(f => ({ ...f, triggerValue: e.target.value }))} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Fixed Amount ($)</Label>
                   <Input type="number" step="0.01" placeholder="e.g. 5000" value={scheduleForm.amount} onChange={e => setScheduleForm(f => ({ ...f, amount: e.target.value }))} />
@@ -885,7 +885,7 @@ export default function Finance() {
                   <SelectContent>{projects?.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Period *</Label>
                   <Input type="month" value={revenueForm.period} onChange={e => setRevenueForm(f => ({ ...f, period: e.target.value }))} />
@@ -895,7 +895,7 @@ export default function Finance() {
                   <Input type="date" value={revenueForm.recognizedAt} onChange={e => setRevenueForm(f => ({ ...f, recognizedAt: e.target.value }))} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Amount *</Label>
                   <Input type="number" step="0.01" placeholder="0.00" value={revenueForm.amount} onChange={e => setRevenueForm(f => ({ ...f, amount: e.target.value }))} />
@@ -939,7 +939,7 @@ export default function Finance() {
                   <Label>Schedule Name *</Label>
                   <Input value={editingSchedule.name} onChange={e => setEditingSchedule((s: any) => ({ ...s, name: e.target.value }))} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Trigger Type</Label>
                     <Select value={editingSchedule.triggerType} onValueChange={v => setEditingSchedule((s: any) => ({ ...s, triggerType: v }))}>
@@ -957,7 +957,7 @@ export default function Finance() {
                     <Input placeholder={editingSchedule.triggerType === "Date" ? "YYYY-MM-DD" : "Task or phase ID"} value={editingSchedule.triggerValue ?? ""} onChange={e => setEditingSchedule((s: any) => ({ ...s, triggerValue: e.target.value }))} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Fixed Amount ($)</Label>
                     <Input type="number" step="0.01" value={editingSchedule.amount ?? ""} onChange={e => setEditingSchedule((s: any) => ({ ...s, amount: e.target.value }))} />
@@ -994,7 +994,7 @@ export default function Finance() {
             </DialogHeader>
             {editingRevenue && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Period *</Label>
                     <Input type="month" value={editingRevenue.period} onChange={e => setEditingRevenue((r: any) => ({ ...r, period: e.target.value }))} />
@@ -1004,7 +1004,7 @@ export default function Finance() {
                     <Input type="date" value={editingRevenue.recognizedAt ?? ""} onChange={e => setEditingRevenue((r: any) => ({ ...r, recognizedAt: e.target.value }))} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Amount *</Label>
                     <Input type="number" step="0.01" value={editingRevenue.amount} onChange={e => setEditingRevenue((r: any) => ({ ...r, amount: e.target.value }))} />
@@ -1085,7 +1085,7 @@ export default function Finance() {
                   onChange={e => setContractForm(f => ({ ...f, name: e.target.value }))}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Project *</Label>
                   <Select value={contractForm.projectId} onValueChange={v => setContractForm(f => ({ ...f, projectId: v }))}>
@@ -1109,7 +1109,7 @@ export default function Finance() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Start Date</Label>
                   <input type="date" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={contractForm.startDate} onChange={e => setContractForm(f => ({ ...f, startDate: e.target.value }))} />
@@ -1119,7 +1119,7 @@ export default function Finance() {
                   <input type="date" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={contractForm.endDate} onChange={e => setContractForm(f => ({ ...f, endDate: e.target.value }))} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Contract Value ($)</Label>
                   <input
@@ -1175,7 +1175,7 @@ export default function Finance() {
                 <Label>Description</Label>
                 <Input value={invoiceEditForm.description} onChange={e => setInvoiceEditForm(f => ({ ...f, description: e.target.value }))} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Amount ($)</Label>
                   <Input type="number" step="0.01" value={invoiceEditForm.amount} onChange={e => setInvoiceEditForm(f => ({ ...f, amount: e.target.value }))} />

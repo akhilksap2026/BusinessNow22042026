@@ -369,9 +369,9 @@ export default function Accounts() {
       <Dialog open={showCreate} onOpenChange={v => { setShowCreate(v); if (!v) resetForm(); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Account</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-3 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-3 py-2">
             {/* Row 1: Account Name */}
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Account Name *</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
@@ -404,7 +404,7 @@ export default function Accounts() {
               </Select>
             </div>
             {/* Row 4: Company Name */}
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Company Name *</Label>
               <Input value={form.companyName} onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))} />
             </div>
@@ -447,12 +447,12 @@ export default function Accounts() {
               <Input type="number" value={form.estValue} onChange={e => setForm(f => ({ ...f, estValue: e.target.value }))} />
             </div>
             {/* Row 8: Notes */}
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Notes</Label>
               <Textarea rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="resize-y" />
             </div>
             {/* Row 9: Account Status */}
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Status</Label>
               <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
                 <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
@@ -462,7 +462,7 @@ export default function Accounts() {
               </Select>
             </div>
             {/* Row 10: Internal account */}
-            <div className="col-span-2 flex items-center gap-2">
+            <div className="col-span-full flex items-center gap-2">
               <Checkbox
                 id="acct-is-internal"
                 checked={form.isInternal}
@@ -490,8 +490,8 @@ export default function Accounts() {
       <Dialog open={showEdit} onOpenChange={v => { setShowEdit(v); if (!v) setEditTarget(null); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Account</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-3 py-2">
-            <div className="col-span-2 space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-3 py-2">
+            <div className="col-span-full space-y-1">
               <Label>Account Name *</Label>
               <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
             </div>
@@ -521,7 +521,7 @@ export default function Accounts() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Company Name</Label>
               <Input value={editForm.companyName} onChange={e => setEditForm(f => ({ ...f, companyName: e.target.value }))} />
             </div>
@@ -560,11 +560,11 @@ export default function Accounts() {
               <Label>Est. Value ($)</Label>
               <Input type="number" value={editForm.estValue} onChange={e => setEditForm(f => ({ ...f, estValue: e.target.value }))} />
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Notes</Label>
               <Textarea rows={3} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} className="resize-y" />
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Status</Label>
               <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
                 <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
@@ -573,7 +573,7 @@ export default function Accounts() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 flex items-center gap-2">
+            <div className="col-span-full flex items-center gap-2">
               <Checkbox
                 id="edit-acct-is-internal"
                 checked={editForm.isInternal}

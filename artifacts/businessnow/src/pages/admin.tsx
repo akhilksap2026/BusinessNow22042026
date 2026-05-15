@@ -2750,8 +2750,8 @@ export default function Admin() {
                 ) : !resourceCostRates?.length ? (
                   <div className="py-8 text-center text-muted-foreground text-sm">No cost rates configured.</div>
                 ) : (
-                  <div className="rounded-md border overflow-hidden">
-                    <table className="w-full text-sm">
+                  <div className="rounded-md border overflow-x-auto">
+                    <table className="w-full text-sm min-w-[520px]">
                       <thead className="bg-muted/50">
                         <tr>
                           <th className="text-left px-4 py-2 font-medium">User</th>
@@ -3107,12 +3107,12 @@ export default function Admin() {
                 <CardDescription>Used on invoices and reports</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="col-span-full space-y-1.5">
                     <Label>Company Name *</Label>
                     <Input value={companyForm.name} onChange={e => { setCompanyForm(f => ({ ...f, name: e.target.value })); setCompanyFormDirty(true); }} />
                   </div>
-                  <div className="col-span-2 space-y-1.5">
+                  <div className="col-span-full space-y-1.5">
                     <Label>Address</Label>
                     <Textarea rows={2} value={companyForm.address} onChange={e => { setCompanyForm(f => ({ ...f, address: e.target.value })); setCompanyFormDirty(true); }} />
                   </div>
@@ -3243,7 +3243,7 @@ export default function Admin() {
               <Label>Description</Label>
               <Textarea placeholder="Brief description of this template..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Billing Type</Label>
                 <Select value={form.billingType} onValueChange={v => setForm(f => ({ ...f, billingType: v }))}>
@@ -3327,7 +3327,7 @@ export default function Admin() {
               <Label>Skill Name *</Label>
               <Input placeholder="e.g. React, AWS, SQL" value={newSkillName} onChange={e => setNewSkillName(e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Category</Label>
                 <Select value={newSkillCategoryId} onValueChange={setNewSkillCategoryId}>
@@ -3377,7 +3377,7 @@ export default function Admin() {
               <Label>Skill Name *</Label>
               <Input value={editSkillForm.name} onChange={e => setEditSkillForm(f => ({ ...f, name: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Category</Label>
                 <Select value={editSkillForm.categoryId || "none"} onValueChange={v => setEditSkillForm(f => ({ ...f, categoryId: v === "none" ? "" : v }))}>
@@ -3434,7 +3434,7 @@ export default function Admin() {
             <DialogDescription>Define a tax rate to apply on invoices and line items.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Name *</Label>
                 <Input placeholder="e.g. GST 10%" value={taxCodeForm.name} onChange={e => setTaxCodeForm(f => ({ ...f, name: e.target.value }))} />
@@ -3590,8 +3590,8 @@ export default function Admin() {
             <DialogDescription>Define billing rates for each role in this rate card.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5 col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Name *</Label>
                 <Input placeholder="e.g. Standard 2025" value={rcForm.name} onChange={e => setRcForm(f => ({ ...f, name: e.target.value }))} />
               </div>
@@ -3619,7 +3619,7 @@ export default function Admin() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 col-span-2">
+              <div className="space-y-1.5 col-span-full">
                 <Label>Effective Date</Label>
                 <Input type="date" value={rcForm.effectiveDate} onChange={e => setRcForm(f => ({ ...f, effectiveDate: e.target.value }))} />
               </div>
@@ -3779,7 +3779,7 @@ export default function Admin() {
                 </Select>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Country *</Label>
                 <Input value={rcuForm.country} onChange={e => setRcuForm(f => ({ ...f, country: e.target.value }))} placeholder="e.g. US" />
@@ -3830,7 +3830,7 @@ export default function Admin() {
             <DialogDescription>Define a field that will appear on the selected entity type.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Entity Type *</Label>
                 <Select value={cfForm.entityType} onValueChange={v => setCfForm(f => ({ ...f, entityType: v, sectionId: "" }))}>
@@ -3866,7 +3866,7 @@ export default function Admin() {
               <Label>Description</Label>
               <Input placeholder="Optional helper text shown next to the field" value={cfForm.description} onChange={e => setCfForm(f => ({ ...f, description: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Section</Label>
                 <Select value={cfForm.sectionId || "__none"} onValueChange={v => setCfForm(f => ({ ...f, sectionId: v === "__none" ? "" : v }))}>
@@ -3900,7 +3900,7 @@ export default function Admin() {
             {cfForm.populationMethod === "inherited" && (
               <div className="rounded-md border bg-muted/30 p-3 space-y-3">
                 <p className="text-xs font-medium text-muted-foreground">Inheritance</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>From Entity</Label>
                     <Select value={cfForm.inheritFromEntity || "__none"} onValueChange={v => setCfForm(f => ({ ...f, inheritFromEntity: v === "__none" ? "" : v, inheritFromFieldId: "" }))}>
@@ -4087,7 +4087,7 @@ export default function Admin() {
               <Label>Email</Label>
               <Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} placeholder="name@ksap.tech" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Role</Label>
                 {jobRoles.length > 0 ? (
@@ -4110,7 +4110,7 @@ export default function Admin() {
               <Label>Region</Label>
               <Input value={userForm.region} onChange={e => setUserForm(f => ({ ...f, region: e.target.value }))} placeholder="e.g. APAC, EMEA, US-East" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Weekly Capacity (hrs)</Label>
                 <Input type="number" value={userForm.capacity} onChange={e => setUserForm(f => ({ ...f, capacity: e.target.value }))} />
@@ -4120,7 +4120,7 @@ export default function Admin() {
                 <Input type="number" value={userForm.costRate} onChange={e => setUserForm(f => ({ ...f, costRate: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Status</Label>
                 <Select value={userForm.activeStatus} onValueChange={v => setUserForm(f => ({ ...f, activeStatus: v }))}>

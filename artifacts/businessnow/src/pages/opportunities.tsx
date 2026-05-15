@@ -251,7 +251,7 @@ export default function OpportunitiesPage() {
 
       {/* Detail Sheet */}
       <Sheet open={!!selected && !showConvert} onOpenChange={v => { if (!v) setSelected(null); }}>
-        <SheetContent className="w-[460px] overflow-y-auto">
+        <SheetContent className="w-full sm:w-[460px] overflow-y-auto">
           {selected && (
             <>
               <SheetHeader>
@@ -330,12 +330,12 @@ export default function OpportunitiesPage() {
       <Dialog open={showCreate} onOpenChange={v => { setShowCreate(v); if (!v) resetForm(); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Add Opportunity</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
-            <div className="col-span-2 space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+            <div className="col-span-full space-y-1">
               <Label>Opportunity Name *</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Account *</Label>
               <Select value={form.accountId || "__none"} onValueChange={v => setForm(f => ({ ...f, accountId: v === "__none" ? "" : v }))}>
                 <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
@@ -364,7 +364,7 @@ export default function OpportunitiesPage() {
               <Label>Close Date</Label>
               <Input type="date" value={form.closeDate} onChange={e => setForm(f => ({ ...f, closeDate: e.target.value }))} />
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Description</Label>
               <Textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
             </div>
@@ -398,7 +398,7 @@ export default function OpportunitiesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Start Date *</Label>
                   <Input type="date" value={projectForm.startDate} onChange={e => setProjectForm(f => ({ ...f, startDate: e.target.value }))} />
@@ -425,8 +425,8 @@ export default function OpportunitiesPage() {
       <Dialog open={showEdit} onOpenChange={v => setShowEdit(v)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Edit Opportunity</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
-            <div className="col-span-2 space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+            <div className="col-span-full space-y-1">
               <Label>Opportunity Name *</Label>
               <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
             </div>
@@ -449,12 +449,12 @@ export default function OpportunitiesPage() {
               <Label>Close Date</Label>
               <Input type="date" value={editForm.closeDate} onChange={e => setEditForm(f => ({ ...f, closeDate: e.target.value }))} />
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-full space-y-1">
               <Label>Description</Label>
               <Textarea rows={2} value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
             </div>
             {(editForm.stage === "Won" || editForm.stage === "Lost") && (
-              <div className="col-span-2 space-y-1">
+              <div className="col-span-full space-y-1">
                 <Label>Close Reason {editForm.stage === "Lost" ? "*" : "(optional)"}</Label>
                 <Textarea rows={2} placeholder={editForm.stage === "Lost" ? "e.g. Budget constraints, went with competitor…" : "e.g. Negotiated timeline, signed SOW…"} value={(editForm as any).closeReason ?? ""} onChange={e => setEditForm(f => ({ ...f, closeReason: e.target.value } as any))} />
               </div>

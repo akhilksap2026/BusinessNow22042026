@@ -1915,7 +1915,7 @@ export default function ProjectDetail() {
                 <DialogDescription>Record an actual project expense. Category is required.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-2">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="ce-date">Date *</Label>
                     <Input id="ce-date" type="date" value={costEntryForm.entryDate}
@@ -1983,7 +1983,7 @@ export default function ProjectDetail() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Date</Label>
                     <Input type="date" value={budgetEntryForm.entryDate}
@@ -2004,7 +2004,7 @@ export default function ProjectDetail() {
                   <Input placeholder="e.g. Scope correction — re-baseline" value={budgetEntryForm.description}
                     onChange={e => setBudgetEntryForm(f => ({ ...f, description: e.target.value }))} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Amount ($)</Label>
                     <Input type="number" placeholder="0 (negative for reductions)"
@@ -2041,8 +2041,8 @@ export default function ProjectDetail() {
               </DialogHeader>
               <div className="space-y-4">
                 {/* Title + Status */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2 space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1.5">
                     <Label>Title *</Label>
                     <Input placeholder="e.g. Additional API integrations" value={coForm.title} onChange={e => setCoForm(f => ({ ...f, title: e.target.value }))} />
                   </div>
@@ -2064,7 +2064,7 @@ export default function ProjectDetail() {
                 </div>
 
                 {/* Budget + Hours impact */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Additional Cost ($)</Label>
                     <Input type="number" min={0} placeholder="0" value={coForm.amount} onChange={e => setCoForm(f => ({ ...f, amount: e.target.value }))} />
@@ -2076,7 +2076,7 @@ export default function ProjectDetail() {
                 </div>
 
                 {/* People */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Submitted By</Label>
                     <Select value={coForm.submittedByUserId || "__none__"} onValueChange={v => setCoForm(f => ({ ...f, submittedByUserId: v === "__none__" ? "" : v }))}>
@@ -2100,7 +2100,7 @@ export default function ProjectDetail() {
                 </div>
 
                 {/* Dates */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label>Requested Date</Label>
                     <Input type="date" value={coForm.requestedDate} onChange={e => setCoForm(f => ({ ...f, requestedDate: e.target.value }))} />
@@ -2328,28 +2328,28 @@ export default function ProjectDetail() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3">
-                  <div className="grid grid-cols-4 items-center gap-3">
-                    <Label className="text-right col-span-1">Subject</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-3">
+                    <Label className="sm:text-right col-span-1">Subject</Label>
                     <Input
-                      className="col-span-3"
+                      className="sm:col-span-3"
                       placeholder="e.g. Week 3 Project Update"
                       value={updateForm.subject}
                       onChange={e => setUpdateForm(f => ({ ...f, subject: e.target.value }))}
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-start gap-3">
-                    <Label className="text-right col-span-1 pt-2">Message</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start gap-3">
+                    <Label className="sm:text-right col-span-1 pt-2">Message</Label>
                     <Textarea
-                      className="col-span-3 min-h-[120px] font-mono text-sm"
+                      className="sm:col-span-3 min-h-[120px] font-mono text-sm"
                       placeholder={"Milestone status:\n{{milestones}}\n\nOverdue tasks:\n{{overdue_tasks}}\n\nPending approvals:\n{{pending_approvals}}"}
                       value={updateForm.body}
                       onChange={e => setUpdateForm(f => ({ ...f, body: e.target.value }))}
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-3">
-                    <Label className="text-right col-span-1">Audience</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-3">
+                    <Label className="sm:text-right col-span-1">Audience</Label>
                     <Select value={updateForm.type} onValueChange={v => setUpdateForm(f => ({ ...f, type: v }))}>
-                      <SelectTrigger className="col-span-3">
+                      <SelectTrigger className="sm:col-span-3">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -2492,7 +2492,7 @@ export default function ProjectDetail() {
       <Dialog open={raidDialogOpen} onOpenChange={v => { setRaidDialogOpen(v); if (!v) setEditRaidId(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editRaidId ? "Edit RAID Item" : "Add RAID Item"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
             <div className="space-y-1.5">
               <Label>Type</Label>
               <Select value={raidForm.type} onValueChange={v => setRaidForm(f => ({ ...f, type: v }))}>
@@ -2511,11 +2511,11 @@ export default function ProjectDetail() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 space-y-1.5">
+            <div className="col-span-full space-y-1.5">
               <Label>Title *</Label>
               <Input value={raidForm.title} onChange={e => setRaidForm(f => ({ ...f, title: e.target.value }))} placeholder="Brief description of the item" />
             </div>
-            <div className="col-span-2 space-y-1.5">
+            <div className="col-span-full space-y-1.5">
               <Label>Description</Label>
               <Textarea rows={2} value={raidForm.description} onChange={e => setRaidForm(f => ({ ...f, description: e.target.value }))} />
             </div>
@@ -2539,7 +2539,7 @@ export default function ProjectDetail() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2 space-y-1.5">
+                <div className="col-span-full space-y-1.5">
                   <Label>Mitigation</Label>
                   <Textarea rows={2} value={raidForm.mitigation} onChange={e => setRaidForm(f => ({ ...f, mitigation: e.target.value }))} placeholder="How will this risk be mitigated?" />
                 </div>
@@ -2636,7 +2636,7 @@ export default function ProjectDetail() {
                 <Input placeholder="e.g. Senior Developer, Project Manager" value={allocForm.role} onChange={e => setAllocForm(f => ({ ...f, role: e.target.value }))} />
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Start Date *</Label>
                 <Input type="date" value={allocForm.startDate} onChange={e => setAllocForm(f => ({ ...f, startDate: e.target.value }))} />
@@ -2786,7 +2786,7 @@ export default function ProjectDetail() {
               <Label>Project Name *</Label>
               <Input value={editProjectForm.name} onChange={e => setEditProjectForm(f => ({ ...f, name: e.target.value }))} placeholder="Project name" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Status</Label>
                 <Select
@@ -3042,7 +3042,7 @@ export default function ProjectDetail() {
                   <div className="flex-1 border-t border-border" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Start Date *</Label>
                     <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
@@ -3053,7 +3053,7 @@ export default function ProjectDetail() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Hours / Day</Label>
                     <Input type="number" min={1} max={16} step="0.5" value={resReqForm.hoursPerDay} onChange={e => setResReqForm(f => ({ ...f, hoursPerDay: e.target.value }))} />
@@ -3122,7 +3122,7 @@ export default function ProjectDetail() {
                   <Input type="number" min={1} max={80} value={resReqForm.additionalHours} onChange={e => setResReqForm(f => ({ ...f, additionalHours: e.target.value }))} placeholder="e.g. 8" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Start Date *</Label>
                     <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
@@ -3215,7 +3215,7 @@ export default function ProjectDetail() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Replacement Start *</Label>
                     <Input type="date" disabled={projectAutoAllocate} value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
@@ -3289,7 +3289,7 @@ export default function ProjectDetail() {
                 </Select>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Start Date</Label>
                 <Input

@@ -567,7 +567,7 @@ function PlannedVsActualCard() {
           <p className="text-sm text-muted-foreground">No active projects with hour data yet.</p>
         ) : (
           <>
-            <div className="grid grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Planned</p>
                 <p className="text-lg font-bold tabular-nums">{totals.planned.toFixed(0)}h</p>
