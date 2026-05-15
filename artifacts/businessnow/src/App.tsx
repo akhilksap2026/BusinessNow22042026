@@ -17,6 +17,8 @@ import TimeTracking from "@/pages/time";
 import TimeNew from "@/pages/time-new";
 import TimeEntryEdit from "@/pages/time-entry-edit";
 import TimeTimesheet from "@/pages/time-timesheet";
+import TimeApprovals from "@/pages/time-approvals";
+import TimeApprovalReview from "@/pages/time-approval-review";
 import Resources from "@/pages/resources";
 import Finance from "@/pages/finance";
 import Reports from "@/pages/reports";
@@ -72,6 +74,8 @@ function Router() {
       <Route path="/time/new" component={TimeNew} />
       <Route path="/time/timesheet" component={TimeTimesheet} />
       <Route path="/time/entries/:id/edit" component={TimeEntryEdit} />
+      <Route path="/time/approvals" component={TimeApprovals} />
+      <Route path="/time/approvals/:submitterId/:weekStart" component={TimeApprovalReview} />
       <Route path="/time-tracking"><Redirect to="/time" /></Route>
       <Route path="/resources">
         <RequirePermission permission="resources.capacityPlanning">
