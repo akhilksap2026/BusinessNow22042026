@@ -92,7 +92,7 @@ export default function OpportunitiesPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardPrefill, setWizardPrefill] = useState<CreateProjectPrefill | undefined>(undefined);
-  const [form, setForm] = useState({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "" });
+  const [form, setForm] = useState({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "", customerEmail: "", customerPhone: "" });
   const [editForm, setEditForm] = useState({ name: "", stage: "Discovery", probability: "", value: "", description: "", closeDate: "" });
 
   const { data: opportunities = [] } = useQuery({
@@ -114,7 +114,9 @@ export default function OpportunitiesPage() {
       value: Number(form.value) || 0,
       description: form.description || undefined,
       closeDate: form.closeDate || undefined,
-    }),
+      customerEmail: form.customerEmail || undefined,
+      customerPhone: form.customerPhone || undefined,
+    } as any),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["opportunities"] }); setShowCreate(false); resetForm(); },
   });
 
@@ -161,7 +163,7 @@ export default function OpportunitiesPage() {
   }
 
   function resetForm() {
-    setForm({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "" });
+    setForm({ accountId: "", name: "", stage: "Discovery", probability: String(STAGE_PROBABILITY["Discovery"]), value: "", description: "", closeDate: "", customerEmail: "", customerPhone: "" });
   }
 
   const totalPipeline = opportunities.filter(o => o.stage !== "Won" && o.stage !== "Lost").reduce((s, o) => s + o.value, 0);
@@ -361,6 +363,14 @@ export default function OpportunitiesPage() {
               <Label>Close Date</Label>
               <Input type="date" value={form.closeDate} onChange={e => setForm(f => ({ ...f, closeDate: e.target.value }))} />
             </div>
+            <div className="space-y-1">
+              <Label>Customer Email *</Label>
+              <Input type="email" value={form.customerEmail} onChange={e => setForm(f => ({ ...f, customerEmail: e.target.value }))} placeholder="contact@company.com" />
+            </div>
+            <div className="space-y-1">
+              <Label>Customer Phone</Label>
+              <Input type="tel" value={form.customerPhone} onChange={e => setForm(f => ({ ...f, customerPhone: e.target.value }))} placeholder="+1 (555) 000-0000" />
+            </div>
             <div className="col-span-full space-y-1">
               <Label>Description</Label>
               <Textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
@@ -368,7 +378,7 @@ export default function OpportunitiesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button onClick={() => createMut.mutate()} disabled={!form.name || !form.accountId || createMut.isPending}>
+            <Button onClick={() => createMut.mutate()} disabled={!form.name || !form.accountId || !form.customerEmail || createMut.isPending}>
               {createMut.isPending ? "Creating…" : "Create Opportunity"}
             </Button>
           </DialogFooter>
