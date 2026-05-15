@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, inArray, asc, sql } from "drizzle-orm";
-import { db, tasksTable, invoicesTable, projectsTable, allocationsTable, notificationsTable, timeEntriesTable, usersTable, taskDependenciesTable } from "@workspace/db";
+import { db, tasksTable, invoicesTable, projectsTable, notificationsTable, timeEntriesTable, usersTable, taskDependenciesTable } from "@workspace/db";
 import { requirePM } from "../middleware/rbac";
 import { hasRole } from "../constants/roles";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
@@ -103,77 +103,6 @@ async function getActualHoursMap(taskIds: number[]): Promise<Map<number, number>
   return map;
 }
 
-// Count Mon–Fri working days inclusive between two ISO date strings (yyyy-mm-dd).
-// Returns null for invalid input or end < start so callers can skip allocation
-// rather than silently inflating hours/day.
-function workingDays(startISO: string | null | undefined, endISO: string | null | undefined): number | null {
-  if (!startISO || !endISO) return null;
-  const start = new Date(startISO + "T00:00:00Z");
-  const end = new Date(endISO + "T00:00:00Z");
-  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return null;
-  let count = 0;
-  const cursor = new Date(start);
-  while (cursor <= end) {
-    const day = cursor.getUTCDay();
-    if (day !== 0 && day !== 6) count++;
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  return count > 0 ? count : null;
-}
-
-// Auto-allocate hook: for each newly assigned user on a task whose project
-// has autoAllocate=true, create a hard allocation with source='auto' and
-// hours_per_day derived from task.effort / working_days(start, end).
-// Skips users who already have an active allocation that covers the window.
-async function runAutoAllocateHook(opts: {
-  task: typeof tasksTable.$inferSelect;
-  newlyAssignedIds: number[];
-}) {
-  const { task } = opts;
-  // Dedupe + drop falsy ids so duplicate request payloads don't double-insert.
-  const newlyAssignedIds = Array.from(new Set(opts.newlyAssignedIds.filter(Boolean)));
-  if (newlyAssignedIds.length === 0) return;
-  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, task.projectId));
-  if (!project || !project.autoAllocate) return;
-
-  const startDate = task.startDate ?? project.startDate;
-  const endDate = task.dueDate ?? project.dueDate;
-  const days = workingDays(startDate, endDate);
-  if (days === null) return; // Invalid window: skip auto-allocation entirely.
-  const effort = Number(task.effort ?? 0);
-  const hoursPerDay = effort > 0 ? effort / days : 0;
-  const hoursPerWeek = hoursPerDay * 5;
-  const totalHours = hoursPerDay * days;
-
-  const existingAllocs = await db.select().from(allocationsTable).where(eq(allocationsTable.projectId, project.id));
-
-  for (const uid of newlyAssignedIds) {
-    const overlapping = existingAllocs.some(a => a.userId === uid && a.endDate >= startDate && a.startDate <= endDate);
-    if (overlapping) continue;
-    const role = (task.taskRoles as Record<string, string> | null)?.[String(uid)] ?? "Team Member";
-    const [created] = await db.insert(allocationsTable).values({
-      projectId: project.id,
-      userId: uid,
-      startDate,
-      endDate,
-      hoursPerDay: hoursPerDay.toFixed(2),
-      hoursPerWeek: hoursPerWeek.toFixed(2),
-      totalHours: totalHours.toFixed(2),
-      allocationMethod: "hours_per_day",
-      methodValue: hoursPerDay.toFixed(2),
-      role,
-      isSoftAllocation: false,
-      source: "auto",
-    } as any).returning();
-    await logAudit({
-      entityType: "allocation",
-      entityId: created.id,
-      action: "created",
-      description: `Auto-allocated user ${uid} to project "${project.name}" via task "${task.name}" (${hoursPerDay.toFixed(2)}h/day)`,
-    });
-  }
-}
-
 router.get("/tasks", async (req, res): Promise<void> => {
   const role = (req as AuthenticatedRequest).authRole ?? "collaborator";
   const qp = ListTasksQueryParams.safeParse(req.query);
@@ -230,13 +159,6 @@ router.post("/tasks", requirePM, async (req, res): Promise<void> => {
   }
   const [row] = await db.insert(tasksTable).values(insertValues).returning();
   await logAudit({ entityType: "task", entityId: row.id, action: "created", description: `Task "${row.name}" created` });
-
-  // Auto-allocate hook on initial creation: every assignee is "newly assigned".
-  try {
-    await runAutoAllocateHook({ task: row, newlyAssignedIds: assigneeIds });
-  } catch (err) {
-    console.error("Auto-allocate from task creation failed:", err);
-  }
 
   res.status(201).json(GetTaskResponse.parse(mapTask(row)));
 });
@@ -613,20 +535,6 @@ router.patch("/tasks/:id", requirePM, async (req, res): Promise<void> => {
         }
       } catch (e) { console.error("WF-04 milestone notification failed:", e); }
     })();
-  }
-
-  // Auto-allocate hook: if project.autoAllocate is true and assigneeIds changed,
-  // create a hard, source='auto' allocation for each newly-assigned user with
-  // hours_per_day = task.effort / working_days(start, end).
-  try {
-    if (parsed.data.assigneeIds !== undefined) {
-      const prevSet = new Set((existing.assigneeIds ?? []) as number[]);
-      const nextIds = (row.assigneeIds ?? []) as number[];
-      const newlyAssigned = nextIds.filter(id => !prevSet.has(id));
-      await runAutoAllocateHook({ task: row, newlyAssignedIds: newlyAssigned });
-    }
-  } catch (err) {
-    console.error("Auto-allocate from task assignment failed:", err);
   }
 
   // P14 — fire-and-forget parent rollup on status or completion change
