@@ -14,8 +14,14 @@ import {
   useRemoveUserSkill,
   useListProjectTemplates,
   useCreateProjectTemplate,
+  useUpdateProjectTemplate,
   useDeleteProjectTemplate,
   getListProjectTemplatesQueryKey,
+  useListProjectGroups,
+  useCreateProjectGroup,
+  useUpdateProjectGroup,
+  useDeleteProjectGroup,
+  getListProjectGroupsQueryKey,
   useListSkillCategories,
   useCreateSkillCategory,
   useDeleteSkillCategory,
@@ -72,7 +78,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText, DollarSign } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TemplateEditor } from "@/components/template-editor";
@@ -729,7 +735,12 @@ export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createTemplate = useCreateProjectTemplate();
+  const updateTemplate = useUpdateProjectTemplate();
   const deleteTemplate = useDeleteProjectTemplate();
+  const { data: projectGroups, isLoading: isLoadingGroups } = useListProjectGroups();
+  const createGroup = useCreateProjectGroup();
+  const updateGroup = useUpdateProjectGroup();
+  const deleteGroup = useDeleteProjectGroup();
   const createCategory = useCreateSkillCategory();
   const deleteCategory = useDeleteSkillCategory();
   const createSkill = useCreateSkill();
@@ -837,6 +848,30 @@ export default function Admin() {
   const [deleteDialogId, setDeleteDialogId] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [editTemplateId, setEditTemplateId] = useState<number | null>(null);
+  const [editTemplateForm, setEditTemplateForm] = useState({ name: "", description: "", billingType: "Fixed" });
+
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [editGroupId, setEditGroupId] = useState<number | null>(null);
+  const [groupForm, setGroupForm] = useState({ name: "", color: "" });
+  const [deleteGroupId, setDeleteGroupId] = useState<number | null>(null);
+
+  const [editCategoryId, setEditCategoryId] = useState<number | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  const [rcuDialogOpen, setRcuDialogOpen] = useState(false);
+  const [editRcuId, setEditRcuId] = useState<number | null>(null);
+  const [rcuForm, setRcuForm] = useState({ userId: "", country: "", currency: "USD", rate: "", effectiveDate: "" });
+  const [deleteRcuId, setDeleteRcuId] = useState<number | null>(null);
+  const { data: resourceCostRates, isLoading: isLoadingRcu } = useQuery<any[]>({
+    queryKey: ["resource-cost-rates"],
+    queryFn: async () => {
+      const r = await fetch(`${BASE}/api/resource-cost-rates`, { headers: authHeaders() });
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
 
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -1408,6 +1443,111 @@ export default function Admin() {
     }
   }
 
+  async function handleSaveTemplateEdit() {
+    if (!editTemplateId || !editTemplateForm.name) return;
+    try {
+      await updateTemplate.mutateAsync({ id: editTemplateId, data: { name: editTemplateForm.name, description: editTemplateForm.description || undefined, billingType: editTemplateForm.billingType as any } });
+      queryClient.invalidateQueries({ queryKey: getListProjectTemplatesQueryKey() });
+      toast({ title: "Template updated" });
+      setEditTemplateId(null);
+    } catch {
+      toast({ title: "Failed to update template", variant: "destructive" });
+    }
+  }
+
+  async function handleSaveGroup() {
+    if (!groupForm.name) return;
+    try {
+      if (editGroupId) {
+        await updateGroup.mutateAsync({ id: editGroupId, data: { name: groupForm.name, color: groupForm.color || null } });
+        toast({ title: "Group updated" });
+      } else {
+        await createGroup.mutateAsync({ data: { name: groupForm.name, color: groupForm.color || null } });
+        toast({ title: "Group created" });
+      }
+      queryClient.invalidateQueries({ queryKey: getListProjectGroupsQueryKey() });
+      setGroupDialogOpen(false);
+      setEditGroupId(null);
+      setGroupForm({ name: "", color: "" });
+    } catch {
+      toast({ title: "Failed to save group", variant: "destructive" });
+    }
+  }
+
+  async function handleDeleteGroup() {
+    if (!deleteGroupId) return;
+    try {
+      await deleteGroup.mutateAsync({ id: deleteGroupId });
+      queryClient.invalidateQueries({ queryKey: getListProjectGroupsQueryKey() });
+      toast({ title: "Group deleted" });
+      setDeleteGroupId(null);
+    } catch {
+      toast({ title: "Failed to delete group", variant: "destructive" });
+    }
+  }
+
+  async function handleSaveCategoryEdit() {
+    if (!editCategoryId || !editCategoryName.trim()) return;
+    setSavingCategory(true);
+    try {
+      const r = await fetch(`${BASE}/api/skill-categories/${editCategoryId}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ name: editCategoryName.trim() }),
+      });
+      if (!r.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: getListSkillCategoriesQueryKey() });
+      toast({ title: "Category renamed" });
+      setEditCategoryId(null);
+    } catch {
+      toast({ title: "Failed to rename category", variant: "destructive" });
+    } finally {
+      setSavingCategory(false);
+    }
+  }
+
+  async function handleSaveRcu() {
+    if (!rcuForm.userId || !rcuForm.country || !rcuForm.rate || !rcuForm.effectiveDate) return;
+    try {
+      if (editRcuId) {
+        const r = await fetch(`${BASE}/api/resource-cost-rates/${editRcuId}`, {
+          method: "PATCH",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ country: rcuForm.country, currency: rcuForm.currency, rate: parseFloat(rcuForm.rate), effectiveDate: rcuForm.effectiveDate }),
+        });
+        if (!r.ok) throw new Error();
+        toast({ title: "Cost rate updated" });
+      } else {
+        const r = await fetch(`${BASE}/api/resource-cost-rates`, {
+          method: "POST",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ userId: parseInt(rcuForm.userId), country: rcuForm.country, currency: rcuForm.currency, rate: parseFloat(rcuForm.rate), effectiveDate: rcuForm.effectiveDate }),
+        });
+        if (!r.ok) throw new Error();
+        toast({ title: "Cost rate added" });
+      }
+      queryClient.invalidateQueries({ queryKey: ["resource-cost-rates"] });
+      setRcuDialogOpen(false);
+      setEditRcuId(null);
+      setRcuForm({ userId: "", country: "", currency: "USD", rate: "", effectiveDate: "" });
+    } catch {
+      toast({ title: "Failed to save cost rate", variant: "destructive" });
+    }
+  }
+
+  async function handleDeleteRcu() {
+    if (!deleteRcuId) return;
+    try {
+      const r = await fetch(`${BASE}/api/resource-cost-rates/${deleteRcuId}`, { method: "DELETE", headers: authHeaders() });
+      if (!r.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: ["resource-cost-rates"] });
+      toast({ title: "Cost rate deleted" });
+      setDeleteRcuId(null);
+    } catch {
+      toast({ title: "Failed to delete cost rate", variant: "destructive" });
+    }
+  }
+
   async function handleCreateCategory() {
     if (!newCategoryName) return;
     try {
@@ -1633,6 +1773,14 @@ export default function Admin() {
                   <CreditCard className="h-4 w-4" /> Rate Cards
                 </TabsTrigger>
               )}
+              <TabsTrigger value="projectgroups" className="flex items-center gap-2">
+                <Folder className="h-4 w-4" /> Project Groups
+              </TabsTrigger>
+              {can(activeRole, "financials.viewRateCards") && (
+                <TabsTrigger value="costrates" className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" /> Cost Rates
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -1814,6 +1962,9 @@ export default function Admin() {
                           <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setSelectedTemplateId(tmpl.id)}>
                             <Pencil className="h-3.5 w-3.5" /> Open Editor
                           </Button>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-indigo-600" title="Edit metadata" onClick={() => { setEditTemplateId(tmpl.id); setEditTemplateForm({ name: tmpl.name, description: tmpl.description ?? "", billingType: tmpl.billingType ?? "Fixed" }); }}>
+                            <Settings2 className="h-3.5 w-3.5" />
+                          </Button>
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteDialogId(tmpl.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -1857,9 +2008,14 @@ export default function Admin() {
                               {skills?.filter(s => s.categoryId === cat.id).length ?? 0} skills
                             </span>
                           </div>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteCategoryId(cat.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex items-center gap-0.5">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => { setEditCategoryId(cat.id); setEditCategoryName(cat.name); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteCategoryId(cat.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2531,6 +2687,110 @@ export default function Admin() {
               </CardContent>
             </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="projectgroups" className="m-0">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><Folder className="h-5 w-5" /> Project Groups</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Organise projects into named groups with optional colour labels.</p>
+                  </div>
+                  <Button size="sm" className="gap-2" onClick={() => { setEditGroupId(null); setGroupForm({ name: "", color: "" }); setGroupDialogOpen(true); }}>
+                    <Plus className="h-4 w-4" /> New Group
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingGroups ? (
+                  <div className="py-6 text-center text-muted-foreground text-sm">Loading…</div>
+                ) : !projectGroups?.length ? (
+                  <div className="py-8 text-center text-muted-foreground text-sm">No project groups yet.</div>
+                ) : (
+                  <div className="divide-y rounded-md border">
+                    {projectGroups.map((grp: any) => (
+                      <div key={grp.id} className="flex items-center justify-between px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {grp.color && <span className="h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: grp.color }} />}
+                          <span className="font-medium text-sm">{grp.name}</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => { setEditGroupId(grp.id); setGroupForm({ name: grp.name, color: grp.color ?? "" }); setGroupDialogOpen(true); }}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteGroupId(grp.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="costrates" className="m-0">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" /> Resource Cost Rates</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Define cost rates per resource, country and effective date.</p>
+                  </div>
+                  <Button size="sm" className="gap-2" onClick={() => { setEditRcuId(null); setRcuForm({ userId: "", country: "", currency: "USD", rate: "", effectiveDate: "" }); setRcuDialogOpen(true); }}>
+                    <Plus className="h-4 w-4" /> Add Rate
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingRcu ? (
+                  <div className="py-6 text-center text-muted-foreground text-sm">Loading…</div>
+                ) : !resourceCostRates?.length ? (
+                  <div className="py-8 text-center text-muted-foreground text-sm">No cost rates configured.</div>
+                ) : (
+                  <div className="rounded-md border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left px-4 py-2 font-medium">User</th>
+                          <th className="text-left px-4 py-2 font-medium">Country</th>
+                          <th className="text-left px-4 py-2 font-medium">Currency</th>
+                          <th className="text-right px-4 py-2 font-medium">Rate/hr</th>
+                          <th className="text-left px-4 py-2 font-medium">Effective</th>
+                          <th className="px-2 py-2" />
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {resourceCostRates.map((rcu: any) => {
+                          const u = users?.find((x: any) => x.id === rcu.userId);
+                          return (
+                            <tr key={rcu.id} className="hover:bg-muted/30">
+                              <td className="px-4 py-2">{u ? u.name : `User #${rcu.userId}`}</td>
+                              <td className="px-4 py-2">{rcu.country}</td>
+                              <td className="px-4 py-2">{rcu.currency}</td>
+                              <td className="px-4 py-2 text-right">{Number(rcu.rate).toFixed(2)}</td>
+                              <td className="px-4 py-2">{rcu.effectiveDate}</td>
+                              <td className="px-2 py-2">
+                                <div className="flex items-center gap-0.5 justify-end">
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => { setEditRcuId(rcu.id); setRcuForm({ userId: String(rcu.userId), country: rcu.country, currency: rcu.currency, rate: String(rcu.rate), effectiveDate: rcu.effectiveDate }); setRcuDialogOpen(true); }}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteRcuId(rcu.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="customfields" className="m-0">
@@ -3409,6 +3669,156 @@ export default function Admin() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteRateCardId(null)}>Cancel</Button>
             <Button variant="destructive" onClick={() => deleteRateCardId && handleDeleteRateCard(deleteRateCardId)}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Skill category edit dialog */}
+      <Dialog open={!!editCategoryId} onOpenChange={(o) => { if (!o) setEditCategoryId(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Rename Category</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label>Name *</Label>
+              <Input value={editCategoryName} onChange={e => setEditCategoryName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSaveCategoryEdit()} autoFocus />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCategoryId(null)}>Cancel</Button>
+            <Button onClick={handleSaveCategoryEdit} disabled={!editCategoryName.trim() || savingCategory}>
+              {savingCategory ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project template metadata edit dialog */}
+      <Dialog open={!!editTemplateId} onOpenChange={(o) => { if (!o) setEditTemplateId(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Template</DialogTitle><DialogDescription>Update the template name, description and billing type.</DialogDescription></DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label>Name *</Label>
+              <Input value={editTemplateForm.name} onChange={e => setEditTemplateForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input value={editTemplateForm.description} onChange={e => setEditTemplateForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Billing Type</Label>
+              <Select value={editTemplateForm.billingType} onValueChange={v => setEditTemplateForm(f => ({ ...f, billingType: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Fixed">Fixed</SelectItem>
+                  <SelectItem value="TimeAndMaterials">Time &amp; Materials</SelectItem>
+                  <SelectItem value="Retainer">Retainer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTemplateId(null)}>Cancel</Button>
+            <Button onClick={handleSaveTemplateEdit} disabled={!editTemplateForm.name || updateTemplate.isPending}>
+              {updateTemplate.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project group create/edit dialog */}
+      <Dialog open={groupDialogOpen} onOpenChange={(o) => { setGroupDialogOpen(o); if (!o) { setEditGroupId(null); setGroupForm({ name: "", color: "" }); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editGroupId ? "Edit Group" : "New Project Group"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label>Name *</Label>
+              <Input value={groupForm.name} onChange={e => setGroupForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Colour label</Label>
+              <div className="flex items-center gap-3">
+                <Input type="color" className="h-9 w-16 p-1 cursor-pointer" value={groupForm.color || "#6366f1"} onChange={e => setGroupForm(f => ({ ...f, color: e.target.value }))} />
+                <Input value={groupForm.color} onChange={e => setGroupForm(f => ({ ...f, color: e.target.value }))} placeholder="#rrggbb (optional)" className="flex-1" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGroupDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveGroup} disabled={!groupForm.name || createGroup.isPending || updateGroup.isPending}>
+              {createGroup.isPending || updateGroup.isPending ? "Saving…" : editGroupId ? "Save Changes" : "Create Group"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project group delete confirm */}
+      <Dialog open={!!deleteGroupId} onOpenChange={() => setDeleteGroupId(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Delete Group</DialogTitle><DialogDescription>Projects in this group will be ungrouped but not deleted.</DialogDescription></DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteGroupId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteGroup} disabled={deleteGroup.isPending}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resource cost rate create/edit dialog */}
+      <Dialog open={rcuDialogOpen} onOpenChange={(o) => { setRcuDialogOpen(o); if (!o) { setEditRcuId(null); setRcuForm({ userId: "", country: "", currency: "USD", rate: "", effectiveDate: "" }); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editRcuId ? "Edit Cost Rate" : "Add Cost Rate"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-1">
+            {!editRcuId && (
+              <div className="space-y-1.5">
+                <Label>User *</Label>
+                <Select value={rcuForm.userId} onValueChange={v => setRcuForm(f => ({ ...f, userId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select user…" /></SelectTrigger>
+                  <SelectContent>
+                    {users?.map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Country *</Label>
+                <Input value={rcuForm.country} onChange={e => setRcuForm(f => ({ ...f, country: e.target.value }))} placeholder="e.g. US" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Currency</Label>
+                <Select value={rcuForm.currency} onValueChange={v => setRcuForm(f => ({ ...f, currency: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["USD","EUR","GBP","AUD","CAD","SGD","INR"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Rate / hr *</Label>
+                <Input type="number" min="0" step="0.01" value={rcuForm.rate} onChange={e => setRcuForm(f => ({ ...f, rate: e.target.value }))} placeholder="0.00" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Effective Date *</Label>
+                <Input type="date" value={rcuForm.effectiveDate} onChange={e => setRcuForm(f => ({ ...f, effectiveDate: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRcuDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveRcu} disabled={(!editRcuId && !rcuForm.userId) || !rcuForm.country || !rcuForm.rate || !rcuForm.effectiveDate}>
+              {editRcuId ? "Save Changes" : "Add Rate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resource cost rate delete confirm */}
+      <Dialog open={!!deleteRcuId} onOpenChange={() => setDeleteRcuId(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Delete Cost Rate</DialogTitle><DialogDescription>This will permanently remove this cost rate record.</DialogDescription></DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteRcuId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteRcu}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
