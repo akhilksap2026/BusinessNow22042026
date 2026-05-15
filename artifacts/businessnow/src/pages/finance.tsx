@@ -6,7 +6,7 @@ import {
   useGetFinanceSummary, useListInvoices, useListAccounts, useListProjects, getListInvoicesQueryKey,
   useListBillingSchedules, useCreateBillingSchedule, useDeleteBillingSchedule, useTriggerBillingSchedule, getListBillingSchedulesQueryKey,
   useListRevenueEntries, useCreateRevenueEntry, useDeleteRevenueEntry, useGetRevenueByPeriodReport, getListRevenueEntriesQueryKey,
-  useUpdateInvoice,
+  useUpdateInvoice, useListUsers,
 } from "@workspace/api-client-react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus, FileText, ExternalLink, ArrowUpRight } from "lucide-react";
+import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus, FileText, ExternalLink, ArrowUpRight, Briefcase } from "lucide-react";
 import { useLocation } from "wouter";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -179,6 +179,7 @@ export default function Finance() {
   const createRevenue = useCreateRevenueEntry();
   const deleteRevenue = useDeleteRevenueEntry();
   const { data: revReport } = useGetRevenueByPeriodReport();
+  const { data: users } = useListUsers();
 
 
   async function handleCreateSchedule() {
@@ -454,6 +455,9 @@ export default function Finance() {
             </TabsTrigger>
             <TabsTrigger value="contracts" className="flex items-center gap-2">
               <FileText className="h-4 w-4" /> Contracts
+            </TabsTrigger>
+            <TabsTrigger value="projects" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" /> Projects
             </TabsTrigger>
           </TabsList>
 
@@ -855,6 +859,82 @@ export default function Finance() {
                     </Table>
                   );
                 })()}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── Projects tab ───────────────────────────────────── */}
+          <TabsContent value="projects" className="m-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Projects</CardTitle>
+                <CardDescription>All active projects with key financial and health metrics.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project Name</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Health</TableHead>
+                      <TableHead className="text-right">Tracked Hrs</TableHead>
+                      <TableHead className="text-right">Allocated Hrs</TableHead>
+                      <TableHead className="w-[48px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(projects ?? [])
+                      .filter((p: any) => !p.deletedAt)
+                      .map((p: any) => {
+                        const owner = users?.find((u: any) => u.id === p.ownerId);
+                        return (
+                          <TableRow key={p.id}>
+                            <TableCell>
+                              <button
+                                type="button"
+                                onClick={() => setLocation(`/projects/${p.id}`)}
+                                className="text-sm font-medium text-left hover:text-primary hover:underline"
+                              >
+                                {p.name}
+                              </button>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {owner?.name ?? "—"}
+                            </TableCell>
+                            <TableCell>
+                              {p.internalExternal && (
+                                <Badge variant="outline" className="text-xs">{p.internalExternal}</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={p.status} />
+                            </TableCell>
+                            <TableCell>
+                              {p.health ? <StatusBadge status={p.health} /> : <span className="text-muted-foreground text-sm">—</span>}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-sm">
+                              {p.trackedHours != null ? `${p.trackedHours}h` : "0h"}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-sm">
+                              {p.allocatedHours != null ? `${Number(p.allocatedHours).toLocaleString()}h` : "—"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setLocation(`/projects/${p.id}`)}
+                              >
+                                <ArrowUpRight className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
