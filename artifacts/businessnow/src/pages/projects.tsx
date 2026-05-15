@@ -393,8 +393,8 @@ export default function Projects() {
                           aria-label="Select all projects"
                         />
                       </TableHead>
-                      <TableHead className="w-[220px]">Project Name</TableHead>
                       <TableHead>Account</TableHead>
+                      <TableHead className="w-[220px]">Project Name</TableHead>
                       <TableHead>Owner</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
@@ -422,6 +422,9 @@ export default function Projects() {
                             aria-label={`Select ${project.name}`}
                           />
                         </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                          {project.companyName ?? `Account #${project.accountId}`}
+                        </TableCell>
                         <TableCell className="font-medium whitespace-nowrap">
                           <Link
                             href={`/projects/${project.id}`}
@@ -430,9 +433,6 @@ export default function Projects() {
                           >
                             {project.name}
                           </Link>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">
-                          {project.companyName ?? `Account #${project.accountId}`}
                         </TableCell>
                         <TableCell className="text-muted-foreground whitespace-nowrap">{users?.find(u => u.id === project.ownerId)?.name ?? "—"}</TableCell>
                         <TableCell><InternalExternalBadge value={project.internalExternal} /></TableCell>

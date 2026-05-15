@@ -527,10 +527,10 @@ export default function CommandCenter() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Account</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => toggleSort("projectName")}>
                     Project {sortKey === "projectName" && (sortDir === "asc" ? "▲" : "▼")}
                   </TableHead>
-                  <TableHead>Account</TableHead>
                   <TableHead>PM</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Health</TableHead>
@@ -566,13 +566,13 @@ export default function CommandCenter() {
                       )}
                       {group.rows.map((p) => (
                         <TableRow key={p.projectId} data-testid={`row-project-${p.projectId}`}>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {p.accountName ?? "—"}
+                          </TableCell>
                           <TableCell className="font-medium">
                             <Link href={`/projects/${p.projectId}`} className="hover:underline text-primary">
                               {p.projectName}
                             </Link>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {p.accountName ?? "—"}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {p.ownerName ?? "—"}
