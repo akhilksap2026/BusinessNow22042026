@@ -256,15 +256,6 @@ export default function OpportunitiesPage() {
                     <Button size="sm" variant="outline" onClick={() => openEditOpp(selected)}>
                       Edit
                     </Button>
-                    {selected.stage === "Won" && !selected.projectId && (
-                      <Button
-                        size="sm"
-                        className="gap-1.5 bg-green-600 hover:bg-green-700 text-white border-transparent"
-                        onClick={() => openCreateProject(selected)}
-                      >
-                        <FolderPlus className="h-3.5 w-3.5" /> Create Project
-                      </Button>
-                    )}
                   </div>
                 </div>
 
