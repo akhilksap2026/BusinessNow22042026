@@ -198,7 +198,7 @@ export default function Finance() {
   const { data: opportunities } = useListOpportunities();
   const updateProject = useUpdateProject();
 
-  function openEditContract(p: any) {
+  function openEditProjectContract(p: any) {
     setEditContractProject(p);
     setEditContractDateError(null);
     setEditContractForm({
@@ -902,7 +902,7 @@ export default function Finance() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 text-muted-foreground hover:text-indigo-600"
-                                  onClick={() => openEditContract(p)}
+                                  onClick={() => openEditProjectContract(p)}
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
