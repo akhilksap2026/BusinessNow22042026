@@ -108,3 +108,9 @@ id = "n3Zi5qrW5NxpnSQtWJ-h2"
 uri = "file://docs/fta-project-detail-page.md"
 type = "text"
 title = "FTA — Project Detail Page (/projects/1)"
+
+[[outputs]]
+id = "ftmu9_s3By-mhWl1DvQQe"
+uri = "file://BusinessNow-PSA-Business-Rules-v1.0.pdf"
+type = "pdf"
+title = "BusinessNow PSA — Business Rules & Functional Specification v1.0"
