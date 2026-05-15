@@ -21,6 +21,7 @@ import {
   getListTaskChecklistQueryKey,
   getListTaskNotesQueryKey,
   getListTasksQueryKey,
+  useGetTask,
 } from "@workspace/api-client-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -156,8 +157,9 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const { currentUser, activeRole } = useCurrentUser();
   const currentUserId = currentUser?.id ?? 1;
 
-  const task = (queryClient.getQueryData(getListTasksQueryKey()) as any[])?.find((t: any) => t.id === taskId)
-    ?? (queryClient.getQueriesData({ predicate: (q) => q.queryKey[0] === "listTasks" }).flatMap(([, d]) => d as any[]).find((t: any) => t?.id === taskId));
+  const { data: task } = useGetTask(taskId ?? 0, {
+    query: { enabled: !!taskId },
+  });
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: getListTaskCommentsQueryKey(taskId ?? 0) });
