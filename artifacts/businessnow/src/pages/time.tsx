@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye, Sparkles } from "lucide-react";
+import { Plus, Clock, CheckCircle2, AlertCircle, CalendarOff, CheckCircle, XCircle, Trash2, Pencil, Timer, StopCircle, ChevronLeft, ChevronRight, UserCheck, Bell, Eye, Sparkles, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimesheetGrid } from "@/components/timesheet-grid";
