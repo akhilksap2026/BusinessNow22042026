@@ -35,7 +35,6 @@ import { useCurrentUser } from "@/contexts/current-user";
 import ProjectGantt from "@/components/project-gantt";
 import { TrackedTimeTab } from "@/components/tracked-time-tab";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { ProjectOverviewTab } from "@/components/project-overview-tab";
 
 
 export default function ProjectDetail() {
@@ -84,7 +83,7 @@ export default function ProjectDetail() {
   const [deleteCostEntryId, setDeleteCostEntryId] = useState<number | null>(null);
   const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
   const [taskView, setTaskView] = useState<"list" | "board">("list");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("tasks");
   const [taskFilter, setTaskFilter] = useState<"overdue" | "blocked" | "at_risk" | "on_track" | null>(null);
   const [updateForm, setUpdateForm] = useState({ subject: "", body: "", type: "internal" });
   const [sendingUpdate, setSendingUpdate] = useState(false);
@@ -1234,7 +1233,6 @@ export default function ProjectDetail() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto scrollbar-none mb-4">
             <TabsList className="w-max">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="tasks">Tasks</TabsTrigger>
               <TabsTrigger value="team" className="flex items-center gap-1.5">
                 Team & Allocations
@@ -1291,10 +1289,6 @@ export default function ProjectDetail() {
             </TabsList>
           </div>
           
-          <TabsContent value="overview" className="m-0">
-            <ProjectOverviewTab projectId={projectId} />
-          </TabsContent>
-
           <TabsContent value="tasks" className="m-0">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
