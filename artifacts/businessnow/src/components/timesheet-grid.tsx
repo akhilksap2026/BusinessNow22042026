@@ -1375,16 +1375,6 @@ export function TimesheetGrid({ userId, weekStartDay = 1, initialWeekStart }: { 
           >
             <Clock className="h-4 w-4 mr-1.5" /> Log Time
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => importAllocationsMutation.mutate()}
-            disabled={isLocked || importAllocationsMutation.isPending}
-            className="text-muted-foreground hover:text-foreground"
-            title="Add a row for every project you're allocated to this week"
-          >
-            <Plus className="h-4 w-4 mr-1.5" /> Import from Allocations
-          </Button>
           {isLocked && timesheet?.status === "Submitted" && (
             <span className="ml-2 text-xs text-amber-600 font-medium">⏳ Awaiting approval — withdraw to make changes</span>
           )}
