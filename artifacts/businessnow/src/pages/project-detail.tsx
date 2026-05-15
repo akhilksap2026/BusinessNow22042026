@@ -1023,10 +1023,6 @@ export default function ProjectDetail() {
             <p className="text-muted-foreground">{project.description}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setApplyTemplateOpen(true)} className="flex items-center gap-2 shrink-0">
-              <LayoutTemplate className="h-4 w-4" />
-              Apply Template
-            </Button>
             <Button variant="outline" size="sm" onClick={openEditProject} className="flex items-center gap-2 shrink-0">
               <Settings2 className="h-4 w-4" />
               Edit Project
