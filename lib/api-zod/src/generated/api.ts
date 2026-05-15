@@ -349,6 +349,12 @@ export const UpdateProjectBody = zod.object({
   health: zod.string().optional(),
   description: zod.string().optional(),
   projectGroupId: zod.number().nullish(),
+  accountId: zod.number().optional(),
+  internalExternal: zod.string().optional(),
+  customerChampion: zod.string().nullish(),
+  rateCardId: zod.number().nullish(),
+  opportunityId: zod.number().nullish(),
+  autoAllocate: zod.boolean().optional(),
 });
 
 export const UpdateProjectResponse = zod.object({

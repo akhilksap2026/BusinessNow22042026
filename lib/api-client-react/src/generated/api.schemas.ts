@@ -173,6 +173,12 @@ export interface UpdateProjectBody {
   health?: string;
   description?: string;
   projectGroupId?: number | null;
+  accountId?: number;
+  internalExternal?: string;
+  customerChampion?: string | null;
+  rateCardId?: number | null;
+  opportunityId?: number | null;
+  autoAllocate?: boolean;
 }
 
 export interface Task {

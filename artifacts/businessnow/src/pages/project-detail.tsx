@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { useTaskStatuses } from "@/lib/task-status";
-import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, useListSkills, useListProjects, useListProjectBudgetEntries, useCreateProjectBudgetEntry, getListProjectBudgetEntriesQueryKey } from "@workspace/api-client-react";
+import { useGetProject, useGetProjectSummary, useListTasks, useListUsers, useListAllocations, useCreateAllocation, useUpdateAllocation, useDeleteAllocation, useUpdateProject, useCreateResourceRequest, useUpdateTask, useListTimeEntries, getGetProjectQueryKey, getGetProjectSummaryQueryKey, getListTasksQueryKey, getListAllocationsQueryKey, useListSkills, useListProjects, useListProjectBudgetEntries, useCreateProjectBudgetEntry, getListProjectBudgetEntriesQueryKey, useListAccounts, useListRateCards, useListOpportunities } from "@workspace/api-client-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -77,6 +77,9 @@ export default function ProjectDetail() {
   const deleteAllocation = useDeleteAllocation();
   const updateProject = useUpdateProject();
   const createResourceRequest = useCreateResourceRequest();
+  const { data: editAccounts } = useListAccounts();
+  const { data: editRateCards } = useListRateCards();
+  const { data: editOpportunities } = useListOpportunities();
 
   const [deleteCostEntryId, setDeleteCostEntryId] = useState<number | null>(null);
   const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
@@ -88,9 +91,30 @@ export default function ProjectDetail() {
   const updateTask = useUpdateTask();
 
   const [editProjectOpen, setEditProjectOpen] = useState(false);
-  const [editProjectForm, setEditProjectForm] = useState<{ name: string; status: string; health: string; budget: string; description: string; autoAllocate: boolean }>({
-    name: "", status: "", health: "", budget: "", description: "", autoAllocate: false,
+  const [editProjectForm, setEditProjectForm] = useState<{
+    name: string;
+    status: string;
+    health: string;
+    budget: string;
+    budgetedHours: string;
+    description: string;
+    autoAllocate: boolean;
+    startDate: string;
+    dueDate: string;
+    billingType: string;
+    ownerId: string;
+    rateCardId: string;
+    internalExternal: string;
+    customerChampion: string;
+    opportunityId: string;
+    accountId: string;
+  }>({
+    name: "", status: "", health: "", budget: "", budgetedHours: "", description: "",
+    autoAllocate: false, startDate: "", dueDate: "", billingType: "Fixed Fee",
+    ownerId: "", rateCardId: "", internalExternal: "External",
+    customerChampion: "", opportunityId: "", accountId: "",
   });
+  const [editDateError, setEditDateError] = useState<string | null>(null);
   // Status-change reason modal state
   const [statusReasonOpen, setStatusReasonOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState("");
@@ -395,22 +419,42 @@ export default function ProjectDetail() {
 
   function openEditProject() {
     if (!project) return;
+    const p = project as any;
     setEditProjectForm({
       name: project.name,
       status: project.status,
-      health: project.health,
+      health: project.health ?? "On Track",
       budget: project.budget.toString(),
+      budgetedHours: (p.budgetedHours ?? 0).toString(),
       description: project.description ?? "",
-      autoAllocate: !!(project as any).autoAllocate,
+      autoAllocate: !!p.autoAllocate,
+      startDate: project.startDate ?? "",
+      dueDate: project.dueDate ?? "",
+      billingType: project.billingType ?? "Fixed Fee",
+      ownerId: p.ownerId?.toString() ?? "",
+      rateCardId: p.rateCardId?.toString() ?? "",
+      internalExternal: p.internalExternal ?? "External",
+      customerChampion: p.customerChampion ?? "",
+      opportunityId: p.opportunityId?.toString() ?? "",
+      accountId: p.accountId?.toString() ?? "",
     });
     setStatusChangeReason("");
     setStatusChangeError(null);
+    setEditDateError(null);
     setEditProjectOpen(true);
   }
 
   async function handleSaveProject() {
     setStatusChangeError(null);
+    setEditDateError(null);
+    // Cross-field date validation before sending to server
+    if (editProjectForm.startDate && editProjectForm.dueDate &&
+        new Date(editProjectForm.dueDate) < new Date(editProjectForm.startDate)) {
+      setEditDateError("Due date must be on or after start date.");
+      return;
+    }
     const statusChanged = editProjectForm.status !== project?.status;
+    const budgetLocked = !!(project as any)?.budgetLocked;
     try {
       await updateProject.mutateAsync({
         id: projectId,
@@ -418,9 +462,21 @@ export default function ProjectDetail() {
           name: editProjectForm.name,
           status: editProjectForm.status,
           health: editProjectForm.health,
-          budget: parseFloat(editProjectForm.budget) || project?.budget,
           description: editProjectForm.description,
           autoAllocate: editProjectForm.autoAllocate,
+          startDate: editProjectForm.startDate || undefined,
+          dueDate: editProjectForm.dueDate || undefined,
+          billingType: editProjectForm.billingType || undefined,
+          ownerId: editProjectForm.ownerId ? Number(editProjectForm.ownerId) : undefined,
+          rateCardId: editProjectForm.rateCardId ? Number(editProjectForm.rateCardId) : null,
+          internalExternal: editProjectForm.internalExternal || undefined,
+          customerChampion: editProjectForm.customerChampion?.trim() || null,
+          opportunityId: editProjectForm.opportunityId ? Number(editProjectForm.opportunityId) : null,
+          accountId: editProjectForm.accountId ? Number(editProjectForm.accountId) : undefined,
+          ...(!budgetLocked && {
+            budget: parseFloat(editProjectForm.budget) || 0,
+            budgetedHours: parseFloat(editProjectForm.budgetedHours) || 0,
+          }),
           ...(statusChanged && statusChangeReason.trim()
             ? { statusChangeReason: statusChangeReason.trim() }
             : {}),
@@ -436,6 +492,8 @@ export default function ProjectDetail() {
         setStatusChangeError(
           `This status change is not allowed. Permitted next states: ${allowed.length ? allowed.join(", ") : "none"}.`
         );
+      } else if (err?.status === 403 && err?.data?.error === "budget_locked") {
+        toast({ title: "Budget is locked", description: "Raise a Change Order to modify the budget.", variant: "destructive" });
       } else {
         toast({ title: "Failed to update project", variant: "destructive" });
       }
@@ -1023,10 +1081,12 @@ export default function ProjectDetail() {
             <p className="text-muted-foreground">{project.description}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={openEditProject} className="flex items-center gap-2 shrink-0">
-              <Settings2 className="h-4 w-4" />
-              Edit Project
-            </Button>
+            {hasRole(viewerRole, "super_user") && (
+              <Button variant="outline" size="sm" onClick={openEditProject} className="flex items-center gap-2 shrink-0">
+                <Settings2 className="h-4 w-4" />
+                Edit Project
+              </Button>
+            )}
           </div>
         </div>
 
@@ -2772,93 +2832,288 @@ export default function ProjectDetail() {
       </Dialog>
 
       <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
-            <DialogDescription>Update project details, status, and health.</DialogDescription>
+            <DialogDescription>Update project details. All changes are applied on save.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Project Name *</Label>
-              <Input value={editProjectForm.name} onChange={e => setEditProjectForm(f => ({ ...f, name: e.target.value }))} placeholder="Project name" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-6 py-1">
+
+            {/* ── Section 1: Basics ─────────────────────────── */}
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Basics</p>
               <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select
-                  value={editProjectForm.status}
-                  onValueChange={v => {
-                    if (v !== project?.status) {
-                      // Intercept: status is changing — collect reason first
-                      setPendingStatus(v);
-                      setStatusChangeReason("");
-                      setStatusChangeError(null);
-                      setStatusReasonOpen(true);
-                    } else {
-                      // Reverting to current status — no reason needed
-                      setEditProjectForm(f => ({ ...f, status: v }));
-                      setStatusChangeReason("");
-                      setStatusChangeError(null);
-                    }
-                  }}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["Not Started", "Started", "At Risk", "Completed", "On Hold"].map(s => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {statusChangeError && (
-                  <p className="text-xs text-destructive mt-1">{statusChangeError}</p>
+                <Label>Project Name *</Label>
+                <Input value={editProjectForm.name} onChange={e => setEditProjectForm(f => ({ ...f, name: e.target.value }))} placeholder="Project name" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Description</Label>
+                <Textarea
+                  value={editProjectForm.description}
+                  onChange={e => setEditProjectForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="Project description"
+                  rows={3}
+                  data-testid="input-edit-project-description"
+                />
+                {!editProjectForm.description?.trim() && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400" data-testid="text-edit-description-warning">
+                    Tip: adding a description makes this project easier to find and understand later.
+                  </p>
                 )}
               </div>
+            </div>
+
+            <div className="border-t" />
+
+            {/* ── Section 2: Classification ─────────────────── */}
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Classification</p>
               <div className="space-y-1.5">
-                <Label>Health</Label>
-                <Select value={editProjectForm.health} onValueChange={v => setEditProjectForm(f => ({ ...f, health: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Label>Project Type</Label>
+                <div className="flex gap-3">
+                  {(["External", "Internal"] as const).map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setEditProjectForm(f => ({
+                        ...f,
+                        internalExternal: opt,
+                        opportunityId: opt === "Internal" ? "" : f.opportunityId,
+                        customerChampion: opt === "Internal" ? "" : f.customerChampion,
+                      }))}
+                      className={`flex-1 py-2 rounded-md border text-sm font-medium transition-colors ${editProjectForm.internalExternal === opt ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Account</Label>
+                <Select
+                  value={editProjectForm.accountId}
+                  onValueChange={v => setEditProjectForm(f => ({ ...f, accountId: v, opportunityId: "" }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
                   <SelectContent>
-                    {["On Track", "At Risk", "Off Track"].map(h => (
-                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    {(editAccounts ?? []).map((acc: any) => (
+                      <SelectItem key={acc.id} value={acc.id.toString()}>{acc.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Budget ($)</Label>
-              <Input type="number" min={0} value={editProjectForm.budget} onChange={e => setEditProjectForm(f => ({ ...f, budget: e.target.value }))} placeholder="0" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Description</Label>
-              <Input value={editProjectForm.description} onChange={e => setEditProjectForm(f => ({ ...f, description: e.target.value }))} placeholder="Project description" data-testid="input-edit-project-description" />
-              <p className="text-xs text-muted-foreground">
-                A short summary of the project's scope and goals. Helps teammates and stakeholders quickly understand what this project is about.
-              </p>
-              {!editProjectForm.description?.trim() && (
-                <p className="text-xs text-amber-600 dark:text-amber-400" data-testid="text-edit-description-warning">
-                  Tip: adding a description makes this project much easier to find and understand later. You can still save without one.
-                </p>
+              {editProjectForm.internalExternal === "External" && (
+                <div className="space-y-1.5">
+                  <Label>Customer Champion</Label>
+                  <Input
+                    value={editProjectForm.customerChampion}
+                    onChange={e => setEditProjectForm(f => ({ ...f, customerChampion: e.target.value }))}
+                    placeholder="Primary contact at client"
+                  />
+                </div>
               )}
+              {editProjectForm.internalExternal === "External" && (() => {
+                const wonOpps = (editOpportunities as any[] | undefined)?.filter(
+                  (o: any) => o.accountId === Number(editProjectForm.accountId) && o.stage === "Won"
+                ) ?? [];
+                if (wonOpps.length === 0) return null;
+                return (
+                  <div className="space-y-1.5">
+                    <Label>Linked Opportunity</Label>
+                    <Select
+                      value={editProjectForm.opportunityId || "__none__"}
+                      onValueChange={v => setEditProjectForm(f => ({ ...f, opportunityId: v === "__none__" ? "" : v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {wonOpps.map((o: any) => (
+                          <SelectItem key={o.id} value={o.id.toString()}>{o.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })()}
             </div>
-            <div className="flex items-start gap-3 rounded-md border p-3">
-              <input
-                id="auto-allocate-toggle"
-                type="checkbox"
-                className="mt-0.5"
-                checked={editProjectForm.autoAllocate}
-                onChange={e => setEditProjectForm(f => ({ ...f, autoAllocate: e.target.checked }))}
-              />
-              <div>
-                <Label htmlFor="auto-allocate-toggle" className="cursor-pointer">Auto-allocate team members</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">When enabled, assigning a task to a team member automatically creates a soft allocation on this project for the project date range.</p>
+
+            <div className="border-t" />
+
+            {/* ── Section 3: Timeline & Billing ─────────────── */}
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Timeline & Billing</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Start Date *</Label>
+                  <Input
+                    type="date"
+                    value={editProjectForm.startDate}
+                    onChange={e => { setEditProjectForm(f => ({ ...f, startDate: e.target.value })); setEditDateError(null); }}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Due Date *</Label>
+                  <Input
+                    type="date"
+                    value={editProjectForm.dueDate}
+                    onChange={e => { setEditProjectForm(f => ({ ...f, dueDate: e.target.value })); setEditDateError(null); }}
+                  />
+                </div>
+              </div>
+              {editDateError && (
+                <p className="text-xs text-destructive">{editDateError}</p>
+              )}
+              <div className="space-y-1.5">
+                <Label>Billing Type</Label>
+                <Select value={editProjectForm.billingType} onValueChange={v => setEditProjectForm(f => ({ ...f, billingType: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Fixed Fee", "T&M", "Retainer"].map(bt => (
+                      <SelectItem key={bt} value={bt}>{bt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2">
+                    Budget ($)
+                    {(project as any)?.budgetLocked && (
+                      <Badge variant="outline" className="text-xs font-normal text-amber-600 border-amber-400">Locked</Badge>
+                    )}
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={editProjectForm.budget}
+                    onChange={e => setEditProjectForm(f => ({ ...f, budget: e.target.value }))}
+                    placeholder="0"
+                    disabled={!!(project as any)?.budgetLocked}
+                  />
+                  {(project as any)?.budgetLocked && (
+                    <p className="text-xs text-muted-foreground">Budget is locked. Raise a Change Order to modify.</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Budgeted Hours</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={editProjectForm.budgetedHours}
+                    onChange={e => setEditProjectForm(f => ({ ...f, budgetedHours: e.target.value }))}
+                    placeholder="0"
+                    disabled={!!(project as any)?.budgetLocked}
+                  />
+                </div>
               </div>
             </div>
+
+            <div className="border-t" />
+
+            {/* ── Section 4: Team & Configuration ───────────── */}
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Team & Configuration</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Project Owner *</Label>
+                  <Select value={editProjectForm.ownerId} onValueChange={v => setEditProjectForm(f => ({ ...f, ownerId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select owner" /></SelectTrigger>
+                    <SelectContent>
+                      {(users ?? []).map((u: any) => (
+                        <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    Rate Card
+                    {(editProjectForm.billingType === "T&M" || editProjectForm.billingType === "Retainer") && (
+                      <span className="ml-1 text-xs text-amber-600">(recommended)</span>
+                    )}
+                  </Label>
+                  <Select
+                    value={editProjectForm.rateCardId || "__none__"}
+                    onValueChange={v => setEditProjectForm(f => ({ ...f, rateCardId: v === "__none__" ? "" : v }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {(editRateCards ?? []).map((rc: any) => (
+                        <SelectItem key={rc.id} value={rc.id.toString()}>{rc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-md border p-3">
+                <input
+                  id="auto-allocate-toggle"
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-input accent-indigo-500"
+                  checked={editProjectForm.autoAllocate}
+                  onChange={e => setEditProjectForm(f => ({ ...f, autoAllocate: e.target.checked }))}
+                />
+                <div>
+                  <Label htmlFor="auto-allocate-toggle" className="cursor-pointer">Auto-allocate team members</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">When enabled, assigning a task to a team member automatically creates a soft allocation on this project for the project date range.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t" />
+
+            {/* ── Section 5: Status & Health ────────────────── */}
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status & Health</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Status</Label>
+                  <Select
+                    value={editProjectForm.status}
+                    onValueChange={v => {
+                      if (v !== project?.status) {
+                        setPendingStatus(v);
+                        setStatusChangeReason("");
+                        setStatusChangeError(null);
+                        setStatusReasonOpen(true);
+                      } else {
+                        setEditProjectForm(f => ({ ...f, status: v }));
+                        setStatusChangeReason("");
+                        setStatusChangeError(null);
+                      }
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Draft", "Not Started", "Started", "At Risk", "On Hold", "Completed"].map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {statusChangeError && (
+                    <p className="text-xs text-destructive mt-1">{statusChangeError}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Health</Label>
+                  <Select value={editProjectForm.health} onValueChange={v => setEditProjectForm(f => ({ ...f, health: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["On Track", "At Risk", "Off Track"].map(h => (
+                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditProjectOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveProject} disabled={!editProjectForm.name || updateProject.isPending}>
-              Save Changes
+            <Button onClick={handleSaveProject} disabled={!editProjectForm.name || !editProjectForm.ownerId || updateProject.isPending}>
+              {updateProject.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
