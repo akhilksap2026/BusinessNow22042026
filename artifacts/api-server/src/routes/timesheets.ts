@@ -296,7 +296,7 @@ router.post("/timesheets/:id/approve", requirePM, async (req, res): Promise<void
     .where(eq(timesheetsTable.id, params.data.id))
     .returning();
   // FIX 7: Audit log for timesheet approval (privileged mutation).
-  void logAudit({ entityType: "timesheet", entityId: String(params.data.id), action: "approved", userId: actorId, details: `Timesheet id=${params.data.id} approved by userId=${actorId}` });
+  void logAudit({ entityType: "timesheet", entityId: String(params.data.id), action: "approved", actorUserId: actorId, description: `Timesheet id=${params.data.id} approved by userId=${actorId}` });
   await notifyUsers([existing.userId], "timesheet_approved",
     `Your timesheet for the week of ${existing.weekStart} has been approved.`, existing.id);
   // Snapshot bill/cost rates active on each entry's WORK DATE. Fire-and-forget.
