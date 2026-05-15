@@ -97,7 +97,6 @@ export default function ProjectDetail() {
     budget: string;
     budgetedHours: string;
     description: string;
-    autoAllocate: boolean;
     startDate: string;
     dueDate: string;
     billingType: string;
@@ -109,7 +108,7 @@ export default function ProjectDetail() {
     accountId: string;
   }>({
     name: "", status: "", health: "", budget: "", budgetedHours: "", description: "",
-    autoAllocate: false, startDate: "", dueDate: "", billingType: "Fixed Fee",
+    startDate: "", dueDate: "", billingType: "Fixed Fee",
     ownerId: "", rateCardId: "", internalExternal: "External",
     customerChampion: "", opportunityId: "", accountId: "",
   });
@@ -426,7 +425,6 @@ export default function ProjectDetail() {
       budget: project.budget.toString(),
       budgetedHours: (p.budgetedHours ?? 0).toString(),
       description: project.description ?? "",
-      autoAllocate: !!p.autoAllocate,
       startDate: project.startDate ?? "",
       dueDate: project.dueDate ?? "",
       billingType: project.billingType ?? "Fixed Fee",
@@ -462,7 +460,6 @@ export default function ProjectDetail() {
           status: editProjectForm.status,
           health: editProjectForm.health,
           description: editProjectForm.description,
-          autoAllocate: editProjectForm.autoAllocate,
           startDate: editProjectForm.startDate || undefined,
           dueDate: editProjectForm.dueDate || undefined,
           billingType: editProjectForm.billingType || undefined,
@@ -619,8 +616,6 @@ export default function ProjectDetail() {
     }));
   }
 
-  const projectAutoAllocate = !!(project as any)?.autoAllocate;
-
   // Per-type validity (drives the Submit button + first-line guard).
   function isReqFormValid(): boolean {
     const f = resReqForm;
@@ -635,17 +630,13 @@ export default function ProjectDetail() {
     }
     if (f.type === "replacement") {
       // targetUserId is either a numeric user id or "ph-<allocId>"; both are valid replacement targets.
-      return !!(f.targetUserId && f.startDate && f.endDate && !projectAutoAllocate);
+      return !!(f.targetUserId && f.startDate && f.endDate);
     }
     return false;
   }
 
   async function handleSaveResReq() {
     if (!isReqFormValid()) return;
-    if (resReqForm.type === "replacement" && projectAutoAllocate) {
-      toast({ title: "Replacement requests are not available for auto-allocate projects", variant: "destructive" });
-      return;
-    }
     try {
       const selectedSkills = (allSkillsList as any[] ?? []).filter((s: any) => resReqForm.skillIds.includes(s.id));
       const skillNames = selectedSkills.map((s: any) => s.name);
@@ -3040,19 +3031,6 @@ export default function ProjectDetail() {
                   </Select>
                 </div>
               </div>
-              <div className="flex items-start gap-3 rounded-md border p-3">
-                <input
-                  id="auto-allocate-toggle"
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 rounded border-input accent-indigo-500"
-                  checked={editProjectForm.autoAllocate}
-                  onChange={e => setEditProjectForm(f => ({ ...f, autoAllocate: e.target.checked }))}
-                />
-                <div>
-                  <Label htmlFor="auto-allocate-toggle" className="cursor-pointer">Auto-allocate team members</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">When enabled, assigning a task to a team member automatically creates a soft allocation on this project for the project date range.</p>
-                </div>
-              </div>
             </div>
 
             <div className="border-t" />
@@ -3432,18 +3410,11 @@ export default function ProjectDetail() {
             {/* ─────────────── replacement ─────────────── */}
             {resReqForm.type === "replacement" && (
               <>
-                {projectAutoAllocate && (
-                  <div className="rounded-md border border-red-300 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-300">
-                    Replacement requests are not available for auto-allocate projects.
-                  </div>
-                )}
-
                 <div className="space-y-1.5">
                   <Label>Current Member / Placeholder *</Label>
                   <Select
                     value={resReqForm.targetUserId}
                     onValueChange={v => setResReqForm(f => ({ ...f, targetUserId: v }))}
-                    disabled={projectAutoAllocate}
                   >
                     <SelectTrigger><SelectValue placeholder="Select who to replace…" /></SelectTrigger>
                     <SelectContent>
@@ -3463,18 +3434,17 @@ export default function ProjectDetail() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Replacement Start *</Label>
-                    <Input type="date" disabled={projectAutoAllocate} value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
+                    <Input type="date" value={resReqForm.startDate} onChange={e => setResReqForm(f => ({ ...f, startDate: e.target.value }))} />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Replacement End *</Label>
-                    <Input type="date" disabled={projectAutoAllocate} value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
+                    <Input type="date" value={resReqForm.endDate} onChange={e => setResReqForm(f => ({ ...f, endDate: e.target.value }))} />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label>Reason</Label>
                   <Input
-                    disabled={projectAutoAllocate}
                     value={resReqForm.replacementReason}
                     onChange={e => setResReqForm(f => ({ ...f, replacementReason: e.target.value }))}
                     placeholder="e.g. parental leave, leaving team, skill mismatch…"

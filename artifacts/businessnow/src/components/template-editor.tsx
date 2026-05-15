@@ -1308,20 +1308,6 @@ export function TemplateEditor({ templateId, onClose }: TemplateEditorProps) {
             <span><strong className="text-foreground">{totalTasks}</strong> tasks</span>
           </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground" htmlFor="auto-alloc-toggle">Auto-allocate on use</Label>
-          <div className="h-8 flex items-center gap-2">
-            <Switch
-              id="auto-alloc-toggle"
-              checked={!!template.autoAllocate}
-              onCheckedChange={v => handleUpdateTemplate({ autoAllocate: v })}
-              data-testid="switch-auto-allocate"
-            />
-            <span className="text-xs text-muted-foreground">
-              {template.autoAllocate ? "Allocations copied to project" : "Manual allocation"}
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* Phases */}
