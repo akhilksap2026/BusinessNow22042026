@@ -2898,6 +2898,35 @@ export default function ProjectDetail() {
                 </div>
               )}
               {editProjectForm.internalExternal === "External" && (() => {
+                const linkedOpp = editProjectForm.opportunityId
+                  ? (editOpportunities as any[] | undefined)?.find((o: any) => o.id === Number(editProjectForm.opportunityId))
+                  : undefined;
+                return (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Customer Email</Label>
+                      <Input
+                        type="email"
+                        readOnly
+                        value={linkedOpp?.customerEmail ?? ""}
+                        placeholder={linkedOpp ? "Not set on opportunity" : "Link an opportunity below"}
+                        className="bg-muted/50 cursor-default"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Customer Phone</Label>
+                      <Input
+                        type="tel"
+                        readOnly
+                        value={linkedOpp?.customerPhone ?? ""}
+                        placeholder={linkedOpp ? "Not set on opportunity" : "Link an opportunity below"}
+                        className="bg-muted/50 cursor-default"
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+              {editProjectForm.internalExternal === "External" && (() => {
                 const wonOpps = (editOpportunities as any[] | undefined)?.filter(
                   (o: any) => o.accountId === Number(editProjectForm.accountId) && o.stage === "Won"
                 ) ?? [];
