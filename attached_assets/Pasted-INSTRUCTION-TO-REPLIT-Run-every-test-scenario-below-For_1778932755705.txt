@@ -1,0 +1,214 @@
+INSTRUCTION TO REPLIT:
+
+Run every test scenario below. For each one: test it, report the actual result, and fix any failures.
+Do not skip any scenario. Report the full results table at the end.
+
+══════════════════════════════════════════════
+SCENARIO GROUP A: EMPLOYEE — BASIC ENTRY FLOW
+══════════════════════════════════════════════
+
+A1. Page loads for current week
+Expected: Grid renders with correct Mon–Sun dates. Summary bar shows 0 hrs. Status: "Not Started."
+Test: Navigate to /time/timesheet as a Consultant user.
+
+A2. Add a row — project dropdown
+Expected: Dropdown shows assigned active projects + "📅 Leave" pinned at top. No closed/inactive projects.
+Test: Click "+ Add Row", open project dropdown.
+
+A3. Add a row — task dropdown
+Expected: After selecting a project, task dropdown shows assigned active tasks with budget_hours displayed.
+Test: Select a project in the new row.
+
+A4. Leave selection
+Expected: After selecting "Leave", task dropdown shows only leave types (CL, SL, EL, CO, LOP, PH). Row gets a visual distinction.
+Test: Select "📅 Leave" as project.
+
+A5. Hour entry — valid decimal
+Expected: Entering 7.5 in a cell is accepted. Row total updates. Footer total updates. Summary bar updates.
+Test: Enter 7.5 in Monday cell.
+
+A6. Hour entry — invalid character
+Expected: Entering "abc" resets to 0. Inline error shown.
+Test: Type "abc" in a day cell.
+
+A7. Description panel
+Expected: Clicking a cell activates description panel with correct header. Typing in it saves to that cell's context.
+Test: Click a cell that has hours entered. Check panel header shows correct project/task/date.
+
+A8. Description — PII detection
+Expected: Typing "SSN is 123-45-6789" triggers inline warning. Save is blocked until cleared.
+Test: Enter PII pattern in description textarea.
+
+══════════════════════════════════════════════
+SCENARIO GROUP B: EMPLOYEE — VALIDATION GATES
+══════════════════════════════════════════════
+
+B1. Daily cap exceeded
+Expected: Entering hours that push a day's total above 24 highlights that day's column total red. Save Draft blocked for that row.
+Test: Enter 20 hours for Monday in row 1, then 10 hours for Monday in row 2. Check footer turns red.
+
+B2. Increment validation
+Expected: Entering 1.10 on a 15-min increment project shows error: "Did you mean 1.00 or 1.25?"
+Test: Enter 1.10 in a cell for a project with 15-min increment rule.
+
+B3. Task budget exceeded — exceptional flag
+Expected: Entering hours that exceed task.budget_hours makes row total amber. ExceptionalPanel appears below grid.
+Test: Set a task with budget_hours=8. Enter 10 hours total for that task.
+
+B4. Exceptional justification required
+Expected: Attempting to submit when exceptional rows exist without justification is blocked. Tooltip on Submit button.
+Test: Trigger B3, then click Submit without filling justification.
+
+B5. Fixed-bid cap
+Expected: Entering billable hours that would push project over cap shows row-level error and blocks that row's save.
+Test: Set a project's billable cap to 10 hours, enter 12 billable hours. Row error shown.
+
+B6. Empty submission
+Expected: Clicking Submit with no hours logged shows error toast "Log at least one hour before submitting."
+Test: Click Submit on an empty grid.
+
+B7. Duplicate project-task row
+Expected: Adding a row with the same project+task as an existing row: task dropdown reverts, inline error shown.
+Test: Add two rows with identical Project A + Task X.
+
+B8. Future date cap
+Expected: Next week's cells are disabled (greyed). Tooltip on hover: "Cannot log time beyond this week."
+Test: Navigate to current week, attempt to enter hours in a date beyond this Sunday.
+
+══════════════════════════════════════════════
+SCENARIO GROUP C: EMPLOYEE — LIFECYCLE ACTIONS
+══════════════════════════════════════════════
+
+C1. Save Draft
+Expected: Rows save as Draft. Success toast shown. Status badge = "Draft". Grid remains editable.
+Test: Enter valid hours, click Save Draft.
+
+C2. Submit
+Expected: All rows transition to Submitted. Grid becomes read-only. Status badge = "Submitted." Toast shown. Approver receives notification.
+Test: Enter valid hours, click Submit.
+
+C3. Recall — success
+Expected: If approver has NOT acted: confirmation dialog shown → Recall → all entries revert to Draft. Grid becomes editable. Toast shown.
+Test: Submit a timesheet, then immediately recall it.
+
+C4. Recall — blocked after approver action
+Expected: If approver approved/rejected at least one entry: Recall button shows error "Cannot recall: approver has already acted."
+Test: Submit, have approver approve one entry, then attempt to recall.
+
+C5. Rejection correction
+Expected: After an entry is rejected, that row shows red border + rejection reason. Other rows remain in their status. [Fix & Resubmit] button appears.
+Test: Have approver reject one entry on a submitted timesheet.
+
+C6. Fix & Resubmit
+Expected: Employee edits the rejected row, clicks Fix & Resubmit → entry goes to Submitted status and routes to the original rejecting approver.
+Test: Correct the rejected entry from C5 and resubmit.
+
+C7. Previous week gate
+Expected: When previous week has Draft (unsubmitted) entries, Next Week arrow is disabled.
+Test: Have Draft entries in week 1, attempt to navigate to week 2.
+
+C8. Gate waived for new joiner
+Expected: If no entries exist for previous week, Next Week navigation is allowed.
+Test: Clear all entries for previous week, navigate forward.
+
+══════════════════════════════════════════════
+SCENARIO GROUP D: APPROVER — APPROVAL WORKFLOW
+══════════════════════════════════════════════
+
+D1. Queue loads correctly
+Expected: All submitted timesheets appear in queue. Oldest first. Day-in-queue count shown. > 2 days shown in red.
+Test: Log in as Manager, navigate to /time/approvals.
+
+D2. Review panel loads
+Expected: Clicking a queue card loads the full weekly review in the right panel with all entries.
+Test: Click a submission card.
+
+D3. Approve single entry
+Expected: Clicking Approve on one entry changes its status to Approved. Other entries remain Submitted.
+Test: Approve one entry from a multi-entry submission.
+
+D4. Reject single entry — with reason
+Expected: Rejection modal opens. Submitting with empty reason blocked. Submitting with valid reason rejects only that entry.
+Test: Click Reject, try to submit empty, then submit with a reason.
+
+D5. Reject — reason too short
+Expected: Reason with < 10 characters blocked with inline error.
+Test: Enter "wrong" (5 chars) as rejection reason and try to confirm.
+
+D6. Approve All
+Expected: Confirmation dialog shown. On confirm: all Submitted entries in the week are approved. Queue card disappears.
+Test: Click Approve All on a full submission.
+
+D7. Self-approval blocked
+Expected: Entries where resource_id = approver's userId show greyed "Your own entry" message. Approve/Reject buttons disabled.
+Test: Log in as a user with Approver role who also has their own submitted timesheet. Verify own entries cannot be self-approved.
+
+D8. Billable override — Authorized_Approver only
+Expected: Toggle visible for Authorized_Approver role. Not visible for Project_Manager or Approver role.
+Test: Log in as each role and verify visibility.
+
+D9. Resubmitted entry routing
+Expected: Resubmitted entry (from C6) appears in ORIGINAL rejector's queue with "↩ Resubmitted" badge.
+Test: Verify the resubmitted entry from C6 appears in the correct approver's queue.
+
+══════════════════════════════════════════════
+SCENARIO GROUP E: RBAC
+══════════════════════════════════════════════
+
+E1. Consultant cannot access /time/approvals
+Expected: Redirect to /time/timesheet with access-restricted toast.
+Test: Log in as Consultant, navigate directly to /time/approvals.
+
+E2. Invoice extraction — Finance only
+Expected: GET /api/time/invoice-extraction returns 403 for Consultant and Project_Manager. Returns only Approved entries for Finance.
+Test: Call endpoint as each role.
+
+E3. Proxy entry
+Expected: A user with active proxy delegation can log time for target user. entry.resource_id = target. entry.entered_by_id = proxy. Audit log shows both.
+Test: Set up proxy delegation, log time as proxy.
+
+E4. Proxy audit trail
+Expected: Audit log shows resource_id (target), entered_by_id (proxy), proxy_delegation_id (delegation record).
+Test: Check audit log from E3.
+
+══════════════════════════════════════════════
+SCENARIO GROUP F: DATA INTEGRITY
+══════════════════════════════════════════════
+
+F1. Auto-save and restore
+Expected: After entering hours, close browser without saving. Reopen. Restore banner appears. Click Restore → hours repopulated.
+Test: Enter hours, close tab, reopen /time/timesheet.
+
+F2. Invoice extraction guard
+Expected: GET /api/time/invoice-extraction for a project with 10 Submitted + 20 Approved hours returns ONLY the 20 Approved hours.
+Test: Call endpoint with Finance role.
+
+F3. Audit log immutability
+Expected: PATCH or DELETE on effort_audit_log entries returns 403/405. Records cannot be modified.
+Test: Attempt to call PATCH on an audit log record directly.
+
+══════════════════════════════════════════════
+FINAL REPORT FORMAT
+══════════════════════════════════════════════
+
+After running all tests, produce this table:
+
+| Test | Description | Result | Fix Applied |
+|------|-------------|--------|-------------|
+| A1   | Page loads  | PASS   | —           |
+| ...  | ...         | FAIL   | [what was fixed] |
+
+Then produce the Implementation Summary:
+
+1. COMPONENTS CREATED (list with file paths)
+2. COMPONENTS REUSED (list with file paths)
+3. API ENDPOINTS CREATED (list: METHOD + path)
+4. DATABASE CHANGES (tables created/extended, with migration file names)
+5. VALIDATIONS IMPLEMENTED (list: ID + description + layer)
+6. RBAC RULES ENFORCED (list: rule + where enforced)
+7. NOTIFICATIONS WIRED (list: event + recipient + channel)
+8. ASSUMPTIONS MADE (numbered list)
+9. NOT BUILT / DEFERRED (anything deliberately excluded)
+10. APPROVALS REGRESSION: "Confirmed: Approvals screen and all approval APIs function correctly. No regressions introduced."
+
+Report when done with: "MODULE COMPLETE. ALL TESTS PASSED."

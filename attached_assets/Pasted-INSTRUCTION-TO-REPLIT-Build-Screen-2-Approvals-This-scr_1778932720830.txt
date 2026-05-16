@@ -1,0 +1,171 @@
+INSTRUCTION TO REPLIT:
+
+Build Screen 2: Approvals.
+This screen is visible ONLY to users with roles: Project_Manager, Approver, Authorized_Approver, Finance, Admin.
+Apply the role guard at the route level using the existing auth/RBAC system found in the audit.
+
+Create these files only:
+1. pages/time/Approvals.jsx (or equivalent)
+2. components/time/ApprovalQueue.jsx — left panel (submission list)
+3. components/time/ApprovalReviewPanel.jsx — right panel (inline review)
+4. components/time/ApprovalEntryRow.jsx — single entry within review panel
+5. components/time/RejectionModal.jsx — mandatory reason modal
+
+Reuse from audit: (list components from audit before coding)
+
+══════════════════════════════════════════════
+PAGE LAYOUT: Approvals
+══════════════════════════════════════════════
+
+Split layout (two panels side by side, or stacked on mobile):
+LEFT (30% width): ApprovalQueue — list of pending submissions
+RIGHT (70% width): ApprovalReviewPanel — selected submission detail
+
+If no submission is selected: right panel shows "Select a timesheet from the queue to review."
+
+══════════════════════════════════════════════
+COMPONENT: ApprovalQueue
+══════════════════════════════════════════════
+
+Data: GET /api/time/approval-queue
+Refresh: every 60 seconds (or on window focus)
+
+Header: "Pending Approvals ([N])"
+
+Filter bar (compact):
+- By week (date range picker)
+- By project (dropdown, shows only projects this approver manages)
+- Search by employee name
+
+Submission cards (one per pending submission):
+Fields shown:
+- Employee name + avatar initials
+- Week range (e.g. "Nov 4 – Nov 10")
+- Total hours | Billable | Leave
+- Days in queue — show as "3 days" | highlight red if > 2 days (SLA breach)
+- Exceptional count badge (amber, if > 0)
+- Status chips: "Submitted" / "Resubmitted" (use different colors)
+
+Sort: oldest submissions first (longest wait at top)
+
+On card click: load that submission into ApprovalReviewPanel on the right
+
+══════════════════════════════════════════════
+COMPONENT: ApprovalReviewPanel
+══════════════════════════════════════════════
+
+Data: GET /api/time/approval-queue/:resourceId/:weekStart
+
+Header:
+- Employee Name | Week Range | Submitted: [date]
+- Hours breakdown: Total [X] | Billable [X] | Leave [X] | Utilization [X%]
+
+Sub-header action buttons:
+- [Approve All] — approves all Submitted entries in this view (confirmation dialog first)
+- [Select & Approve] — checkbox mode for selective approval
+
+Then: scrollable list of ApprovalEntryRow components
+
+SELF-APPROVAL GUARD:
+If any entry belongs to the currently logged-in approver (resource_id = auth.userId):
+- Those entries show a grey "Your own entry — cannot approve" banner
+- Approve / Reject buttons are disabled for those entries
+- Show tooltip: "Managers cannot approve their own time entries."
+
+══════════════════════════════════════════════
+COMPONENT: ApprovalEntryRow
+══════════════════════════════════════════════
+
+Each row shows one effort_entry. Layout: compact card or table row.
+
+Left section:
+- Day + Date (e.g. "Tuesday, Nov 5")
+- Project name + Task name
+- Duration: [X] hrs
+- Billable badge (Billable / Non-Billable)
+
+Right section — status-dependent:
+If status = 'Submitted':
+  - [✓ Approve] button (green)
+  - [✗ Reject] button (red) → opens RejectionModal
+If status = 'Approved':
+  - Green "Approved" badge — no action buttons
+If status = 'Rejected':
+  - Red "Rejected" badge + rejection reason shown in muted text
+
+Expandable sections (click to expand):
+▾ Work Description: [narrative text or "No description provided"]
+▾ Exceptional: [visible only if is_exceptional=true]
+    Shows: "Task budget: [X] hrs | Logged: [Y] hrs | Excess: [Z] hrs"
+    Shows employee's justification text
+▾ Audit Trail: chronological list from effort_audit_log
+    Each entry: [timestamp] [action] by [user name]
+
+─── Billable Category Override (Authorized_Approver role only) ───
+If auth.user.role = 'Authorized_Approver':
+  Show small toggle next to billable badge: [Billable ↔ Non-Billable]
+  On toggle: confirmation dialog: "Override billing category from [X] to [Y]? This action is audited."
+  [Cancel] | [Confirm Override]
+  On confirm: call POST /api/time/entries/:id/override-category
+  Show updated badge + "(Overridden)" label
+
+─── Resubmitted Entry indicator ───
+If entry has resubmission_type = 'Rejection_Correction':
+  Show "↩ Resubmitted" badge in blue
+  Show diff section: "Changes from original:" — compare current values vs the values at time of rejection (from audit log)
+
+══════════════════════════════════════════════
+COMPONENT: RejectionModal
+══════════════════════════════════════════════
+
+Trigger: clicking [✗ Reject] on any entry row.
+
+Content:
+- Title: "Reject Entry"
+- Entry summary: [Day] | [Project] — [Task] | [X hrs]
+- Textarea: "Reason for rejection" (required)
+  - Placeholder: "Describe why this entry is being rejected so the employee can correct it."
+  - Min 10 characters. No whitespace-only input.
+  - Live character counter. No max limit enforced (encourage detail).
+- Buttons: [Cancel] | [Confirm Rejection]
+
+On confirm:
+- Call POST /api/time/entries/:id/reject with { rejectionReason }
+- Close modal
+- Update that entry's row in ApprovalReviewPanel to show "Rejected" badge
+- Show toast: "Entry rejected. [Employee name] has been notified."
+- Approval queue count decrements if no other Submitted entries remain for this submission
+
+══════════════════════════════════════════════
+APPROVE ALL / BULK APPROVE
+══════════════════════════════════════════════
+
+[Approve All] button:
+- Show confirmation: "Approve all [N] submitted entries for [Employee Name]'s week of [range]?"
+- [Cancel] | [Approve All]
+- On confirm: call POST /api/time/entries/:id/approve for each Submitted entry sequentially
+  (or batch endpoint if one exists — do not create a new one just for this)
+- Show progress: "Approving X of N..."
+- On complete: show success toast, remove submission from queue
+
+[Select & Approve] mode:
+- Adds checkbox to each Submitted row
+- [Approve Selected (N)] button appears in header when checkboxes are ticked
+- On click: approve only checked entries
+
+══════════════════════════════════════════════
+AFTER BUILDING SCREEN 2
+══════════════════════════════════════════════
+
+Verify:
+- [ ] Approvals route is accessible ONLY by authorized roles — console test with Consultant role (should redirect/show 403)
+- [ ] Queue shows pending submissions sorted oldest first
+- [ ] Clicking a submission loads the review panel
+- [ ] Approve action updates entry status and removes from queue
+- [ ] Reject opens modal, requires non-empty reason, triggers notification
+- [ ] Self-approval entries are greyed out and blocked
+- [ ] Billable override only visible to Authorized_Approver role
+- [ ] Resubmitted entries show "↩ Resubmitted" badge
+- [ ] Approve All works and shows progress
+
+Report when done with: "SCREEN 2 COMPLETE. READY FOR PROMPT 5 REVIEW."

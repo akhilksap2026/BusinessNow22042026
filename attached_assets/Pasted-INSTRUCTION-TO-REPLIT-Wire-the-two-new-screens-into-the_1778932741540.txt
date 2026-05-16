@@ -1,0 +1,75 @@
+INSTRUCTION TO REPLIT:
+
+Wire the two new screens into the application navigation.
+Do NOT modify any component logic. Only update routes and navigation config.
+
+──────────────────────────────────────────────
+STEP 1: UPDATE NAVIGATION
+──────────────────────────────────────────────
+
+Find the navigation config file (identified in audit Section B).
+
+Make ONLY these changes:
+
+REMOVE (if they existed as separate items):
+- "Log Time" navigation item and its route
+- "My Timesheet" navigation item (old version)
+
+KEEP UNCHANGED:
+- Everything outside the time tracking section
+- The old Approvals route (if it existed and still works — only replace if the new one is confirmed working)
+
+ADD:
+Under "Time Tracking" section in sidebar:
+  1. 📅 My Timesheet → route: /time/timesheet
+     Visible to: all authenticated users
+  2. ✓ Approvals → route: /time/approvals
+     Visible to: Project_Manager, Approver, Authorized_Approver, Finance, Admin ONLY
+     Show badge with count of pending approvals (fetch from /api/time/approval-queue count)
+
+──────────────────────────────────────────────
+STEP 2: SET UP ROUTES
+──────────────────────────────────────────────
+
+Register routes using the existing router (React Router / Vue Router / Next.js / other — from audit):
+
+/time/timesheet
+  - Component: MyTimesheet page
+  - Guard: authenticated users only
+  - Default params: weekStart = current Monday
+
+/time/approvals
+  - Component: Approvals page
+  - Guard: roles [Project_Manager, Approver, Authorized_Approver, Finance, Admin]
+  - Unauthorized access: redirect to /time/timesheet with toast "Access restricted."
+
+Redirect old routes to new ones (if old routes existed):
+/time/log → redirect to /time/timesheet
+/time/my-timesheet → redirect to /time/timesheet
+/time/approval (singular) → redirect to /time/approvals
+
+──────────────────────────────────────────────
+STEP 3: VERIFY INTEGRATION
+──────────────────────────────────────────────
+
+Run the following checks and report PASS/FAIL for each:
+
+Navigation:
+[ ] Sidebar shows "My Timesheet" item for Consultant user
+[ ] Sidebar shows "Approvals" item for Manager user
+[ ] Sidebar does NOT show "Approvals" for Consultant user
+[ ] Approval badge shows correct pending count
+
+Routing:
+[ ] /time/timesheet loads MyTimesheet without errors
+[ ] /time/approvals loads Approvals without errors for Manager
+[ ] /time/approvals redirects to /time/timesheet for Consultant (with toast)
+[ ] Old routes redirect correctly
+
+Regression (confirm existing functionality is intact):
+[ ] Dashboard loads correctly
+[ ] Projects module loads correctly
+[ ] Any other existing module loads correctly
+[ ] No console errors on application load
+
+Report when done with: "NAVIGATION COMPLETE. READY FOR PROMPT 6 REVIEW."
