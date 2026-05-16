@@ -30,7 +30,7 @@ export type DailyEntry = {
 };
 
 export type TaskGroup = {
-  taskId: number;
+  taskId: number | null;
   taskName: string;
   entries: DailyEntry[];
   taskTotal: number;
@@ -66,7 +66,7 @@ export type InvoiceEffortEntry = {
   entryId: number;
   resourceId: number;
   projectId: number;
-  taskId: number;
+  taskId: number | null;
   entryDate: string;
   durationHours: number;
   billableCategory: string;
@@ -150,7 +150,7 @@ export async function getWeeklyTimesheetView(
 
   for (const [month, monthRows] of buckets) {
     // Build project → task → entries map
-    const projectMap = new Map<number, { name: string; tasks: Map<number, { name: string; entries: DailyEntry[] }> }>();
+    const projectMap = new Map<number, { name: string; tasks: Map<number | null, { name: string; entries: DailyEntry[] }> }>();
 
     const dailyTotals: Record<string, number> = {};
     let billableTotal    = 0;

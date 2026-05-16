@@ -71,6 +71,23 @@ export declare const effortAuditLogTable: import("drizzle-orm/pg-core").PgTableW
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        proxyDelegationId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "proxy_delegation_id";
+            tableName: "effort_audit_log";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         performedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "performed_at";
             tableName: "effort_audit_log";
@@ -107,6 +124,23 @@ export declare const effortAuditLogTable: import("drizzle-orm/pg-core").PgTableW
         }, {}, {}>;
         newValue: import("drizzle-orm/pg-core").PgColumn<{
             name: "new_value";
+            tableName: "effort_audit_log";
+            dataType: "json";
+            columnType: "PgJsonb";
+            data: unknown;
+            driverParam: unknown;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        fieldChanges: import("drizzle-orm/pg-core").PgColumn<{
+            name: "field_changes";
             tableName: "effort_audit_log";
             dataType: "json";
             columnType: "PgJsonb";
@@ -160,11 +194,13 @@ export declare const effortAuditLogTable: import("drizzle-orm/pg-core").PgTableW
     dialect: "pg";
 }>;
 export declare const insertEffortAuditLogSchema: z.ZodObject<{
+    proxyDelegationId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     effortEntryId: z.ZodInt;
     action: z.ZodString;
     performedById: z.ZodInt;
     previousValue: z.ZodOptional<z.ZodNullable<z.ZodType<import("drizzle-zod").Json, unknown, z.core.$ZodTypeInternals<import("drizzle-zod").Json, unknown>>>>;
     newValue: z.ZodOptional<z.ZodNullable<z.ZodType<import("drizzle-zod").Json, unknown, z.core.$ZodTypeInternals<import("drizzle-zod").Json, unknown>>>>;
+    fieldChanges: z.ZodOptional<z.ZodNullable<z.ZodType<import("drizzle-zod").Json, unknown, z.core.$ZodTypeInternals<import("drizzle-zod").Json, unknown>>>>;
     notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isImmutable: z.ZodOptional<z.ZodBoolean>;
 }, {

@@ -19,6 +19,11 @@ import {
   notificationsTable,
   financialPeriodsTable,
   exceptionalEffortRulesTable,
+  leaveTypesTable,
+  projectsTable,
+  tasksTable,
+  allocationsTable,
+  usersTable,
 } from "@workspace/db";
 import { requireAdmin, requireFinance } from "../middleware/rbac";
 import type { AuthenticatedRequest } from "../middleware/roleClaim";
@@ -236,10 +241,27 @@ router.post("/time/entries", async (req: Request, res: Response): Promise<void> 
     narrative,
     billableCategory,
     exceptionalJustification,
+    leaveTypeId,
+    isLeave: isLeaveBody,
   } = req.body ?? {};
 
-  if (!resourceId || !projectId || !taskId || !entryDate || !durationHours) {
-    apiErr(res, 400, "MISSING_PARAMS", "resourceId, projectId, taskId, entryDate, and durationHours are required."); return;
+  // taskId is optional for leave entries
+  const isLeave = Boolean(isLeaveBody) || !!leaveTypeId;
+
+  if (!resourceId || !projectId || !entryDate || !durationHours) {
+    apiErr(res, 400, "MISSING_PARAMS", "resourceId, projectId, entryDate, and durationHours are required."); return;
+  }
+  if (!isLeave && !taskId) {
+    apiErr(res, 400, "MISSING_PARAMS", "taskId is required for non-leave entries."); return;
+  }
+
+  // Validate leave type if provided
+  if (leaveTypeId) {
+    const [lt] = await db.select({ id: leaveTypesTable.id })
+      .from(leaveTypesTable).where(eq(leaveTypesTable.id, Number(leaveTypeId))).limit(1);
+    if (!lt) {
+      apiErr(res, 422, "INVALID_LEAVE_TYPE", "The specified leave type does not exist or is inactive."); return;
+    }
   }
 
   const isProxy = uid !== Number(resourceId);
@@ -253,29 +275,34 @@ router.post("/time/entries", async (req: Request, res: Response): Promise<void> 
     }
   }
 
-  // Determine billable category
-  const resolvedCategory = billableCategory ?? await autoCategorizEntry(Number(taskId));
+  // Leave entries are always Non-Billable
+  const resolvedCategory: "Billable" | "Non-Billable" = isLeave
+    ? "Non-Billable"
+    : (billableCategory ?? await autoCategorizEntry(Number(taskId)));
 
-  // Exceptional effort check
-  const exceptional = await validateExceptionalEffort(
-    Number(durationHours), Number(taskId), Number(resourceId), String(entryDate),
-  );
-  const isExceptional = exceptional.isExceptional;
+  // Exceptional effort check (skip for leave)
+  const isExceptional = isLeave
+    ? false
+    : (await validateExceptionalEffort(
+        Number(durationHours), Number(taskId), Number(resourceId), String(entryDate),
+      )).isExceptional;
 
   const payload: EffortEntryPayload = {
     projectId:  Number(projectId),
-    taskId:     Number(taskId),
+    taskId:     taskId ? Number(taskId) : null,
     resourceId: Number(resourceId),
     entryDate:  String(entryDate),
     durationHours: Number(durationHours),
-    billableCategory: resolvedCategory as "Billable" | "Non-Billable",
+    billableCategory: resolvedCategory,
     narrative:  narrative ?? null,
     isExceptional,
     exceptionalJustification: exceptionalJustification ?? null,
+    isLeave,
+    leaveTypeId: leaveTypeId ? Number(leaveTypeId) : null,
   };
 
   // Full validation orchestrator
-  const validation = await validateEffortEntry(payload, uid, isProxy);
+  const validation = await validateEffortEntry(payload, uid, isProxy, "save_single_row");
   if (!validation.valid) {
     apiErr(res, 422, "VALIDATION_FAILED", "One or more fields failed validation.",
       validation.errors.map(e => ({ field: e.field, message: e.errorMessage }))); return;
@@ -287,7 +314,7 @@ router.post("/time/entries", async (req: Request, res: Response): Promise<void> 
     resourceId:               Number(resourceId),
     enteredById:              uid,
     projectId:                Number(projectId),
-    taskId:                   Number(taskId),
+    taskId:                   taskId ? Number(taskId) : null,
     entryDate:                String(entryDate),
     durationHours:            String(durationHours),
     billableCategory:         resolvedCategory,
@@ -295,6 +322,8 @@ router.post("/time/entries", async (req: Request, res: Response): Promise<void> 
     isExceptional,
     exceptionalJustification: exceptionalJustification ?? null,
     isReplicated:             false,
+    isLeave,
+    leaveTypeId:              leaveTypeId ? Number(leaveTypeId) : null,
     status:                   "Draft",
     weekStartDate,
   } as any).returning();
@@ -305,7 +334,7 @@ router.post("/time/entries", async (req: Request, res: Response): Promise<void> 
     action:         "Created",
     performedById:  uid,
     previousValue:  null,
-    newValue:       { status: "Draft", durationHours, billableCategory: resolvedCategory } as any,
+    newValue:       { status: "Draft", durationHours, billableCategory: resolvedCategory, isLeave } as any,
     notes:          isProxy ? `Proxy entry by user ${uid}` : null,
     isImmutable:    true,
   } as any);
@@ -757,6 +786,214 @@ router.patch("/time/exceptional-effort-rules/:id", requireAdmin, async (req: Req
 
   const [updated] = await db.update(exceptionalEffortRulesTable).set(patch).where(eq(exceptionalEffortRulesTable.id, id)).returning();
   res.json({ data: updated });
+});
+
+// ─── Supporting Data Endpoints ────────────────────────────────────────────────
+
+// GET /api/time/leave-types
+router.get("/time/leave-types", async (_req: Request, res: Response): Promise<void> => {
+  const rows = await db.select().from(leaveTypesTable)
+    .where(eq(leaveTypesTable.isActive, true))
+    .orderBy(asc(leaveTypesTable.code));
+  res.json({ data: rows });
+});
+
+// GET /api/time/financial-period/:date — resolve which period a date falls in
+router.get("/time/financial-period/:date", async (req: Request, res: Response): Promise<void> => {
+  const uid  = callerId(req);
+  const date = String(req.params.date);
+
+  const [period] = await db.select().from(financialPeriodsTable).where(
+    and(
+      sql`${financialPeriodsTable.startDate} <= ${date}`,
+      sql`${financialPeriodsTable.endDate}   >= ${date}`,
+    ),
+  ).limit(1);
+
+  if (!period) {
+    res.json({ data: null, periodStatus: "NO_PERIOD_DEFINED" }); return;
+  }
+
+  const userHasOverride =
+    Boolean(period.cfoOverrideActive) && period.cfoOverrideUserId === uid;
+
+  res.json({ data: period, userHasOverride });
+});
+
+// GET /api/time/assigned-projects — projects where caller has an active allocation
+router.get("/time/assigned-projects", async (req: Request, res: Response): Promise<void> => {
+  const uid        = callerId(req);
+  const resourceId = req.query.resourceId ? Number(req.query.resourceId) : uid;
+
+  if (resourceId !== uid && !isApproverRole(req)) {
+    apiErr(res, 403, "UNAUTHORIZED", "Access denied."); return;
+  }
+
+  const rows = await db
+    .select({
+      id:           projectsTable.id,
+      name:         projectsTable.name,
+      status:       projectsTable.status,
+      billingType:  (projectsTable as any).billingType,
+    })
+    .from(projectsTable)
+    .innerJoin(allocationsTable, eq(allocationsTable.projectId, projectsTable.id))
+    .where(
+      and(
+        eq(allocationsTable.userId, resourceId),
+        eq(projectsTable.status, "Active"),
+        sql`${projectsTable.deletedAt} IS NULL`,
+      ),
+    )
+    .orderBy(asc(projectsTable.name));
+
+  // Deduplicate (a user can have multiple allocations on the same project)
+  const seen = new Set<number>();
+  const unique = rows.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
+
+  // Attach per-project contract rules
+  const projectIds = unique.map(p => p.id);
+  const rules = projectIds.length > 0
+    ? await db.select().from(contractRulesTable)
+        .where(inArray(contractRulesTable.projectId, projectIds))
+    : [];
+  const rulesMap = new Map(rules.map(r => [r.projectId, r]));
+
+  res.json({
+    data: unique.map(p => ({ ...p, contractRules: rulesMap.get(p.id) ?? null })),
+    total: unique.length,
+  });
+});
+
+// GET /api/time/assigned-tasks/:projectId — active, non-phase tasks for a project
+router.get("/time/assigned-tasks/:projectId", async (req: Request, res: Response): Promise<void> => {
+  const uid        = callerId(req);
+  const projectId  = Number(req.params.projectId);
+  const resourceId = req.query.resourceId ? Number(req.query.resourceId) : uid;
+
+  if (resourceId !== uid && !isApproverRole(req)) {
+    apiErr(res, 403, "UNAUTHORIZED", "Access denied."); return;
+  }
+
+  // Verify the resource has an allocation on this project (or caller is approver querying for someone)
+  if (!isApproverRole(req)) {
+    const [alloc] = await db.select({ id: allocationsTable.id })
+      .from(allocationsTable)
+      .where(and(eq(allocationsTable.userId, resourceId), eq(allocationsTable.projectId, projectId)))
+      .limit(1);
+    if (!alloc) {
+      apiErr(res, 403, "NOT_ALLOCATED", "You do not have an active allocation on this project."); return;
+    }
+  }
+
+  const rows = await db.select().from(tasksTable).where(
+    and(
+      eq(tasksTable.projectId, projectId),
+      sql`${tasksTable.status} != 'Closed'`,
+      eq((tasksTable as any).isPhase, false),
+    ),
+  ).orderBy(asc(tasksTable.name));
+
+  res.json({ data: rows, total: rows.length });
+});
+
+// ─── Approval Queue ───────────────────────────────────────────────────────────
+
+// GET /api/time/approval-queue — aggregated list of all submitted week-buckets
+router.get("/time/approval-queue", async (req: Request, res: Response): Promise<void> => {
+  if (!isApproverRole(req)) {
+    apiErr(res, 403, "UNAUTHORIZED", "Only managers and approvers can access the approval queue."); return;
+  }
+
+  const submissions = await db
+    .select({
+      resourceId:       effortEntriesTable.resourceId,
+      weekStartDate:    effortEntriesTable.weekStartDate,
+      totalHours:       sql<string>`COALESCE(SUM(${effortEntriesTable.durationHours}), 0)`,
+      billableHours:    sql<string>`COALESCE(SUM(CASE WHEN ${effortEntriesTable.billableCategory} = 'Billable' THEN ${effortEntriesTable.durationHours} ELSE 0 END), 0)`,
+      exceptionalCount: sql<number>`COUNT(CASE WHEN ${effortEntriesTable.isExceptional} = true THEN 1 END)::int`,
+      earliestUpdated:  sql<string>`MIN(${effortEntriesTable.updatedAt}::text)`,
+      entryCount:       sql<number>`COUNT(*)::int`,
+    })
+    .from(effortEntriesTable)
+    .where(eq(effortEntriesTable.status, "Submitted"))
+    .groupBy(effortEntriesTable.resourceId, effortEntriesTable.weekStartDate)
+    .orderBy(sql`MIN(${effortEntriesTable.updatedAt}) ASC`);
+
+  const resourceIds = [...new Set(submissions.map(s => s.resourceId))];
+  const users = resourceIds.length > 0
+    ? await db.select({ id: usersTable.id, name: usersTable.name })
+        .from(usersTable).where(inArray(usersTable.id, resourceIds))
+    : [];
+  const userMap = new Map(users.map(u => [u.id, u.name]));
+
+  const now = new Date();
+  const result = submissions.map(s => {
+    const weekEnd = new Date(`${s.weekStartDate}T00:00:00Z`);
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    const daysSinceSubmission = s.earliestUpdated
+      ? Math.floor((now.getTime() - new Date(s.earliestUpdated).getTime()) / 86_400_000)
+      : 0;
+    return {
+      resourceId:        s.resourceId,
+      submitterName:     userMap.get(s.resourceId) ?? `User ${s.resourceId}`,
+      weekStart:         s.weekStartDate,
+      weekEnd:           weekEnd.toISOString().slice(0, 10),
+      totalHours:        Number(s.totalHours),
+      billableHours:     Number(s.billableHours),
+      exceptionalCount:  s.exceptionalCount,
+      entryCount:        s.entryCount,
+      daysSinceSubmission,
+      status:            "Submitted",
+    };
+  });
+
+  res.json({ data: result, total: result.length });
+});
+
+// GET /api/time/approval-queue/:resourceId/:weekStart — drill-down into one bucket
+router.get("/time/approval-queue/:resourceId/:weekStart", async (req: Request, res: Response): Promise<void> => {
+  if (!isApproverRole(req)) {
+    apiErr(res, 403, "UNAUTHORIZED", "Only managers and approvers can access the approval queue."); return;
+  }
+
+  const resourceId  = Number(req.params.resourceId);
+  const weekStart   = String(req.params.weekStart);
+
+  const entries = await db.select().from(effortEntriesTable).where(
+    and(
+      eq(effortEntriesTable.resourceId, resourceId),
+      eq(effortEntriesTable.weekStartDate, weekStart),
+    ),
+  ).orderBy(asc(effortEntriesTable.entryDate));
+
+  if (entries.length === 0) {
+    apiErr(res, 404, "NOT_FOUND", "No entries found for this resource and week."); return;
+  }
+
+  // Attach per-entry audit history
+  const entryIds = entries.map(e => e.id);
+  const auditLogs = await db.select().from(effortAuditLogTable)
+    .where(inArray(effortAuditLogTable.effortEntryId, entryIds))
+    .orderBy(asc(effortAuditLogTable.performedAt));
+
+  const auditByEntry = new Map<number, typeof auditLogs>();
+  for (const log of auditLogs) {
+    const existing = auditByEntry.get(log.effortEntryId) ?? [];
+    existing.push(log);
+    auditByEntry.set(log.effortEntryId, existing);
+  }
+
+  const [submitter] = await db.select({ name: usersTable.name }).from(usersTable)
+    .where(eq(usersTable.id, resourceId)).limit(1);
+
+  res.json({
+    resourceId,
+    submitterName: submitter?.name ?? `User ${resourceId}`,
+    weekStart,
+    entries: entries.map(e => ({ ...e, auditLog: auditByEntry.get(e.id) ?? [] })),
+    total: entries.length,
+  });
 });
 
 // ─── Audit Log Viewer ─────────────────────────────────────────────────────────

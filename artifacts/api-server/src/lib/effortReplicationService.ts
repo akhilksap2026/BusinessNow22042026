@@ -23,7 +23,7 @@ type Db = typeof defaultDb;
 export type ReplicatedEntry = {
   entryId: number;
   projectId: number;
-  taskId: number;
+  taskId: number | null;
   entryDate: string;
   durationHours: number;
 };

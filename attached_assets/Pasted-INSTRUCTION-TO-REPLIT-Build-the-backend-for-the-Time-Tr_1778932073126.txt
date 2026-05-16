@@ -1,0 +1,382 @@
+INSTRUCTION TO REPLIT:
+
+Build the backend for the Time Tracking module in two parts:
+Part A — Validation & Business Logic Services
+Part B — REST API Endpoints
+
+Use the same framework, file structure, and conventions as the rest of the project.
+Import and reuse any existing utilities (auth middleware, error handlers, DB client) found in the audit.
+
+══════════════════════════════════════════════
+PART A: VALIDATION SERVICE
+File: [follow project's service file convention, e.g. services/timeValidationService.js]
+══════════════════════════════════════════════
+
+Build one service module with the following functions.
+Each function returns: { valid: boolean, errorCode: string, message: string, suggestion?: string }
+
+Build these functions IN ORDER. After writing each one, add a comment with the rule ID it implements.
+
+─────────────────────────────────────────
+A1. validateProjectTaskActive(projectId, taskId)
+─────────────────────────────────────────
+- Query: project.status must be 'Active'
+- Query: task.status must be 'Active' (if taskId is provided)
+- If project is not Active: { valid: false, errorCode: 'PROJECT_INACTIVE', message: 'This project is not available for time entry.' }
+- If task is not Active: { valid: false, errorCode: 'TASK_INACTIVE', message: 'This task is not available for time entry.' }
+- Implements: FR-336.1, FR-377.1
+
+─────────────────────────────────────────
+A2. validateEffortIncrement(durationHours, projectId)
+─────────────────────────────────────────
+- Fetch contract_rules.increment_minutes for project (default 15 if no rule exists)
+- Check: (durationHours * 60) % increment_minutes === 0
+- If invalid: calculate the two nearest valid values (floor and ceil to nearest increment)
+- Return: { valid: false, errorCode: 'INVALID_INCREMENT', message: 'Enter hours in [X]-minute increments. Did you mean [lower] or [upper]?' }
+- Implements: FR-336.2
+
+─────────────────────────────────────────
+A3. validateDailyHoursCap(resourceId, entryDate, newDurationHours, excludeEntryId?)
+─────────────────────────────────────────
+- Sum all effort_entries.duration_hours for resource_id on entry_date (excluding excludeEntryId if editing)
+- This sum includes BOTH work and leave entries
+- If existingTotal + newDurationHours > 24: { valid: false, errorCode: 'DAILY_CAP_EXCEEDED', message: 'Total for [day] would be [X] hrs. Maximum is 24 hours.' }
+- Implements: FR-376.1, V-04
+
+─────────────────────────────────────────
+A4. validateFinancialPeriod(entryDate, userId)
+─────────────────────────────────────────
+- Find financial_period where start_date <= entryDate <= end_date
+- If period.status = 'Closed':
+  - Check cfo_override_enabled = true AND cfo_override_user_id = userId AND cfo_override_expires_at > now()
+  - If override active: return { valid: true, warning: 'CFO_OVERRIDE_ACTIVE' }
+  - If no override: { valid: false, errorCode: 'PERIOD_CLOSED', message: 'This period is closed. Contact Finance to request access.' }
+- Implements: FR-377.2, V-07
+
+─────────────────────────────────────────
+A5. validateFutureDateBuffer(entryDate, projectId)
+─────────────────────────────────────────
+- Fetch contract_rules.future_date_buffer_days for project (default 7)
+- maxAllowedDate = end of current calendar week (Sunday) — use Sunday of the week containing today
+- If entryDate > maxAllowedDate: { valid: false, errorCode: 'FUTURE_DATE', message: 'Cannot log time beyond this week. Earliest allowed: [date].' }
+- Implements: FR-378.1, V-08
+
+─────────────────────────────────────────
+A6. validateFixedBidCap(projectId, newBillableHours, excludeEntryId?)
+─────────────────────────────────────────
+- Fetch contract_rules where project_id = projectId
+- If contract_type ≠ 'Fixed_Bid' OR max_billable_hours is null: return { valid: true } (not applicable)
+- Sum existing billable effort_entries for project in status Submitted or Approved (excluding excludeEntryId)
+- hoursRemaining = max_billable_hours - existingBillable
+- If newBillableHours > hoursRemaining:
+  { valid: false, errorCode: 'FIXED_BID_CAP', message: 'Billable cap reached. [X] hrs remaining of [Y] total.' }
+- Implements: FR-356.2, V-10
+
+─────────────────────────────────────────
+A7. validateNarrative(narrative, projectId)
+─────────────────────────────────────────
+- Fetch contract_rules.narrative_required for project
+- If required AND (narrative is null or narrative.trim() === ''):
+  { valid: false, errorCode: 'NARRATIVE_REQUIRED', message: 'A work description is required for this project.' }
+- PII scan (regex):
+  - SSN: /\b\d{3}-\d{2}-\d{4}\b/
+  - Credit card: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/
+  - Aadhaar: /\b\d{4}\s\d{4}\s\d{4}\b/
+- If PII detected: { valid: false, errorCode: 'PII_DETECTED', message: 'Remove sensitive information (ID numbers, card numbers) from the description.' }
+- Implements: FR-337.1, FR-337.2, V-14
+
+─────────────────────────────────────────
+A8. validateExceptionalEffort(durationHours, taskId, resourceId, weekStartDate)
+─────────────────────────────────────────
+- Fetch task.budget_hours — if null, return { isExceptional: false } (no budget = no check)
+- weekTotal = sum of all effort_entries for this resource + task + week (excluding entry being edited)
+- If weekTotal + durationHours > task.budget_hours:
+  return { isExceptional: true, reason: 'TASK_BUDGET_EXCEEDED', budgetHours: X, enteredHours: Y }
+- Does NOT block save. Returns a flag only.
+- Implements: FR-436.1, V-05
+
+─────────────────────────────────────────
+A9. validateExceptionalJustification(isExceptional, justification)
+─────────────────────────────────────────
+- If isExceptional = true AND (justification is null/undefined/whitespace/length < 10):
+  { valid: false, errorCode: 'JUSTIFICATION_REQUIRED', message: 'Provide a justification (min 10 characters) for hours exceeding task allocation.' }
+- Implements: FR-436.2, V-06
+
+─────────────────────────────────────────
+A10. validateProxyAuthorization(proxyUserId, targetUserId)
+─────────────────────────────────────────
+- Query proxy_delegations: proxy_user_id = proxyUserId AND target_user_id = targetUserId
+- Check: is_active = true AND valid_from <= today AND valid_until >= today
+- If no valid record: { valid: false, errorCode: 'PROXY_UNAUTHORIZED', message: 'No active proxy authorization found.' }
+- Implements: FR-516.1, V-15
+
+─────────────────────────────────────────
+A11. validateSelfApproval(approverId, entryResourceId)
+─────────────────────────────────────────
+- If approverId === entryResourceId:
+  { valid: false, errorCode: 'SELF_APPROVAL', message: 'You cannot approve your own time entries.' }
+- Implements: RBAC GAP-13, V-16
+
+─────────────────────────────────────────
+A12. validateRecallWindow(submissionEntries, userId)
+─────────────────────────────────────────
+- Check: ANY entry in submission has status = 'Approved' or 'Rejected'
+- If yes: { valid: false, errorCode: 'RECALL_BLOCKED', message: 'Cannot recall: your approver has already acted on one or more entries.' }
+- If all entries are still 'Submitted': { valid: true }
+- Implements: GAP-02 resolution, V-17
+
+─────────────────────────────────────────
+A13. validatePreviousWeekGate(resourceId, currentWeekStart)
+─────────────────────────────────────────
+- previousWeekStart = currentWeekStart minus 7 days
+- Query: does any effort_entry record exist for resource_id in week_start_date = previousWeekStart?
+- If NO records exist for previous week: return { valid: true, reason: 'NO_PRIOR_RECORD' } — gate waived (new joiner / leave week)
+- If records exist: check if ANY has status 'Draft' (not submitted)
+- If previous week has Draft entries: { valid: false, errorCode: 'PREV_WEEK_NOT_SUBMITTED', message: 'Submit your timesheet for [prev week range] before accessing [current week].' }
+- If previous week records all have status >= 'Submitted': { valid: true }
+- Implements: V-13, V-13a (GAP-09 fix)
+
+─────────────────────────────────────────
+MASTER ORCHESTRATOR: validateEffortEntry(payload, userId, mode)
+─────────────────────────────────────────
+mode: 'save_draft' | 'submit' | 'save_single_row'
+
+Calls validators in this order for each row:
+1. validateProjectTaskActive (always)
+2. validateFutureDateBuffer (always)
+3. validateFinancialPeriod (always)
+4. validateEffortIncrement (always, skip for leave rows)
+5. validateDailyHoursCap (always)
+6. validateFixedBidCap (only for billable entries on Fixed_Bid projects)
+7. validateNarrative (when mode = 'submit' or narrative_required = true)
+8. validateExceptionalEffort (always, returns flag not error)
+9. validateExceptionalJustification (only when mode = 'submit' AND isExceptional = true)
+10. validateProxyAuthorization (only when userId ≠ payload.resource_id)
+
+Returns: { 
+  valid: boolean,
+  rowErrors: [{ rowIndex, errorCode, message, field }],
+  globalErrors: [{ errorCode, message }],
+  exceptionalRows: [{ rowIndex, reason, budgetHours, enteredHours }],
+  warnings: [{ rowIndex, warningCode, message }]
+}
+
+══════════════════════════════════════════════
+PART B: REST API ENDPOINTS
+══════════════════════════════════════════════
+
+Use the same router/controller pattern as the rest of the project.
+Apply the existing auth middleware to ALL routes.
+Apply role guards as specified for each route.
+
+ERROR RESPONSE FORMAT (consistent across all endpoints):
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "fields": [{ "row": N, "field": "fieldName", "message": "..." }]  // optional
+  }
+}
+
+─────────────────────────────────────────
+EFFORT ENTRIES — CRUD
+─────────────────────────────────────────
+
+POST /api/time/entries
+Auth: Required. Roles: All authenticated users.
+Body: { resourceId, projectId, taskId?, leaveTypeId?, entryDate, durationHours, billableCategory?, narrative?, exceptionalJustification?, isLeave? }
+Logic:
+  - If body.resourceId ≠ auth.userId: call validateProxyAuthorization first; 403 if invalid
+  - Run validateEffortEntry(payload, userId, 'save_single_row')
+  - If valid: set is_leave based on whether leaveTypeId is present
+  - Auto-set billable_category from task.default_billable_category (override to 'Non-Billable' for leave)
+  - Set entered_by_id = auth.userId (distinct from resourceId for proxy)
+  - Set week_start_date = Monday of entryDate
+  - Set financial_period_id = matching period
+  - Save as status 'Draft'
+  - Write effort_audit_log record: action='Created', performed_by_id=auth.userId
+  - Return 201 with created entry
+
+GET /api/time/entries
+Auth: Required.
+Query: resourceId, weekStart (YYYY-MM-DD), status, projectId
+Access control:
+  - Consultant: can only query own resourceId
+  - Project_Manager / Approver / Authorized_Approver: can query own team members
+  - Finance / Admin: can query any resourceId
+Returns: array of entries matching filters
+
+PATCH /api/time/entries/:id
+Auth: Required.
+Logic:
+  - Fetch entry. If entry.status NOT IN ['Draft', 'Rejected']: return 403 { code: 'ENTRY_LOCKED', message: 'This entry cannot be edited.' }
+  - If entry.status = 'Rejected': only the entry owner or proxy can edit
+  - Re-run validateEffortEntry on updated data
+  - Write audit log: action='Updated', field_changes = diff of old vs new values
+  - Return updated entry
+
+DELETE /api/time/entries/:id
+Auth: Required. Roles: entry owner only.
+Logic:
+  - If entry.status ≠ 'Draft': return 403 { code: 'DELETE_BLOCKED', message: 'Only draft entries can be deleted.' }
+  - Soft delete (add deleted_at field) or hard delete per project convention
+  - Write audit log: action='Updated' with note 'Deleted'
+
+─────────────────────────────────────────
+BATCH OPERATIONS
+─────────────────────────────────────────
+
+POST /api/time/entries/submit
+Auth: Required.
+Body: { entryIds: UUID[], confirmReplicated?: boolean }
+Logic:
+  - Fetch all entries. Verify all belong to auth.userId or proxy delegation.
+  - Verify all entries have status 'Draft'.
+  - If any entry is is_replicated=true AND confirmReplicated is not true: return 422 { code: 'REPLICATION_CONFIRM_REQUIRED' }
+  - Run validatePreviousWeekGate for the week being submitted
+  - Run validateEffortEntry for all entries in mode='submit'
+  - Check: total hours across all entries > 0 (V-12 empty submission block)
+  - If all valid: update all statuses to 'Submitted', log submission timestamp
+  - Write audit log for each: action='Submitted'
+  - Dispatch notification to approver (use existing notification service)
+  - Return { submitted: N, failed: [{ entryId, errors }] }
+
+POST /api/time/entries/:id/recall
+Auth: Required. Owner only.
+Logic:
+  - Fetch all entries for the same resource_id + week_start_date as this entry
+  - Call validateRecallWindow(allWeekEntries, auth.userId)
+  - If blocked: 403 with reason
+  - If valid: update all Submitted entries in that week to 'Draft'
+  - Remove from approval queue
+  - Write audit log: action='Recalled'
+  - Dispatch notification to approver: "[User] recalled their timesheet for [week]."
+  - Return { recalled: N }
+
+POST /api/time/entries/:id/approve
+Auth: Required. Roles: Project_Manager, Approver, Authorized_Approver.
+Logic:
+  - Fetch entry. Verify status = 'Submitted'.
+  - Call validateSelfApproval(auth.userId, entry.resource_id) — 403 if same person
+  - Update status to 'Approved'
+  - Write audit log: action='Approved', performed_by_id=auth.userId
+  - Check: are ALL entries in this week now Approved?
+  - If yes: dispatch approval notification to submitter
+  - Return updated entry
+
+POST /api/time/entries/:id/reject
+Auth: Required. Roles: Project_Manager, Approver, Authorized_Approver.
+Body: { rejectionReason: string }
+Logic:
+  - Fetch entry. Verify status = 'Submitted'.
+  - Call validateSelfApproval — 403 if same person
+  - Validate rejectionReason: not null, not whitespace, length >= 10 chars
+  - Update status to 'Rejected', set rejection_reason, set rejected_by_id = auth.userId
+  - Write audit log: action='Rejected'
+  - Dispatch rejection notification to submitter with reason (FR-477.1)
+  - Other entries in the same week submission are NOT affected (FR-496.1 line-item rejection)
+  - Return updated entry
+
+POST /api/time/entries/:id/resubmit
+Auth: Required. Owner only.
+Logic:
+  - Fetch entry. Verify status = 'Rejected'.
+  - Verify all OTHER rejected entries for this week have also been corrected (status = 'Draft')
+  - Set status = 'Submitted'
+  - Set resubmission_type = 'Rejection_Correction'
+  - Route to original rejected_by_id (not general approver queue)
+  - Write audit log: action='Resubmitted'
+  - Dispatch notification to the original rejector
+  - Return updated entry
+
+POST /api/time/entries/:id/override-category
+Auth: Required. Roles: Authorized_Approver ONLY.
+Body: { newCategory: 'Billable' | 'Non-Billable' }
+Logic:
+  - Fetch entry. Verify status ≠ 'Processed'.
+  - Store original_billable_category = entry.billable_category
+  - Update billable_category = newCategory
+  - Write audit log: action='Override_Billable', field_changes: { billable_category: [old, new] }
+  - Return updated entry
+
+─────────────────────────────────────────
+WEEKLY VIEW
+─────────────────────────────────────────
+
+GET /api/time/weekly-view
+Auth: Required.
+Query: resourceId (UUID), weekStart (YYYY-MM-DD — must be a Monday)
+Access: Consultants can only query own ID. Managers/Approvers can query team.
+Logic:
+  - Validate weekStart is a Monday (or calculate the Monday of the given date)
+  - Fetch all effort_entries for resource_id in [weekStart, weekStart+6]
+  - Group by project_id + task_id (or leave_type_id for leave rows)
+  - For each group: calculate daily breakdown [Mon..Sun], rowTotal, isBillable, isLeave, isExceptional
+  - Calculate summary: { totalHours, billableHours, nonBillableHours, leaveHours, utilizationRate }
+  - utilizationRate = billableHours / 40 * 100 (round to 1 decimal)
+  - Cross-month check: if weekStart.month ≠ weekEnd.month, set crossMonthBoundary=true, split totals
+  - For each project: fetch remaining billable hours (for fixed-bid display)
+  - Return complete weekly payload
+
+─────────────────────────────────────────
+APPROVAL QUEUE
+─────────────────────────────────────────
+
+GET /api/time/approval-queue
+Auth: Required. Roles: Project_Manager, Approver, Authorized_Approver, Finance, Admin.
+Logic:
+  - Fetch distinct (resource_id, week_start_date) combinations with status = 'Submitted'
+  - For PM role: filter to projects the PM manages
+  - For each: compute { submitterName, weekRange, totalHours, billableHours, exceptionalCount, daysSinceSubmission, status }
+  - Sort by daysSinceSubmission DESC (oldest first)
+  - Return array of submission summaries
+
+GET /api/time/approval-queue/:resourceId/:weekStart
+Auth: Required. Roles: Project_Manager, Approver, Authorized_Approver.
+Logic:
+  - Fetch all entries for resource_id + week_start_date
+  - Include full entry details + exceptional flags + narrative + audit history per entry
+  - Return weekly detail view for approver
+
+─────────────────────────────────────────
+SUPPORTING DATA ENDPOINTS
+─────────────────────────────────────────
+
+GET /api/time/assigned-projects
+Auth: Required.
+Query: resourceId (defaults to auth.userId)
+Returns: projects where user has active assignment, status='Active', including contract_rules for each
+
+GET /api/time/assigned-tasks/:projectId
+Auth: Required.
+Query: resourceId
+Returns: tasks assigned to resourceId on projectId, status='Active', including budget_hours
+
+GET /api/time/leave-types
+Auth: Required.
+Returns: all active leave_types
+
+GET /api/time/financial-period/:date
+Auth: Required.
+Returns: financial period covering the given date, including status and override info for requesting user
+
+GET /api/time/invoice-extraction
+Auth: Required. Roles: Finance, Admin ONLY.
+Query: projectId, startDate, endDate
+HARD RULE: Always appends status='Approved' filter regardless of query params. Cannot be bypassed.
+Returns: Only Approved entries for invoicing
+
+══════════════════════════════════════════════
+AFTER BUILDING API
+══════════════════════════════════════════════
+
+Test each endpoint manually (or with a simple test script):
+- POST /api/time/entries with valid data → expect 201
+- POST /api/time/entries with inactive project → expect 422 with PROJECT_INACTIVE
+- POST /api/time/entries with day total > 24 → expect 422 with DAILY_CAP_EXCEEDED
+- POST /api/time/entries/submit with empty timesheet → expect 422
+- POST /api/time/entries/:id/approve where approver = resource → expect 403 SELF_APPROVAL
+- GET /api/time/weekly-view → expect grouped weekly payload
+
+Report: list all endpoints created, their file paths, and the test results.
+Report when done with: "API COMPLETE. READY FOR PROMPT 3 REVIEW."

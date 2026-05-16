@@ -507,6 +507,23 @@ export declare const tasksTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        budgetHours: import("drizzle-orm/pg-core").PgColumn<{
+            name: "budget_hours";
+            tableName: "tasks";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "tasks";
@@ -572,6 +589,7 @@ export declare const insertTaskSchema: z.ZodObject<{
     etcOverride: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     completionPct: z.ZodOptional<z.ZodInt>;
     defaultBillableCategory: z.ZodOptional<z.ZodString>;
+    budgetHours: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};

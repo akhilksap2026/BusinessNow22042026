@@ -48,7 +48,7 @@ export type OrchestratorResult = {
 
 export type EffortEntryPayload = {
   projectId: number;
-  taskId: number;
+  taskId: number | null;
   resourceId: number;
   entryDate: string;           // "YYYY-MM-DD"
   durationHours: number;
@@ -57,6 +57,8 @@ export type EffortEntryPayload = {
   isExceptional?: boolean;
   exceptionalJustification?: string | null;
   excludeEntryId?: number;     // for edit flows
+  isLeave?: boolean;           // true for leave rows — skips increment + task checks
+  leaveTypeId?: number | null;
 };
 
 type Db = typeof defaultDb;
@@ -481,6 +483,7 @@ export async function validateEffortEntry(
   payload: EffortEntryPayload,
   userId: number,
   isProxy: boolean,
+  mode: "save_draft" | "submit" | "save_single_row" = "save_single_row",
   dbInstance: Db = defaultDb,
 ): Promise<OrchestratorResult> {
   const errors: EffortError[] = [];
@@ -502,10 +505,12 @@ export async function validateEffortEntry(
     if (errors.length) return { valid: false, errors };
   }
 
-  // 2. Project + task active
-  const r1 = await validateProjectTaskActive(payload.projectId, payload.taskId, dbInstance);
-  push("projectId", r1);
-  if (errors.length) return { valid: false, errors };
+  // 2. Project + task active — for leave rows task check is skipped
+  if (!payload.isLeave) {
+    const r1 = await validateProjectTaskActive(payload.projectId, payload.taskId ?? 0, dbInstance);
+    push("projectId", r1);
+    if (errors.length) return { valid: false, errors };
+  }
 
   // 3. Financial period
   const r2 = await validateFinancialPeriod(payload.entryDate, userId, dbInstance);
@@ -515,9 +520,11 @@ export async function validateEffortEntry(
   const r3 = await validateFutureDateBuffer(payload.entryDate, payload.projectId, dbInstance);
   push("entryDate", r3);
 
-  // 5. Effort increment
-  const r4 = await validateEffortIncrement(payload.durationHours, payload.projectId, dbInstance);
-  push("durationHours", r4);
+  // 5. Effort increment — skip for leave rows (leave uses whole hours)
+  if (!payload.isLeave) {
+    const r4 = await validateEffortIncrement(payload.durationHours, payload.projectId, dbInstance);
+    push("durationHours", r4);
+  }
 
   // 6. Daily hours cap
   const r5 = await validateDailyHoursCap(
@@ -526,38 +533,115 @@ export async function validateEffortEntry(
   );
   push("durationHours", r5);
 
-  // 7. Fixed-bid cap (only for billable entries)
-  if (payload.billableCategory === "Billable") {
+  // 7. Fixed-bid cap (only for billable entries — leave is always Non-Billable so skipped)
+  if (!payload.isLeave && payload.billableCategory === "Billable") {
     const r6 = await validateFixedBidCap(
       payload.projectId, payload.durationHours, payload.excludeEntryId, dbInstance,
     );
     push("durationHours", r6);
   }
 
-  // 8. Narrative
-  const [rule] = await dbInstance
-    .select({ narrativeRequired: contractRulesTable.narrativeRequired })
-    .from(contractRulesTable)
-    .where(eq(contractRulesTable.projectId, payload.projectId))
-    .limit(1);
+  // 8. Narrative — only mandatory if contract requires it; leave rows exempt
+  if (!payload.isLeave) {
+    const [rule] = await dbInstance
+      .select({ narrativeRequired: contractRulesTable.narrativeRequired })
+      .from(contractRulesTable)
+      .where(eq(contractRulesTable.projectId, payload.projectId))
+      .limit(1);
 
-  const r7 = validateNarrative(
-    payload.narrative ?? null,
-    payload.projectId,
-    rule?.narrativeRequired ?? false,
-  );
-  push("narrative", r7);
+    const r7 = validateNarrative(
+      payload.narrative ?? null,
+      payload.projectId,
+      rule?.narrativeRequired ?? false,
+    );
+    push("narrative", r7);
+  }
 
   // 9. Exceptional effort flag (soft — populates isExceptional, not an error)
-  const exceptional = await validateExceptionalEffort(
-    payload.durationHours, payload.taskId, payload.resourceId,
-    payload.entryDate, dbInstance,
-  );
+  const exceptional = !payload.isLeave
+    ? await validateExceptionalEffort(
+        payload.durationHours, payload.taskId ?? 0, payload.resourceId,
+        payload.entryDate, dbInstance,
+      )
+    : { isExceptional: false, reason: "" };
 
-  // 10. Exceptional justification (hard block if exceptional and no justification)
+  // 10. Exceptional justification — only enforced on submit mode
   const isExceptional = payload.isExceptional || exceptional.isExceptional;
-  const r9 = validateExceptionalJustification(isExceptional, payload.exceptionalJustification ?? null);
-  push("exceptionalJustification", r9);
+  if (mode === "submit") {
+    const r9 = validateExceptionalJustification(isExceptional, payload.exceptionalJustification ?? null);
+    push("exceptionalJustification", r9);
+  }
 
   return { valid: errors.length === 0, errors };
+}
+
+// ─── A11. validateSelfApproval ────────────────────────────────────────────────
+// Approver cannot approve their own time entries. RBAC GAP-13, V-16.
+
+export function validateSelfApproval(
+  approverId: number,
+  entryResourceId: number,
+): ValidationResult {
+  if (approverId === entryResourceId) {
+    return fail("SELF_APPROVAL", "You cannot approve your own time entries.");
+  }
+  return ok;
+}
+
+// ─── A12. validateRecallWindow ────────────────────────────────────────────────
+// A submitted batch cannot be recalled once the approver has acted on any
+// entry within it (Approved or Rejected). GAP-02, V-17.
+
+export function validateRecallWindow(
+  submissionEntries: Array<{ status: string }>,
+): ValidationResult {
+  const acted = submissionEntries.some(
+    e => e.status === "Approved" || e.status === "Rejected",
+  );
+  if (acted) {
+    return fail(
+      "RECALL_BLOCKED",
+      "Cannot recall: your approver has already acted on one or more entries.",
+    );
+  }
+  return ok;
+}
+
+// ─── A13. validatePreviousWeekGate ────────────────────────────────────────────
+// Block logging to the current week if the previous week still has Draft
+// entries (i.e. the resource never submitted their prior timesheet). V-13/V-13a.
+
+export async function validatePreviousWeekGate(
+  resourceId: number,
+  currentWeekStart: string,
+  dbInstance: Db = defaultDb,
+): Promise<ValidationResult> {
+  const d = new Date(`${currentWeekStart}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 7);
+  const previousWeekStart = d.toISOString().slice(0, 10);
+
+  const prevEntries = await dbInstance
+    .select({ status: effortEntriesTable.status })
+    .from(effortEntriesTable)
+    .where(
+      and(
+        eq(effortEntriesTable.resourceId, resourceId),
+        eq(effortEntriesTable.weekStartDate, previousWeekStart),
+      ),
+    );
+
+  if (prevEntries.length === 0) return ok;
+
+  const hasDraft = prevEntries.some(e => e.status === "Draft");
+  if (hasDraft) {
+    const prevEnd = new Date(`${previousWeekStart}T00:00:00Z`);
+    prevEnd.setUTCDate(prevEnd.getUTCDate() + 6);
+    const prevEndStr = prevEnd.toISOString().slice(0, 10);
+    return fail(
+      "PREV_WEEK_NOT_SUBMITTED",
+      `Submit your timesheet for ${previousWeekStart} – ${prevEndStr} before logging to the current week.`,
+    );
+  }
+
+  return ok;
 }

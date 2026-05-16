@@ -54,6 +54,23 @@ export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        proxyDelegationId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "proxy_delegation_id";
+            tableName: "effort_entries";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         projectId: import("drizzle-orm/pg-core").PgColumn<{
             name: "project_id";
             tableName: "effort_entries";
@@ -78,7 +95,24 @@ export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWi
             columnType: "PgInteger";
             data: number;
             driverParam: string | number;
-            notNull: true;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        leaveTypeId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "leave_type_id";
+            tableName: "effort_entries";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -173,6 +207,23 @@ export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        isLeave: import("drizzle-orm/pg-core").PgColumn<{
+            name: "is_leave";
+            tableName: "effort_entries";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         isExceptional: import("drizzle-orm/pg-core").PgColumn<{
             name: "is_exceptional";
             tableName: "effort_entries";
@@ -258,6 +309,23 @@ export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        rejectedById: import("drizzle-orm/pg-core").PgColumn<{
+            name: "rejected_by_id";
+            tableName: "effort_entries";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         originalRejectorId: import("drizzle-orm/pg-core").PgColumn<{
             name: "original_rejector_id";
             tableName: "effort_entries";
@@ -271,6 +339,23 @@ export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWi
             isAutoincrement: false;
             hasRuntimeDefault: false;
             enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        resubmissionType: import("drizzle-orm/pg-core").PgColumn<{
+            name: "resubmission_type";
+            tableName: "effort_entries";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
             baseColumn: never;
             identity: undefined;
             generated: undefined;
@@ -347,21 +432,26 @@ export declare const effortEntriesTable: import("drizzle-orm/pg-core").PgTableWi
     dialect: "pg";
 }>;
 export declare const insertEffortEntrySchema: z.ZodObject<{
-    resourceId: z.ZodInt;
-    enteredById: z.ZodInt;
     status: z.ZodOptional<z.ZodString>;
     projectId: z.ZodInt;
-    taskId: z.ZodInt;
+    taskId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    resourceId: z.ZodInt;
+    enteredById: z.ZodInt;
+    proxyDelegationId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    leaveTypeId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     entryDate: z.ZodString;
     durationHours: z.ZodString;
     billableCategory: z.ZodOptional<z.ZodString>;
     originalBillableCategory: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     narrative: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    isLeave: z.ZodOptional<z.ZodBoolean>;
     isExceptional: z.ZodOptional<z.ZodBoolean>;
     exceptionalJustification: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isReplicated: z.ZodOptional<z.ZodBoolean>;
     rejectionReason: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    rejectedById: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
     originalRejectorId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
+    resubmissionType: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     weekStartDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     financialPeriodId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
 }, {

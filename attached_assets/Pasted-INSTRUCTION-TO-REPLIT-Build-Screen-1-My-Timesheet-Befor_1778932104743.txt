@@ -1,0 +1,288 @@
+INSTRUCTION TO REPLIT:
+
+Build Screen 1: My Timesheet.
+
+Before writing any component code, list the existing components from the audit that you will REUSE.
+Then list what you need to create new.
+If that list of new things is longer than 5 items, stop and re-examine the audit — you are likely rebuilding existing components.
+
+══════════════════════════════════════════════
+COMPONENT ARCHITECTURE
+══════════════════════════════════════════════
+
+Create these files only (adjust paths to match project convention):
+1. pages/time/MyTimesheet.jsx (or .tsx / .vue — match project)
+2. components/time/TimesheetGrid.jsx — the main grid
+3. components/time/TimesheetRow.jsx — a single project+task row
+4. components/time/TimesheetFooter.jsx — daily totals row
+5. components/time/DescriptionPanel.jsx — per-cell narrative
+6. components/time/ExceptionalPanel.jsx — justification panel (conditional)
+7. components/time/RejectionBanner.jsx — shows when prior rejections exist
+
+Reuse from audit (do not recreate):
+- [List components found in audit Section F here before coding]
+
+══════════════════════════════════════════════
+PAGE: MyTimesheet (parent page component)
+══════════════════════════════════════════════
+
+STATE this component manages:
+- weekStart: Date (Monday of current week, initialized to this Monday on mount)
+- timesheetData: array of row objects (fetched from GET /api/time/weekly-view)
+- isLoading: boolean
+- weeklySummary: { totalHours, billableHours, nonBillableHours, leaveHours, utilizationRate }
+- activeCell: { rowIndex, dayIndex } | null — which cell's description panel is open
+- hasRejectedPriorWeek: boolean (checked on load)
+- pageStatus: 'Draft' | 'Submitted' | 'Approved' | 'Rejected' | 'Mixed' | 'Empty'
+
+DO NOT put all logic in this component. Delegate to child components and service calls.
+
+─────────────────────────────────────────
+HEADER AREA (inside MyTimesheet page)
+─────────────────────────────────────────
+Row 1: "My Timesheet" [h1, left] | [Status Badge, right]
+Row 2: "Timesheet for: [User Full Name]" [left] | if proxy mode: "Acting for: [Target Name] ⚡" [right, orange]
+Row 3: Week Navigator (see below) | [Current] link
+
+Week Navigator:
+- [← Prev] button — always active (go back)
+- "[Mon DD MMM – Sun DD MMM YYYY]" label — read-only display
+- [Next →] button
+  - DISABLED if: previous week has unsubmitted Draft entries (show tooltip: "Submit [prev week range] first")
+  - DISABLED if: next week is beyond current week + 7 days (future cap)
+- [Current] link — jumps to today's week
+
+Behavior on week change: call GET /api/time/weekly-view with new weekStart, repopulate grid
+
+─────────────────────────────────────────
+REJECTION BANNER (conditional)
+─────────────────────────────────────────
+Show ONLY when hasRejectedPriorWeek = true.
+Position: below header, above grid.
+Style: amber background, icon ⚠.
+Content: "You have rejected entries in the week of [prior week range]. Correct and resubmit them before submitting this week."
+[Fix Rejected Entries →] button — navigates to that prior week.
+
+─────────────────────────────────────────
+SUMMARY BAR (always visible, below header)
+─────────────────────────────────────────
+Single row, compact:
+Total: [XX.X hrs] | Billable: [XX.X] | Non-Billable: [XX.X] | Leave: [XX.X] | Utilization: [XX%]
+
+If any exceptional entries: append "| ⚠ [N] exceptional entries — justification required" in amber text
+All values update in real time as the user edits hour cells.
+
+══════════════════════════════════════════════
+COMPONENT: TimesheetGrid
+══════════════════════════════════════════════
+
+Renders a <table> (or CSS grid if project uses it).
+
+COLUMN HEADERS:
+| Project | Task / Leave Type | Mon DD | Tue DD | Wed DD | Thu DD | Fri DD | Sat DD | Sun DD | Total | [Delete] |
+
+Dates in column headers: abbreviate day + date number (Mon 18, Tue 19, etc.)
+Highlight today's column with a subtle background color.
+
+ROWS:
+- Renders one <TimesheetRow> per entry in timesheetData
+- Each row has a unique key (rowIndex)
+- After the last data row: renders "+ Add Row" button spanning full width
+  - Max rows: 15. If 15 rows exist, hide "+ Add Row" and show: "Maximum rows reached."
+- After "+ Add Row": renders <TimesheetFooter>
+
+DUPLICATE CHECK:
+When a user selects a project+task combination already used in another row:
+- Immediately revert the task dropdown to empty
+- Show inline error on that row: "This project + task combination already exists. Add hours to the existing row."
+
+══════════════════════════════════════════════
+COMPONENT: TimesheetRow
+══════════════════════════════════════════════
+
+Props: rowData, rowIndex, weekDates[7], onCellChange, onCellFocus, onProjectChange, onTaskChange, onDelete, isReadOnly
+
+─── Project Dropdown ───
+Source: GET /api/time/assigned-projects
+First option (pinned, styled differently): "📅 Leave" — value: '__LEAVE__'
+Remaining options: assigned active projects sorted alphabetically
+If a project has a fixed-bid contract: show "(Fixed-Bid)" suffix in muted text
+
+On select:
+- Clear task dropdown and all hour cells for this row
+- If '__LEAVE__' selected: set isLeave=true on row, fetch leave types for task dropdown
+
+─── Task/Leave Type Dropdown ───
+Disabled until project is selected.
+If normal project: GET /api/time/assigned-tasks/:projectId filtered to active tasks
+If Leave: GET /api/time/leave-types
+Show below task name (in muted text): "Budget: [X] hrs" if task.budget_hours is set
+
+On select: call validateExceptionalEffort check immediately with current row hours
+
+─── Day Cells (7 cells, Mon–Sun) ───
+Input type: number, min: 0, max: 24, step: 0.25
+Accept decimal values.
+Width: narrow (enough for 4 digits + decimal, e.g. "8.25")
+
+Disabled state (render as greyed, non-interactive) when:
+- Row is read-only (timesheet is Submitted/Approved)
+- Cell's date falls in a closed financial period
+- Cell's date is beyond the future date buffer (beyond Sunday of current week)
+
+On keypress: allow only digits, one decimal point, and backspace. Block all other characters.
+
+On blur:
+1. Parse value. If not a valid positive number: reset to 0, show cell-level error
+2. Call validateEffortIncrement → show cell-level increment error with suggestion
+3. Call validateDailyHoursCap → if exceeded, highlight day column total red, show tooltip
+4. Recalculate row total
+5. Call validateExceptionalEffort → if exceptional flag triggered, show ExceptionalPanel
+6. Save to local browser localStorage as draft auto-save (key: "bns_timesheet_draft_{userId}_{weekStart}")
+7. Trigger onCellChange to update parent state and Summary Bar
+
+Visual cues:
+- Cell with a description: small blue dot in top-right corner of cell
+- Exceptional row: amber left border on entire row
+- Rejected row: red left border, "(Rejected)" badge in project column
+
+─── Row Total ───
+Auto-calculated sum of 7 cells. Right-aligned. Read-only display.
+If row total > task.budget_hours: show total in amber text + ⚠ icon with tooltip "Exceeds task allocation of [X] hrs"
+If row total = 0 and timesheet is Draft: show "0.00" in muted grey
+
+─── Billable Category Badge ───
+Small badge showing current billable_category.
+Auto-set from task selection (cannot be changed by Consultant).
+Authorized_Approver sees a small pencil icon to override (opens confirmation dialog).
+
+─── Delete Button ───
+Small × icon at far right.
+Visible only when row is in Draft status.
+On click: confirmation: "Remove this row? Hours entered will be lost." → on confirm: remove row from state (do not call API until next save)
+
+══════════════════════════════════════════════
+COMPONENT: TimesheetFooter
+══════════════════════════════════════════════
+
+Single row below all data rows.
+Label column: "Total Hours" in bold.
+For each day column: sum of all rows for that day. Real-time updated.
+Grand total column: sum of all daily totals.
+If any day total > 24: that column total turns red + ⚠ tooltip "Day total exceeds 24 hours."
+Below total row: secondary row "Billable: [X] | Leave: [Y] | Non-Billable: [Z]" in smaller muted text.
+
+══════════════════════════════════════════════
+COMPONENT: DescriptionPanel
+══════════════════════════════════════════════
+
+Position: fixed panel below the grid (not a modal, always visible when a cell is active).
+Show when: a day cell is focused/clicked (activeCell is set).
+Hide when: no cell is active — shows placeholder: "Click any hour cell to add a work description."
+
+Header when active: "Description — [Day, Date] | [Project Name] — [Task Name]"
+
+Content:
+- Textarea: 1000 char max, shows live character counter: "X / 1000"
+- Data fetched/saved per-cell: description keyed by (resourceId, date, projectId, taskId)
+- On blur: run PII check (regex from A7). If PII detected: show red inline warning below textarea. Block save until cleared.
+- If narrative_required for this project: show red asterisk in header and "(Required)" note.
+
+══════════════════════════════════════════════
+COMPONENT: ExceptionalPanel
+══════════════════════════════════════════════
+
+Position: below DescriptionPanel, above Action Bar.
+Visible only when timesheetData has one or more rows with isExceptional=true.
+
+For each exceptional row:
+- Project name + Task name
+- "Budget: [X] hrs | Entered: [Y] hrs | Excess: [Z] hrs"
+- Textarea: "Justification for excess hours" (required before Submit)
+  - Validates: not empty, not whitespace, min 10 characters
+  - Character counter shown
+- Each row's justification is stored on that row's data object
+
+If all exceptional rows have justification filled: allow Submit.
+If any is empty: Submit button shows tooltip "Fill justification for all flagged rows."
+
+══════════════════════════════════════════════
+ACTION BAR (sticky bottom of page, always visible)
+══════════════════════════════════════════════
+
+Show buttons based on pageStatus:
+
+pageStatus = 'Empty' or 'Draft':
+  [Save Draft] (secondary) | [Submit] (primary)
+  Submit is greyed if: validation errors exist / exceptional rows without justification / prior rejected week unresolved
+
+pageStatus = 'Submitted':
+  [Recall Timesheet] (secondary, outline)
+  Note below: "Your timesheet is with your approver. Recall to make changes."
+
+pageStatus = 'Approved':
+  No action buttons.
+  Banner: "✅ Approved — This timesheet has been approved and is locked."
+
+pageStatus = 'Rejected' (some entries rejected, some submitted/approved):
+  [Fix & Resubmit] (primary) — scrolls to rejected rows
+  Note: "Some entries need correction. Edit the highlighted rows and resubmit."
+
+pageStatus = 'Mixed':
+  [Submit Remaining Drafts] | [Recall All]
+
+─── Save Draft behavior ───
+Call POST /api/time/entries for each new row (no ID yet).
+Call PATCH /api/time/entries/:id for rows with existing IDs.
+Process row by row — if one row fails validation, save all others and highlight the failed row.
+Show success toast: "Draft saved." or "X rows saved, Y rows need correction."
+
+─── Submit behavior ───
+Pre-submit client checks (in order):
+1. Total hours > 0 across all rows (V-12)
+2. No day total > 24 (V-04)
+3. No increment violations (V-03)
+4. All exceptional rows have justification (V-06)
+5. Prior week has no Draft entries (V-13) — show banner if failed
+If all pass: call POST /api/time/entries/submit
+On 422: display field-level errors returned from server
+On success: update pageStatus to 'Submitted', show toast "Timesheet submitted for approval."
+
+─── Recall behavior ───
+Confirmation dialog: "Recall this timesheet? It will move back to Draft and your approver will be notified."
+[Cancel] | [Recall]
+On confirm: call POST /api/time/entries/:id/recall (using any entry ID from the week)
+On success: status reverts to Draft, grid becomes editable.
+
+══════════════════════════════════════════════
+LOCAL AUTO-SAVE
+══════════════════════════════════════════════
+
+On every cell blur: save current grid state to localStorage:
+Key: "bns_timesheet_{userId}_{weekStart}"
+Value: JSON of all rows (project, task, hours per day, description, justification)
+
+On page load: if localStorage key exists for current week and user:
+- Show banner: "You have unsaved changes from [timestamp]. [Restore] [Dismiss]"
+- Restore: populate grid from localStorage data
+- Dismiss: clear localStorage key, start fresh
+
+Clear localStorage key after successful Save Draft or Submit.
+
+══════════════════════════════════════════════
+AFTER BUILDING SCREEN 1
+══════════════════════════════════════════════
+
+Verify:
+- [ ] Page loads without console errors
+- [ ] Week navigator changes week and reloads data
+- [ ] Adding a row works; project dropdown shows assigned projects + Leave option
+- [ ] Selecting Leave shows leave types in task dropdown
+- [ ] Entering hours updates row total and footer total in real time
+- [ ] Entering non-numeric value resets to 0 with error
+- [ ] Day total > 24 highlights in red
+- [ ] Exceptional row shows panel below grid
+- [ ] Save Draft calls API and shows toast
+- [ ] Submit calls API and locks grid
+
+Report when done with: "SCREEN 1 COMPLETE. READY FOR PROMPT 4 REVIEW."
