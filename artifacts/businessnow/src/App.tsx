@@ -20,6 +20,7 @@ import TimeTimesheet from "@/pages/time-timesheet";
 import TimeApprovals from "@/pages/time-approvals";
 import TimeApprovalReview from "@/pages/time-approval-review";
 import MyTimesheet from "@/pages/time/MyTimesheet";
+import ApprovalsNew from "@/pages/time/Approvals";
 import SettingsTimeTracking from "@/pages/settings-time-tracking";
 import Resources from "@/pages/resources";
 import Finance from "@/pages/finance";
@@ -77,6 +78,7 @@ function Router() {
       <Route path="/time/timesheet" component={TimeTimesheet} />
       <Route path="/time/entries/:id/edit" component={TimeEntryEdit} />
       <Route path="/time/my-timesheet" component={MyTimesheet} />
+      <Route path="/time/approvals-new" component={ApprovalsNew} />
       <Route path="/time/approvals" component={TimeApprovals} />
       <Route path="/time/approvals/:submitterId/:weekStart" component={TimeApprovalReview} />
       <Route path="/settings/time-tracking" component={SettingsTimeTracking} />
