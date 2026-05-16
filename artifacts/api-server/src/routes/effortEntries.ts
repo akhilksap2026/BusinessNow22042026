@@ -841,7 +841,7 @@ router.get("/time/assigned-projects", async (req: Request, res: Response): Promi
     .where(
       and(
         eq(allocationsTable.userId, resourceId),
-        eq(projectsTable.status, "Active"),
+        inArray(projectsTable.status, ["In Progress", "Not Started"]),
         sql`${projectsTable.deletedAt} IS NULL`,
       ),
     )
