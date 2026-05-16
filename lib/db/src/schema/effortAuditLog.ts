@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { effortEntriesTable } from "./effortEntries";
+import { proxyDelegationsTable } from "./proxyDelegations";
 
 export const effortAuditLogTable = pgTable("effort_audit_log", {
   id: serial("id").primaryKey(),
@@ -13,9 +14,12 @@ export const effortAuditLogTable = pgTable("effort_audit_log", {
   performedById: integer("performed_by_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "restrict" }),
+  proxyDelegationId: integer("proxy_delegation_id")
+    .references(() => proxyDelegationsTable.id, { onDelete: "set null" }),
   performedAt: timestamp("performed_at", { withTimezone: true }).notNull().defaultNow(),
   previousValue: jsonb("previous_value"),
   newValue: jsonb("new_value"),
+  fieldChanges: jsonb("field_changes"),
   notes: text("notes"),
   isImmutable: boolean("is_immutable").notNull().default(true),
 }, (t) => ({
@@ -23,6 +27,7 @@ export const effortAuditLogTable = pgTable("effort_audit_log", {
   performedByIdx: index("idx_effort_audit_log_performed_by_id").on(t.performedById),
   actionIdx: index("idx_effort_audit_log_action").on(t.action),
   performedAtIdx: index("idx_effort_audit_log_performed_at").on(t.performedAt),
+  proxyIdx: index("idx_effort_audit_log_proxy_delegation_id").on(t.proxyDelegationId),
 }));
 
 export const insertEffortAuditLogSchema = createInsertSchema(effortAuditLogTable).omit({ id: true, performedAt: true });

@@ -35,6 +35,7 @@ export const tasksTable = pgTable("tasks", {
   etcOverride: numeric("etc_override", { precision: 8, scale: 2 }),
   completionPct: integer("completion_pct").notNull().default(0),
   defaultBillableCategory: text("default_billable_category").notNull().default("Non-Billable"),
+  budgetHours: numeric("budget_hours", { precision: 6, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
