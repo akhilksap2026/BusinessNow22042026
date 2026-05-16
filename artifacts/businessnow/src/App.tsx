@@ -75,11 +75,12 @@ function Router() {
       </Route>
       <Route path="/time" component={TimeTracking} />
       <Route path="/time/new" component={TimeNew} />
-      <Route path="/time/timesheet" component={TimeTimesheet} />
+      <Route path="/time/timesheet" component={MyTimesheet} />
       <Route path="/time/entries/:id/edit" component={TimeEntryEdit} />
-      <Route path="/time/my-timesheet" component={MyTimesheet} />
-      <Route path="/time/approvals-new" component={ApprovalsNew} />
-      <Route path="/time/approvals" component={TimeApprovals} />
+      <Route path="/time/my-timesheet"><Redirect to="/time/timesheet" /></Route>
+      <Route path="/time/approvals-new"><Redirect to="/time/approvals" /></Route>
+      <Route path="/time/approvals" component={ApprovalsNew} />
+      <Route path="/time/log"><Redirect to="/time/timesheet" /></Route>
       <Route path="/time/approvals/:submitterId/:weekStart" component={TimeApprovalReview} />
       <Route path="/settings/time-tracking" component={SettingsTimeTracking} />
       <Route path="/time-tracking"><Redirect to="/time" /></Route>

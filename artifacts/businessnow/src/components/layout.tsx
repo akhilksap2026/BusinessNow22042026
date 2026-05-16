@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { authHeaders } from "@/lib/auth-headers";
 import { Link, useLocation } from "wouter";
 import { useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from "@workspace/api-client-react";
@@ -460,11 +460,29 @@ export function Layout({ children }: { children: ReactNode }) {
   const isApprover = hasRole(activeRole, "super_user");
   const isAdmin = activeRole === "account_admin";
 
+  const [pendingApprovalCount, setPendingApprovalCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isApprover) return;
+    let cancelled = false;
+    async function fetchCount() {
+      try {
+        const r = await fetch("/api/time/approval-queue", { headers: authHeaders() });
+        if (!cancelled && r.ok) {
+          const { total } = await r.json();
+          setPendingApprovalCount(total ?? 0);
+        }
+      } catch {}
+    }
+    fetchCount();
+    const interval = setInterval(fetchCount, 60_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [isApprover]);
+
   const TIME_SUB_ITEMS = [
-    { href: "/time/timesheet", label: "My Timesheet", icon: CalendarDays },
-    { href: "/time/new",       label: "Log Time",      icon: Plus },
-    ...(isApprover ? [{ href: "/time/approvals",          label: "Approvals",  icon: CheckCircle2 }] : []),
-    ...(isAdmin    ? [{ href: "/settings/time-tracking",  label: "Time Admin", icon: Settings2    }] : []),
+    { href: "/time/timesheet", label: "My Timesheet", icon: CalendarDays, count: 0 },
+    ...(isApprover ? [{ href: "/time/approvals", label: "Approvals", icon: CheckCircle2, count: pendingApprovalCount }] : []),
+    ...(isAdmin    ? [{ href: "/settings/time-tracking", label: "Time Admin", icon: Settings2, count: 0 }] : []),
   ];
 
   function toggleCollapsed() {
@@ -586,7 +604,12 @@ export function Layout({ children }: { children: ReactNode }) {
                             )}
                           >
                             <SubIcon className="h-3.5 w-3.5 shrink-0" />
-                            {sub.label}
+                            <span className="flex-1">{sub.label}</span>
+                            {sub.count > 0 && (
+                              <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1">
+                                {sub.count}
+                              </span>
+                            )}
                           </div>
                         </Link>
                       </SheetClose>
@@ -747,7 +770,12 @@ export function Layout({ children }: { children: ReactNode }) {
                                     )}
                                   >
                                     <SubIcon className="h-3.5 w-3.5 shrink-0" />
-                                    {sub.label}
+                                    <span className="flex-1">{sub.label}</span>
+                                    {sub.count > 0 && (
+                                      <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1">
+                                        {sub.count}
+                                      </span>
+                                    )}
                                   </div>
                                 </Link>
                               );
