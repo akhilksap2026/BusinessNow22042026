@@ -320,6 +320,23 @@ export default function MyTimesheet() {
   const pageStatus: PageStatus = derivePageStatus(gridRows, weekDates);
   const isReadOnly = pageStatus === "Submitted" || pageStatus === "Approved";
 
+  // ─── Pending approvers (for Submitted state) ─────────────────────────────────
+  // Collect authorised approvers for each project currently in the grid
+  const pendingApprovers = (() => {
+    if (pageStatus !== "Submitted") return [];
+    const activeProjectIds = new Set(gridRows.map((r) => r.projectId).filter(Boolean) as number[]);
+    const seen = new Set<number>();
+    const result: { id: number; name: string }[] = [];
+    for (const p of projects) {
+      if (activeProjectIds.has(p.id)) {
+        for (const a of (p.approvers ?? [])) {
+          if (!seen.has(a.id)) { seen.add(a.id); result.push(a); }
+        }
+      }
+    }
+    return result;
+  })();
+
   // ─── Week navigation ────────────────────────────────────────────────────────
 
   const currentWeekHasDraft = gridRows.some((row) =>
@@ -815,6 +832,28 @@ export default function MyTimesheet() {
           />
         )}
 
+        {/* ── Submitted / pending-approval banner ── */}
+        {pageStatus === "Submitted" && (
+          <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-700 dark:bg-blue-950/30">
+            <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                Pending approval — your timesheet has been submitted and is locked.
+              </p>
+              {pendingApprovers.length > 0 ? (
+                <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                  Authorised approver{pendingApprovers.length > 1 ? "s" : ""}:{" "}
+                  <span className="font-medium">{pendingApprovers.map((a) => a.name).join(", ")}</span>
+                </p>
+              ) : (
+                <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-0.5 italic">
+                  No designated approver — any manager can review this.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Approved banner ── */}
         {pageStatus === "Approved" && (
           <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-3 dark:border-green-700 dark:bg-green-950/30">
@@ -847,7 +886,15 @@ export default function MyTimesheet() {
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex items-center justify-between gap-3 px-6 py-3 max-w-[1400px] mx-auto">
           <div className="text-sm text-muted-foreground">
-            {pageStatus === "Submitted" && "Your timesheet is with your approver. Recall to make changes."}
+            {pageStatus === "Submitted" && (
+              <span>
+                Awaiting approval
+                {pendingApprovers.length > 0 && (
+                  <> from <span className="font-medium text-foreground">{pendingApprovers.map((a) => a.name).join(", ")}</span></>
+                )}
+                . Recall to make changes.
+              </span>
+            )}
             {pageStatus === "Rejected" && "Some entries need correction. Edit the highlighted rows and resubmit."}
             {pageStatus === "Mixed" && "You have a mix of draft and submitted entries this week."}
           </div>

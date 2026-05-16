@@ -50,6 +50,7 @@ export interface DetailEntry {
   resubmissionType: string | null;
   auditLog: AuditLogEntry[];
   budgetHours?: number | null;
+  approvers?: { id: number; name: string }[];
 }
 
 interface ApprovalEntryRowProps {

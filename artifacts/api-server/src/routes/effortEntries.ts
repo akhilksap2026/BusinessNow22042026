@@ -859,8 +859,30 @@ router.get("/time/assigned-projects", async (req: Request, res: Response): Promi
     : [];
   const rulesMap = new Map(rules.map(r => [r.projectId, r]));
 
+  // Fetch designated timesheet approvers per project
+  const approverRows = projectIds.length > 0
+    ? await db
+        .select({ projectId: allocationsTable.projectId, userId: usersTable.id, userName: usersTable.name })
+        .from(allocationsTable)
+        .innerJoin(usersTable, eq(usersTable.id, allocationsTable.userId))
+        .where(and(
+          inArray(allocationsTable.projectId, projectIds),
+          eq((allocationsTable as any).isTimesheetApprover, true),
+        ))
+    : [];
+  const approversMap = new Map<number, { id: number; name: string }[]>();
+  for (const row of approverRows) {
+    const list = approversMap.get(row.projectId) ?? [];
+    if (!list.find((a) => a.id === row.userId)) list.push({ id: row.userId, name: row.userName });
+    approversMap.set(row.projectId, list);
+  }
+
   res.json({
-    data: unique.map(p => ({ ...p, contractRules: rulesMap.get(p.id) ?? null })),
+    data: unique.map(p => ({
+      ...p,
+      contractRules: rulesMap.get(p.id) ?? null,
+      approvers: approversMap.get(p.id) ?? [],
+    })),
     total: unique.length,
   });
 });
@@ -927,6 +949,37 @@ router.get("/time/approval-queue", async (req: Request, res: Response): Promise<
     : [];
   const userMap = new Map(users.map(u => [u.id, u.name]));
 
+  // Fetch per-bucket project IDs and their designated approvers
+  const allSubmittedEntries = submissions.length > 0
+    ? await db
+        .select({ resourceId: effortEntriesTable.resourceId, weekStartDate: effortEntriesTable.weekStartDate, projectId: effortEntriesTable.projectId })
+        .from(effortEntriesTable)
+        .where(eq(effortEntriesTable.status, "Submitted"))
+    : [];
+  const bucketProjects = new Map<string, Set<number>>();
+  for (const e of allSubmittedEntries) {
+    const key = `${e.resourceId}:${e.weekStartDate}`;
+    const s = bucketProjects.get(key) ?? new Set<number>();
+    s.add(e.projectId); bucketProjects.set(key, s);
+  }
+  const allQueueProjectIds = [...new Set(allSubmittedEntries.map((e) => e.projectId))];
+  const queueApproverRows = allQueueProjectIds.length > 0
+    ? await db
+        .select({ projectId: allocationsTable.projectId, userId: usersTable.id, userName: usersTable.name })
+        .from(allocationsTable)
+        .innerJoin(usersTable, eq(usersTable.id, allocationsTable.userId))
+        .where(and(
+          inArray(allocationsTable.projectId, allQueueProjectIds),
+          eq((allocationsTable as any).isTimesheetApprover, true),
+        ))
+    : [];
+  const queueProjectApprovers = new Map<number, { id: number; name: string }[]>();
+  for (const row of queueApproverRows) {
+    const list = queueProjectApprovers.get(row.projectId) ?? [];
+    if (!list.find((a) => a.id === row.userId)) list.push({ id: row.userId, name: row.userName });
+    queueProjectApprovers.set(row.projectId, list);
+  }
+
   const now = new Date();
   const result = submissions.map(s => {
     const weekEnd = new Date(`${s.weekStartDate}T00:00:00Z`);
@@ -934,6 +987,16 @@ router.get("/time/approval-queue", async (req: Request, res: Response): Promise<
     const daysSinceSubmission = s.earliestUpdated
       ? Math.floor((now.getTime() - new Date(s.earliestUpdated).getTime()) / 86_400_000)
       : 0;
+    // Collect deduplicated approvers across all projects in this bucket
+    const bucketKey = `${s.resourceId}:${s.weekStartDate}`;
+    const projIds = [...(bucketProjects.get(bucketKey) ?? new Set<number>())];
+    const seenApprover = new Set<number>();
+    const approvers: { id: number; name: string }[] = [];
+    for (const pid of projIds) {
+      for (const a of (queueProjectApprovers.get(pid) ?? [])) {
+        if (!seenApprover.has(a.id)) { seenApprover.add(a.id); approvers.push(a); }
+      }
+    }
     return {
       resourceId:        s.resourceId,
       submitterName:     userMap.get(s.resourceId) ?? `User ${s.resourceId}`,
@@ -945,6 +1008,7 @@ router.get("/time/approval-queue", async (req: Request, res: Response): Promise<
       entryCount:        s.entryCount,
       daysSinceSubmission,
       status:            "Submitted",
+      approvers,
     };
   });
 
@@ -987,11 +1051,38 @@ router.get("/time/approval-queue/:resourceId/:weekStart", async (req: Request, r
   const [submitter] = await db.select({ name: usersTable.name }).from(usersTable)
     .where(eq(usersTable.id, resourceId)).limit(1);
 
+  // Fetch designated approvers for each project represented in this submission
+  const drillProjectIds = [...new Set(entries.map((e) => e.projectId))];
+  const drillApproverRows = drillProjectIds.length > 0
+    ? await db
+        .select({ projectId: allocationsTable.projectId, userId: usersTable.id, userName: usersTable.name })
+        .from(allocationsTable)
+        .innerJoin(usersTable, eq(usersTable.id, allocationsTable.userId))
+        .where(and(
+          inArray(allocationsTable.projectId, drillProjectIds),
+          eq((allocationsTable as any).isTimesheetApprover, true),
+        ))
+    : [];
+  const drillProjectApprovers = new Map<number, { id: number; name: string }[]>();
+  const allApproversSeen = new Set<number>();
+  const allApprovers: { id: number; name: string }[] = [];
+  for (const row of drillApproverRows) {
+    const list = drillProjectApprovers.get(row.projectId) ?? [];
+    if (!list.find((a) => a.id === row.userId)) list.push({ id: row.userId, name: row.userName });
+    drillProjectApprovers.set(row.projectId, list);
+    if (!allApproversSeen.has(row.userId)) { allApproversSeen.add(row.userId); allApprovers.push({ id: row.userId, name: row.userName }); }
+  }
+
   res.json({
     resourceId,
     submitterName: submitter?.name ?? `User ${resourceId}`,
     weekStart,
-    entries: entries.map(e => ({ ...e, auditLog: auditByEntry.get(e.id) ?? [] })),
+    allApprovers,
+    entries: entries.map(e => ({
+      ...e,
+      auditLog: auditByEntry.get(e.id) ?? [],
+      approvers: drillProjectApprovers.get(e.projectId) ?? [],
+    })),
     total: entries.length,
   });
 });

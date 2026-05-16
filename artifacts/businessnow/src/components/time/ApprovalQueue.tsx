@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Clock, AlertTriangle, RefreshCw } from "lucide-react";
+import { Search, Clock, AlertTriangle, RefreshCw, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export interface QueueSubmission {
   entryCount: number;
   daysSinceSubmission: number;
   status: string;
+  approvers: { id: number; name: string }[];
 }
 
 interface ApprovalQueueProps {
@@ -186,6 +187,22 @@ export function ApprovalQueue({ selected, onSelect }: ApprovalQueueProps) {
                     </Badge>
                   )}
                 </div>
+
+                {/* Row 4: Authorised approvers */}
+                {sub.approvers?.length > 0 && (
+                  <div className="flex items-center gap-1 pl-9 mt-1.5">
+                    <UserCheck className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="text-xs text-muted-foreground">
+                      {sub.approvers.map((a) => a.name).join(", ")}
+                    </span>
+                  </div>
+                )}
+                {(!sub.approvers || sub.approvers.length === 0) && (
+                  <div className="flex items-center gap-1 pl-9 mt-1.5">
+                    <UserCheck className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                    <span className="text-xs text-muted-foreground/60 italic">No designated approver</span>
+                  </div>
+                )}
               </button>
             );
           })

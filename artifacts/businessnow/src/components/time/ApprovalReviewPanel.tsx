@@ -4,6 +4,7 @@ import {
   Clock,
   CheckSquare,
   Square,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,6 +49,7 @@ export function ApprovalReviewPanel({
   const { toast } = useToast();
 
   const [entries, setEntries] = useState<DetailEntry[]>([]);
+  const [allApprovers, setAllApprovers] = useState<{ id: number; name: string }[]>([]);
   const [projectNames, setProjectNames] = useState<Record<number, string>>({});
   const [taskNames, setTaskNames] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -72,6 +74,7 @@ export function ApprovalReviewPanel({
       if (r.ok) {
         const data = await r.json();
         setEntries(data.entries ?? []);
+        setAllApprovers(data.allApprovers ?? []);
 
         // Resolve project/task names
         const projectIds = [...new Set((data.entries ?? []).map((e: DetailEntry) => e.projectId))];
@@ -233,6 +236,17 @@ export function ApprovalReviewPanel({
               <span>Leave: <span className="font-medium">{leaveHours.toFixed(1)}</span></span>
               <span className="text-muted-foreground">|</span>
               <span>Utilization: <span className="font-medium">{utilization}%</span></span>
+            </div>
+            {/* Authorised approvers row */}
+            <div className="flex items-center gap-1.5 mt-2">
+              <UserCheck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Authorised approvers:</span>{" "}
+                {allApprovers.length > 0
+                  ? allApprovers.map((a) => a.name).join(", ")
+                  : <span className="italic">None designated — any manager can approve</span>
+                }
+              </span>
             </div>
           </div>
 

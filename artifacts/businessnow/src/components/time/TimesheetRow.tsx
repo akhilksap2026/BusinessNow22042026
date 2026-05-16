@@ -22,6 +22,7 @@ export interface AssignedProject {
     incrementMinutes?: number | null;
     maxBillableHours?: string | null;
   } | null;
+  approvers?: { id: number; name: string }[];
 }
 
 export interface AssignedTask {
