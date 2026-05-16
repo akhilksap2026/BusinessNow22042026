@@ -1,0 +1,160 @@
+INSTRUCTION TO REPLIT:
+
+Using the audit findings from Prompt 0, build ONLY the missing database schema items.
+
+For each item below:
+- If the audit found it EXISTS: write "EXISTS — skipping" and move on
+- If the audit found it PARTIAL: write exactly what fields are being added
+- If NOT FOUND: create it fresh
+
+Do not modify any existing table that is working correctly.
+Do not rename existing fields.
+Use the same ORM/migration tool already in the project (identified in audit).
+
+══════════════════════════════════════════════
+SCHEMA ITEMS TO CREATE / EXTEND
+══════════════════════════════════════════════
+
+Check each against audit Section C before doing anything:
+
+─────────────────────────────────────────
+1. leave_types table (create only if NOT FOUND in audit)
+─────────────────────────────────────────
+Fields:
+- id (UUID, PK)
+- code (VARCHAR 10, unique) e.g. 'CL', 'SL', 'EL', 'CO', 'LOP', 'PH'
+- name (VARCHAR 100) e.g. 'Casual Leave'
+- is_active (BOOLEAN, default true)
+- created_at, updated_at
+
+Seed with:
+('CL', 'Casual Leave'),
+('SL', 'Sick Leave'),
+('EL', 'Earned / Paid Leave'),
+('CO', 'Compensatory Off'),
+('LOP', 'Loss of Pay'),
+('PH', 'Public Holiday')
+
+─────────────────────────────────────────
+2. financial_periods table (create only if NOT FOUND)
+─────────────────────────────────────────
+Fields:
+- id (UUID, PK)
+- period_name (VARCHAR 100) e.g. 'January 2025'
+- start_date (DATE, not null)
+- end_date (DATE, not null)
+- status (ENUM: 'Open', 'Closed', default 'Open')
+- cfo_override_enabled (BOOLEAN, default false)
+- cfo_override_user_id (UUID FK → users.id, nullable)
+- cfo_override_expires_at (TIMESTAMP, nullable)
+- created_at, updated_at
+
+Seed with: current month (Open) + previous month (Closed)
+
+─────────────────────────────────────────
+3. contract_rules table (create only if NOT FOUND)
+─────────────────────────────────────────
+Fields:
+- id (UUID, PK)
+- project_id (UUID FK → projects.id, UNIQUE)
+- contract_type (ENUM: 'Time_And_Materials', 'Fixed_Bid', default 'Time_And_Materials')
+- increment_minutes (INTEGER, default 15) — valid values: 15, 30, 60
+- max_billable_hours (DECIMAL 8,2, nullable) — only for Fixed_Bid
+- narrative_required (BOOLEAN, default false)
+- future_date_buffer_days (INTEGER, default 7)
+- max_daily_hours (DECIMAL 4,2, default 24)
+- created_at, updated_at
+
+─────────────────────────────────────────
+4. proxy_delegations table (create only if NOT FOUND)
+─────────────────────────────────────────
+Fields:
+- id (UUID, PK)
+- proxy_user_id (UUID FK → users.id)
+- target_user_id (UUID FK → users.id)
+- granted_by_id (UUID FK → users.id)
+- delegation_reason (TEXT, not null) — why proxy is needed
+- valid_from (DATE, not null)
+- valid_until (DATE, not null)
+- is_active (BOOLEAN, default true)
+- created_at, updated_at
+
+CONSTRAINT: proxy_user_id ≠ target_user_id
+
+─────────────────────────────────────────
+5. effort_entries table (create if NOT FOUND; extend if PARTIAL)
+─────────────────────────────────────────
+Full field list. Add only what's missing per audit:
+- id (UUID, PK)
+- resource_id (UUID FK → users.id) — employee whose time this is
+- entered_by_id (UUID FK → users.id) — who created the record (differs for proxy)
+- proxy_delegation_id (UUID FK → proxy_delegations.id, nullable)
+- project_id (UUID FK → projects.id)
+- task_id (UUID FK → tasks.id, nullable) — nullable for Leave entries
+- leave_type_id (UUID FK → leave_types.id, nullable) — populated when is_leave = true
+- entry_date (DATE, not null)
+- duration_hours (DECIMAL 5,2, not null, check > 0)
+- billable_category (ENUM: 'Billable', 'Non-Billable', default 'Non-Billable')
+- original_billable_category (ENUM: 'Billable', 'Non-Billable', nullable) — pre-override value
+- narrative (TEXT, nullable)
+- is_leave (BOOLEAN, default false)
+- is_exceptional (BOOLEAN, default false)
+- exceptional_justification (TEXT, nullable)
+- is_replicated (BOOLEAN, default false)
+- status (ENUM: 'Draft', 'Submitted', 'Approved', 'Rejected', 'Processed', default 'Draft')
+- rejection_reason (TEXT, nullable)
+- rejected_by_id (UUID FK → users.id, nullable) — for routing resubmission
+- resubmission_type (ENUM: 'Rejection_Correction', 'Voluntary_Recall', nullable)
+- week_start_date (DATE) — Monday of entry_date's week, computed on insert
+- financial_period_id (UUID FK → financial_periods.id, nullable)
+- created_at, updated_at
+
+─────────────────────────────────────────
+6. effort_audit_log table (create if NOT FOUND; extend if PARTIAL)
+─────────────────────────────────────────
+Fields:
+- id (UUID, PK)
+- effort_entry_id (UUID FK → effort_entries.id)
+- action (ENUM: 'Created', 'Updated', 'Submitted', 'Recalled', 'Approved', 'Rejected', 'Resubmitted', 'Override_Billable', 'Proxy_Created', 'Proxy_Updated', 'Processed')
+- performed_by_id (UUID FK → users.id)
+- proxy_delegation_id (UUID FK → proxy_delegations.id, nullable)
+- performed_at (TIMESTAMP not null, default now())
+- field_changes (JSONB / TEXT) — snapshot: { field: [old_value, new_value], ... }
+- notes (TEXT, nullable)
+
+CONSTRAINT: No UPDATE or DELETE on this table. Append-only enforced at API layer.
+
+─────────────────────────────────────────
+7. ADDITIONS TO EXISTING TABLES (only add, never rename or remove)
+─────────────────────────────────────────
+
+On projects table — add if missing:
+- status (ENUM: 'Active', 'Closed', 'Financially_Reconciled')
+- contract_type (ENUM: 'Time_And_Materials', 'Fixed_Bid', default 'Time_And_Materials')
+
+On tasks table — add if missing:
+- status (ENUM: 'Active', 'Closed', default 'Active')
+- default_billable_category (ENUM: 'Billable', 'Non-Billable', default 'Non-Billable')
+- budget_hours (DECIMAL 6,2, nullable) — allocated hours from project planning; null = no cap
+
+On users table — add if missing:
+- role (ENUM or FK — use whatever role system found in audit)
+  Required roles: 'Consultant', 'Project_Manager', 'Approver', 'Authorized_Approver', 'Finance', 'Admin'
+
+══════════════════════════════════════════════
+AFTER SCHEMA WORK
+══════════════════════════════════════════════
+
+1. Run all migrations
+2. Verify: all foreign keys resolve correctly
+3. Verify: no existing data is broken by additions
+4. Do NOT seed test data yet — that happens in Prompt 2
+
+Report when done:
+- List every migration file created with its name
+- List every table modified and what was added
+- List every item SKIPPED because it already existed
+- Confirm: "Migrations ran successfully. No existing data broken."
+
+DO NOT write any API code. DO NOT write any frontend code.
+Report when done with: "SCHEMA COMPLETE. READY FOR PROMPT 2 REVIEW."

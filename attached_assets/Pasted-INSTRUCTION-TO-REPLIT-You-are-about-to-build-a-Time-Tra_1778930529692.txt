@@ -1,0 +1,151 @@
+INSTRUCTION TO REPLIT:
+
+You are about to build a Time Tracking module for BusinessNow PSA. Before writing a single line of code, you must audit the existing codebase. This is mandatory. Do not skip any section.
+
+Read the codebase and answer every question below. Output a structured report with the exact section headings shown. If you cannot find information for a section, write "NOT FOUND" — do not guess or invent.
+
+══════════════════════════════════════════════
+SECTION A: EXISTING TIME TRACKING CODE
+══════════════════════════════════════════════
+
+Search for any existing implementation of:
+- Timesheets, time entries, effort logging, hours tracking
+- Any file with names containing: time, timesheet, effort, hours, log-time, work-log
+
+For each file found, report:
+| File Path | Type (component/service/model/route/migration) | What it does | Status (working/partial/stub/broken) | Safe to reuse? |
+
+══════════════════════════════════════════════
+SECTION B: NAVIGATION & ROUTING
+══════════════════════════════════════════════
+
+Find the main navigation configuration file(s).
+List every route and navigation item currently defined.
+Identify specifically:
+- Is there a "Time Tracking", "My Timesheet", or "Log Time" navigation item? What route does it point to?
+- Is there an "Approvals" navigation item? What route? What component does it render?
+- What is the navigation structure type (sidebar, top nav, tab bar)?
+
+Report the navigation config file path and the exact entries relevant to time tracking.
+
+══════════════════════════════════════════════
+SECTION C: DATABASE / DATA MODELS
+══════════════════════════════════════════════
+
+Find and list ALL database models/tables currently defined. For each:
+| Model/Table Name | File Path | Key Fields (name and type) | Status Enum values if any |
+
+Then specifically identify whether these models/fields already exist:
+1. effort_entries table — exists? Fields: id, resource_id, project_id, task_id, entry_date, duration_hours, status, billable_category, narrative, is_exceptional, is_leave, leave_type_id, entered_by_id, financial_period_id
+2. effort_audit_log table — exists?
+3. financial_periods table — exists?
+4. proxy_delegations table — exists?
+5. contract_rules table (per-project billing increment, fixed-bid cap) — exists?
+6. leave_types table — exists? If yes, list the leave type values.
+7. On the projects table: fields for status (Active/Closed), contract_type (Fixed-Bid/T&M)
+8. On the tasks table: fields for status, default_billable_category, budget_hours
+9. On the users table: fields for role
+
+For each: EXISTS / PARTIAL (list what's missing) / NOT FOUND
+
+══════════════════════════════════════════════
+SECTION D: EXISTING API ENDPOINTS
+══════════════════════════════════════════════
+
+List every API endpoint currently defined in the codebase.
+Format: METHOD | Path | Controller/Handler file | What it does
+
+Then flag which ones are relevant to:
+- Time/effort entry (CRUD)
+- Project and task data (for dropdowns)
+- User/resource data
+- Approval workflow
+- Notifications
+
+══════════════════════════════════════════════
+SECTION E: AUTHENTICATION & RBAC
+══════════════════════════════════════════════
+
+Find the authentication system:
+- What auth library/mechanism is used? (JWT, session, OAuth, etc.)
+- How is the current user identified in requests?
+- Where is the auth middleware defined?
+- How are roles currently defined and enforced?
+- What roles currently exist in the system?
+
+Find the RBAC/permission system:
+- Is there a permissions framework (e.g., role-based guards, policy files)?
+- Where are role checks currently applied (middleware / component guards / API layer)?
+- File paths for all permission-related files
+
+══════════════════════════════════════════════
+SECTION F: EXISTING REUSABLE COMPONENTS
+══════════════════════════════════════════════
+
+List components that can be directly reused or adapted for the time tracking UI:
+- Dropdown/select components (with search/filter capability?)
+- Date picker components
+- Modal/dialog components
+- Toast/notification components
+- Data table/grid components
+- Loading/skeleton components
+- Form input components (especially number inputs)
+- Status badge components
+- Week/date range navigator
+
+For each: Component name | File path | Props/API | Reusable as-is / needs minor adaptation
+
+══════════════════════════════════════════════
+SECTION G: NOTIFICATION SYSTEM
+══════════════════════════════════════════════
+
+- Is there an existing notification service (in-app or email)?
+- File path of the notification service/utility
+- How are notifications triggered (direct call / event / queue)?
+- What data does a notification call require?
+
+══════════════════════════════════════════════
+SECTION H: STATE MANAGEMENT
+══════════════════════════════════════════════
+
+- What state management approach is used? (Redux, Zustand, Context API, Pinia, Vuex, etc.)
+- Is there an existing store for user/auth state? File path?
+- Is there an existing store for project/task data? File path?
+- How is server state managed? (React Query, SWR, manual fetch, etc.)
+
+══════════════════════════════════════════════
+SECTION I: FRONTEND FRAMEWORK & CONVENTIONS
+══════════════════════════════════════════════
+
+- Framework: React / Vue / Angular / other? Version?
+- Styling: Tailwind / CSS Modules / styled-components / other?
+- Component file convention: .jsx / .tsx / .vue / other?
+- API call convention: axios / fetch / trpc / other? Where is the API client configured?
+- Folder structure convention for new features (describe the pattern)
+
+══════════════════════════════════════════════
+SECTION J: WHAT ALREADY EXISTS FOR TIME TRACKING
+══════════════════════════════════════════════
+
+Based on everything found above, answer:
+1. What time tracking functionality is already built and working?
+2. What is partially built but incomplete?
+3. What is completely absent and must be built from scratch?
+4. List every file that will be REUSED (no changes needed)
+5. List every file that will be EXTENDED (modified but not replaced)
+6. List every file/component that must be CREATED NEW
+
+══════════════════════════════════════════════
+OUTPUT FORMAT
+══════════════════════════════════════════════
+
+Produce the report section by section with the exact headings above.
+End the report with a summary table:
+
+| Item | Status | Action Required |
+|------|--------|-----------------|
+| effort_entries model | EXISTS / PARTIAL / MISSING | Reuse / Extend / Create |
+| ... (one row per key item) | | |
+
+DO NOT write any code. DO NOT create any files. Report only.
+Report when done with: "AUDIT COMPLETE. READY FOR PROMPT 1 REVIEW."
