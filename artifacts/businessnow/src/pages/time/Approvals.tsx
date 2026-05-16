@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import { useAccountPermissions } from "@/lib/permissions";
 import { useCurrentUser } from "@/contexts/current-user";
-import Forbidden from "@/pages/forbidden";
+import { useToast } from "@/hooks/use-toast";
 import { ApprovalQueue, type QueueSubmission } from "@/components/time/ApprovalQueue";
 import { ApprovalReviewPanel } from "@/components/time/ApprovalReviewPanel";
 import { ClipboardCheck } from "lucide-react";
@@ -24,18 +25,23 @@ export default function Approvals() {
   const { activeRole } = useCurrentUser();
   const checkPerm = useAccountPermissions(activeRole);
   const canApprove = checkPerm("timeTracking.approve");
-
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [selected, setSelected] = useState<QueueSubmission | null>(null);
 
-  // Role guard — redirect to Forbidden for roles without approve permission
-  if (!canApprove) {
-    return <Forbidden />;
-  }
+  // E1: redirect Consultant (and other non-approver roles) with toast
+  useEffect(() => {
+    if (!canApprove) {
+      toast({ title: "Access restricted.", variant: "destructive" });
+      navigate("/time/timesheet");
+    }
+  }, [canApprove, toast, navigate]);
+
+  if (!canApprove) return null;
 
   return (
     <Layout>
       <div className="flex flex-col h-screen overflow-hidden">
-        {/* Page header */}
         <div className="px-6 py-4 border-b border-border bg-background shrink-0">
           <PageHeader
             title="Approvals"
@@ -46,9 +52,7 @@ export default function Approvals() {
           />
         </div>
 
-        {/* Split layout */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left panel — queue (30%) */}
           <div className="w-[320px] shrink-0 border-r border-border overflow-hidden flex flex-col bg-background">
             <ApprovalQueue
               selected={selected}
@@ -56,7 +60,6 @@ export default function Approvals() {
             />
           </div>
 
-          {/* Right panel — review (70%) */}
           <div className="flex-1 overflow-hidden bg-muted/10">
             {selected ? (
               <ApprovalReviewPanel

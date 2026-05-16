@@ -336,11 +336,14 @@ export default function MyTimesheet() {
 
   const handleCellChange = useCallback((rowKey: string, date: string, hours: number) => {
     setGridRows((prev) =>
-      prev.map((r) =>
-        r.rowKey === rowKey
-          ? { ...r, hours: { ...r.hours, [date]: hours } }
-          : r,
-      ),
+      prev.map((r) => {
+        if (r.rowKey !== rowKey) return r;
+        const updatedHours = { ...r.hours, [date]: hours };
+        const rowTotal = Object.values(updatedHours).reduce((s, h) => s + h, 0);
+        // B3: auto-flag exceptional when row total exceeds task budget
+        const isExceptional = r.budgetHours !== null && r.budgetHours > 0 && rowTotal > r.budgetHours;
+        return { ...r, hours: updatedHours, isExceptional };
+      }),
     );
     // Auto-save to localStorage
     if (userId) {
@@ -888,14 +891,41 @@ export default function MyTimesheet() {
             )}
 
             {pageStatus === "Submitted" && (
-              <Button variant="outline" onClick={() => setRecallOpen(true)} className="gap-1.5">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // C4: block recall if approver has already acted
+                  const acted = gridRows.some((r) =>
+                    weekDates.some((d) => r.statuses[d] === "Approved" || r.statuses[d] === "Rejected"),
+                  );
+                  if (acted) {
+                    toast({ title: "Cannot recall: your approver has already acted on one or more entries.", variant: "destructive" });
+                    return;
+                  }
+                  setRecallOpen(true);
+                }}
+                className="gap-1.5"
+              >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Recall Timesheet
               </Button>
             )}
 
             {pageStatus === "Mixed" && (
-              <Button variant="outline" onClick={() => setRecallOpen(true)} className="gap-1.5">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const acted = gridRows.some((r) =>
+                    weekDates.some((d) => r.statuses[d] === "Approved" || r.statuses[d] === "Rejected"),
+                  );
+                  if (acted) {
+                    toast({ title: "Cannot recall: your approver has already acted on one or more entries.", variant: "destructive" });
+                    return;
+                  }
+                  setRecallOpen(true);
+                }}
+                className="gap-1.5"
+              >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Recall All
               </Button>

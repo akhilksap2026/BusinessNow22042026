@@ -17,7 +17,11 @@ import { cn } from "@/lib/utils";
 export interface AssignedProject {
   id: number;
   name: string;
-  contractRules?: { contractType?: string } | null;
+  contractRules?: {
+    contractType?: string;
+    incrementMinutes?: number | null;
+    maxBillableHours?: string | null;
+  } | null;
 }
 
 export interface AssignedTask {
@@ -138,19 +142,58 @@ export function TimesheetRow({
       const displayVal = hours === 0 ? "" : String(hours);
       setCellInputs((prev) => ({ ...prev, [date]: displayVal }));
 
+      const project = row.projectId ? projects.find((p) => p.id === row.projectId) : null;
+      const contractRules = project?.contractRules;
+
       if (raw !== "" && isNaN(parsed)) {
         setCellErrors((prev) => ({ ...prev, [date]: "Invalid number" }));
-      } else {
-        setCellErrors((prev) => {
-          const next = { ...prev };
-          delete next[date];
-          return next;
-        });
+        onCellChange(date, 0);
+        return;
       }
+
+      // B2: increment validation
+      const incMins = contractRules?.incrementMinutes;
+      if (incMins && hours > 0) {
+        const incHrs = incMins / 60;
+        const remainder = Math.round((hours % incHrs) * 10000) / 10000;
+        if (remainder > 0.0001 && remainder < incHrs - 0.0001) {
+          const lower = Math.floor(hours / incHrs) * incHrs;
+          const upper = lower + incHrs;
+          setCellErrors((prev) => ({
+            ...prev,
+            [date]: `Did you mean ${lower.toFixed(2)} or ${upper.toFixed(2)}? (${incMins}-min increments)`,
+          }));
+          onCellChange(date, hours);
+          return;
+        }
+      }
+
+      // B5: fixed-bid billable cap
+      const maxBill = contractRules?.maxBillableHours ? Number(contractRules.maxBillableHours) : null;
+      if (maxBill !== null && row.billableCategory === "Billable") {
+        const otherDayHours = Object.entries(row.hours)
+          .filter(([d]) => d !== date)
+          .reduce((s, [, h]) => s + h, 0);
+        const projectedTotal = otherDayHours + hours;
+        if (projectedTotal > maxBill) {
+          setCellErrors((prev) => ({
+            ...prev,
+            [date]: `Exceeds fixed-bid billable cap of ${maxBill} hrs (${projectedTotal.toFixed(2)} total)`,
+          }));
+          onCellChange(date, hours);
+          return;
+        }
+      }
+
+      setCellErrors((prev) => {
+        const next = { ...prev };
+        delete next[date];
+        return next;
+      });
 
       onCellChange(date, hours);
     },
-    [cellInputs, onCellChange],
+    [cellInputs, onCellChange, row, projects],
   );
 
   const projectValue = row.isLeave ? "__LEAVE__" : row.projectId ? String(row.projectId) : "";
