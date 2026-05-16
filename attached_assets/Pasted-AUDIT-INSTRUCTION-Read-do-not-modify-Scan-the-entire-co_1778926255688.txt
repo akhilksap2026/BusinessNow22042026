@@ -1,0 +1,95 @@
+AUDIT INSTRUCTION — Read, do not modify.
+
+Scan the entire codebase and produce a structured audit report covering the following:
+
+────────────────────────────────────────────
+1. EXISTING TIMESHEET SCREENS
+────────────────────────────────────────────
+Locate every file related to:
+- "My Timesheet" tab/view
+- "Log Time" tab/view
+- "Approvals" tab/view (note: this will NOT be touched)
+
+For each file found, record:
+- File path
+- Framework/component type (React component, Vue component, controller, template, etc.)
+- Route or navigation entry point
+- Primary responsibilities (what it renders / what APIs it calls)
+- Current state: working / partial / stub
+
+────────────────────────────────────────────
+2. EXISTING APIs CONSUMED BY TIMESHEET SCREENS
+────────────────────────────────────────────
+List every API endpoint called by the My Timesheet and Log Time views:
+- HTTP method + path
+- What it fetches or mutates
+- Which screen uses it
+- Whether it is shared with Approvals (flag these — must not be broken)
+
+────────────────────────────────────────────
+3. EXISTING VALIDATIONS
+────────────────────────────────────────────
+List every validation currently implemented for timesheet entry:
+- Where it lives (client-side component / service / API middleware / DB constraint)
+- What it validates (describe the rule)
+- Whether it will remain unchanged or needs to be extended
+
+────────────────────────────────────────────
+4. EXISTING DATA MODELS
+────────────────────────────────────────────
+Identify the models/tables used for:
+- Timesheet entries / effort records
+- Projects and tasks (including the assignment relationship to users)
+- Leave types
+- Submission status / lifecycle
+- Approval workflow
+
+For each model, note: table/model name, key fields, current status field values (enum values).
+
+────────────────────────────────────────────
+5. EXISTING STATE MANAGEMENT
+────────────────────────────────────────────
+- How is week navigation state managed? (URL param / component state / store)
+- How is the selected resource/user tracked?
+- Is there a shared timesheet store/context? If so, identify it.
+
+────────────────────────────────────────────
+6. RBAC / PERMISSIONS
+────────────────────────────────────────────
+- What roles exist in the system?
+- What permissions govern timesheet creation, editing, submission, and approval?
+- Where are these enforced (middleware / frontend guards / API)?
+
+────────────────────────────────────────────
+7. REUSABLE COMPONENTS
+────────────────────────────────────────────
+List any existing components that can be directly reused or minimally adapted:
+- Dropdowns (project selector, task selector)
+- Hour input fields
+- Week navigator / date range picker
+- Status badges
+- Toast notifications
+- Confirmation modals
+
+────────────────────────────────────────────
+8. LEAVE HANDLING
+────────────────────────────────────────────
+- Is "Leave" currently handled in the timesheet system?
+- If yes: how is it represented in the data model? What leave types exist?
+- If no: note what needs to be added (see requirements below)
+
+────────────────────────────────────────────
+OUTPUT FORMAT
+────────────────────────────────────────────
+Produce a structured report with the following sections:
+A. Timesheet Screen Inventory (table)
+B. API Inventory (table: Method | Path | Used By | Shared with Approvals?)
+C. Existing Validations (table: Rule | Location | Status: Keep / Extend / New)
+D. Data Models (table: Model | Table | Key Fields | Status Enum)
+E. State Management Summary (paragraph)
+F. RBAC Summary (table: Role | Timesheet Permissions)
+G. Reusable Components (bulleted list with file paths)
+H. Leave Handling Status (paragraph + recommendation)
+I. Implementation Plan (ordered list of steps, no code yet)
+
+Do NOT make any changes. Output report only.
