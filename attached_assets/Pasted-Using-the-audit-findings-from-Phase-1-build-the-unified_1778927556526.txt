@@ -1,0 +1,231 @@
+Using the audit findings from Phase 1, build the unified WeeklyTimesheetView component.
+
+IMPORTANT CONSTRAINTS:
+- Reuse every component, service, and API identified as reusable in the audit
+- Do NOT rebuild anything that already works
+- Do NOT touch the Approvals tab or any API shared with it
+- Replace the My Timesheet and Log Time subtabs with this single view
+- Match the existing project's UI framework (detect from codebase)
+
+════════════════════════════════════════════
+DESIGN SPECIFICATION
+════════════════════════════════════════════
+
+Reference: The attached timesheet screenshot (ClickTime-style grid layout)
+
+Visual language:
+- Clean, information-dense enterprise aesthetic
+- Compact row height — no excessive padding
+- Column headers for days are short (Mon 10/18, Tue 10/19, etc.)
+- Inputs are tight, numeric-only cells
+- Footer row shows daily totals prominently
+- Use the existing app's color system — do not introduce a new palette
+- Status indicators use subtle color coding (draft = grey, submitted = blue, approved = green, rejected = red)
+
+════════════════════════════════════════════
+LAYOUT STRUCTURE
+════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  HEADER AREA                                                        │
+│  "Weekly Timesheet" [h1]     Status Badge     [← Prev] [Week Range] [Next →]  │
+│  Timesheet for: [Resource Name / Proxy Selector]                    │
+│  Period view toggle: [Work Week] [Payroll Period]   [Current] link  │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  SUMMARY BAR (below header)                                         │
+│  Total This Week: XX.X hrs  │  Billable: XX.X  │  Leave: X.X       │
+│  [Exceptional entries: N — requires justification]  (if applicable) │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  TIMESHEET GRID                                                     │
+├────────────────┬────────────────┬──────────────────────────────┬────┤
+│ Project        │ Task / Activity│ Mon  Tue  Wed  Thu  Fri  Sat  Sun │Total│
+├────────────────┼────────────────┼──────────────────────────────┼────┤
+│ [Dropdown ▼]   │ [Dropdown ▼]   │ [  ] [  ] [  ] [  ] [  ] [  ] [  ]│0.00│
+│ [Dropdown ▼]   │ [Dropdown ▼]   │ [  ] [  ] [  ] [  ] [  ] [  ] [  ]│0.00│
+│ Leave ▼        │ [Leave Type ▼] │ [  ] [  ] [  ] [  ] [  ] [  ] [  ]│0.00│
+├────────────────┴────────────────┴──────────────────────────────┴────┤
+│  [+ Add Row]                                                        │
+├────────────────────────────────────────────────────────────────────-┤
+│  Total Paid:                  │ X.XX X.XX X.XX X.XX X.XX X.XX X.XX │X.XX│
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  DESCRIPTION PANEL (appears below grid when a cell is active)       │
+│  "Description for [Day] [Project] — [Task]"                         │
+│  [Textarea — up to 1000 chars]                                      │
+│  PII warning appears inline if sensitive pattern detected           │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  EXCEPTIONAL JUSTIFICATION PANEL (conditionally visible)            │
+│  ⚠ "Hours entered exceed allocated task hours. Justification        │
+│     required before submission."                                    │
+│  [Textarea — justification for each flagged row]                    │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  ACTION BAR (sticky footer or bottom of form)                       │
+│  [Save Draft]  [Submit]  [Edit] (visible on submitted timesheets)   │
+│  [Re-submit] (visible after manager rejection)                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+════════════════════════════════════════════
+COMPONENT: TIMESHEET GRID ROW
+════════════════════════════════════════════
+
+Each row contains:
+
+1. PROJECT DROPDOWN
+   - Source: fetch assigned projects for current resource via existing API
+   - Options include all active assigned projects
+   - First extra option at top of list: "— Leave —" (with a calendar icon)
+   - If a project is selected and then changed: clear the Task dropdown and all hour cells for that row
+   - Closed/inactive projects must not appear
+   - Each project option shows project name only (code in muted text if present in existing data)
+
+2. TASK DROPDOWN (dependent on project selection)
+   - When a normal project is selected: fetch tasks assigned to this resource on that project
+   - When "Leave" is selected: populate with leave types from the leave types list
+     Leave types (use existing leave type data if found in audit; otherwise seed these):
+     - Casual Leave
+     - Sick Leave
+     - Earned / Paid Leave
+     - Compensatory Off
+     - Loss of Pay
+     - Public Holiday
+   - Task dropdown is disabled until a project is selected
+   - Changing task: clear all hour cells for that row
+
+3. DAY-WISE HOUR CELLS (Mon through Sun)
+   - One input cell per day of the current week
+   - Input type: number
+   - Allow decimal values (e.g., 0.5, 1.25, 7.5) — match system's existing decimal support
+   - On focus: highlight the cell and trigger the description panel below to show for that cell's context
+   - On blur: run inline validation (see validations section)
+   - If the cell's day falls in a closed financial period: render as disabled with a lock icon on hover
+   - If the timesheet is in Submitted/Approved status: render all cells as read-only
+   - Visual cue if a cell has a description: small dot indicator in the cell corner
+
+4. ROW TOTAL
+   - Auto-calculated: sum of all 7 day cells for the row
+   - Updates in real-time on every cell change
+   - If row total exceeds task's allocated hours: highlight in amber with a ⚠ icon
+   - If row total is exactly at or under allocated hours: no special styling
+
+5. ROW DELETE BUTTON
+   - Small × icon at the far right of each row
+   - Only active on Draft rows
+   - On click: confirm dialog "Remove this row? All entered hours will be lost."
+   - On confirm: remove row from state (do not call delete API until Save Draft or Submit)
+
+════════════════════════════════════════════
+COMPONENT: ADD ROW BUTTON
+════════════════════════════════════════════
+- Renders below the last data row
+- Label: "+ Add Row"
+- On click: appends a new empty row to the grid
+- New row starts with both dropdowns empty and all hour cells at 0
+- Limit: max 20 rows per timesheet (show a message if limit reached)
+
+════════════════════════════════════════════
+COMPONENT: FOOTER TOTAL ROW
+════════════════════════════════════════════
+- Pinned to bottom of grid (not a sticky position — just last row of table)
+- Label column: "Total Hours"
+- Shows column sum per day, updated in real time
+- Grand total at far right
+- If any day total exceeds 24 hours: highlight that day's total in red with tooltip "Exceeds 24-hour daily limit"
+- Below the totals row: a secondary row showing "Billable: X.X | Leave: X.X | Non-Billable: X.X" breakdown
+
+════════════════════════════════════════════
+COMPONENT: DESCRIPTION PANEL
+════════════════════════════════════════════
+- Positioned below the grid, not in a modal
+- Appears when a user clicks/focuses a specific hour cell
+- Header: "Description for [Day, Date] — [Project Name] — [Task Name]"
+- Textarea: max 1000 characters, shows character counter
+- PII detection on blur: if input matches SSN (###-##-####) or 16-digit card number patterns, show:
+  "⚠ Sensitive information detected. Please remove personal data."
+- Description is stored per cell (day + project + task combination), not per row
+- If no cell is focused: panel shows helper text "Click any hour cell to add a description"
+
+════════════════════════════════════════════
+COMPONENT: WEEK NAVIGATOR
+════════════════════════════════════════════
+- Reuse existing week navigation component if found in audit
+- [← Prev Week]  [Mon DD MMM – Sun DD MMM YYYY]  [Next Week →]
+- "Current" link jumps back to today's week
+- View toggle: [Work Week] [Payroll Period] — preserve existing toggle logic
+- Week navigation is disabled (greyed out, non-clickable) for future weeks beyond the allowed buffer
+- BLOCKED NAVIGATION RULE: If the previous week's timesheet has NOT been submitted:
+  - Disable [Next Week →]
+  - Show tooltip: "Submit your current week's timesheet before accessing the next week."
+  - Note: Approval completion is NOT required — only submission is required
+
+════════════════════════════════════════════
+COMPONENT: STATUS BADGE
+════════════════════════════════════════════
+- Positioned in the header area, right side
+- Possible states and their colors:
+  - No Entries: "Not Started" — light grey
+  - Draft: "Draft" — grey
+  - Submitted: "Submitted" — blue
+  - Approved: "Approved" — green
+  - Rejected: "Rejected" — red (show rejection reason in a tooltip)
+  - Partially Submitted: "Partial" — amber (when some rows are submitted, some still draft)
+
+════════════════════════════════════════════
+COMPONENT: SUMMARY BAR
+════════════════════════════════════════════
+- One line below the header
+- Live-updating as user enters hours
+- Shows:
+  - Total Hours This Week: XX.X
+  - Billable Hours: XX.X
+  - Leave Hours: XX.X
+  - Non-Billable Hours: XX.X
+  - Exceptional Entries: N (highlighted amber, clickable — scrolls to flagged rows)
+
+════════════════════════════════════════════
+COMPONENT: ACTION BAR
+════════════════════════════════════════════
+Button visibility rules (based on current status):
+
+STATUS: Not Started / Draft
+- [Save Draft] — primary secondary button
+- [Submit] — primary button
+
+STATUS: Submitted
+- [Edit / Recall] — if recall is supported by existing backend; if not, show disabled with tooltip "Contact your manager to unlock"
+
+STATUS: Rejected
+- [Edit] — enables the grid for modification
+- [Re-submit] — appears after edits are made; calls the resubmission endpoint
+
+STATUS: Approved / Processed
+- No edit buttons
+- Show read-only banner: "This timesheet has been approved and locked."
+
+Save Draft behavior:
+- Saves all current rows as Draft entries via existing POST/PATCH API
+- Shows success toast
+- Does NOT trigger any approval workflow
+
+Submit behavior:
+- Runs all validations first (see validation section)
+- If exceptional entries exist: scroll to justification panel and block submit until all justifications are filled
+- If replicated entries exist: show confirmation dialog
+- If previous week is not submitted: block and show error (do not call submit API)
+- On success: status badge updates to Submitted, grid cells become read-only
+
+Edit behavior:
+- Transitions status to Draft (recall API)
+- Grid becomes editable again
+
+Re-submit behavior:
+- Calls resubmission endpoint
+- Routes to original rejecting approver per existing workflow

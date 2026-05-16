@@ -1,0 +1,84 @@
+Perform end-to-end verification of the unified Weekly Timesheet implementation.
+
+════════════════════════════════════════════
+SCENARIO TESTS — run each and report PASS/FAIL
+════════════════════════════════════════════
+
+A. BASIC ENTRY FLOW
+[ ] Page loads showing current week for logged-in user
+[ ] Week navigator shows correct Mon–Sun range
+[ ] Project dropdown shows only assigned active projects plus "Leave" option
+[ ] Selecting a project populates the Task dropdown with assigned tasks only
+[ ] Selecting "Leave" populates Task dropdown with leave types
+[ ] Entering hours in cells updates row total and footer totals in real time
+[ ] Summary bar updates (Total, Billable, Leave, Non-Billable) in real time
+[ ] Description panel appears when a cell is clicked, hides when no cell is active
+
+B. SAVE & SUBMIT
+[ ] "Save Draft" saves all rows without submitting; status badge shows "Draft"
+[ ] Grid cells remain editable after Save Draft
+[ ] "Submit" triggers all validation checks before calling API
+[ ] Empty timesheet cannot be submitted (error message shown)
+[ ] Successful submit: status badge changes to "Submitted", grid becomes read-only
+
+C. VALIDATION GATES
+[ ] Entering hours that push day total above 24: daily total turns red, submit blocked
+[ ] Entering hours that exceed task allocated hours: row total turns amber, justification panel appears
+[ ] Submitting with exceptional rows but no justification: submit blocked with clear error
+[ ] Entering non-numeric value: cell resets to 0, inline error shown
+[ ] Adding duplicate Project + Task row: second row reverts, inline error shown
+[ ] Navigating to next week when current week not submitted: navigation blocked with tooltip
+
+D. LEAVE FLOW
+[ ] Selecting "Leave" as project shows leave type options in task dropdown
+[ ] Leave hours appear in "Leave" bucket of summary bar (not Billable/Non-Billable)
+[ ] Leave + work hours on same day count toward the 24-hour daily cap
+[ ] Leave row submits via same workflow as regular entries
+
+E. WEEK NAVIGATION
+[ ] Prev/Next week arrows change the week range and reload data
+[ ] "Current" link returns to today's week
+[ ] Closed financial period cells render as disabled
+
+F. APPROVALS TAB VERIFICATION (must pass untouched)
+[ ] Approvals tab still visible for users with approver role
+[ ] Approvals screen loads correctly with all submitted timesheets
+[ ] Approve and Reject actions on Approvals still work
+[ ] Rejection routes back to submitter as before
+
+G. RBAC
+[ ] Regular user cannot access /time/approvals directly (redirected or shown access denied)
+[ ] Admin/Manager can see Approvals tab and access it
+[ ] Proxy view: manager with resourceId query param sees correct user's timesheet
+
+════════════════════════════════════════════
+IMPLEMENTATION SUMMARY OUTPUT
+════════════════════════════════════════════
+
+After all tests pass, produce a structured summary document with these sections:
+
+1. COMPONENTS BUILT / MODIFIED
+   Table: Component Name | Action (Built / Modified / Reused) | File Path
+
+2. APIS USED
+   Table: Method | Endpoint | Called By | Change Made (None / New / Modified)
+
+3. VALIDATIONS IMPLEMENTED
+   Table: Validation | Layer | Status (New / Extended from existing)
+
+4. DATABASE CHANGES
+   Table: Table | Change (Column Added / Table Created / None) | Migration File
+
+5. NAVIGATION CHANGES
+   - What was removed
+   - What was added
+   - What was unchanged
+
+6. ASSUMPTIONS MADE
+   Numbered list of any decisions made where requirements were ambiguous
+
+7. KNOWN LIMITATIONS / FUTURE WORK
+   Anything deferred or noted as needing a follow-up
+
+8. APPROVALS TAB VERIFICATION
+   Explicit confirmation: "Approvals tab functionality verified intact. No regressions."

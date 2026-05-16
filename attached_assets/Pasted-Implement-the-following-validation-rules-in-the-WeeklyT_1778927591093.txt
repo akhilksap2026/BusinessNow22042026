@@ -1,0 +1,105 @@
+Implement the following validation rules in the WeeklyTimesheetView. 
+Apply validations at the correct layer — client-side for UX, server-side for integrity.
+Do not duplicate validations that already exist; extend them.
+
+════════════════════════════════════════════
+VALIDATION 1: Daily Hours Cap
+════════════════════════════════════════════
+Rule: Total hours logged by this resource across ALL rows for a single calendar day must not exceed 24.
+When: On every cell blur and before any save/submit action.
+Response: 
+- Inline: highlight the day's column total in red
+- Block save/submit with error: "Total hours for [Day, Date] exceed 24 hours. Please correct before saving."
+Layer: Client-side (real-time) + server-side (before save)
+
+════════════════════════════════════════════
+VALIDATION 2: Task Allocated Hours Cap
+════════════════════════════════════════════
+Rule: Total hours entered against a specific Project + Task combination for the week must not exceed the allocated hours for that task in project planning.
+How to get allocated hours: call existing project/task API to retrieve task.allocated_hours (or equivalent field identified in audit).
+When: On row total change (recalculate on each cell blur).
+Response:
+- If row total > allocated_hours: highlight row total in amber, show ⚠ icon
+- Do NOT block save — instead trigger Validation 3 (exceptional workflow)
+Layer: Client-side (real-time after fetching task data)
+
+════════════════════════════════════════════
+VALIDATION 3: Exceptional Effort Workflow
+════════════════════════════════════════════
+Rule: If any row's total hours exceed the task's allocated hours, the row is flagged as "exceptional."
+Response:
+- Show the Exceptional Justification Panel below the grid
+- For each exceptional row: display "Row [Project – Task]: X hours entered, Y hours allocated. Please explain."
+- A justification textarea appears per flagged row
+- Submit is BLOCKED until all justification fields are filled with non-whitespace text (min 10 characters)
+- On submit with justifications: call existing exceptional approval endpoint (or flag in payload as { is_exceptional: true, exceptional_justification: "..." })
+- The submission routes to the designated authority per existing approval workflow
+Layer: Client-side gating + server-side flag on payload
+
+════════════════════════════════════════════
+VALIDATION 4: Previous Week Submission Gate
+════════════════════════════════════════════
+Rule: A user cannot access or fill the next week's timesheet if the previous week's timesheet has not been submitted.
+Note: Approval is NOT required — submission is sufficient.
+When: On week navigation (Next Week arrow click) and on page load for any future week.
+How: Call existing timesheet status API for (resource_id, previous_week_start_date). Check if status >= 'Submitted'.
+Response:
+- If previous week is not submitted: disable Next Week navigation, show tooltip.
+- If on a future week directly via URL: redirect to current week with banner "Please submit your week of [Prev Week Range] first."
+Layer: Client-side navigation guard + server-side validation on submit (double-check)
+
+════════════════════════════════════════════
+VALIDATION 5: Duplicate Project-Task Row
+════════════════════════════════════════════
+Rule: A user cannot add two rows with the same Project + Task combination in the same week.
+When: On task dropdown selection change.
+Response: If duplicate detected: revert the Task dropdown to empty and show inline error on the row: "This Project + Task combination already exists for this week. Add hours to the existing row instead."
+Layer: Client-side only (the grid is the source of truth for the current session)
+
+════════════════════════════════════════════
+VALIDATION 6: Empty Submission Block
+════════════════════════════════════════════
+Rule: Submission is blocked if all hour cells across all rows sum to zero.
+When: On Submit button click.
+Response: Toast error: "Cannot submit an empty timesheet. Please log at least one hour before submitting."
+Layer: Client-side pre-submit check
+
+════════════════════════════════════════════
+VALIDATION 7: Numeric-Only Input
+════════════════════════════════════════════
+Rule: Hour cells accept only numeric values. Decimal values are allowed if the system already supports them (check audit).
+When: On keypress and on blur.
+Response: 
+- On keypress: prevent non-numeric, non-decimal characters from being entered
+- On blur: if value is not a valid positive number (or zero): reset to 0 and show inline error "Enter a valid number (e.g. 2, 2.5)"
+Layer: Client-side input filtering
+
+════════════════════════════════════════════
+VALIDATION 8: Closed Period Lock
+════════════════════════════════════════════
+Rule: Hour cells for dates within a closed financial period are read-only.
+When: On grid render and on week navigation.
+How: Use existing financial period data from audit (or call the financial period status API).
+Response: Cell renders as disabled input. On hover: tooltip "This period is closed. Contact Finance for corrections."
+Layer: Client-side rendering based on period status
+
+════════════════════════════════════════════
+VALIDATION 9: Narrative PII Check
+════════════════════════════════════════════
+Rule: Description text must not contain PII patterns.
+Patterns: SSN (###-##-####), 16-digit card numbers, explicit keywords (configurable).
+When: On description textarea blur.
+Response: Inline warning below textarea. Block save if PII is detected.
+Layer: Client-side (regex) + server-side (pattern match before save)
+
+════════════════════════════════════════════
+VALIDATION 10: Leave Type Constraint
+════════════════════════════════════════════
+Rule: When Leave is selected as the project, only the Leave Type dropdown options are valid tasks. Hour entries for leave rows are still validated against the 24-hour daily cap.
+When: On project dropdown change.
+Layer: Client-side dropdown filtering
+
+All validations must:
+- Show errors inline (at the relevant row, cell, or field — not just a toast)
+- Show a summary of all blocking errors in the action bar area before submit
+- Never silently fail — every rule produces a visible, specific message

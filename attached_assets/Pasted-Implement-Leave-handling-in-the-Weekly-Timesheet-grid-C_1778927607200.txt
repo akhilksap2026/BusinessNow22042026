@@ -1,0 +1,51 @@
+Implement Leave handling in the Weekly Timesheet grid.
+
+Check audit findings first:
+- If leave types already exist as a model/enum in the system: use them. Do not create duplicates.
+- If leave is currently tracked in a separate module: wire that module's data into the timesheet grid. Do not rebuild it.
+- If no leave data exists: create a minimal leave_types reference table with the types below.
+
+────────────────────────────────────────────
+LEAVE TYPES (use existing or seed these)
+────────────────────────────────────────────
+- Casual Leave (CL)
+- Sick Leave (SL)
+- Earned / Paid Leave (EL/PL)
+- Compensatory Off (CO)
+- Loss of Pay (LOP)
+- Public Holiday (PH)
+
+────────────────────────────────────────────
+DATA MODEL CHANGE (only if leave not already in effort_entries)
+────────────────────────────────────────────
+Add to the effort_entries table (or equivalent):
+- is_leave (BOOLEAN, default: false)
+- leave_type_id (FK → leave_types.id, nullable)
+
+Only add these columns if they don't already exist. Check the schema first.
+
+────────────────────────────────────────────
+FRONTEND BEHAVIOR
+────────────────────────────────────────────
+When user selects "— Leave —" from the Project dropdown:
+1. Project column shows "Leave" with a distinct visual treatment (e.g. calendar icon, soft blue background on the row)
+2. Task dropdown repopulates with leave types only
+3. Hour cells function normally (enter hours per day)
+4. Row total reflects leave hours
+5. In the Summary Bar: leave hours are counted in the "Leave: X.X" bucket, not in Billable or Non-Billable
+6. Leave rows are excluded from the utilization rate calculation
+7. Leave rows are included in the daily cap validation (leave + work hours cannot together exceed 24 hrs/day)
+
+────────────────────────────────────────────
+API BEHAVIOR
+────────────────────────────────────────────
+When saving a leave row:
+- Set is_leave = true, leave_type_id = selected leave type ID
+- Use the same effort entry endpoint — do not create a separate leave endpoint unless one already exists
+- Billable category for leave rows defaults to 'Non-Billable' automatically
+
+────────────────────────────────────────────
+APPROVAL BEHAVIOR
+────────────────────────────────────────────
+- Leave rows follow the same submission and approval workflow as regular entries
+- No special approval bypass for leave (unless existing system has a separate leave approval flow — if so, wire it in)

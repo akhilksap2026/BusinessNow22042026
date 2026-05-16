@@ -1,0 +1,39 @@
+Consolidate the My Timesheet and Log Time subtabs into the single WeeklyTimesheetView. Preserve the Approvals tab exactly as-is.
+
+────────────────────────────────────────────
+STEP 1: REMOVE / REDIRECT OLD TABS
+────────────────────────────────────────────
+- Remove "My Timesheet" and "Log Time" as separate navigation items
+- Replace both with a single item: "My Timesheet" (or "Timesheet" — match existing naming convention)
+- This single item routes to the new WeeklyTimesheetView component
+- All old routes that pointed to the former My Timesheet and Log Time views should redirect (301/client-side redirect) to the new consolidated route
+- Do NOT remove the Approvals tab or change its route
+
+────────────────────────────────────────────
+STEP 2: ROUTE SETUP
+────────────────────────────────────────────
+New route: /time/timesheet (or match the existing URL convention found in audit)
+- Default: opens to current week for logged-in user
+- Accepts query params: ?weekStart=YYYY-MM-DD and ?resourceId=USER_ID (for manager proxy view)
+- Route guard: authenticated users only; redirect to login if not
+
+────────────────────────────────────────────
+STEP 3: NAVIGATION MENU UPDATE
+────────────────────────────────────────────
+The sidebar/navigation should reflect:
+- 📅 My Timesheet → /time/timesheet
+- ✓ Approvals → /time/approvals [UNCHANGED]
+- (Remove Log Time as a separate item)
+
+Preserve any role-based visibility logic:
+- Approvals item: visible only to users with Manager/Approver role (existing rule, do not change)
+- My Timesheet: visible to all authenticated users (existing rule)
+
+────────────────────────────────────────────
+STEP 4: VERIFY APPROVALS IS UNTOUCHED
+────────────────────────────────────────────
+After completing the consolidation:
+- Load the Approvals screen and confirm it still renders correctly
+- Confirm all APIs called by Approvals still respond correctly
+- Confirm RBAC on Approvals is intact
+- This step is a mandatory verification — do not mark implementation complete without it
