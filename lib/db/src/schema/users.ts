@@ -30,7 +30,6 @@ export const usersTable = pgTable("users", {
   accountId: integer("account_id"),
   capacity: integer("capacity").notNull().default(40),
   department: text("department").notNull(),
-  designation: text("designation"),
   region: text("region"),
   costRate: numeric("cost_rate", { precision: 8, scale: 2 }).notNull().default("0"),
   costRateEffectiveDate: text("cost_rate_effective_date"),

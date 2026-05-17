@@ -765,7 +765,7 @@ export default function Admin() {
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
   const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
-  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", designation: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "", resourceType: "employee" });
+  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "", resourceType: "employee" });
 
   /* ── Invite + role-management context ─────────────────────────── */
   const { activeRole } = useCurrentUser();
@@ -817,18 +817,18 @@ export default function Admin() {
 
   function openAddUser() {
     setEditUser(null);
-    setUserForm({ name: "", email: "", role: "", department: "", designation: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "", resourceType: "employee" });
+    setUserForm({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "", resourceType: "employee" });
     setUserDialogOpen(true);
   }
 
   function openEditUser(u: any) {
     setEditUser(u);
-    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", designation: (u as any).designation ?? "", region: u.region ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0), isInternal: u.isInternal === false ? "false" : "true", activeStatus: u.activeStatus ?? "active", holidayCalendarId: u.holidayCalendarId ? String(u.holidayCalendarId) : "", resourceType: (u as any).resourceType ?? "employee" });
+    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", region: u.region ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0), isInternal: u.isInternal === false ? "false" : "true", activeStatus: u.activeStatus ?? "active", holidayCalendarId: u.holidayCalendarId ? String(u.holidayCalendarId) : "", resourceType: (u as any).resourceType ?? "employee" });
     setUserDialogOpen(true);
   }
 
   async function handleSaveUser() {
-    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, designation: userForm.designation || null, region: userForm.region || undefined, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate), isInternal: userForm.isInternal !== "false", activeStatus: userForm.activeStatus, holidayCalendarId: userForm.holidayCalendarId ? Number(userForm.holidayCalendarId) : null, resourceType: userForm.resourceType };
+    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, region: userForm.region || undefined, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate), isInternal: userForm.isInternal !== "false", activeStatus: userForm.activeStatus, holidayCalendarId: userForm.holidayCalendarId ? Number(userForm.holidayCalendarId) : null, resourceType: userForm.resourceType };
     try {
       if (editUser) {
         await updateUser.mutateAsync({ id: editUser.id, data: payload });
@@ -4047,10 +4047,6 @@ export default function Admin() {
                 <Label>Department</Label>
                 <Input value={userForm.department} onChange={e => setUserForm(f => ({ ...f, department: e.target.value }))} placeholder="e.g. Engineering" />
               </div>
-            </div>
-            <div className="space-y-1">
-              <Label>Designation</Label>
-              <Input value={userForm.designation} onChange={e => setUserForm(f => ({ ...f, designation: e.target.value }))} placeholder="e.g. Senior Consultant" />
             </div>
             <div className="space-y-1">
               <Label>Region</Label>

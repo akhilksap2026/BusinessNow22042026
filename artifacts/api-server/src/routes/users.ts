@@ -61,7 +61,7 @@ router.post("/users", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateUserBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const initials = parsed.data.name.split(' ').map((p: string) => p[0]).join('').toUpperCase().slice(0, 2);
-  const [row] = await db.insert(usersTable).values({ ...parsed.data, initials, skills: parsed.data.skills ?? [], costRate: String(parsed.data.costRate ?? 0), designation: req.body.designation ?? null } as any).returning();
+  const [row] = await db.insert(usersTable).values({ ...parsed.data, initials, skills: parsed.data.skills ?? [], costRate: String(parsed.data.costRate ?? 0) } as any).returning();
   res.status(201).json(GetUserResponse.parse(mapUser(row)));
 });
 
@@ -158,7 +158,6 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   if (req.body.activeStatus !== undefined) userUpdates.activeStatus = req.body.activeStatus;
   if (req.body.holidayCalendarId !== undefined) userUpdates.holidayCalendarId = req.body.holidayCalendarId === null || req.body.holidayCalendarId === "" ? null : Number(req.body.holidayCalendarId);
   if (req.body.resourceType !== undefined) userUpdates.resourceType = req.body.resourceType;
-  if (req.body.designation !== undefined) userUpdates.designation = req.body.designation || null;
   const [previous] = await db.select().from(usersTable).where(eq(usersTable.id, params.data.id));
   const [row] = await db.update(usersTable).set(userUpdates).where(eq(usersTable.id, params.data.id)).returning();
   if (!row) { res.status(404).json({ error: "User not found" }); return; }
