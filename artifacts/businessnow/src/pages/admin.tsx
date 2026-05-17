@@ -1733,8 +1733,8 @@ export default function Admin() {
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="overflow-x-auto scrollbar-none mb-4">
-            <TabsList className="w-max">
+          <div className="mb-4">
+            <TabsList className="flex flex-wrap h-auto gap-y-1 p-1">
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" /> Users
               </TabsTrigger>
@@ -1759,9 +1759,6 @@ export default function Admin() {
               <TabsTrigger value="taskstatuses" className="flex items-center gap-2" data-testid="tab-task-statuses">
                 <ListTodo className="h-4 w-4" /> Task Statuses
               </TabsTrigger>
-              <TabsTrigger value="projectstatuses" className="flex items-center gap-2">
-                <ListTodo className="h-4 w-4" /> Project Status Labels
-              </TabsTrigger>
               <TabsTrigger value="timesettings" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" /> Time Settings
               </TabsTrigger>
@@ -1771,14 +1768,6 @@ export default function Admin() {
               {can(activeRole, "financials.viewRateCards") && (
                 <TabsTrigger value="ratecards" className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" /> Rate Cards
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="projectgroups" className="flex items-center gap-2">
-                <Folder className="h-4 w-4" /> Project Groups
-              </TabsTrigger>
-              {can(activeRole, "financials.viewRateCards") && (
-                <TabsTrigger value="costrates" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" /> Cost Rates
                 </TabsTrigger>
               )}
             </TabsList>
@@ -2239,10 +2228,6 @@ export default function Admin() {
             <TaskStatusesAdminPanel />
           </TabsContent>
 
-          <TabsContent value="projectstatuses" className="m-0 space-y-4">
-            <ProjectStatusLabelsPanel />
-          </TabsContent>
-
           <TabsContent value="timesettings" className="m-0 space-y-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -2627,7 +2612,7 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          <TabsContent value="ratecards" className="m-0">
+          <TabsContent value="ratecards" className="m-0 space-y-6">
             {can(activeRole, "financials.viewRateCards") && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -2687,51 +2672,7 @@ export default function Admin() {
               </CardContent>
             </Card>
             )}
-          </TabsContent>
-
-          <TabsContent value="projectgroups" className="m-0">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2"><Folder className="h-5 w-5" /> Project Groups</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Organise projects into named groups with optional colour labels.</p>
-                  </div>
-                  <Button size="sm" className="gap-2" onClick={() => { setEditGroupId(null); setGroupForm({ name: "", color: "" }); setGroupDialogOpen(true); }}>
-                    <Plus className="h-4 w-4" /> New Group
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingGroups ? (
-                  <div className="py-6 text-center text-muted-foreground text-sm">Loading…</div>
-                ) : !projectGroups?.length ? (
-                  <div className="py-8 text-center text-muted-foreground text-sm">No project groups yet.</div>
-                ) : (
-                  <div className="divide-y rounded-md border">
-                    {projectGroups.map((grp: any) => (
-                      <div key={grp.id} className="flex items-center justify-between px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          {grp.color && <span className="h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: grp.color }} />}
-                          <span className="font-medium text-sm">{grp.name}</span>
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => { setEditGroupId(grp.id); setGroupForm({ name: grp.name, color: grp.color ?? "" }); setGroupDialogOpen(true); }}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500" onClick={() => setDeleteGroupId(grp.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="costrates" className="m-0">
+            {can(activeRole, "financials.viewRateCards") && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -2791,6 +2732,7 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="customfields" className="m-0">
