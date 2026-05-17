@@ -31,6 +31,7 @@ import { TimesheetGrid } from "@/components/time/TimesheetGrid";
 import { DescriptionPanel, type ActiveCellInfo } from "@/components/time/DescriptionPanel";
 import { ExceptionalPanel, type ExceptionalRow } from "@/components/time/ExceptionalPanel";
 import { RejectionBanner } from "@/components/time/RejectionBanner";
+import { TimesheetHistory } from "@/components/time/TimesheetHistory";
 import type {
   GridRow,
   AssignedProject,
@@ -789,6 +790,15 @@ export default function MyTimesheet() {
               </span>
             </>
           )}
+          {summary.total > 40 && (
+            <>
+              <span className="text-muted-foreground">|</span>
+              <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Over-utilization: {(summary.total - 40).toFixed(1)} hrs above 40-hr standard week
+              </span>
+            </>
+          )}
         </div>
 
         {/* ── Grid ── */}
@@ -829,6 +839,15 @@ export default function MyTimesheet() {
           <ExceptionalPanel
             rows={exceptionalRows}
             onJustificationChange={handleJustificationChange}
+          />
+        )}
+
+        {/* ── Timesheet history ── */}
+        {userId > 0 && (
+          <TimesheetHistory
+            userId={userId}
+            currentWeekStart={weekStart}
+            onNavigateToWeek={setWeekStart}
           />
         )}
 

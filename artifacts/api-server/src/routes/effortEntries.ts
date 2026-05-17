@@ -342,6 +342,46 @@ router.post("/time/entries", async (req: Request, res: Response): Promise<void> 
   res.status(201).json(entry);
 });
 
+// ─── GET /api/time/history ───────────────────────────────────────────────────
+// Returns week-level summary of effort history for the calling user.
+// Last 26 weeks (6 months), grouped by ISO week Monday.
+
+router.get("/time/history", async (req: Request, res: Response): Promise<void> => {
+  const uid = callerId(req);
+  const resourceId = req.query.resourceId ? Number(req.query.resourceId) : uid;
+
+  // Non-approvers can only see their own history
+  if (resourceId !== uid && !isApproverRole(req)) {
+    apiErr(res, 403, "UNAUTHORIZED", "Access denied."); return;
+  }
+
+  const rows = await db.execute(sql`
+    SELECT
+      date_trunc('week', entry_date::timestamp)::date            AS week_start,
+      ROUND(COALESCE(SUM(duration_hours), 0)::numeric, 2)        AS total_hours,
+      ROUND(COALESCE(SUM(
+        CASE WHEN billable_category = 'Billable' THEN duration_hours ELSE 0 END
+      ), 0)::numeric, 2)                                          AS billable_hours,
+      COUNT(*)::int                                               AS entry_count,
+      COUNT(DISTINCT project_id)::int                            AS project_count,
+      COUNT(CASE WHEN is_exceptional = true THEN 1 END)::int     AS exceptional_count,
+      CASE
+        WHEN bool_and(status = 'Approved') THEN 'Approved'
+        WHEN bool_or(status = 'Rejected')  THEN 'Rejected'
+        WHEN bool_or(status = 'Submitted') THEN 'Submitted'
+        ELSE 'Draft'
+      END                                                         AS dominant_status,
+      MAX(updated_at)                                             AS last_action_at
+    FROM effort_entries
+    WHERE resource_id = ${resourceId}
+    GROUP BY date_trunc('week', entry_date::timestamp)::date
+    ORDER BY week_start DESC
+    LIMIT 26
+  `);
+
+  res.json({ data: rows.rows ?? rows });
+});
+
 // ─── GET /api/time/entries ────────────────────────────────────────────────────
 
 router.get("/time/entries", async (req: Request, res: Response): Promise<void> => {

@@ -36,6 +36,7 @@ function formatDate(dateStr: string): string {
 
 export function RejectionModal({ open, onClose, onConfirm, entry }: RejectionModalProps) {
   const [reason, setReason] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +50,12 @@ export function RejectionModal({ open, onClose, onConfirm, entry }: RejectionMod
     setIsSubmitting(true);
     setError(null);
     try {
-      await onConfirm(reason.trim());
+      const combined = instructions.trim()
+        ? `${reason.trim()}\n\n📋 Correction required:\n${instructions.trim()}`
+        : reason.trim();
+      await onConfirm(combined);
       setReason("");
+      setInstructions("");
     } catch {
       setError("Failed to reject entry. Please try again.");
     } finally {
@@ -61,6 +66,7 @@ export function RejectionModal({ open, onClose, onConfirm, entry }: RejectionMod
   function handleClose() {
     if (isSubmitting) return;
     setReason("");
+    setInstructions("");
     setError(null);
     onClose();
   }
@@ -85,29 +91,48 @@ export function RejectionModal({ open, onClose, onConfirm, entry }: RejectionMod
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="rejection-reason">Reason for rejection</Label>
-          <Textarea
-            id="rejection-reason"
-            value={reason}
-            onChange={(e) => { setReason(e.target.value); setError(null); }}
-            placeholder="Describe why this entry is being rejected so the employee can correct it."
-            rows={4}
-            className={cn("resize-none text-sm", error && "border-red-400 focus-visible:ring-red-400")}
-          />
-          <div className="flex items-center justify-between">
-            {error ? (
-              <p className="text-xs text-red-600">{error}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {reason.trim().length < 10
-                  ? `${10 - reason.trim().length} more characters required`
-                  : "✓ Good to go"}
-              </p>
-            )}
-            <span className={cn("text-xs tabular-nums", reason.trim().length < 10 ? "text-muted-foreground" : "text-green-600")}>
-              {reason.length} chars
-            </span>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="rejection-reason">
+              Reason for rejection <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="rejection-reason"
+              value={reason}
+              onChange={(e) => { setReason(e.target.value); setError(null); }}
+              placeholder="Describe why this entry is being rejected so the employee can correct it."
+              rows={3}
+              className={cn("resize-none text-sm", error && "border-red-400 focus-visible:ring-red-400")}
+            />
+            <div className="flex items-center justify-between">
+              {error ? (
+                <p className="text-xs text-red-600">{error}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {reason.trim().length < 10
+                    ? `${10 - reason.trim().length} more characters required`
+                    : "✓ Good to go"}
+                </p>
+              )}
+              <span className={cn("text-xs tabular-nums", reason.trim().length < 10 ? "text-muted-foreground" : "text-green-600")}>
+                {reason.length} chars
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="correction-instructions" className="flex items-center gap-1.5">
+              Correction instructions
+              <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Textarea
+              id="correction-instructions"
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder="Specific steps the employee should take to correct this entry (e.g. split across two projects, change billing category)."
+              rows={2}
+              className="resize-none text-sm"
+            />
           </div>
         </div>
 

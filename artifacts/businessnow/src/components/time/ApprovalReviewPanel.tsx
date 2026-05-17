@@ -1,12 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   CheckCircle2,
   Clock,
   CheckSquare,
   Square,
   UserCheck,
+  ChevronDown,
+  ChevronRight,
+  Folder,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -28,6 +32,12 @@ interface ApprovalReviewPanelProps {
   weekStart: string;
   submitterName: string;
   onActionComplete: () => void;
+}
+
+interface ProjectGroup {
+  projectId: number;
+  projectName: string;
+  entries: DetailEntry[];
 }
 
 function formatWeekRange(ws: string): string {
@@ -58,6 +68,7 @@ export function ApprovalReviewPanel({
   const [confirmApproveAll, setConfirmApproveAll] = useState(false);
   const [approveProgress, setApproveProgress] = useState<{ current: number; total: number } | null>(null);
   const [rejectEntry, setRejectEntry] = useState<DetailEntry | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<number>>(new Set());
 
   const currentUserId = currentUser?.id ?? 0;
 
@@ -76,7 +87,6 @@ export function ApprovalReviewPanel({
         setEntries(data.entries ?? []);
         setAllApprovers(data.allApprovers ?? []);
 
-        // Resolve project/task names
         const projectIds = [...new Set((data.entries ?? []).map((e: DetailEntry) => e.projectId))];
         const taskIds = [...new Set((data.entries ?? []).filter((e: DetailEntry) => e.taskId).map((e: DetailEntry) => e.taskId as number))];
 
@@ -91,7 +101,6 @@ export function ApprovalReviewPanel({
         }
 
         if (taskIds.length > 0) {
-          // Fetch tasks for each project
           const taskNameMap: Record<number, string> = {};
           for (const pid of projectIds as number[]) {
             try {
@@ -114,6 +123,7 @@ export function ApprovalReviewPanel({
   useEffect(() => {
     fetchDetail();
     setSelectMode(false);
+    setCollapsedGroups(new Set());
   }, [fetchDetail]);
 
   // ─── Computed values ──────────────────────────────────────────────────────
@@ -126,14 +136,29 @@ export function ApprovalReviewPanel({
   const billableHours = entries.filter((e) => e.billableCategory === "Billable").reduce((s, e) => s + Number(e.durationHours), 0);
   const leaveHours = entries.filter((e) => e.isLeave).reduce((s, e) => s + Number(e.durationHours), 0);
   const utilization = Math.round((billableHours / 40) * 100);
+  const exceptionalCount = entries.filter((e) => e.isExceptional).length;
 
-  // ─── Approve single entry (callback for child) ────────────────────────────
+  const projectGroups = useMemo<ProjectGroup[]>(() => {
+    const map: Record<number, ProjectGroup> = {};
+    for (const entry of entries) {
+      if (!map[entry.projectId]) {
+        map[entry.projectId] = {
+          projectId: entry.projectId,
+          projectName: projectNames[entry.projectId] ?? `Project #${entry.projectId}`,
+          entries: [],
+        };
+      }
+      map[entry.projectId].entries.push(entry);
+    }
+    return Object.values(map).sort((a, b) => a.projectName.localeCompare(b.projectName));
+  }, [entries, projectNames]);
+
+  // ─── Approve single entry ─────────────────────────────────────────────────
 
   function handleEntryApproved(entryId: number) {
     setEntries((prev) =>
       prev.map((e) => (e.id === entryId ? { ...e, status: "Approved" } : e)),
     );
-    // If no more submitted, notify parent
     const remaining = entries.filter((e) => e.id !== entryId && e.status === "Submitted");
     if (remaining.length === 0) {
       toast({ title: `All entries approved for ${submitterName}.` });
@@ -188,6 +213,28 @@ export function ApprovalReviewPanel({
     onActionComplete();
   }
 
+  // ─── Approve Group ────────────────────────────────────────────────────────
+
+  async function handleApproveGroup(group: ProjectGroup) {
+    const toApprove = group.entries.filter(
+      (e) => e.status === "Submitted" && e.resourceId !== currentUserId,
+    );
+    for (const e of toApprove) {
+      await fetch(`/api/time/entries/${e.id}/approve`, {
+        method: "POST",
+        headers: authHeaders(),
+      }).catch(() => {});
+      setEntries((prev) =>
+        prev.map((x) => (x.id === e.id ? { ...x, status: "Approved" } : x)),
+      );
+    }
+    toast({ title: `${toApprove.length} entries approved for ${group.projectName}.` });
+    const remaining = entries.filter(
+      (e) => !toApprove.find((t) => t.id === e.id) && e.status === "Submitted",
+    );
+    if (remaining.length === 0) onActionComplete();
+  }
+
   // ─── Select & Approve ────────────────────────────────────────────────────
 
   async function handleApproveSelected() {
@@ -209,6 +256,15 @@ export function ApprovalReviewPanel({
     }
   }
 
+  function toggleGroup(projectId: number) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(projectId)) next.delete(projectId);
+      else next.add(projectId);
+      return next;
+    });
+  }
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   if (isLoading) {
@@ -222,12 +278,14 @@ export function ApprovalReviewPanel({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="px-6 py-4 border-b border-border bg-card">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold">{submitterName}</h2>
             <p className="text-sm text-muted-foreground mt-0.5">{formatWeekRange(weekStart)}</p>
+
+            {/* Summary stats row */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
               <span>Total: <span className="font-medium">{totalHours.toFixed(1)} hrs</span></span>
               <span className="text-muted-foreground">|</span>
@@ -235,9 +293,21 @@ export function ApprovalReviewPanel({
               <span className="text-muted-foreground">|</span>
               <span>Leave: <span className="font-medium">{leaveHours.toFixed(1)}</span></span>
               <span className="text-muted-foreground">|</span>
-              <span>Utilization: <span className="font-medium">{utilization}%</span></span>
+              <span>
+                Utilization:{" "}
+                <span className={cn("font-medium", utilization > 100 ? "text-red-600" : utilization > 90 ? "text-amber-600" : "")}>
+                  {utilization}%
+                </span>
+              </span>
+              {exceptionalCount > 0 && (
+                <>
+                  <span className="text-muted-foreground">|</span>
+                  <span className="text-amber-600 font-medium">{exceptionalCount} exceptional</span>
+                </>
+              )}
             </div>
-            {/* Authorised approvers row */}
+
+            {/* Authorised approvers */}
             <div className="flex items-center gap-1.5 mt-2">
               <UserCheck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span className="text-xs text-muted-foreground">
@@ -288,7 +358,7 @@ export function ApprovalReviewPanel({
                         disabled={approvableEntries.length === 0}
                       >
                         <Square className="h-3.5 w-3.5" />
-                        Select &amp; Approve
+                        Select
                       </Button>
                       <Button
                         size="sm"
@@ -308,8 +378,8 @@ export function ApprovalReviewPanel({
         </div>
       </div>
 
-      {/* Entry list */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-3">
+      {/* ── Entry list grouped by project ── */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {allDone && (
           <div className="flex items-center justify-center flex-col gap-2 h-40 text-center">
             <CheckCircle2 className="h-10 w-10 text-green-500" />
@@ -317,31 +387,97 @@ export function ApprovalReviewPanel({
             <p className="text-xs text-muted-foreground">No more pending submissions for this week.</p>
           </div>
         )}
-        {entries.map((entry) => (
-          <ApprovalEntryRow
-            key={entry.id}
-            entry={entry}
-            projectName={projectNames[entry.projectId] ?? `Project #${entry.projectId}`}
-            taskName={entry.taskId ? (taskNames[entry.taskId] ?? `Task #${entry.taskId}`) : (entry.isLeave ? "Leave" : "—")}
-            currentUserId={currentUserId}
-            activeRole={activeRole}
-            selectMode={selectMode}
-            isSelected={selectedIds.has(entry.id)}
-            onSelect={(checked) => {
-              setSelectedIds((prev) => {
-                const next = new Set(prev);
-                if (checked) next.add(entry.id);
-                else next.delete(entry.id);
-                return next;
-              });
-            }}
-            onApproved={() => handleEntryApproved(entry.id)}
-            onReject={() => setRejectEntry(entry)}
-          />
-        ))}
+
+        {projectGroups.map((group) => {
+          const isCollapsed = collapsedGroups.has(group.projectId);
+          const groupTotal = group.entries.reduce((s, e) => s + Number(e.durationHours), 0);
+          const groupSubmitted = group.entries.filter((e) => e.status === "Submitted" && e.resourceId !== currentUserId);
+          const groupApproved = group.entries.filter((e) => e.status === "Approved").length;
+          const groupRejected = group.entries.filter((e) => e.status === "Rejected").length;
+          const groupExceptional = group.entries.filter((e) => e.isExceptional).length;
+
+          return (
+            <div key={group.projectId} className="rounded-lg border border-border bg-card overflow-hidden">
+              {/* Project group header */}
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-muted/30 border-b border-border">
+                <button
+                  onClick={() => toggleGroup(group.projectId)}
+                  className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
+                  <Folder className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium truncate">{group.projectName}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {group.entries.length} {group.entries.length === 1 ? "entry" : "entries"} · {groupTotal.toFixed(1)} hrs
+                  </span>
+                </button>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {groupExceptional > 0 && (
+                    <Badge className="text-xs py-0 px-1.5 h-5 bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100">
+                      {groupExceptional} exceptional
+                    </Badge>
+                  )}
+                  {groupApproved > 0 && (
+                    <Badge className="text-xs py-0 px-1.5 h-5 bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+                      {groupApproved} approved
+                    </Badge>
+                  )}
+                  {groupRejected > 0 && (
+                    <Badge className="text-xs py-0 px-1.5 h-5 bg-red-100 text-red-800 border-red-200 hover:bg-red-100">
+                      {groupRejected} rejected
+                    </Badge>
+                  )}
+                  {groupSubmitted.length > 0 && !selectMode && (
+                    <Button
+                      size="sm"
+                      className="h-6 text-xs px-2 bg-green-600 hover:bg-green-700 text-white gap-1"
+                      onClick={() => handleApproveGroup(group)}
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      Approve {groupSubmitted.length}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Entries within this project (collapsible) */}
+              {!isCollapsed && (
+                <div className="divide-y divide-border/60">
+                  {group.entries.map((entry) => (
+                    <ApprovalEntryRow
+                      key={entry.id}
+                      entry={entry}
+                      projectName={group.projectName}
+                      taskName={entry.taskId ? (taskNames[entry.taskId] ?? `Task #${entry.taskId}`) : (entry.isLeave ? "Leave" : "—")}
+                      currentUserId={currentUserId}
+                      activeRole={activeRole}
+                      selectMode={selectMode}
+                      isSelected={selectedIds.has(entry.id)}
+                      onSelect={(checked) => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          if (checked) next.add(entry.id);
+                          else next.delete(entry.id);
+                          return next;
+                        });
+                      }}
+                      onApproved={() => handleEntryApproved(entry.id)}
+                      onReject={() => setRejectEntry(entry)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Approve All confirmation */}
+      {/* ── Approve All confirmation ── */}
       <Dialog open={confirmApproveAll} onOpenChange={setConfirmApproveAll}>
         <DialogContent>
           <DialogHeader>
@@ -362,7 +498,7 @@ export function ApprovalReviewPanel({
         </DialogContent>
       </Dialog>
 
-      {/* Rejection modal */}
+      {/* ── Rejection modal ── */}
       <RejectionModal
         open={rejectEntry !== null}
         onClose={() => setRejectEntry(null)}

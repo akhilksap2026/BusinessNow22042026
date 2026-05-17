@@ -1,0 +1,162 @@
+Review and redesign the existing Timesheet Submission, Approval, and Rejection workflow to create a clean, enterprise-grade operational experience without breaking current functionality, APIs, RBAC, validations, or database mappings.
+
+IMPORTANT:
+
+First audit the current implementation.
+Identify reusable logic/components.
+Extend incrementally.
+Do NOT rebuild working modules unnecessarily.
+Preserve existing business logic wherever possible.
+PRIMARY OBJECTIVE
+
+The final system should:
+
+Give employees clear visibility of all timesheet submissions and statuses.
+Give approvers a compact and efficient review experience.
+Make rejection handling actionable and traceable.
+Reduce cognitive overload.
+Maintain proper auditability and workflow governance.
+1. EMPLOYEE TIMESHEET HISTORY SECTION
+
+After a timesheet is submitted, it should automatically appear in a separate “Timesheet History” section below the active entry form.
+
+This section should display:
+
+Week Range
+Submission Date
+Total Hours
+Current Status:
+Draft
+Submitted
+Approved
+Rejected
+Re-submitted
+Approver Name
+Last Action Timestamp
+
+Use:
+
+compact table/cards
+sortable rows
+status badges/colors
+minimal whitespace
+
+The latest submission should appear at the top.
+
+2. REJECTION WORKFLOW REDESIGN
+
+Current rejection handling is unclear and not actionable.
+
+If a timesheet is rejected:
+
+The approver must provide:
+
+rejection reason
+correction comments
+affected project/task/day entries
+recommended corrections
+
+Employee view should:
+
+clearly highlight rejected rows/cells
+show rejection comments inline
+allow direct edit and re-submission
+preserve previous submission history
+
+Rejected entries should remain editable until re-submitted.
+
+3. APPROVAL SCREEN REDESIGN
+
+The current approval view is too wide and information-heavy.
+
+Redesign it into a compact managerial review layout.
+
+Approver should initially see only summary-level information:
+
+Employee Name
+Week Range
+Total Hours
+Number of Projects
+Exception Flags
+Leave Entries
+Submission Status
+
+Detailed daily/project/task breakdown should open only on expansion.
+
+UI Expectations:
+
+collapsible cards/accordion rows
+compact tables
+reduced horizontal scrolling
+responsive layout
+optimized for reviewing multiple submissions quickly
+
+The approver should never feel overwhelmed by excessive visible data.
+
+4. SMART VALIDATIONS & VISUAL ALERTS
+
+Add intelligent indicators:
+
+Over-utilization warnings
+Missing timesheet alerts
+Pending correction markers
+Leave indicators
+Exception badges
+Re-submission indicators
+
+Validation Rules:
+
+No duplicate weekly submissions
+Rejected timesheets editable
+Approved timesheets read-only
+Drafts editable
+Re-submission preserves audit trail
+5. STATUS LIFECYCLE
+
+Implement clear workflow states:
+
+Draft → Submitted → Approved
+Draft → Submitted → Rejected → Re-submitted → Approved
+
+Ensure:
+
+all transitions are tracked
+timestamps are preserved
+approver actions are logged
+comments/history remain visible
+6. TECHNICAL IMPLEMENTATION RULES
+
+Before coding:
+
+Audit current workflow
+Identify reusable APIs/models/components
+Preserve existing backend logic
+Avoid unnecessary schema rewrites
+Implement incrementally
+
+Focus Areas:
+
+UX clarity
+workflow visibility
+operational efficiency
+maintainability
+minimal disruption
+
+Do NOT:
+
+redesign unrelated modules
+overengineer
+replace stable logic unnecessarily
+7. FINAL OUTPUT REQUIRED
+
+After implementation provide:
+
+Workflow improvements implemented
+UI/UX changes made
+New validations added
+Status lifecycle implemented
+Backend/API changes made
+Assumptions/dependencies
+Remaining gaps (if any)
+
+The final result should feel like a professional enterprise timesheet governance and approval system optimized for daily operational usage by both employees and managers.
