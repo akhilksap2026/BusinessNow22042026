@@ -1,0 +1,38 @@
+Review the existing “Task Details” popup/window that opens when a user clicks on an existing task. Currently, the layout is oversized, poorly structured, and does not present task information in a clean, professional, or space-efficient manner. Redesign this window into a compact, modern, and enterprise-grade task detail view with proper visual hierarchy, alignment, spacing, and usability.
+
+The redesigned task details window should:
+
+Present all important task-related information in a structured and condensed format without unnecessary empty space.
+Be optimized for readability, quick actions, and efficient task management.
+Automatically load and display all relevant information of the selected task when the window is invoked.
+Include editable fields wherever the user has appropriate RBAC permissions.
+
+The window must include, at minimum:
+
+Task Name / Title
+Task ID or Reference Number
+Task Status
+Priority
+Start Date and Due Date
+Progress / Completion %
+Description / Notes
+Associated Project / Milestone
+Dependency Information (if applicable)
+Created By and Last Updated Details
+Attachments / Linked Documents (if available)
+Activity or Comment History (if applicable)
+
+Assignee Management:
+
+Clearly display all current assignees of the task using a clean UI component (avatars, chips, or user cards).
+Allow adding, removing, or modifying assignees directly from the same window based on RBAC permissions.
+Ensure assignee selection supports search/filter functionality for large teams.
+
+UI/UX Expectations:
+
+The popup should feel lightweight, responsive, and professionally aligned with enterprise SaaS standards.
+Avoid oversized cards, excessive padding, or poorly aligned controls.
+Use sections/tabs/accordions only where necessary to maintain clarity without clutter.
+Important information and actions should remain visible without excessive scrolling.
+The design should support future scalability for additional task metadata.
+Use the attached screenshot as the reference source for required fields and information structure, while improving the overall usability and presentation significantly.

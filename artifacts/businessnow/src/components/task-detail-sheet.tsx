@@ -23,7 +23,7 @@ import {
   getListTasksQueryKey,
   useGetTask,
 } from "@workspace/api-client-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +31,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useUndoableMutation } from "@/hooks/use-undoable-mutation";
-import { Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone, Shield, GitBranch, AlertTriangle, FileText, Clock, Pencil } from "lucide-react";
+import {
+  Trash2, Plus, Flag, CheckSquare, MessageSquare, Milestone,
+  Shield, GitBranch, AlertTriangle, FileText, Clock, Pencil,
+  CalendarDays, Users, X, Hash,
+} from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface TaskDetailSheetProps {
@@ -45,25 +49,30 @@ interface TaskDetailSheetProps {
   isParent?: boolean;
 }
 
-// Section D: STATIC fallback only — actual status options are pulled from the
-// backend at render time via useTaskStatuses() so admins can customize them.
 const STATUS_OPTIONS_FALLBACK = ["Not Started", "Started", "On Hold", "Canceled", "Completed"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 const APPROVAL_OPTIONS = ["none", "pending", "approved", "rejected"];
 
 function statusColor(status: string) {
-  if (status === "Completed") return "bg-green-100 text-green-800";
-  if (status === "In Progress") return "bg-blue-100 text-blue-800";
-  if (status === "On Hold") return "bg-amber-100 text-amber-800";
-  if (status === "Canceled") return "bg-slate-100 text-slate-500";
-  return "bg-slate-100 text-slate-700";
+  if (status === "Completed") return "bg-emerald-100 text-emerald-800 border-emerald-200";
+  if (status === "In Progress" || status === "Started") return "bg-blue-100 text-blue-800 border-blue-200";
+  if (status === "On Hold") return "bg-amber-100 text-amber-800 border-amber-200";
+  if (status === "Canceled") return "bg-slate-100 text-slate-500 border-slate-200";
+  return "bg-slate-100 text-slate-700 border-slate-200";
 }
 
-function priorityColor(p: string) {
-  if (p === "Critical") return "bg-red-100 text-red-700";
-  if (p === "High") return "bg-orange-100 text-orange-700";
-  if (p === "Medium") return "bg-yellow-100 text-yellow-700";
-  return "bg-slate-100 text-slate-600";
+function priorityDot(p: string) {
+  if (p === "Critical") return "bg-red-500";
+  if (p === "High") return "bg-orange-400";
+  if (p === "Medium") return "bg-yellow-400";
+  return "bg-slate-300";
+}
+
+function priorityTextColor(p: string) {
+  if (p === "Critical") return "text-red-700";
+  if (p === "High") return "text-orange-600";
+  if (p === "Medium") return "text-yellow-700";
+  return "text-slate-600";
 }
 
 export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }: TaskDetailSheetProps) {
@@ -72,9 +81,9 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const queryClient = useQueryClient();
 
   const { data: users } = useListUsers();
-  // Section D — pull configurable status options.
   const { statuses: dynamicStatusOptions } = useTaskStatuses();
   const STATUS_OPTIONS = dynamicStatusOptions.length > 0 ? dynamicStatusOptions : STATUS_OPTIONS_FALLBACK;
+
   const { data: comments, isLoading: loadingComments } = useListTaskComments(taskId ?? 0, {
     query: { enabled: !!taskId, queryKey: [...getListTaskCommentsQueryKey(taskId ?? 0)] },
   });
@@ -106,6 +115,8 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
   const [depForm, setDepForm] = useState({ predecessorId: "", dependencyType: "FS", lagDays: "0" });
   const [addingDailyAlloc, setAddingDailyAlloc] = useState(false);
   const [dailyAllocForm, setDailyAllocForm] = useState({ workDate: "", userId: "", hours: "8" });
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
 
   const { data: dependencies, refetch: refetchDeps } = useQuery<any[]>({
     queryKey: ["task-deps", taskId],
@@ -242,7 +253,6 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
 
   async function handleUpdateField(field: string, value: any) {
     if (!taskId) return;
-    // Snapshot the previous value so the user can undo single-field edits.
     const previous = task ? (task as any)[field] : undefined;
     await undoable.run({
       do: async () => {
@@ -267,692 +277,707 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isParent = false }
     return u ? u.name : `User ${userId}`;
   };
 
-  const userInitials = (userId: number) => {
-    const name = userName(userId);
-    return name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
-  };
+  const userInitials = (name: string) =>
+    name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
+
+  // Unique assignees derived from daily allocations
+  const assignees: { userId: number; name: string; totalHours: number }[] = [];
+  if (dailyAllocs) {
+    const map = new Map<number, number>();
+    for (const da of dailyAllocs) {
+      map.set(da.userId, (map.get(da.userId) ?? 0) + Number(da.allocatedHours ?? 0));
+    }
+    for (const [uid, hrs] of map) {
+      assignees.push({ userId: uid, name: userName(uid), totalHours: hrs });
+    }
+  }
 
   if (!taskId) return null;
 
+  const completionPct = (task as any)?.completionPct ?? 0;
+  const canonical = taskStatusLabel(task?.status);
+  const priority = task?.priority ?? "Medium";
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[640px] w-full overflow-y-auto p-0">
-        <div className="flex flex-col h-full">
-          <SheetHeader className="px-6 pt-6 pb-4 border-b">
-            <div className="flex items-start justify-between gap-3">
-              <SheetTitle className="text-xl font-semibold leading-tight flex-1">
-                {task?.name ?? "Task Details"}
-              </SheetTitle>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+      <SheetContent className="sm:max-w-[700px] w-full p-0 flex flex-col overflow-hidden">
+        <TooltipProvider delayDuration={200}>
+
+          {/* ── Header ─────────────────────────────────────────────────────── */}
+          <div className="border-b bg-white px-5 pt-4 pb-3 flex-shrink-0">
+            {/* Title row */}
+            <div className="flex items-start gap-2 mb-2">
+              <div className="flex-1 min-w-0">
+                {editingTitle ? (
+                  <Input
+                    className="text-base font-semibold h-8 px-2"
+                    value={titleDraft}
+                    autoFocus
+                    onChange={e => setTitleDraft(e.target.value)}
+                    onBlur={() => {
+                      if (titleDraft.trim() && titleDraft !== task?.name) handleUpdateField("name", titleDraft.trim());
+                      setEditingTitle(false);
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") { e.currentTarget.blur(); }
+                      if (e.key === "Escape") { setEditingTitle(false); }
+                    }}
+                  />
+                ) : (
+                  <h2
+                    className="text-base font-semibold text-slate-900 leading-snug cursor-text hover:text-indigo-700 transition-colors"
+                    onClick={() => { setTitleDraft(task?.name ?? ""); setEditingTitle(true); }}
+                  >
+                    {task?.name ?? "Task Details"}
+                  </h2>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-mono bg-slate-100 px-1.5 py-0.5 rounded">
+                  <Hash className="h-3 w-3" />{taskId}
+                </span>
                 {task?.isMilestone && (
-                  <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 flex items-center gap-1">
-                    <Milestone className="h-3 w-3" /> Milestone
+                  <Badge variant="outline" className="text-purple-700 border-purple-300 bg-purple-50 gap-1 text-[11px] h-5 px-1.5">
+                    <Milestone className="h-3 w-3" />Milestone
                   </Badge>
                 )}
-                {(task as any)?.approvalStatus && (task as any).approvalStatus !== "none" && (
-                  <Badge variant="outline" className="flex items-center gap-1 capitalize">
-                    <Shield className="h-3 w-3" /> {(task as any).approvalStatus}
-                  </Badge>
+                {isParent && (
+                  <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[11px] h-5 px-1.5">Phase</Badge>
                 )}
               </div>
             </div>
-          </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="px-6 py-4 space-y-6">
-
-              {/* Status & Priority */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</label>
-                  {(() => {
-                    const canonical = taskStatusLabel(task?.status);
-                    const opts = STATUS_OPTIONS.includes(canonical) ? STATUS_OPTIONS : [...STATUS_OPTIONS, canonical];
-                    return (
-                      <Select value={canonical} onValueChange={(v) => handleUpdateField("status", v)}>
-                        <SelectTrigger className="h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {opts.map((s) => (
-                            <SelectItem key={s} value={s}>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(s)}`}>{s}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    );
-                  })()}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Priority</label>
-                  <Select defaultValue={task?.priority ?? "Medium"} onValueChange={(v) => handleUpdateField("priority", v)}>
-                    <SelectTrigger className="h-8">
+            {/* Status / Priority / Approval strip */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Status */}
+              {(() => {
+                const opts = STATUS_OPTIONS.includes(canonical) ? STATUS_OPTIONS : [...STATUS_OPTIONS, canonical];
+                return (
+                  <Select value={canonical} onValueChange={v => handleUpdateField("status", v)}>
+                    <SelectTrigger className={`h-6 text-[11px] font-medium border rounded-full px-2.5 gap-1 w-auto ${statusColor(canonical)}`} style={{ minWidth: 0 }}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {PRIORITY_OPTIONS.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priorityColor(p)}`}>
-                            <Flag className="h-3 w-3 mr-1" />{p}
-                          </span>
+                      {opts.map(s => (
+                        <SelectItem key={s} value={s}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(s)}`}>{s}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-              </div>
+                );
+              })()}
 
-              {/* Dates */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Start Date</label>
-                  <Input
-                    type="date"
-                    className="h-8 text-sm"
-                    defaultValue={task?.startDate ?? ""}
-                    onBlur={(e) => { if (e.target.value) handleUpdateField("startDate", e.target.value); }}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Due Date</label>
-                  <Input
-                    type="date"
-                    className="h-8 text-sm"
-                    defaultValue={task?.dueDate ?? ""}
-                    onBlur={(e) => { if (e.target.value) handleUpdateField("dueDate", e.target.value); }}
-                  />
-                </div>
-              </div>
+              {/* Priority */}
+              <Select value={priority} onValueChange={v => handleUpdateField("priority", v)}>
+                <SelectTrigger className="h-6 text-[11px] font-medium border rounded-full px-2.5 gap-1.5 w-auto bg-white" style={{ minWidth: 0 }}>
+                  <span className={`inline-flex items-center gap-1.5 ${priorityTextColor(priority)}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${priorityDot(priority)}`} />
+                    <Flag className="h-3 w-3 flex-shrink-0" />
+                    {priority}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_OPTIONS.map(p => (
+                    <SelectItem key={p} value={p}>
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${priorityTextColor(p)}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${priorityDot(p)}`} />
+                        {p}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              {/* Hours: Planned, Estimate, Actual, ETC, EAC */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Hours</label>
-                {isParent ? (
-                  <div className="h-9 flex items-center gap-1.5 rounded border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-3 text-xs text-amber-700 dark:text-amber-400">
-                    <span className="font-medium">Auto-calculated</span>
-                    <span className="text-amber-500">—</span>
-                    <span>sum of child tasks. Log time on leaf tasks only.</span>
-                  </div>
-                ) : (
-                  <TooltipProvider delayDuration={200}>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] uppercase tracking-wide text-muted-foreground cursor-help">Planned</span>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs max-w-[220px]">
-                            Hours originally planned when the task was created.
-                          </TooltipContent>
-                        </Tooltip>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.25"
-                          className="h-8 text-sm"
-                          defaultValue={task?.plannedHours ?? task?.effort ?? 0}
-                          onBlur={(e) => {
-                            if (e.target.value === "") return;
-                            const n = Math.max(0, Number(e.target.value) || 0);
-                            handleUpdateField("plannedHours", n);
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] uppercase tracking-wide text-muted-foreground cursor-help">Estimate</span>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs max-w-[220px]">
-                            Initially equals Planned. Adjust as you learn more about scope.
-                          </TooltipContent>
-                        </Tooltip>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.25"
-                          className="h-8 text-sm"
-                          defaultValue={task?.estimateHours ?? task?.plannedHours ?? task?.effort ?? 0}
-                          onBlur={(e) => {
-                            if (e.target.value === "") return;
-                            const n = Math.max(0, Number(e.target.value) || 0);
-                            handleUpdateField("estimateHours", n);
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="rounded border bg-slate-50 px-2 py-1.5 cursor-help">
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Actual</div>
-                            <div className="text-sm font-semibold text-slate-700">{(task?.actualHours ?? 0).toFixed(1)}h</div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs max-w-[220px]">
-                          Sum of logged time entries for this task.
-                        </TooltipContent>
-                      </Tooltip>
-                      <div className={`rounded border px-2 py-1.5 ${Number(task?.etc ?? 0) < 0 ? "bg-red-50 border-red-200" : "bg-slate-50"}`}>
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1 mb-1">
-                          ETC
-                          {(task as any)?.etcOverride != null && <span className="text-[9px] text-violet-600 font-medium">(manual)</span>}
-                          {Number(task?.etc ?? 0) < 0 && <AlertTriangle className="h-3 w-3 text-red-500" />}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            step="0.25"
-                            className={`h-6 text-xs px-1.5 py-0 ${Number(task?.etc ?? 0) < 0 ? "border-red-300 text-red-600" : ""}`}
-                            defaultValue={Number(task?.etc ?? 0).toFixed(1)}
-                            key={`etc-${taskId}-${(task as any)?.etcOverride}`}
-                            onBlur={(e) => {
-                              if (e.target.value === "") return;
-                              handleUpdateField("etcOverride", Number(parseFloat(e.target.value).toFixed(2)));
-                            }}
-                          />
-                          {(task as any)?.etcOverride != null && (
-                            <button type="button" title="Reset to computed ETC" onClick={() => handleUpdateField("etcOverride", null)}
-                              className="text-xs text-muted-foreground hover:text-foreground leading-none px-0.5">×</button>
-                          )}
-                        </div>
-                      </div>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="rounded border bg-slate-50 px-2 py-1.5 cursor-help">
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">EAC</div>
-                            <div className="text-sm font-semibold text-slate-700">{(task?.eac ?? 0).toFixed(1)}h</div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs max-w-[220px]">
-                          Estimate at Completion = Actual + |ETC|.
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TooltipProvider>
-                )}
-              </div>
+              {/* Approval status */}
+              {(task as any)?.approvalStatus && (task as any).approvalStatus !== "none" && (
+                <Badge variant="outline" className="h-6 px-2.5 gap-1 text-[11px] capitalize">
+                  <Shield className="h-3 w-3" />{(task as any).approvalStatus}
+                </Badge>
+              )}
 
-              {/* Flags row */}
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={task?.isMilestone ?? false}
-                    onCheckedChange={(v) => handleUpdateField("isMilestone", !!v)}
-                  />
-                  <span className="text-sm text-muted-foreground">Milestone</span>
+              {/* Flags */}
+              <label className="flex items-center gap-1 cursor-pointer ml-auto">
+                <Checkbox
+                  checked={task?.billable ?? true}
+                  onCheckedChange={v => handleUpdateField("billable", !!v)}
+                  className="h-3.5 w-3.5"
+                />
+                <span className="text-[11px] text-muted-foreground">Billable</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <Checkbox
+                  checked={task?.isMilestone ?? false}
+                  onCheckedChange={v => handleUpdateField("isMilestone", !!v)}
+                  className="h-3.5 w-3.5"
+                />
+                <span className="text-[11px] text-muted-foreground">Milestone</span>
+              </label>
+            </div>
+          </div>
+
+          {/* ── Scrollable body ─────────────────────────────────────────────── */}
+          <div className="flex-1 overflow-y-auto">
+
+            {/* Key fields grid */}
+            <div className="px-5 pt-3 pb-0 grid grid-cols-2 gap-x-4 gap-y-3">
+
+              {/* Start date */}
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                  <CalendarDays className="h-3 w-3" />Start Date
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={task?.billable ?? true}
-                    onCheckedChange={(v) => handleUpdateField("billable", !!v)}
-                  />
-                  <span className="text-sm text-muted-foreground">Billable</span>
-                </label>
+                <Input
+                  type="date"
+                  className="h-7 text-xs"
+                  defaultValue={task?.startDate ?? ""}
+                  onBlur={e => { if (e.target.value) handleUpdateField("startDate", e.target.value); }}
+                />
               </div>
 
-              {/* Completion % — P14 */}
+              {/* Due date */}
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                  <CalendarDays className="h-3 w-3" />Due Date
+                </label>
+                <Input
+                  type="date"
+                  className="h-7 text-xs"
+                  defaultValue={task?.dueDate ?? ""}
+                  onBlur={e => { if (e.target.value) handleUpdateField("dueDate", e.target.value); }}
+                />
+              </div>
+
+              {/* Completion — spans both cols */}
               {!isParent && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center justify-between">
+                <div className="col-span-2">
+                  <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground flex items-center justify-between mb-1">
                     <span>Completion</span>
-                    <span className="tabular-nums font-semibold text-foreground">{(task as any)?.completionPct ?? 0}%</span>
+                    <span className="tabular-nums font-semibold text-foreground text-xs">{completionPct}%</span>
                   </label>
+                  <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-1">
+                    <div
+                      className="absolute left-0 top-0 h-full rounded-full bg-indigo-500 transition-all"
+                      style={{ width: `${completionPct}%` }}
+                    />
+                  </div>
                   <input
                     type="range"
-                    min={0}
-                    max={100}
-                    step={5}
-                    className="w-full h-1.5 accent-violet-600 cursor-pointer"
-                    key={`cp-${taskId}-${(task as any)?.completionPct}`}
-                    defaultValue={(task as any)?.completionPct ?? 0}
-                    onMouseUp={(e) => handleUpdateField("completionPct", Number((e.target as HTMLInputElement).value))}
-                    onTouchEnd={(e) => handleUpdateField("completionPct", Number((e.target as HTMLInputElement).value))}
+                    min={0} max={100} step={5}
+                    className="w-full h-1 accent-indigo-600 cursor-pointer"
+                    key={`cp-${taskId}-${completionPct}`}
+                    defaultValue={completionPct}
+                    onMouseUp={e => handleUpdateField("completionPct", Number((e.target as HTMLInputElement).value))}
+                    onTouchEnd={e => handleUpdateField("completionPct", Number((e.target as HTMLInputElement).value))}
                   />
                 </div>
               )}
+            </div>
 
-              {/* Approval status */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Approval Status</label>
-                <Select defaultValue={(task as any)?.approvalStatus ?? "none"} onValueChange={(v) => handleUpdateField("approvalStatus", v)}>
-                  <SelectTrigger className="h-8 w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {APPROVAL_OPTIONS.map((a) => (
-                      <SelectItem key={a} value={a} className="capitalize">{a}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Separator />
-
-              {/* Checklist */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Checklist</span>
-                    {totalCount > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {completedCount}/{totalCount}
-                      </span>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingChecklist(true)}>
-                    <Plus className="h-3 w-3 mr-1" /> Add Item
-                  </Button>
+            {/* Hours stat bar */}
+            <div className="px-5 py-3">
+              {isParent ? (
+                <div className="flex items-center gap-1.5 h-8 rounded border border-dashed border-amber-300 bg-amber-50 px-3 text-xs text-amber-700">
+                  <span className="font-medium">Auto-calculated</span>
+                  <span className="text-amber-400">—</span>
+                  <span>sum of child tasks. Log time on leaf tasks only.</span>
                 </div>
-
-                {totalCount > 0 && (
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 mb-3">
-                    <div
-                      className="bg-indigo-500 h-1.5 rounded-full transition-all"
-                      style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
-                    />
-                  </div>
-                )}
-
-                {loadingChecklist ? (
-                  <p className="text-sm text-muted-foreground">Loading…</p>
-                ) : (
-                  <div className="space-y-1">
-                    {checklist?.sort((a, b) => a.order - b.order).map((item) => (
-                      <div key={item.id} className="flex items-center gap-2 group py-1">
-                        <Checkbox
-                          checked={item.completed}
-                          onCheckedChange={() => handleToggleChecklist(item)}
+              ) : (
+                <div className="grid grid-cols-5 gap-px bg-slate-200 rounded-lg overflow-hidden border border-slate-200">
+                  {/* Planned */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="bg-white px-2 py-2">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Planned</div>
+                        <Input
+                          type="number" min={0} step="0.25"
+                          className="h-6 text-xs px-1.5 border-0 bg-transparent p-0 focus-visible:ring-0 font-semibold text-slate-700"
+                          defaultValue={task?.plannedHours ?? task?.effort ?? 0}
+                          onBlur={e => {
+                            if (e.target.value === "") return;
+                            handleUpdateField("plannedHours", Math.max(0, Number(e.target.value) || 0));
+                          }}
                         />
-                        <span className={`text-sm flex-1 ${item.completed ? "line-through text-muted-foreground" : ""}`}>
-                          {item.name}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground"
-                          onClick={() => handleDeleteChecklist(item)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </TooltipTrigger>
+                    <TooltipContent className="text-xs">Originally planned hours</TooltipContent>
+                  </Tooltip>
 
-                {addingChecklist && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Input
-                      placeholder="Checklist item…"
-                      className="h-8 text-sm flex-1"
-                      value={newChecklistItem}
-                      onChange={(e) => setNewChecklistItem(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleAddChecklist(); if (e.key === "Escape") { setAddingChecklist(false); setNewChecklistItem(""); } }}
-                      autoFocus
-                    />
-                    <Button size="sm" className="h-8" onClick={handleAddChecklist} disabled={!newChecklistItem.trim()}>Add</Button>
-                    <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingChecklist(false); setNewChecklistItem(""); }}>Cancel</Button>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Dependencies */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <GitBranch className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Dependencies</span>
-                    {(dependencies?.length ?? 0) > 0 && (
-                      <span className="text-xs text-muted-foreground">{dependencies?.length}</span>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingDep(true)}>
-                    <Plus className="h-3 w-3 mr-1" /> Add
-                  </Button>
-                </div>
-
-                {dependencies && dependencies.length > 0 && (
-                  <div className="space-y-1.5">
-                    {dependencies.map(dep => {
-                      const isSuccessor = dep.successorId === taskId;
-                      const otherName = isSuccessor ? dep.predecessorName : dep.successorName;
-                      return (
-                        <div key={dep.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{dep.dependencyType}</span>
-                            <span className="text-xs text-muted-foreground shrink-0">{isSuccessor ? "Predecessor:" : "Blocks:"}</span>
-                            <span className="text-sm truncate">{otherName}</span>
-                            {dep.lagDays > 0 && <span className="text-xs text-muted-foreground shrink-0">+{dep.lagDays}d lag</span>}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0"
-                            onClick={() => handleDeleteDep(dep.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {addingDep && (
-                  <div className="mt-2 space-y-2 p-2 border rounded bg-muted/20">
-                    <div className="flex gap-2">
-                      <Select value={depForm.predecessorId} onValueChange={v => setDepForm(f => ({ ...f, predecessorId: v }))}>
-                        <SelectTrigger className="h-8 text-sm flex-1" title="This task cannot start until the selected task is complete.">
-                          <SelectValue placeholder="Predecessor task…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {projectTasksForDeps.filter(t => t.id !== taskId).map(t => (
-                            <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={depForm.dependencyType} onValueChange={v => setDepForm(f => ({ ...f, dependencyType: v }))}>
-                        <SelectTrigger className="h-8 text-sm w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["FS", "SS", "FF", "SF"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        className="h-8 text-sm w-24"
-                        placeholder="Lag days"
-                        value={depForm.lagDays}
-                        onChange={e => setDepForm(f => ({ ...f, lagDays: e.target.value }))}
-                      />
-                      <Button size="sm" className="h-8" onClick={handleAddDep} disabled={!depForm.predecessorId}>Add</Button>
-                      <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingDep(false); setDepForm({ predecessorId: "", dependencyType: "FS", lagDays: "0" }); }}>Cancel</Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Daily Hours — P6 */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Daily Hours</span>
-                    {(dailyAllocs?.length ?? 0) > 0 && (
-                      <span className="text-xs text-muted-foreground">{dailyAllocs?.length}</span>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingDailyAlloc(true)}>
-                    <Plus className="h-3 w-3 mr-1" /> Allocate
-                  </Button>
-                </div>
-                {dailyAllocs && dailyAllocs.length > 0 && (
-                  <div className="space-y-1">
-                    {dailyAllocs.map((da: any) => (
-                      <div key={da.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-xs text-muted-foreground shrink-0">{da.workDate}</span>
-                          <span className="text-sm">{users?.find((u: any) => u.id === da.userId)?.name ?? `User ${da.userId}`}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-sm font-medium tabular-nums">{da.allocatedHours}h</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0"
-                            onClick={async () => {
-                              await fetch(`/api/tasks/${taskId}/daily-allocations/${da.id}`, { method: "DELETE", headers: authHeaders() });
-                              refetchDailyAllocs();
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                  {/* Estimate */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="bg-white px-2 py-2">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Estimate</div>
+                        <Input
+                          type="number" min={0} step="0.25"
+                          className="h-6 text-xs px-1.5 border-0 bg-transparent p-0 focus-visible:ring-0 font-semibold text-slate-700"
+                          defaultValue={task?.estimateHours ?? task?.plannedHours ?? task?.effort ?? 0}
+                          onBlur={e => {
+                            if (e.target.value === "") return;
+                            handleUpdateField("estimateHours", Math.max(0, Number(e.target.value) || 0));
+                          }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                )}
-                {(!dailyAllocs?.length) && !addingDailyAlloc && (
-                  <p className="text-sm text-muted-foreground">No daily allocations yet.</p>
-                )}
-                {addingDailyAlloc && (
-                  <div className="mt-2 space-y-2 p-2 border rounded bg-muted/20">
-                    <div className="grid grid-cols-3 gap-2">
-                      <Input
-                        type="date"
-                        className="h-8 text-sm"
-                        value={dailyAllocForm.workDate}
-                        onChange={e => setDailyAllocForm(f => ({ ...f, workDate: e.target.value }))}
-                      />
-                      <Select value={dailyAllocForm.userId} onValueChange={v => setDailyAllocForm(f => ({ ...f, userId: v }))}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Assignee…" /></SelectTrigger>
-                        <SelectContent>
-                          {users?.map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        type="number"
-                        min={0.25}
-                        max={24}
-                        step={0.25}
-                        className="h-8 text-sm"
-                        placeholder="Hours"
-                        value={dailyAllocForm.hours}
-                        onChange={e => setDailyAllocForm(f => ({ ...f, hours: e.target.value }))}
-                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="text-xs">Current revised estimate</TooltipContent>
+                  </Tooltip>
+
+                  {/* Actual */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="bg-slate-50 px-2 py-2 cursor-default">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Actual</div>
+                        <div className="text-xs font-semibold text-slate-700 leading-6">{(task?.actualHours ?? 0).toFixed(1)}h</div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="text-xs">Sum of logged time entries</TooltipContent>
+                  </Tooltip>
+
+                  {/* ETC */}
+                  <div className={`px-2 py-2 ${Number(task?.etc ?? 0) < 0 ? "bg-red-50" : "bg-white"}`}>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-0.5">
+                      ETC
+                      {(task as any)?.etcOverride != null && <span className="text-[8px] text-violet-500">(m)</span>}
+                      {Number(task?.etc ?? 0) < 0 && <AlertTriangle className="h-2.5 w-2.5 text-red-500 ml-0.5" />}
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="h-8"
-                        disabled={!dailyAllocForm.workDate || !dailyAllocForm.userId}
-                        onClick={async () => {
-                          await fetch(`/api/tasks/${taskId}/daily-allocations`, {
-                            method: "POST",
-                            headers: { ...authHeaders(), "Content-Type": "application/json" },
-                            body: JSON.stringify({ userId: Number(dailyAllocForm.userId), workDate: dailyAllocForm.workDate, allocatedHours: Number(dailyAllocForm.hours) }),
-                          });
-                          setDailyAllocForm({ workDate: "", userId: "", hours: "8" });
-                          setAddingDailyAlloc(false);
-                          refetchDailyAllocs();
+                    <div className="flex items-center gap-0.5">
+                      <Input
+                        type="number" step="0.25"
+                        className={`h-6 text-xs px-1 border-0 bg-transparent p-0 focus-visible:ring-0 font-semibold w-full ${Number(task?.etc ?? 0) < 0 ? "text-red-600" : "text-slate-700"}`}
+                        defaultValue={Number(task?.etc ?? 0).toFixed(1)}
+                        key={`etc-${taskId}-${(task as any)?.etcOverride}`}
+                        onBlur={e => {
+                          if (e.target.value === "") return;
+                          handleUpdateField("etcOverride", Number(parseFloat(e.target.value).toFixed(2)));
                         }}
-                      >Save</Button>
-                      <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingDailyAlloc(false); setDailyAllocForm({ workDate: "", userId: "", hours: "8" }); }}>Cancel</Button>
+                      />
+                      {(task as any)?.etcOverride != null && (
+                        <button type="button" onClick={() => handleUpdateField("etcOverride", null)}
+                          className="text-muted-foreground hover:text-foreground leading-none text-xs px-0.5">×</button>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
 
-              <Separator />
-
-              {/* Comments */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Comments</span>
-                    {(comments?.length ?? 0) > 0 && (
-                      <span className="text-xs text-muted-foreground">{comments?.length}</span>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingComment(true)}>
-                    <Plus className="h-3 w-3 mr-1" /> Add Comment
-                  </Button>
-                </div>
-
-                {loadingComments ? (
-                  <p className="text-sm text-muted-foreground">Loading…</p>
-                ) : (
-                  <div className="space-y-3">
-                    {comments?.length === 0 && !addingComment && (
-                      <p className="text-sm text-muted-foreground">No comments yet.</p>
-                    )}
-                    {comments?.map((comment) => (
-                      <div key={comment.id} className="flex gap-3 group">
-                        <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
-                          <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700">
-                            {userInitials(comment.userId)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-xs font-medium">{userName(comment.userId)}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {comment.createdAt ? format(new Date(comment.createdAt), "MMM d, h:mm a") : ""}
-                            </span>
-                            {comment.isPrivate && (
-                              <Badge variant="outline" className="text-xs py-0 h-4">Private</Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-slate-700 mt-0.5 break-words">{comment.content}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground flex-shrink-0"
-                          onClick={() => handleDeleteComment(comment.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                  {/* EAC */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="bg-slate-50 px-2 py-2 cursor-default">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">EAC</div>
+                        <div className="text-xs font-semibold text-slate-700 leading-6">{(task?.eac ?? 0).toFixed(1)}h</div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </TooltipTrigger>
+                    <TooltipContent className="text-xs">Estimate at Completion = Actual + |ETC|</TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+            </div>
 
-                {addingComment && (
-                  <div className="mt-3 space-y-2">
-                    <Textarea
-                      placeholder="Write a comment…"
-                      className="text-sm resize-none"
-                      rows={3}
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleAddComment} disabled={!newComment.trim()}>Post</Button>
-                      <Button size="sm" variant="ghost" onClick={() => { setAddingComment(false); setNewComment(""); }}>Cancel</Button>
-                    </div>
-                  </div>
-                )}
+            {/* Assignees */}
+            <div className="px-5 pb-3">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground flex items-center gap-1">
+                  <Users className="h-3 w-3" />Assignees
+                </label>
+                <Button variant="ghost" size="sm" className="h-6 text-xs px-2 gap-1" onClick={() => setAddingDailyAlloc(true)}>
+                  <Plus className="h-3 w-3" />Add
+                </Button>
               </div>
 
-              <Separator />
-
-              {/* Notes */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Notes</span>
-                    {(notes?.length ?? 0) > 0 && (
-                      <span className="text-xs text-muted-foreground">{notes?.length}</span>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingNote(true)}>
-                    <Plus className="h-3 w-3 mr-1" /> Add Note
-                  </Button>
+              {assignees.length === 0 && !addingDailyAlloc ? (
+                <p className="text-xs text-muted-foreground">No assignees yet. Add a daily allocation to assign someone.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {assignees.map(a => (
+                    <div key={a.userId} className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 rounded-full pl-1 pr-2 py-0.5 transition-colors">
+                      <Avatar className="h-5 w-5 flex-shrink-0">
+                        <AvatarFallback className="text-[9px] bg-indigo-100 text-indigo-700">{userInitials(a.name)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-medium text-slate-700">{a.name}</span>
+                      <span className="text-[11px] text-muted-foreground tabular-nums">{a.totalHours}h</span>
+                    </div>
+                  ))}
                 </div>
+              )}
 
-                {loadingNotes ? (
-                  <p className="text-sm text-muted-foreground">Loading…</p>
-                ) : (
-                  <div className="space-y-3">
-                    {notes?.length === 0 && !addingNote && (
-                      <p className="text-sm text-muted-foreground">No notes yet.</p>
-                    )}
-                    {notes?.map((note) => {
-                      const canEdit = note.userId === currentUserId || hasRole(activeRole, "super_user");
-                      const isEditing = editNoteId === note.id;
-                      return (
-                        <div key={note.id} className="flex gap-3 group">
+              {addingDailyAlloc && (
+                <div className="mt-2 p-3 border rounded-lg bg-slate-50 space-y-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input
+                      type="date"
+                      className="h-7 text-xs col-span-1"
+                      value={dailyAllocForm.workDate}
+                      onChange={e => setDailyAllocForm(f => ({ ...f, workDate: e.target.value }))}
+                    />
+                    <Select value={dailyAllocForm.userId} onValueChange={v => setDailyAllocForm(f => ({ ...f, userId: v }))}>
+                      <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Assignee…" /></SelectTrigger>
+                      <SelectContent>
+                        {users?.map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number" min={0.25} max={24} step={0.25}
+                      className="h-7 text-xs"
+                      placeholder="Hours"
+                      value={dailyAllocForm.hours}
+                      onChange={e => setDailyAllocForm(f => ({ ...f, hours: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="h-7 text-xs"
+                      disabled={!dailyAllocForm.workDate || !dailyAllocForm.userId}
+                      onClick={async () => {
+                        await fetch(`/api/tasks/${taskId}/daily-allocations`, {
+                          method: "POST",
+                          headers: { ...authHeaders(), "Content-Type": "application/json" },
+                          body: JSON.stringify({ userId: Number(dailyAllocForm.userId), workDate: dailyAllocForm.workDate, allocatedHours: Number(dailyAllocForm.hours) }),
+                        });
+                        setDailyAllocForm({ workDate: "", userId: "", hours: "8" });
+                        setAddingDailyAlloc(false);
+                        refetchDailyAllocs();
+                      }}
+                    >Save</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingDailyAlloc(false); setDailyAllocForm({ workDate: "", userId: "", hours: "8" }); }}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Approval status select (compact, below assignees) */}
+            <div className="px-5 pb-3 flex items-center gap-3">
+              <label className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground flex-shrink-0">Approval</label>
+              <Select defaultValue={(task as any)?.approvalStatus ?? "none"} onValueChange={v => handleUpdateField("approvalStatus", v)}>
+                <SelectTrigger className="h-7 text-xs w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {APPROVAL_OPTIONS.map(a => (
+                    <SelectItem key={a} value={a} className="text-xs capitalize">{a}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Created / updated metadata */}
+              {(task as any)?.createdAt && (
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  Created {formatDistanceToNow(new Date((task as any).createdAt), { addSuffix: true })}
+                </span>
+              )}
+            </div>
+
+            {/* ── Tabs ────────────────────────────────────────────────────────── */}
+            <div className="border-t">
+              <Tabs defaultValue="checklist" className="w-full">
+                <TabsList className="w-full justify-start rounded-none border-b bg-white h-9 px-5 gap-0">
+                  <TabsTrigger value="checklist" className="text-xs h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-3">
+                    <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
+                    Checklist
+                    {totalCount > 0 && <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-600 rounded-full px-1.5 py-0.5 tabular-nums">{completedCount}/{totalCount}</span>}
+                  </TabsTrigger>
+                  <TabsTrigger value="dependencies" className="text-xs h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-3">
+                    <GitBranch className="h-3.5 w-3.5 mr-1.5" />
+                    Deps
+                    {(dependencies?.length ?? 0) > 0 && <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-600 rounded-full px-1.5 py-0.5 tabular-nums">{dependencies?.length}</span>}
+                  </TabsTrigger>
+                  <TabsTrigger value="daily" className="text-xs h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-3">
+                    <Clock className="h-3.5 w-3.5 mr-1.5" />
+                    Daily Hours
+                    {(dailyAllocs?.length ?? 0) > 0 && <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-600 rounded-full px-1.5 py-0.5 tabular-nums">{dailyAllocs?.length}</span>}
+                  </TabsTrigger>
+                  <TabsTrigger value="comments" className="text-xs h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-3">
+                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                    Comments
+                    {(comments?.length ?? 0) > 0 && <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-600 rounded-full px-1.5 py-0.5 tabular-nums">{comments?.length}</span>}
+                  </TabsTrigger>
+                  <TabsTrigger value="notes" className="text-xs h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-3">
+                    <FileText className="h-3.5 w-3.5 mr-1.5" />
+                    Notes
+                    {(notes?.length ?? 0) > 0 && <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-600 rounded-full px-1.5 py-0.5 tabular-nums">{notes?.length}</span>}
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Checklist tab */}
+                <TabsContent value="checklist" className="m-0 px-5 py-3">
+                  {totalCount > 0 && (
+                    <div className="w-full bg-slate-100 rounded-full h-1 mb-3">
+                      <div
+                        className="bg-indigo-500 h-1 rounded-full transition-all"
+                        style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
+                      />
+                    </div>
+                  )}
+                  {loadingChecklist ? (
+                    <p className="text-xs text-muted-foreground py-2">Loading…</p>
+                  ) : (
+                    <div className="space-y-0.5">
+                      {checklist?.sort((a, b) => a.order - b.order).map(item => (
+                        <div key={item.id} className="flex items-center gap-2 group py-1 px-1 rounded hover:bg-slate-50">
+                          <Checkbox
+                            checked={item.completed}
+                            onCheckedChange={() => handleToggleChecklist(item)}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span className={`text-sm flex-1 ${item.completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 text-muted-foreground"
+                            onClick={() => handleDeleteChecklist(item)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {addingChecklist ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        placeholder="New item…"
+                        className="h-7 text-xs flex-1"
+                        value={newChecklistItem}
+                        onChange={e => setNewChecklistItem(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleAddChecklist(); if (e.key === "Escape") { setAddingChecklist(false); setNewChecklistItem(""); } }}
+                        autoFocus
+                      />
+                      <Button size="sm" className="h-7 text-xs" onClick={handleAddChecklist} disabled={!newChecklistItem.trim()}>Add</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingChecklist(false); setNewChecklistItem(""); }}>Cancel</Button>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs gap-1 text-muted-foreground" onClick={() => setAddingChecklist(true)}>
+                      <Plus className="h-3 w-3" />Add item
+                    </Button>
+                  )}
+                </TabsContent>
+
+                {/* Dependencies tab */}
+                <TabsContent value="dependencies" className="m-0 px-5 py-3">
+                  {dependencies && dependencies.length > 0 && (
+                    <div className="space-y-1 mb-3">
+                      {dependencies.map(dep => {
+                        const isSuccessor = dep.successorId === taskId;
+                        const otherName = isSuccessor ? dep.predecessorName : dep.successorName;
+                        return (
+                          <div key={dep.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[11px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shrink-0">{dep.dependencyType}</span>
+                              <span className="text-[11px] text-muted-foreground shrink-0">{isSuccessor ? "After:" : "Blocks:"}</span>
+                              <span className="text-sm truncate">{otherName}</span>
+                              {dep.lagDays > 0 && <span className="text-[11px] text-muted-foreground shrink-0">+{dep.lagDays}d</span>}
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 text-muted-foreground shrink-0"
+                              onClick={() => handleDeleteDep(dep.id)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {addingDep ? (
+                    <div className="space-y-2 p-2 border rounded bg-muted/20">
+                      <div className="flex gap-2">
+                        <Select value={depForm.predecessorId} onValueChange={v => setDepForm(f => ({ ...f, predecessorId: v }))}>
+                          <SelectTrigger className="h-7 text-xs flex-1"><SelectValue placeholder="Predecessor task…" /></SelectTrigger>
+                          <SelectContent>
+                            {projectTasksForDeps.filter(t => t.id !== taskId).map(t => (
+                              <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={depForm.dependencyType} onValueChange={v => setDepForm(f => ({ ...f, dependencyType: v }))}>
+                          <SelectTrigger className="h-7 text-xs w-16"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {["FS", "SS", "FF", "SF"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number" min={0} className="h-7 text-xs w-20"
+                          placeholder="Lag d"
+                          value={depForm.lagDays}
+                          onChange={e => setDepForm(f => ({ ...f, lagDays: e.target.value }))}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" className="h-7 text-xs" onClick={handleAddDep} disabled={!depForm.predecessorId}>Add</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingDep(false); setDepForm({ predecessorId: "", dependencyType: "FS", lagDays: "0" }); }}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => setAddingDep(true)}>
+                      <Plus className="h-3 w-3" />Add dependency
+                    </Button>
+                  )}
+                </TabsContent>
+
+                {/* Daily hours tab */}
+                <TabsContent value="daily" className="m-0 px-5 py-3">
+                  {dailyAllocs && dailyAllocs.length > 0 ? (
+                    <div className="space-y-0.5 mb-3">
+                      {dailyAllocs.map((da: any) => (
+                        <div key={da.id} className="flex items-center justify-between gap-2 group py-1 px-2 rounded hover:bg-muted/40">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{da.workDate}</span>
+                            <span className="text-sm truncate">{users?.find((u: any) => u.id === da.userId)?.name ?? `User ${da.userId}`}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-sm font-medium tabular-nums">{da.allocatedHours}h</span>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 text-muted-foreground"
+                              onClick={async () => {
+                                await fetch(`/api/tasks/${taskId}/daily-allocations/${da.id}`, { method: "DELETE", headers: authHeaders() });
+                                refetchDailyAllocs();
+                              }}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : !addingDailyAlloc ? (
+                    <p className="text-xs text-muted-foreground mb-2">No daily allocations yet.</p>
+                  ) : null}
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => setAddingDailyAlloc(true)}>
+                    <Plus className="h-3 w-3" />Add allocation
+                  </Button>
+                </TabsContent>
+
+                {/* Comments tab */}
+                <TabsContent value="comments" className="m-0 px-5 py-3">
+                  {loadingComments ? (
+                    <p className="text-xs text-muted-foreground py-2">Loading…</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {comments?.length === 0 && !addingComment && (
+                        <p className="text-xs text-muted-foreground">No comments yet.</p>
+                      )}
+                      {comments?.map(comment => (
+                        <div key={comment.id} className="flex gap-2.5 group">
                           <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
-                            <AvatarFallback className="text-xs bg-emerald-100 text-emerald-700">
-                              {(note.userName || `U${note.userId}`).split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase()}
+                            <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-700">
+                              {userInitials(userName(comment.userId))}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-baseline gap-2">
-                              <span className="text-xs font-medium">{note.userName}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {note.createdAt ? formatDistanceToNow(new Date(note.createdAt), { addSuffix: true }) : ""}
+                              <span className="text-xs font-medium">{userName(comment.userId)}</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {comment.createdAt ? format(new Date(comment.createdAt), "MMM d, h:mm a") : ""}
                               </span>
                             </div>
-                            {isEditing ? (
-                              <div className="mt-1 space-y-2">
-                                <Textarea
-                                  className="text-sm resize-none"
-                                  rows={3}
-                                  value={editNoteContent}
-                                  onChange={e => setEditNoteContent(e.target.value)}
-                                  autoFocus
-                                />
-                                <div className="flex gap-2">
-                                  <Button size="sm" onClick={handleSaveEditNote} disabled={!editNoteContent.trim()}>Save</Button>
-                                  <Button size="sm" variant="ghost" onClick={() => { setEditNoteId(null); setEditNoteContent(""); }}>Cancel</Button>
-                                </div>
+                            <p className="text-sm text-slate-700 mt-0.5 break-words">{comment.content}</p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 text-muted-foreground flex-shrink-0"
+                            onClick={() => handleDeleteComment(comment.id)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {addingComment ? (
+                    <div className="mt-3 space-y-2">
+                      <Textarea
+                        placeholder="Write a comment…"
+                        className="text-sm resize-none"
+                        rows={3}
+                        value={newComment}
+                        onChange={e => setNewComment(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" className="h-7 text-xs" onClick={handleAddComment} disabled={!newComment.trim()}>Post</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingComment(false); setNewComment(""); }}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="mt-3 h-7 text-xs gap-1 text-muted-foreground" onClick={() => setAddingComment(true)}>
+                      <Plus className="h-3 w-3" />Add comment
+                    </Button>
+                  )}
+                </TabsContent>
+
+                {/* Notes tab */}
+                <TabsContent value="notes" className="m-0 px-5 py-3">
+                  {loadingNotes ? (
+                    <p className="text-xs text-muted-foreground py-2">Loading…</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {notes?.length === 0 && !addingNote && (
+                        <p className="text-xs text-muted-foreground">No notes yet.</p>
+                      )}
+                      {notes?.map(note => {
+                        const canEdit = note.userId === currentUserId || hasRole(activeRole, "super_user");
+                        const isEditing = editNoteId === note.id;
+                        return (
+                          <div key={note.id} className="flex gap-2.5 group">
+                            <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
+                              <AvatarFallback className="text-[10px] bg-emerald-100 text-emerald-700">
+                                {(note.userName || `U${note.userId}`).split(" ").map((s: string) => s[0]).join("").slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-xs font-medium">{note.userName}</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {note.createdAt ? formatDistanceToNow(new Date(note.createdAt), { addSuffix: true }) : ""}
+                                </span>
                               </div>
-                            ) : (
-                              <p className="text-sm text-slate-700 mt-0.5 break-words whitespace-pre-wrap">{note.content}</p>
+                              {isEditing ? (
+                                <div className="mt-1 space-y-2">
+                                  <Textarea
+                                    className="text-sm resize-none"
+                                    rows={3}
+                                    value={editNoteContent}
+                                    onChange={e => setEditNoteContent(e.target.value)}
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button size="sm" className="h-7 text-xs" onClick={handleSaveEditNote} disabled={!editNoteContent.trim()}>Save</Button>
+                                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditNoteId(null); setEditNoteContent(""); }}>Cancel</Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-slate-700 mt-0.5 break-words whitespace-pre-wrap">{note.content}</p>
+                              )}
+                            </div>
+                            {canEdit && !isEditing && (
+                              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 flex-shrink-0">
+                                <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground"
+                                  onClick={() => { setEditNoteId(note.id); setEditNoteContent(note.content); }}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground"
+                                  onClick={() => handleDeleteNote(note.id)}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             )}
                           </div>
-                          {canEdit && !isEditing && (
-                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 flex-shrink-0">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-muted-foreground"
-                                onClick={() => { setEditNoteId(note.id); setEditNoteContent(note.content); }}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-muted-foreground"
-                                onClick={() => handleDeleteNote(note.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {addingNote && (
-                  <div className="mt-3 space-y-2">
-                    <Textarea
-                      placeholder="Add a note…"
-                      className="text-sm resize-none"
-                      rows={3}
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleAddNote} disabled={!newNote.trim()}>Save</Button>
-                      <Button size="sm" variant="ghost" onClick={() => { setAddingNote(false); setNewNote(""); }}>Cancel</Button>
+                        );
+                      })}
                     </div>
-                  </div>
-                )}
-              </div>
-
+                  )}
+                  {addingNote ? (
+                    <div className="mt-3 space-y-2">
+                      <Textarea
+                        placeholder="Add a note…"
+                        className="text-sm resize-none"
+                        rows={3}
+                        value={newNote}
+                        onChange={e => setNewNote(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" className="h-7 text-xs" onClick={handleAddNote} disabled={!newNote.trim()}>Save</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingNote(false); setNewNote(""); }}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="mt-3 h-7 text-xs gap-1 text-muted-foreground" onClick={() => setAddingNote(true)}>
+                      <Plus className="h-3 w-3" />Add note
+                    </Button>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
+
           </div>
-        </div>
+        </TooltipProvider>
       </SheetContent>
     </Sheet>
   );
