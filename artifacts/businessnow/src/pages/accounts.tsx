@@ -142,6 +142,16 @@ export default function Accounts() {
     onError: (err: any) => toast({ title: "Failed to delete account", description: err?.message ?? "Please try again.", variant: "destructive" }),
   });
 
+  const archiveMut = useMutation({
+    mutationFn: (id: number) => updateAccount(id, { status: "Archived" } as any),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      if (selected?.id === id) setSelected(null);
+      toast({ title: "Account archived" });
+    },
+    onError: (err: any) => toast({ title: "Failed to archive account", description: err?.message ?? "Please try again.", variant: "destructive" }),
+  });
+
   function openEdit(account: Account) {
     setEditTarget(account);
     setEditForm({
@@ -253,8 +263,8 @@ export default function Accounts() {
                             <DropdownMenuItem onClick={() => openEdit(account)}>
                               <Pencil className="h-4 w-4 mr-2" /> Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => openDelete(account)}>
-                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            <DropdownMenuItem className="text-amber-600" onClick={() => archiveMut.mutate(account.id)}>
+                              <FolderOpen className="h-4 w-4 mr-2" /> Archive
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -320,21 +330,16 @@ export default function Accounts() {
                             <div className="flex items-center justify-end">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Edit options</TooltipContent>
-                                  </Tooltip>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => openEdit(account)}>
                                     <Pencil className="h-4 w-4 mr-2" /> Edit
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600" onClick={() => openDelete(account)}>
-                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                  <DropdownMenuItem className="text-amber-600" onClick={() => archiveMut.mutate(account.id)}>
+                                    <FolderOpen className="h-4 w-4 mr-2" /> Archive
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
