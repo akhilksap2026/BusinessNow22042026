@@ -281,11 +281,11 @@ export default function Accounts() {
                     <TableHead className="w-8" />
                     <TableHead>Account Name</TableHead>
                     <TableHead>Company</TableHead>
+                    <TableHead>Contact</TableHead>
                     <TableHead>Domain</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tier</TableHead>
                     <TableHead>Region</TableHead>
-                    <TableHead>Contact</TableHead>
                     <TableHead className="text-right">Contract Value</TableHead>
                     <TableHead />
                   </TableRow>
@@ -310,14 +310,6 @@ export default function Accounts() {
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{account.companyName || <span className="text-muted-foreground/40">—</span>}</TableCell>
-                          <TableCell className="text-muted-foreground"><TooltipCell value={account.domain} maxWidth="max-w-[10rem]" /></TableCell>
-                          <TableCell>
-                            <StatusBadge status={account.status} />
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={account.tier} />
-                          </TableCell>
-                          <TableCell>{account.region}</TableCell>
                           <TableCell>
                             {account.contactName ? (
                               <Tooltip>
@@ -331,6 +323,14 @@ export default function Accounts() {
                               </Tooltip>
                             ) : <span className="text-muted-foreground/40">—</span>}
                           </TableCell>
+                          <TableCell className="text-muted-foreground"><TooltipCell value={account.domain} maxWidth="max-w-[10rem]" /></TableCell>
+                          <TableCell>
+                            <StatusBadge status={account.status} />
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={account.tier} />
+                          </TableCell>
+                          <TableCell>{account.region}</TableCell>
                           <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
                           <TableCell>
                             <div className="flex items-center justify-end">
