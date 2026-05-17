@@ -1,4 +1,4 @@
-import { useListUsers } from "@workspace/api-client-react";
+import { useListUsers, useListProjects } from "@workspace/api-client-react";
 import { authHeaders } from "@/lib/auth-headers";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +50,13 @@ interface UserCapData { userId: number; weeks: WeekCapEntry[] }
 
 export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact = false, onFulfill }: UtilisationHeatmapProps) {
   const { data: users, isLoading: loadingUsers } = useListUsers();
+  const { data: projects } = useListProjects();
+
+  // Build project name lookup
+  const projectNameMap = new Map<number, string>(
+    (projects ?? []).map((p: any) => [p.id, p.name])
+  );
+
   const { data: allAllocations, isLoading: loadingAllocs } = useQuery<any[]>({
     queryKey: ["all-allocations"],
     queryFn: async () => {
@@ -206,20 +213,24 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
                       // fall back to raw capacity until the endpoint responds.
                       const effectiveCap = weekCapMap.get(user.id)?.get(weekIso) ?? capacity;
 
-                      const allocatedHours = userAllocs.reduce((sum: number, a: any) => {
+                      // Allocations overlapping this week
+                      const weekAllocs = userAllocs.filter((a: any) => {
                         const aStart = new Date(a.startDate + "T00:00:00");
                         const aEnd = new Date(a.endDate + "T00:00:00");
-                        if (aEnd < week.start || aStart > week.end) return sum;
-                        return sum + (a.hoursPerWeek ?? 0);
-                      }, 0);
+                        return !(aEnd < week.start || aStart > week.end);
+                      });
 
-                      const isSoftOnly = userAllocs
-                        .filter((a: any) => {
-                          const aStart = new Date(a.startDate + "T00:00:00");
-                          const aEnd = new Date(a.endDate + "T00:00:00");
-                          return !(aEnd < week.start || aStart > week.end);
-                        })
-                        .every((a: any) => a.isSoftAllocation);
+                      const allocatedHours = weekAllocs.reduce((sum: number, a: any) => sum + (a.hoursPerWeek ?? 0), 0);
+
+                      const isSoftOnly = weekAllocs.length > 0 && weekAllocs.every((a: any) => a.isSoftAllocation);
+
+                      // Per-project breakdown: group by projectId, sum hoursPerWeek
+                      const projectBreakdown = new Map<number, number>();
+                      for (const a of weekAllocs) {
+                        if (a.projectId) {
+                          projectBreakdown.set(a.projectId, (projectBreakdown.get(a.projectId) ?? 0) + (a.hoursPerWeek ?? 0));
+                        }
+                      }
 
                       const pct = effectiveCap > 0 ? Math.round((allocatedHours / effectiveCap) * 100) : 0;
                       const color = cellColor(pct);
@@ -237,13 +248,28 @@ export function UtilisationHeatmap({ userId, weekCount = 12, fromDate, compact =
                               )}
                             </td>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="font-medium">{user.name} — {week.label}</p>
-                            <p>{allocatedHours}h allocated of {effectiveCap}h available ({pct}%)</p>
-                            {effectiveCap < capacity && (
-                              <p className="text-slate-400 text-[10px]">{capacity - effectiveCap}h off (leave/holiday)</p>
+                          <TooltipContent className="min-w-[180px]">
+                            <p className="font-medium mb-1">{user.name} — {week.label}</p>
+                            <p className="text-xs mb-1">{allocatedHours}h of {effectiveCap}h available ({pct}%)</p>
+                            {projectBreakdown.size > 0 && (
+                              <>
+                                <div className="border-t border-white/20 my-1.5" />
+                                <div className="space-y-0.5">
+                                  {Array.from(projectBreakdown.entries()).map(([pid, hrs]) => (
+                                    <div key={pid} className="flex items-center justify-between gap-4 text-xs">
+                                      <span className="text-slate-200 truncate max-w-[130px]">
+                                        {projectNameMap.get(pid) ?? `Project #${pid}`}
+                                      </span>
+                                      <span className="font-medium shrink-0">{hrs}h</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
                             )}
-                            {isSoftOnly && allocatedHours > 0 && <p className="text-amber-300">Soft allocation only</p>}
+                            {effectiveCap < capacity && (
+                              <p className="text-slate-400 text-[10px] mt-1">{capacity - effectiveCap}h off (leave/holiday)</p>
+                            )}
+                            {isSoftOnly && allocatedHours > 0 && <p className="text-amber-300 text-xs mt-1">Soft allocation only</p>}
                           </TooltipContent>
                         </Tooltip>
                       );
