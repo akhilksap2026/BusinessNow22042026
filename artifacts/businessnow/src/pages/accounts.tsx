@@ -255,21 +255,9 @@ export default function Accounts() {
                         <div className="text-xs text-muted-foreground mt-0.5 truncate">{account.domain}</div>
                       </div>
                       <div className="flex items-center gap-0.5 flex-shrink-0">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Edit options">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setConfirmEdit(account)}>
-                              <Pencil className="h-4 w-4 mr-2" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-amber-600" onClick={() => setConfirmArchive(account)}>
-                              <FolderOpen className="h-4 w-4 mr-2" /> Archive
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="View account" onClick={e => { e.stopPropagation(); setSelected(account); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
@@ -330,21 +318,9 @@ export default function Accounts() {
                           <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
                           <TableCell>
                             <div className="flex items-center justify-end">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => setConfirmEdit(account)}>
-                                    <Pencil className="h-4 w-4 mr-2" /> Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-amber-600" onClick={() => setConfirmArchive(account)}>
-                                    <FolderOpen className="h-4 w-4 mr-2" /> Archive
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="View account" onClick={e => { e.stopPropagation(); setSelected(account); }}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
