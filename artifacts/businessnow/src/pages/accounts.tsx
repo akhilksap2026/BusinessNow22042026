@@ -235,21 +235,18 @@ export default function Accounts() {
                     className="border border-border rounded-lg p-3 bg-card"
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setSelected(account)}>
                         <div className="flex items-center gap-2 font-medium text-sm">
                           <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{account.name}</span>
+                          <span className="truncate hover:underline">{account.name}</span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5 truncate">{account.domain}</div>
                       </div>
                       <div className="flex items-center gap-0.5 flex-shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="View details" onClick={() => setSelected(account)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More options">
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Edit options">
+                              <Pencil className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -304,8 +301,8 @@ export default function Accounts() {
                                 : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
                             </Button>
                           </TableCell>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
+                          <TableCell className="font-medium cursor-pointer" onClick={() => setSelected(account)}>
+                            <div className="flex items-center gap-2 hover:underline">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
                               {account.name}
                             </div>
@@ -320,20 +317,17 @@ export default function Accounts() {
                           <TableCell>{account.region}</TableCell>
                           <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-0.5 justify-end">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelected(account)}>
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>View details</TooltipContent>
-                              </Tooltip>
+                            <div className="flex items-center justify-end">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Edit options</TooltipContent>
+                                  </Tooltip>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => openEdit(account)}>
