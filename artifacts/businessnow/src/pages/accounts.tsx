@@ -46,7 +46,7 @@ import {
 import { Link } from "wouter";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Building2, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen } from "lucide-react";
+import { Plus, Search, Building2, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen, MoreHorizontal } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -232,17 +232,7 @@ export default function Accounts() {
                 ) : filtered.map(account => (
                   <li
                     key={account.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Open ${account.name}`}
-                    className="border border-border rounded-lg p-3 bg-card hover:bg-muted/30 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => setSelected(account)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setSelected(account);
-                      }
-                    }}
+                    className="border border-border rounded-lg p-3 bg-card"
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="min-w-0 flex-1">
@@ -252,11 +242,14 @@ export default function Accounts() {
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5 truncate">{account.domain}</div>
                       </div>
-                      <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="View details" onClick={() => setSelected(account)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More options">
-                              <Pencil className="h-4 w-4" />
+                              <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -303,8 +296,8 @@ export default function Accounts() {
                     const isExpanded = expandedAccounts.has(account.id);
                     return (
                       <Fragment key={account.id}>
-                        <TableRow className="cursor-pointer hover:bg-slate-50" onClick={() => setSelected(account)}>
-                          <TableCell onClick={e => toggleExpand(account.id, e)} className="p-2">
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell onClick={e => toggleExpand(account.id, e)} className="p-2 cursor-pointer">
                             <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10 transition-colors">
                               {isExpanded
                                 ? <ChevronDown className="h-3.5 w-3.5 text-primary" />
@@ -326,27 +319,32 @@ export default function Accounts() {
                           </TableCell>
                           <TableCell>{account.region}</TableCell>
                           <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
-                          <TableCell onClick={e => e.stopPropagation()}>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>More options</TooltipContent>
-                                </Tooltip>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEdit(account)}>
-                                  <Pencil className="h-4 w-4 mr-2" /> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600" onClick={() => openDelete(account)}>
-                                  <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                          <TableCell>
+                            <div className="flex items-center gap-0.5 justify-end">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelected(account)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>View details</TooltipContent>
+                              </Tooltip>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => openEdit(account)}>
+                                    <Pencil className="h-4 w-4 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-red-600" onClick={() => openDelete(account)}>
+                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </TableCell>
                         </TableRow>
                         {isExpanded && (
