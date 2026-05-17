@@ -2828,6 +2828,20 @@ export default function ProjectDetail() {
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Basics</p>
               <div className="space-y-1.5">
+                <Label>Account</Label>
+                <Select
+                  value={editProjectForm.accountId}
+                  onValueChange={v => setEditProjectForm(f => ({ ...f, accountId: v, opportunityId: "" }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+                  <SelectContent>
+                    {(editAccounts ?? []).map((acc: any) => (
+                      <SelectItem key={acc.id} value={acc.id.toString()}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
                 <Label>Project Name *</Label>
                 <Input value={editProjectForm.name} onChange={e => setEditProjectForm(f => ({ ...f, name: e.target.value }))} placeholder="Project name" />
               </div>
@@ -2872,20 +2886,6 @@ export default function ProjectDetail() {
                     </button>
                   ))}
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Account</Label>
-                <Select
-                  value={editProjectForm.accountId}
-                  onValueChange={v => setEditProjectForm(f => ({ ...f, accountId: v, opportunityId: "" }))}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
-                  <SelectContent>
-                    {(editAccounts ?? []).map((acc: any) => (
-                      <SelectItem key={acc.id} value={acc.id.toString()}>{acc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               {editProjectForm.internalExternal === "External" && (
                 <div className="space-y-1.5">
