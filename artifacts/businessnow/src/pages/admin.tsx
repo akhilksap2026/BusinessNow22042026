@@ -78,7 +78,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, ShieldCheck, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText, DollarSign } from "lucide-react";
+import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText, DollarSign } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TemplateEditor } from "@/components/template-editor";
@@ -185,157 +185,6 @@ function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: nu
   );
 }
 
-const ALL_ROLES = ["Admin", "PM", "Resource Manager", "Finance", "Viewer"] as const;
-
-function UserConfigTab({ users, BASE, onRefresh }: {
-  users: { id: number; name: string; initials: string; role: string; secondaryRoles?: string[] }[];
-  BASE: string;
-  onRefresh: () => void;
-}) {
-  const { toast } = useToast();
-  const [saving, setSaving] = useState<number | null>(null);
-  const [editingUserId, setEditingUserId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<string[]>([]);
-
-  function startEdit(userId: number, currentSecondary: string[]) {
-    setEditingUserId(userId);
-    setDraft([...currentSecondary]);
-  }
-
-  function cancelEdit() {
-    setEditingUserId(null);
-    setDraft([]);
-  }
-
-  function toggleDraftRole(role: string) {
-    setDraft(prev =>
-      prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
-    );
-  }
-
-  async function confirmEdit(userId: number) {
-    setSaving(userId);
-    try {
-      const res = await fetch(`${BASE}/api/users/${userId}/secondary-roles`, {
-        method: "PATCH",
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ secondaryRoles: draft }),
-      });
-      if (!res.ok) throw new Error("Failed");
-      onRefresh();
-      toast({ title: "Roles updated" });
-      setEditingUserId(null);
-      setDraft([]);
-    } catch {
-      toast({ title: "Failed to update roles", variant: "destructive" });
-    } finally {
-      setSaving(null);
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>User Configuration</CardTitle>
-        <CardDescription>
-          Assign secondary roles to users so they can switch their active view in the sidebar.
-          A user's primary role is always available and cannot be removed here.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Primary Role</TableHead>
-              <TableHead>Secondary Roles</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map(user => {
-              const secondary = (user as any).secondaryRoles ?? [];
-              const editing = editingUserId === user.id;
-              const activeRoles = editing ? draft : secondary;
-              return (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8"><AvatarFallback>{user.initials}</AvatarFallback></Avatar>
-                      {user.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-normal">{user.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {ALL_ROLES.filter(r => r !== user.role).map(role => {
-                        const active = activeRoles.includes(role);
-                        return (
-                          <button
-                            key={role}
-                            disabled={saving === user.id || !editing}
-                            onClick={() => editing && toggleDraftRole(role)}
-                            className={`px-2.5 py-1 text-xs rounded-full border font-medium transition-colors ${
-                              active
-                                ? "bg-blue-600 text-white border-blue-600"
-                                : editing
-                                  ? "bg-background text-muted-foreground border-border hover:border-blue-500 cursor-pointer"
-                                  : "bg-background text-muted-foreground border-border cursor-default opacity-70"
-                            }`}
-                          >
-                            {role}
-                          </button>
-                        );
-                      })}
-                      {editing ? (
-                        <>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            title="Confirm"
-                            disabled={saving === user.id}
-                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => confirmEdit(user.id)}
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            title="Cancel"
-                            disabled={saving === user.id}
-                            className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={cancelEdit}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          title="Edit roles"
-                          className="h-7 w-7 text-muted-foreground"
-                          onClick={() => startEdit(user.id, secondary)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
 
 // Section D — admin panel for reordering task status definitions.
 // Uses simple ↑/↓ buttons (instead of dnd-kit) to keep the surface tiny —
@@ -1774,18 +1623,7 @@ export default function Admin() {
           </div>
 
           <TabsContent value="users" className="m-0">
-            <Tabs defaultValue="management">
-              <TabsList className="mb-4">
-                <TabsTrigger value="management" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" /> User Management
-                </TabsTrigger>
-                <TabsTrigger value="configuration" className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4" /> User Configuration
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="management" className="m-0">
-                <Card>
+            <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                       <CardTitle>User Management</CardTitle>
@@ -1892,12 +1730,6 @@ export default function Admin() {
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              <TabsContent value="configuration" className="m-0">
-                <UserConfigTab users={users ?? []} BASE={BASE} onRefresh={() => queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() })} />
-              </TabsContent>
-            </Tabs>
           </TabsContent>
 
           <TabsContent value="templates" className="m-0">
