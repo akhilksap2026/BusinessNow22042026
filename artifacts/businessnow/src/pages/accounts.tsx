@@ -64,6 +64,8 @@ export default function Accounts() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [confirmEdit, setConfirmEdit] = useState<Account | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState<Account | null>(null);
   const [editTarget, setEditTarget] = useState<Account | null>(null);
   const emptyForm = { name: "", domain: "", tier: "Mid-Market", region: "North America", status: "Active", contractValue: "", isInternal: false, companyName: "", contactName: "", contactEmail: "", phone: "", source: "", estValue: "", notes: "", leadStatus: "New", billingAddress: "", website: "" };
   const [form, setForm] = useState({ ...emptyForm });
@@ -260,10 +262,10 @@ export default function Accounts() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEdit(account)}>
+                            <DropdownMenuItem onClick={() => setConfirmEdit(account)}>
                               <Pencil className="h-4 w-4 mr-2" /> Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-amber-600" onClick={() => archiveMut.mutate(account.id)}>
+                            <DropdownMenuItem className="text-amber-600" onClick={() => setConfirmArchive(account)}>
                               <FolderOpen className="h-4 w-4 mr-2" /> Archive
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -335,10 +337,10 @@ export default function Accounts() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => openEdit(account)}>
+                                  <DropdownMenuItem onClick={() => setConfirmEdit(account)}>
                                     <Pencil className="h-4 w-4 mr-2" /> Edit
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-amber-600" onClick={() => archiveMut.mutate(account.id)}>
+                                  <DropdownMenuItem className="text-amber-600" onClick={() => setConfirmArchive(account)}>
                                     <FolderOpen className="h-4 w-4 mr-2" /> Archive
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -376,11 +378,16 @@ export default function Accounts() {
       {/* Account Detail Sheet */}
       <Sheet open={!!selected} onOpenChange={v => { if (!v) setSelected(null); }}>
         <SheetContent className="w-[540px] overflow-y-auto">
-          {selected && <AccountDetail account={selected} onStatusChange={(status) => {
-            const updated = { ...selected, status };
-            setSelected(updated);
-            updateMut.mutate({ id: selected.id, status });
-          }} />}
+          {selected && <AccountDetail
+            account={selected}
+            onStatusChange={(status) => {
+              const updated = { ...selected, status };
+              setSelected(updated);
+              updateMut.mutate({ id: selected.id, status });
+            }}
+            onEdit={() => setConfirmEdit(selected)}
+            onArchive={() => setConfirmArchive(selected)}
+          />}
         </SheetContent>
       </Sheet>
 
@@ -602,6 +609,42 @@ export default function Accounts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Edit Dialog */}
+      <Dialog open={!!confirmEdit} onOpenChange={v => { if (!v) setConfirmEdit(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Account</DialogTitle>
+            <DialogDescription>
+              You are about to edit <strong>{confirmEdit?.name}</strong>. Do you want to continue?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmEdit(null)}>Cancel</Button>
+            <Button onClick={() => { if (confirmEdit) { openEdit(confirmEdit); setConfirmEdit(null); setSelected(null); } }}>
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Archive Dialog */}
+      <Dialog open={!!confirmArchive} onOpenChange={v => { if (!v) setConfirmArchive(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Archive Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to archive <strong>{confirmArchive?.name}</strong>? The account will be marked as Archived and hidden from active views.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmArchive(null)}>Cancel</Button>
+            <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => { if (confirmArchive) { archiveMut.mutate(confirmArchive.id); setConfirmArchive(null); setSelected(null); } }} disabled={archiveMut.isPending}>
+              {archiveMut.isPending ? "Archiving…" : "Archive"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
@@ -671,7 +714,7 @@ function AccountProjectsExpanded({ accountId, accountName }: { accountId: number
   );
 }
 
-function AccountDetail({ account, onStatusChange }: { account: Account; onStatusChange: (s: string) => void }) {
+function AccountDetail({ account, onStatusChange, onEdit, onArchive }: { account: Account; onStatusChange: (s: string) => void; onEdit: () => void; onArchive: () => void }) {
   const { data: opportunities = [] } = useQuery({
     queryKey: ["opportunities", { accountId: account.id }],
     queryFn: () => listOpportunities({ accountId: account.id }),
@@ -688,10 +731,20 @@ function AccountDetail({ account, onStatusChange }: { account: Account; onStatus
   return (
     <>
       <SheetHeader>
-        <SheetTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-muted-foreground" />
-          {account.name}
-        </SheetTitle>
+        <div className="flex items-start justify-between gap-2">
+          <SheetTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-muted-foreground" />
+            {account.name}
+          </SheetTitle>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={onEdit}>
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700" onClick={onArchive}>
+              <FolderOpen className="h-3.5 w-3.5" /> Archive
+            </Button>
+          </div>
+        </div>
       </SheetHeader>
 
       <div className="mt-6 space-y-4">
