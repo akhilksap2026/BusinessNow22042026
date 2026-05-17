@@ -691,7 +691,13 @@ export default function Finance() {
           <TabsContent value="projects" className="m-0">
             <Card>
               <CardHeader>
-                <CardTitle>All Projects</CardTitle>
+                <CardTitle>
+                  {filterProjectId
+                    ? projects?.find(p => p.id === filterProjectId)?.name ?? "Project"
+                    : filterAccountId
+                    ? (accounts?.find(a => a.id === filterAccountId)?.name ?? "Account") + " — Projects"
+                    : "All Projects"}
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -708,7 +714,13 @@ export default function Finance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(projects ?? []).filter(p => !(p as any).deletedAt).map(project => {
+                    {(projects ?? []).filter(p => {
+                      const pa = p as any;
+                      if (pa.deletedAt) return false;
+                      if (filterProjectId && p.id !== filterProjectId) return false;
+                      if (filterAccountId && pa.accountId !== filterAccountId) return false;
+                      return true;
+                    }).map(project => {
                       const p = project as any;
                       const account = accounts?.find(a => a.id === p.accountId);
                       const rateCard = rateCards?.find(r => r.id === p.rateCardId);
