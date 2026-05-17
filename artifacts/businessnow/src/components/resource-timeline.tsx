@@ -42,7 +42,7 @@ interface AvailFilter {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ZOOM_LABELS: Record<Zoom, string> = { quarter: "Quarter", month: "Month", week: "Week", day: "Day" };
-const ZOOM_CELL_PX: Record<Zoom, number> = { quarter: 120, month: 80, week: 40, day: 20 };
+const ZOOM_CELL_PX: Record<Zoom, number> = { quarter: 2, month: 3, week: 12, day: 20 };
 const ROW_H = 44;
 const LABEL_W = 248;
 
