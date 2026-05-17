@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, DollarSign, Zap, Trash2, TrendingUp, CalendarClock, BookOpen, Search, MoreVertical, ChevronRight, Pencil, FilePlus, FileText, ExternalLink, ArrowUpRight, Briefcase } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -450,6 +450,9 @@ export default function Finance() {
             <TabsTrigger value="schedules" className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4" /> Billing Schedules
             </TabsTrigger>
+            <TabsTrigger value="projects" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" /> Projects
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="invoices" className="m-0">
@@ -640,6 +643,61 @@ export default function Finance() {
                     </TableBody>
                   </Table>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="projects" className="m-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>All Projects</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Account</TableHead>
+                      <TableHead>Project Name</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Health</TableHead>
+                      <TableHead className="text-right">Tracked Hrs</TableHead>
+                      <TableHead className="text-right">Allocated Hrs</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(projects ?? []).filter(p => !(p as any).deletedAt).map(project => {
+                      const account = accounts?.find(a => a.id === (project as any).accountId);
+                      const owner = users?.find(u => u.id === (project as any).ownerId);
+                      const tracked = Number((project as any).trackedHours ?? 0);
+                      const allocated = Number((project as any).allocatedHours ?? 0);
+                      return (
+                        <TableRow key={project.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setLocation(`/projects/${project.id}`)}>
+                          <TableCell className="text-muted-foreground text-sm">{account?.name ?? "—"}</TableCell>
+                          <TableCell>
+                            <Link href={`/projects/${project.id}`} onClick={e => e.stopPropagation()} className="font-medium text-primary hover:underline">
+                              {project.name}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-sm">{owner ? `${owner.firstName} ${owner.lastName}` : "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">{(project as any).internalExternal ?? "External"}</Badge>
+                          </TableCell>
+                          <TableCell><StatusBadge status={project.status} /></TableCell>
+                          <TableCell><StatusBadge status={(project as any).health ?? "On Track"} /></TableCell>
+                          <TableCell className="text-right tabular-nums">{tracked > 0 ? `${tracked}h` : "0h"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{allocated > 0 ? `${allocated}h` : "—"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {(projects ?? []).filter(p => !(p as any).deletedAt).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">No projects found.</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
