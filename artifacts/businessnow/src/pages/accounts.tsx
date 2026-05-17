@@ -320,17 +320,15 @@ export default function Accounts() {
                           <TableCell>{account.region}</TableCell>
                           <TableCell>
                             {account.contactName ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="text-sm cursor-default underline decoration-dotted underline-offset-2">{account.contactName}</span>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="space-y-1 text-xs">
-                                    {account.contactEmail && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-muted-foreground" />{account.contactEmail}</div>}
-                                    {account.phone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-muted-foreground" />{account.phone}</div>}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-sm cursor-default underline decoration-dotted underline-offset-2">{account.contactName}</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="space-y-1 text-xs">
+                                  {account.contactEmail && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-muted-foreground" />{account.contactEmail}</div>}
+                                  {account.phone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-muted-foreground" />{account.phone}</div>}
+                                </TooltipContent>
+                              </Tooltip>
                             ) : <span className="text-muted-foreground/40">—</span>}
                           </TableCell>
                           <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
