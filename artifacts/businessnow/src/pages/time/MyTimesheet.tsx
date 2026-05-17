@@ -301,7 +301,7 @@ export default function MyTimesheet() {
             const task = tasks.find((t) => t.id === row.taskId);
             if (task) {
               updated.taskName = task.name;
-              updated.budgetHours = task.budgetHours ?? null;
+              updated.budgetHours = task.budgetHours != null ? Number(task.budgetHours) : null;
             }
           }
         } else if (row.isLeave && row.leaveTypeId) {

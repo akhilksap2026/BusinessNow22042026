@@ -242,7 +242,7 @@ export function TimesheetRow({
             null,
             t.defaultBillableCategory ?? "Billable",
             t.name,
-            t.budgetHours ?? null,
+            t.budgetHours != null ? Number(t.budgetHours) : null,
           );
         }
       }
@@ -416,22 +416,25 @@ export function TimesheetRow({
           <Badge variant={billableVariant as any} className="text-xs py-0 px-1.5">
             {row.isLeave ? "Leave" : row.billableCategory === "Billable" ? "Bill." : "Non-Bill."}
           </Badge>
-          {!row.isLeave && row.budgetHours != null && (
-            <span
-              className={cn(
-                "text-xs tabular-nums leading-none",
-                rowTotal > row.budgetHours
-                  ? "text-amber-600 font-semibold"
-                  : rowTotal > 0
-                  ? "text-muted-foreground"
-                  : "text-muted-foreground/60",
-              )}
-            >
-              {rowTotal > 0
-                ? `${rowTotal.toFixed(1)} / ${row.budgetHours.toFixed(0)} hrs`
-                : `${row.budgetHours.toFixed(0)} hrs allot.`}
-            </span>
-          )}
+          {!row.isLeave && row.budgetHours != null && (() => {
+            const bh = Number(row.budgetHours);
+            return isNaN(bh) ? null : (
+              <span
+                className={cn(
+                  "text-xs tabular-nums leading-none",
+                  rowTotal > bh
+                    ? "text-amber-600 font-semibold"
+                    : rowTotal > 0
+                    ? "text-muted-foreground"
+                    : "text-muted-foreground/60",
+                )}
+              >
+                {rowTotal > 0
+                  ? `${rowTotal.toFixed(1)} / ${bh.toFixed(0)} hrs`
+                  : `${bh.toFixed(0)} hrs allot.`}
+              </span>
+            );
+          })()}
         </div>
       </td>
 
