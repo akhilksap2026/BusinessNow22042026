@@ -492,7 +492,7 @@ export default function Finance() {
               <CalendarClock className="h-4 w-4" /> Billing Schedules
             </TabsTrigger>
             <TabsTrigger value="projects" className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4" /> Projects
+              <Briefcase className="h-4 w-4" /> Contracts
             </TabsTrigger>
           </TabsList>
 
