@@ -85,8 +85,8 @@ export function TimesheetGrid({
             <th className="py-2 px-3 text-center text-xs font-medium text-muted-foreground w-16">
               Total
             </th>
-            <th className="py-2 px-3 text-center text-xs font-medium text-muted-foreground w-16">
-              Cat.
+            <th className="py-2 px-3 text-center text-xs font-medium text-muted-foreground w-24">
+              Cat. / Budget
             </th>
             <th className="w-8" />
           </tr>

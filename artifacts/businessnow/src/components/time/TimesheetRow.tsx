@@ -410,11 +410,29 @@ export function TimesheetRow({
         )}
       </td>
 
-      {/* Billable badge */}
+      {/* Billable badge + Budget hours */}
       <td className="py-1 px-2 text-center">
-        <Badge variant={billableVariant as any} className="text-xs py-0 px-1.5">
-          {row.isLeave ? "Leave" : row.billableCategory === "Billable" ? "Bill." : "Non-Bill."}
-        </Badge>
+        <div className="flex flex-col items-center gap-0.5">
+          <Badge variant={billableVariant as any} className="text-xs py-0 px-1.5">
+            {row.isLeave ? "Leave" : row.billableCategory === "Billable" ? "Bill." : "Non-Bill."}
+          </Badge>
+          {!row.isLeave && row.budgetHours != null && (
+            <span
+              className={cn(
+                "text-xs tabular-nums leading-none",
+                rowTotal > row.budgetHours
+                  ? "text-amber-600 font-semibold"
+                  : rowTotal > 0
+                  ? "text-muted-foreground"
+                  : "text-muted-foreground/60",
+              )}
+            >
+              {rowTotal > 0
+                ? `${rowTotal.toFixed(1)} / ${row.budgetHours.toFixed(0)} hrs`
+                : `${row.budgetHours.toFixed(0)} hrs allot.`}
+            </span>
+          )}
+        </div>
       </td>
 
       {/* Delete */}
