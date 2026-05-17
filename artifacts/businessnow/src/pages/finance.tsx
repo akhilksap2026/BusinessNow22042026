@@ -6,7 +6,7 @@ import {
   useGetFinanceSummary, useListInvoices, useListAccounts, useListProjects, getListInvoicesQueryKey,
   useListBillingSchedules, useCreateBillingSchedule, useDeleteBillingSchedule, useTriggerBillingSchedule, getListBillingSchedulesQueryKey,
   useListRevenueEntries, useCreateRevenueEntry, useDeleteRevenueEntry, useGetRevenueByPeriodReport, getListRevenueEntriesQueryKey,
-  useUpdateInvoice, useListUsers,
+  useUpdateInvoice, useListUsers, useListRateCards,
 } from "@workspace/api-client-react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -180,6 +180,7 @@ export default function Finance() {
   const deleteRevenue = useDeleteRevenueEntry();
   const { data: revReport } = useGetRevenueByPeriodReport();
   const { data: users } = useListUsers();
+  const { data: rateCards } = useListRateCards();
 
 
   async function handleCreateSchedule() {
@@ -658,20 +659,22 @@ export default function Finance() {
                     <TableRow>
                       <TableHead>Account</TableHead>
                       <TableHead>Project Name</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Health</TableHead>
-                      <TableHead className="text-right">Tracked Hrs</TableHead>
-                      <TableHead className="text-right">Allocated Hrs</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead>Billing Type</TableHead>
+                      <TableHead>Rate Card</TableHead>
+                      <TableHead className="text-right">Budget</TableHead>
+                      <TableHead className="text-right">Budgeted Hrs</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(projects ?? []).filter(p => !(p as any).deletedAt).map(project => {
-                      const account = accounts?.find(a => a.id === (project as any).accountId);
-                      const owner = users?.find(u => u.id === (project as any).ownerId);
-                      const tracked = Number((project as any).trackedHours ?? 0);
-                      const allocated = Number((project as any).allocatedHours ?? 0);
+                      const p = project as any;
+                      const account = accounts?.find(a => a.id === p.accountId);
+                      const rateCard = rateCards?.find(r => r.id === p.rateCardId);
+                      const budget = Number(p.budget ?? 0);
+                      const budgetedHours = Number(p.budgetedHours ?? 0);
+                      const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
                       return (
                         <TableRow key={project.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setLocation(`/projects/${project.id}`)}>
                           <TableCell className="text-muted-foreground text-sm">{account?.name ?? "—"}</TableCell>
@@ -680,14 +683,12 @@ export default function Finance() {
                               {project.name}
                             </Link>
                           </TableCell>
-                          <TableCell className="text-sm">{owner ? `${owner.firstName} ${owner.lastName}` : "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">{(project as any).internalExternal ?? "External"}</Badge>
-                          </TableCell>
-                          <TableCell><StatusBadge status={project.status} /></TableCell>
-                          <TableCell><StatusBadge status={(project as any).health ?? "On Track"} /></TableCell>
-                          <TableCell className="text-right tabular-nums">{tracked > 0 ? `${tracked}h` : "0h"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{allocated > 0 ? `${allocated}h` : "—"}</TableCell>
+                          <TableCell className="text-sm tabular-nums">{fmtDate(p.startDate)}</TableCell>
+                          <TableCell className="text-sm tabular-nums">{fmtDate(p.dueDate)}</TableCell>
+                          <TableCell className="text-sm">{p.billingType ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{rateCard?.name ?? "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums font-medium">{budget > 0 ? `$${budget.toLocaleString()}` : "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{budgetedHours > 0 ? `${budgetedHours}h` : "—"}</TableCell>
                         </TableRow>
                       );
                     })}
