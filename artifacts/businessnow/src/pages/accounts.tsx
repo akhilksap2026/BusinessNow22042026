@@ -731,19 +731,17 @@ function AccountDetail({ account, onStatusChange, onEdit, onArchive }: { account
   return (
     <>
       <SheetHeader>
-        <div className="flex items-start justify-between gap-2">
-          <SheetTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-            {account.name}
-          </SheetTitle>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={onEdit}>
-              <Pencil className="h-3.5 w-3.5" /> Edit
-            </Button>
-            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700" onClick={onArchive}>
-              <FolderOpen className="h-3.5 w-3.5" /> Archive
-            </Button>
-          </div>
+        <SheetTitle className="flex items-center gap-2 pr-8">
+          <Building2 className="h-5 w-5 text-muted-foreground" />
+          {account.name}
+        </SheetTitle>
+        <div className="flex items-center gap-2 pt-1">
+          <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700" onClick={onArchive}>
+            <FolderOpen className="h-3.5 w-3.5" /> Archive
+          </Button>
         </div>
       </SheetHeader>
 
