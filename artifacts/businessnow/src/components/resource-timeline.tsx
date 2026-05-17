@@ -441,6 +441,7 @@ export default function ResourceTimeline({ mode }: Props) {
     allocs: any[];
     isOverAllocated?: boolean;
     dimmed?: boolean;
+    utilPct?: number;
   }
 
   const displayRows: DisplayRow[] = [];
@@ -523,6 +524,7 @@ export default function ResourceTimeline({ mode }: Props) {
         allocs: userAllocs,
         isOverAllocated: concurrentHpw > cap,
         dimmed: isDimmed,
+        utilPct,
       });
 
       if (expanded.has(uKey)) {
@@ -839,15 +841,21 @@ export default function ResourceTimeline({ mode }: Props) {
                       <div className="absolute inset-x-0 pointer-events-none z-10" style={{ top: ROW_H * 0.85, height: 2, background: "rgba(239,68,68,0.7)" }} />
                     )}
 
-                    {/* Summary bar for parent rows */}
+                    {/* Summary bar for parent rows — coloured by utilisation */}
                     {isParent && row.allocs.length > 0 && (() => {
                       const minStart = row.allocs.map((a: any) => a.startDate).sort()[0];
                       const maxEnd = row.allocs.map((a: any) => a.endDate).sort().slice(-1)[0];
                       const { left, width } = barGeometry(minStart, maxEnd);
+                      const pct = row.utilPct;
+                      const colorClass = pct === undefined
+                        ? "bg-indigo-300/60 border-indigo-300"           // project rows
+                        : pct > 100 ? "bg-red-400/70 border-red-300"     // over-allocated
+                        : pct > 80  ? "bg-amber-400/70 border-amber-300" // near capacity
+                        :             "bg-emerald-400/70 border-emerald-300"; // healthy
                       return (
                         <div
-                          className="absolute top-1/2 -translate-y-1/2 rounded-full bg-slate-300/60 border border-slate-300"
-                          style={{ left, width, height: 6 }}
+                          className={`absolute top-1/2 -translate-y-1/2 rounded-full border ${colorClass}`}
+                          style={{ left, width, height: 8 }}
                         />
                       );
                     })()}
