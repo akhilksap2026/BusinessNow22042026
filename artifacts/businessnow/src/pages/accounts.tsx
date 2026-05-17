@@ -496,136 +496,74 @@ export default function Accounts() {
             <SheetDescription className="text-sm text-muted-foreground">{editTarget?.name}</SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
-
-            {/* Section: Basic Information */}
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Basic Information</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="col-span-full space-y-1.5">
-                  <Label>Account Name <span className="text-red-500">*</span></Label>
-                  <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="Acme Corporation" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Domain <span className="text-red-500">*</span></Label>
-                  <Input placeholder="acme.com" value={editForm.domain} onChange={e => setEditForm(f => ({ ...f, domain: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Company Name</Label>
-                  <Input placeholder="Acme Corporation Ltd." value={editForm.companyName} onChange={e => setEditForm(f => ({ ...f, companyName: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Tier</Label>
-                  <Select value={editForm.tier} onValueChange={v => setEditForm(f => ({ ...f, tier: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {["Enterprise", "Mid-Market", "SMB", "Startup"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Region</Label>
-                  <Select value={editForm.region} onValueChange={v => setEditForm(f => ({ ...f, region: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {["North America", "EMEA", "APAC", "LATAM"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Account Status</Label>
-                  <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {["Active", "Inactive", "Prospect", "At Risk", "Churned"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Lead Status</Label>
-                  <Select value={editForm.leadStatus} onValueChange={v => setEditForm(f => ({ ...f, leadStatus: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {["New", "Contacted", "Qualified", "In Progress", "Closed"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Website</Label>
-                  <Input placeholder="https://acme.com" value={editForm.website} onChange={e => setEditForm(f => ({ ...f, website: e.target.value }))} />
-                </div>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-3">
+              <div className="col-span-full space-y-1.5">
+                <Label>Account Name <span className="text-red-500">*</span></Label>
+                <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="Acme Corporation" />
               </div>
-            </div>
-
-            <div className="border-t" />
-
-            {/* Section: Primary Contact */}
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Primary Contact</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Contact Name</Label>
-                  <Input placeholder="Jane Smith" value={editForm.contactName} onChange={e => setEditForm(f => ({ ...f, contactName: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Contact Email</Label>
-                  <Input type="email" placeholder="jane@acme.com" value={editForm.contactEmail} onChange={e => setEditForm(f => ({ ...f, contactEmail: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Phone</Label>
-                  <Input placeholder="+1 555 000 0000" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
-                </div>
+              <div className="col-span-full space-y-1.5">
+                <Label>Domain <span className="text-red-500">*</span></Label>
+                <Input placeholder="company.com" value={editForm.domain} onChange={e => setEditForm(f => ({ ...f, domain: e.target.value }))} />
               </div>
-            </div>
-
-            <div className="border-t" />
-
-            {/* Section: Financials */}
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Financials</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Contract Value ($)</Label>
-                  <Input type="number" min={0} placeholder="0" value={editForm.contractValue} onChange={e => setEditForm(f => ({ ...f, contractValue: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Estimated Value ($)</Label>
-                  <Input type="number" min={0} placeholder="0" value={editForm.estValue} onChange={e => setEditForm(f => ({ ...f, estValue: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Source</Label>
-                  <Select value={editForm.source || "__none__"} onValueChange={v => setEditForm(f => ({ ...f, source: v === "__none__" ? "" : v }))}>
-                    <SelectTrigger><SelectValue placeholder="— None —" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— None —</SelectItem>
-                      {["Referral", "Inbound", "Outbound", "Partner", "Event", "Other"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t" />
-
-            {/* Section: Address */}
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Address</p>
               <div className="space-y-1.5">
-                <Label>Billing Address</Label>
-                <Textarea rows={2} placeholder="123 Main St, Suite 100, New York, NY 10001" value={editForm.billingAddress} onChange={e => setEditForm(f => ({ ...f, billingAddress: e.target.value }))} className="resize-none" />
+                <Label>Tier</Label>
+                <Select value={editForm.tier} onValueChange={v => setEditForm(f => ({ ...f, tier: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["Enterprise", "Mid-Market", "SMB", "Startup"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-
-            <div className="border-t" />
-
-            {/* Section: Additional */}
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Additional</p>
               <div className="space-y-1.5">
+                <Label>Region</Label>
+                <Select value={editForm.region} onValueChange={v => setEditForm(f => ({ ...f, region: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["North America", "EMEA", "APAC", "LATAM"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-full space-y-1.5">
+                <Label>Company Name</Label>
+                <Input placeholder="Acme Corporation Ltd." value={editForm.companyName} onChange={e => setEditForm(f => ({ ...f, companyName: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Contact Name</Label>
+                <Input placeholder="Jane Smith" value={editForm.contactName} onChange={e => setEditForm(f => ({ ...f, contactName: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Contact Email</Label>
+                <Input type="email" placeholder="jane@acme.com" value={editForm.contactEmail} onChange={e => setEditForm(f => ({ ...f, contactEmail: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone</Label>
+                <Input placeholder="+1 555 000 0000" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select value={editForm.leadStatus} onValueChange={v => setEditForm(f => ({ ...f, leadStatus: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["New", "Contacted", "Qualified", "In Progress", "Closed"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-full space-y-1.5">
+                <Label>Source</Label>
+                <Select value={editForm.source || "__none__"} onValueChange={v => setEditForm(f => ({ ...f, source: v === "__none__" ? "" : v }))}>
+                  <SelectTrigger><SelectValue placeholder="— None —" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    {["Referral", "Inbound", "Outbound", "Partner", "Event", "Other"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-full space-y-1.5">
                 <Label>Notes</Label>
                 <Textarea rows={3} placeholder="Any relevant notes about this account…" value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} className="resize-y" />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="col-span-full flex items-center gap-2">
                 <Checkbox
                   id="edit-acct-is-internal"
                   checked={editForm.isInternal}
@@ -633,11 +571,10 @@ export default function Accounts() {
                 />
                 <Label htmlFor="edit-acct-is-internal" className="font-normal cursor-pointer">
                   Internal account
-                  <span className="text-xs text-muted-foreground ml-2">(represents the operating company)</span>
+                  <span className="text-xs text-muted-foreground ml-2">(represents the operating company; used for internal projects)</span>
                 </Label>
               </div>
             </div>
-
           </div>
 
           <SheetFooter className="px-6 py-4 border-t flex flex-row justify-end gap-2">
