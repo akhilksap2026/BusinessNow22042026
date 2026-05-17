@@ -56,7 +56,7 @@ const templateProjectSchema = z.object({
   budget: z.coerce.number().optional(),
 });
 
-type Mode = "choose" | "blank" | "template";
+type Mode = "blank" | "template";
 
 
 export type CreateProjectPrefill = {
@@ -132,7 +132,6 @@ export function CreateProjectWizard({
 
   function handleClose(v: boolean) {
     if (!v) {
-      setMode("blank");
       setStep(1);
       setSelectedTemplateId(null);
       setStartingPoint("blank");
@@ -457,7 +456,7 @@ export function CreateProjectWizard({
                     )}
 
                     <DialogFooter>
-                      <Button type="button" variant="outline" onClick={() => setMode("choose")}>Back</Button>
+                      <Button type="button" variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
                       <Button type="submit" disabled={createFromTemplate.isPending}>
                         {createFromTemplate.isPending ? "Creating..." : "Create from Template"}
                       </Button>
@@ -469,7 +468,7 @@ export function CreateProjectWizard({
 
             {!selectedTemplateId && (
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setMode("choose")}>Back</Button>
+                <Button type="button" variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
               </DialogFooter>
             )}
           </div>
@@ -993,7 +992,7 @@ export function CreateProjectWizard({
                 {step > 1 ? (
                   <Button type="button" variant="outline" onClick={() => setStep(step - 1)}>Back</Button>
                 ) : (
-                  <Button type="button" variant="outline" onClick={() => setMode("choose")}>Back</Button>
+                  <Button type="button" variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
                 )}
                 {step === 1 && <Button type="button" onClick={validateStep1}>Next</Button>}
                 {step === 2 && <Button type="button" onClick={validateStep2}>Next</Button>}
