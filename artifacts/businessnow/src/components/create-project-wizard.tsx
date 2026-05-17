@@ -27,7 +27,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { LayoutTemplate, Calendar, Layers } from "lucide-react";
 
-const TEAM_ROLES = ["Team Member", "Project Manager", "Lead Consultant", "Senior Consultant", "Consultant", "Analyst", "Architect", "QA Engineer", "Business Analyst"];
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -59,7 +58,6 @@ const templateProjectSchema = z.object({
 
 type Mode = "choose" | "blank" | "template";
 
-type MemberConfig = Record<number, { role: string; hoursPerWeek: number }>;
 
 export type CreateProjectPrefill = {
   name?: string;
@@ -83,7 +81,6 @@ export function CreateProjectWizard({
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [startingPoint, setStartingPoint] = useState<"blank" | "template" | "later">("blank");
   const [postCreateTemplateId, setPostCreateTemplateId] = useState<number | null>(null);
-  const [memberConfig, setMemberConfig] = useState<MemberConfig>({});
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -140,7 +137,6 @@ export function CreateProjectWizard({
       setSelectedTemplateId(null);
       setStartingPoint("blank");
       setPostCreateTemplateId(null);
-      setMemberConfig({});
       blankForm.reset();
       templateForm.reset();
     }
@@ -176,8 +172,8 @@ export function CreateProjectWizard({
               userId: userId,
               startDate: values.startDate,
               endDate: values.dueDate,
-              hoursPerWeek: memberConfig[userId]?.hoursPerWeek ?? 40,
-              role: memberConfig[userId]?.role ?? "Team Member",
+              hoursPerWeek: 40,
+              role: "Team Member",
               isSoftAllocation: true,
             } as any
           })
@@ -268,7 +264,7 @@ export function CreateProjectWizard({
   };
 
   const validateStep3 = async () => {
-    const valid = await blankForm.trigger(["ownerId", "teamMembers", "rateCardId"]);
+    const valid = await blankForm.trigger(["ownerId", "rateCardId"]);
     if (!valid) return;
     const { billingType, rateCardId } = blankForm.getValues();
     if ((billingType === "T&M" || billingType === "Retainer") && !rateCardId) {
@@ -306,7 +302,6 @@ export function CreateProjectWizard({
 
   const watchedAccountId = blankForm.watch("accountId");
   const watchedInternalExternal = blankForm.watch("internalExternal");
-  const watchedTeamMembers = blankForm.watch("teamMembers");
   const watchedBillingType = blankForm.watch("billingType");
   const watchedOpportunityId = blankForm.watch("opportunityId");
 
@@ -832,103 +827,6 @@ export function CreateProjectWizard({
                     )}
                   />
 
-                  <FormField
-                    control={blankForm.control}
-                    name="teamMembers"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel>Initial Team Members</FormLabel>
-                        <div className="border rounded-md divide-y max-h-44 overflow-y-auto">
-                          {users?.map(user => {
-                            const isChecked = watchedTeamMembers?.includes(user.id);
-                            return (
-                              <FormField
-                                key={user.id}
-                                control={blankForm.control}
-                                name="teamMembers"
-                                render={({ field }) => (
-                                  <FormItem className="flex flex-row items-center gap-3 px-3 py-2 space-y-0">
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={isChecked}
-                                        onCheckedChange={checked => {
-                                          if (checked) {
-                                            field.onChange([...field.value, user.id]);
-                                            setMemberConfig(prev => ({
-                                              ...prev,
-                                              [user.id]: { role: "Team Member", hoursPerWeek: 40 },
-                                            }));
-                                          } else {
-                                            field.onChange(field.value?.filter(v => v !== user.id));
-                                            setMemberConfig(prev => {
-                                              const next = { ...prev };
-                                              delete next[user.id];
-                                              return next;
-                                            });
-                                          }
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="font-normal flex-1 cursor-pointer">{user.name}</FormLabel>
-                                    {(user as any).title && (
-                                      <span className="text-xs text-muted-foreground">{(user as any).title}</span>
-                                    )}
-                                  </FormItem>
-                                )}
-                              />
-                            );
-                          })}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Per-member role & hours configuration */}
-                  {watchedTeamMembers && watchedTeamMembers.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Member configuration</p>
-                      <div className="border rounded-md divide-y">
-                        {watchedTeamMembers.map(userId => {
-                          const user = users?.find(u => u.id === userId);
-                          if (!user) return null;
-                          const cfg = memberConfig[userId] ?? { role: "Team Member", hoursPerWeek: 40 };
-                          return (
-                            <div key={userId} className="px-3 py-2 grid grid-cols-[1fr_auto_auto] items-center gap-3">
-                              <span className="text-sm font-medium truncate">{user.name}</span>
-                              <select
-                                className="text-sm border rounded px-2 py-1 bg-background"
-                                value={cfg.role}
-                                onChange={e => setMemberConfig(prev => ({
-                                  ...prev,
-                                  [userId]: { ...cfg, role: e.target.value },
-                                }))}
-                              >
-                                {TEAM_ROLES.map(r => (
-                                  <option key={r} value={r}>{r}</option>
-                                ))}
-                              </select>
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  min={1}
-                                  max={80}
-                                  className="w-16 text-sm border rounded px-2 py-1 bg-background text-right"
-                                  value={cfg.hoursPerWeek}
-                                  onChange={e => setMemberConfig(prev => ({
-                                    ...prev,
-                                    [userId]: { ...cfg, hoursPerWeek: Math.max(1, Math.min(80, Number(e.target.value) || 40)) },
-                                  }))}
-                                />
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">h/wk</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Allocations are created as soft (tentative) so they do not trigger conflict alerts.</p>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -1067,23 +965,6 @@ export function CreateProjectWizard({
                       <div className="px-3 py-2 grid grid-cols-[140px_1fr] gap-1">
                         <span className="text-muted-foreground">Rate Card</span>
                         <span>{rateCards?.find(r => r.id === Number(blankForm.getValues("rateCardId")))?.name ?? "—"}</span>
-                      </div>
-                    )}
-                    {watchedTeamMembers && watchedTeamMembers.length > 0 && (
-                      <div className="px-3 py-2 grid grid-cols-[140px_1fr] gap-1">
-                        <span className="text-muted-foreground">Team</span>
-                        <div className="flex flex-wrap gap-1">
-                          {watchedTeamMembers.map(uid => {
-                            const user = users?.find(u => u.id === uid);
-                            const cfg = memberConfig[uid];
-                            return (
-                              <Badge key={uid} variant="secondary" className="text-xs font-normal">
-                                {user?.name ?? `User #${uid}`}
-                                {cfg && <span className="ml-1 text-muted-foreground">· {cfg.role} · {cfg.hoursPerWeek}h</span>}
-                              </Badge>
-                            );
-                          })}
-                        </div>
                       </div>
                     )}
                     {/* Starting point */}
