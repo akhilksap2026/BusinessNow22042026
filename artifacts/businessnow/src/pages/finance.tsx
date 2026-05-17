@@ -132,7 +132,7 @@ export default function Finance() {
   const { data: summary, isLoading: isLoadingSummary } = useGetFinanceSummary();
   const { data: invoices, isLoading: isLoadingInvoices } = useListInvoices();
   const { data: accounts } = useListAccounts();
-  const { data: projects } = useListProjects();
+  const { data: projects, isLoading: isLoadingProjects } = useListProjects();
 
   const { data: schedules, isLoading: isLoadingSchedules } = useListBillingSchedules({ projectId: filterProjectId });
   const createSchedule = useCreateBillingSchedule();
@@ -420,8 +420,48 @@ export default function Finance() {
               }
             : summary;
           const isLoading = (filterProjectId || filterAccountId) ? isLoadingInvoices : isLoadingSummary;
+
+          const activeProjects = (projects ?? []).filter((p: any) => !p.deletedAt && (
+            filterProjectId ? p.id === filterProjectId :
+            filterAccountId ? p.accountId === filterAccountId :
+            true
+          ));
+          const totalBudget = activeProjects.reduce((s, p: any) => s + Number(p.budget ?? 0), 0);
+          const avgCompletion = activeProjects.length > 0
+            ? Math.round(activeProjects.reduce((s, p: any) => s + Number(p.completion ?? 0), 0) / activeProjects.length)
+            : 0;
+          const scopeInvs = (filteredForKpi ?? invoices ?? []).filter((inv: any) => inv.changeOrderId != null && !["Draft", "Void"].includes(inv.status));
+          const outOfScopeCount = scopeInvs.length;
+          const outOfScopeTotal = scopeInvs.reduce((s: number, inv: any) => s + Number(inv.total), 0);
+
           return (
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+              {/* Project Value card */}
+              <Card className="lg:col-span-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-2">
+                  <CardTitle className="text-sm font-medium">Project Value</CardTitle>
+                  <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="px-3 pb-2 pt-0">
+                  {isLoadingProjects ? <Skeleton className="h-5 w-24" /> : (
+                    <>
+                      <div className="text-lg font-bold tracking-tight">${totalBudget.toLocaleString()}</div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full rounded-full bg-indigo-500" style={{ width: `${avgCompletion}%` }} />
+                        </div>
+                        <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">{avgCompletion}% done</span>
+                      </div>
+                      {outOfScopeCount > 0 && (
+                        <div className="mt-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                          {outOfScopeCount} out-of-scope invoice{outOfScopeCount > 1 ? "s" : ""} · ${outOfScopeTotal.toLocaleString()}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
               {(["Total Invoiced", "Total Paid", "Outstanding", "Overdue"] as const).map((label, i) => {
                 const vals = [kpi?.totalInvoiced, kpi?.totalPaid, kpi?.totalOutstanding, kpi?.totalOverdue];
                 const colors = ["", "text-green-600 dark:text-green-400", "", "text-destructive"];
