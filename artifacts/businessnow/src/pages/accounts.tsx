@@ -46,7 +46,7 @@ import {
 import { Link } from "wouter";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Building2, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen, MoreHorizontal } from "lucide-react";
+import { Plus, Search, Building2, Pencil, Trash2, ChevronRight, ChevronDown, ExternalLink, FolderOpen, MoreHorizontal, Mail, Phone } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -280,10 +280,12 @@ export default function Accounts() {
                   <TableRow>
                     <TableHead className="w-8" />
                     <TableHead>Account Name</TableHead>
+                    <TableHead>Company</TableHead>
                     <TableHead>Domain</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tier</TableHead>
                     <TableHead>Region</TableHead>
+                    <TableHead>Contact</TableHead>
                     <TableHead className="text-right">Contract Value</TableHead>
                     <TableHead />
                   </TableRow>
@@ -307,6 +309,7 @@ export default function Accounts() {
                               {account.name}
                             </div>
                           </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{account.companyName || <span className="text-muted-foreground/40">—</span>}</TableCell>
                           <TableCell className="text-muted-foreground"><TooltipCell value={account.domain} maxWidth="max-w-[10rem]" /></TableCell>
                           <TableCell>
                             <StatusBadge status={account.status} />
@@ -315,6 +318,21 @@ export default function Accounts() {
                             <StatusBadge status={account.tier} />
                           </TableCell>
                           <TableCell>{account.region}</TableCell>
+                          <TableCell>
+                            {account.contactName ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm cursor-default underline decoration-dotted underline-offset-2">{account.contactName}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="space-y-1 text-xs">
+                                    {account.contactEmail && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-muted-foreground" />{account.contactEmail}</div>}
+                                    {account.phone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-muted-foreground" />{account.phone}</div>}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : <span className="text-muted-foreground/40">—</span>}
+                          </TableCell>
                           <TableCell className="text-right font-medium">{fmt(account.contractValue)}</TableCell>
                           <TableCell>
                             <div className="flex items-center justify-end">
@@ -327,7 +345,7 @@ export default function Accounts() {
                         {isExpanded && (
                           <TableRow className="bg-slate-50/60 hover:bg-slate-50/60">
                             <TableCell />
-                            <TableCell colSpan={7} className="py-3 px-4">
+                            <TableCell colSpan={9} className="py-3 px-4">
                               <AccountProjectsExpanded accountId={account.id} accountName={account.name} />
                             </TableCell>
                           </TableRow>
@@ -337,7 +355,7 @@ export default function Accounts() {
                   })}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                         {search ? "No accounts match your search." : "No accounts found."}
                       </TableCell>
                     </TableRow>
