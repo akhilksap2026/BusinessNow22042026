@@ -1457,6 +1457,19 @@ export default function ProjectDetail() {
                   </div>
                 );
               })()}
+              {(() => {
+                const atRiskAllocs = (allocations as any[] ?? []).filter((a: any) => a.status === "at_risk");
+                if (!atRiskAllocs.length) return null;
+                return (
+                  <div className="mx-6 mt-2 flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-red-500" />
+                    <div>
+                      <span className="font-semibold">{atRiskAllocs.length} allocation{atRiskAllocs.length === 1 ? "" : "s"} at risk due to approved leave.</span>
+                      {" "}A team member has approved time off that overlaps with a hard allocation. Review and reassign if needed.
+                    </div>
+                  </div>
+                );
+              })()}
               <CardContent>
                 {isLoadingAllocations ? (
                   <div className="space-y-4">
@@ -1481,8 +1494,9 @@ export default function ProjectDetail() {
                       {allocations?.map(allocation => {
                         const user = getUser((allocation as any).userId);
                         const needsReview = (allocation as any).status === "needs_review";
+                        const isAtRisk = (allocation as any).status === "at_risk";
                         return (
-                          <TableRow key={allocation.id} className={needsReview ? "bg-amber-50/60" : ""}>
+                          <TableRow key={allocation.id} className={needsReview ? "bg-amber-50/60" : isAtRisk ? "bg-red-50/50 dark:bg-red-950/20" : ""}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-8 w-8">
@@ -1492,6 +1506,11 @@ export default function ProjectDetail() {
                                 {needsReview && (
                                   <span title="Outside project timeline — needs review" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-amber-300 bg-amber-50 text-[10px] font-semibold text-amber-700">
                                     <AlertTriangle className="h-3 w-3" /> Review
+                                  </span>
+                                )}
+                                {isAtRisk && (
+                                  <span title="At risk — approved leave overlaps this hard allocation" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-red-300 bg-red-50 text-[10px] font-semibold text-red-700">
+                                    <AlertTriangle className="h-3 w-3" /> At Risk
                                   </span>
                                 )}
                               </div>

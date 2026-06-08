@@ -1186,6 +1186,8 @@ export default function Reports() {
   const currentYear = new Date().getFullYear().toString();
   const [revenueYear, setRevenueYear] = useState(currentYear);
   const [utilizationYear, setUtilizationYear] = useState(currentYear);
+  const [healthSearch, setHealthSearch] = useState("");
+  const [healthStatusFilter, setHealthStatusFilter] = useState("all");
 
   const revenueYears = [...new Set((revenue?.byMonth ?? []).map(m => m.month.substring(0, 4)))].sort().reverse();
   const utilizationYears = [...new Set((utilization?.byMonth ?? []).map(m => m.month.substring(0, 4)))].sort().reverse();
@@ -1327,24 +1329,49 @@ export default function Reports() {
                 [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)
               ) : (
                 <>
-                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-green-600">{health?.onTrack || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">At Risk</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-amber-600">{health?.atRisk || 0}</div></CardContent></Card>
-                  <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Off Track</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-red-600">{health?.offTrack || 0}</div></CardContent></Card>
+                  <Card className={`cursor-pointer transition-all ${healthStatusFilter === "On Track" ? "ring-2 ring-green-500" : ""}`} onClick={() => setHealthStatusFilter(f => f === "On Track" ? "all" : "On Track")}><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-green-600">{health?.onTrack || 0}</div></CardContent></Card>
+                  <Card className={`cursor-pointer transition-all ${healthStatusFilter === "At Risk" ? "ring-2 ring-amber-500" : ""}`} onClick={() => setHealthStatusFilter(f => f === "At Risk" ? "all" : "At Risk")}><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">At Risk</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-amber-600">{health?.atRisk || 0}</div></CardContent></Card>
+                  <Card className={`cursor-pointer transition-all ${healthStatusFilter === "Off Track" ? "ring-2 ring-red-500" : ""}`} onClick={() => setHealthStatusFilter(f => f === "Off Track" ? "all" : "Off Track")}><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Off Track</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-red-600">{health?.offTrack || 0}</div></CardContent></Card>
                   <Card><CardHeader className="px-3 pt-3 pb-1"><CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle></CardHeader><CardContent className="px-3 pb-3 pt-0"><div className="text-xl font-bold tracking-tight text-blue-600">{health?.completed || 0}</div></CardContent></Card>
                 </>
               )}
             </div>
             <Card>
-              <CardHeader>
-                <CardTitle>Project Health Details</CardTitle>
-                <CardDescription>Individual project health status and key metrics</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <CardTitle>Project Health Details</CardTitle>
+                  <CardDescription>Individual project health status and key metrics</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Search projects…"
+                    className="w-44 h-8 text-sm"
+                    value={healthSearch}
+                    onChange={e => setHealthSearch(e.target.value)}
+                  />
+                  <Select value={healthStatusFilter} onValueChange={setHealthStatusFilter}>
+                    <SelectTrigger className="w-32 h-8 text-sm"><SelectValue placeholder="Health" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Health</SelectItem>
+                      <SelectItem value="On Track">On Track</SelectItem>
+                      <SelectItem value="At Risk">At Risk</SelectItem>
+                      <SelectItem value="Off Track">Off Track</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoadingHealth ? (
                   <div className="space-y-2">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
                 ) : !health?.projects?.length ? (
                   <p className="text-sm text-muted-foreground text-center py-8">No project data available.</p>
-                ) : (
+                ) : (() => {
+                  const filteredHealthProjects = health.projects.filter(p => {
+                    if (healthSearch && !p.projectName.toLowerCase().includes(healthSearch.toLowerCase())) return false;
+                    if (healthStatusFilter !== "all" && p.health !== healthStatusFilter) return false;
+                    return true;
+                  });
+                  return (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-muted-foreground">
@@ -1356,7 +1383,9 @@ export default function Reports() {
                       </tr>
                     </thead>
                     <tbody>
-                      {health.projects.map(p => (
+                      {filteredHealthProjects.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">No projects match your filters.</td></tr>
+                      ) : filteredHealthProjects.map(p => (
                         <tr key={p.projectId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="py-3 font-medium">
                             <a href={`/projects/${p.projectId}`} className="text-primary hover:underline">{p.projectName}</a>
@@ -1389,7 +1418,8 @@ export default function Reports() {
                       ))}
                     </tbody>
                   </table>
-                )}
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>

@@ -668,9 +668,14 @@ export default function Finance() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleTrigger(s.id)} disabled={triggerSchedule.isPending}>
-                                <Zap className="h-3 w-3 mr-1" /> Fire
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleTrigger(s.id)} disabled={triggerSchedule.isPending}>
+                                    <Zap className="h-3 w-3 mr-1" /> Trigger Invoice
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Generate a draft invoice now from this billing schedule</TooltipContent>
+                              </Tooltip>
                               <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-indigo-600" onClick={() => setEditingSchedule(s)}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>

@@ -2678,7 +2678,13 @@ export default function Admin() {
                       {cfDefinitions?.map(cf => (
                         <TableRow key={cf.id}>
                           <TableCell>
-                            <Badge variant="outline" className="text-xs capitalize">{cf.entityType}</Badge>
+                            <Badge variant="outline" className="text-xs capitalize">{cf.entityType.replace("_", " ")}</Badge>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {cf.entityType === "project" ? "Project overview" :
+                               cf.entityType === "task" ? "Task edit form" :
+                               cf.entityType === "time_entry" ? "Log Time dialog" :
+                               cf.entityType === "account" ? "Account detail" : ""}
+                            </p>
                           </TableCell>
                           <TableCell className="font-medium">{cf.name}</TableCell>
                           <TableCell>

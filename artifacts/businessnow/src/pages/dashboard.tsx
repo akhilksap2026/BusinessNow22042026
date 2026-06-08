@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -6,6 +6,7 @@ import {
   useGetDashboardActivity,
   useGetProjectHealthReport,
   useListInvoices,
+  useListProjects,
 } from "@workspace/api-client-react";
 import { useCurrentUser } from "@/contexts/current-user";
 import { hasRole } from "@/lib/roles";
@@ -72,7 +73,7 @@ function utilizationStatus(pct: number): KpiStatus {
   if (pct > 100) return "danger";
   if (pct >= 70 && pct <= 90) return "success";
   if (pct > 90) return "warning";
-  return "warning";
+  return "neutral"; // under-utilized — distinct from over-utilized warning
 }
 
 function KpiTile({
@@ -249,6 +250,17 @@ export default function Dashboard() {
   const { data: activities, isLoading: isLoadingActivity } = useGetDashboardActivity();
   const { data: healthReport } = useGetProjectHealthReport();
   const { data: invoices } = useListInvoices();
+  const [myProjectsOnly, setMyProjectsOnly] = useState(false);
+  const { data: allProjectsRaw } = useListProjects();
+  const allProjects = Array.isArray(allProjectsRaw) ? (allProjectsRaw as any[]) : [];
+  const myProjectIds = useMemo(() => new Set(
+    allProjects.filter((p: any) => p.ownerId === currentUser?.id).map((p: any) => p.id as number)
+  ), [allProjects, currentUser?.id]);
+  const visibleHealthProjects = useMemo(() =>
+    myProjectsOnly && myProjectIds.size > 0
+      ? (healthReport?.projects ?? []).filter(p => myProjectIds.has((p as any).projectId))
+      : (healthReport?.projects ?? [])
+  , [healthReport?.projects, myProjectsOnly, myProjectIds]);
 
   const { data: crImpact } = useQuery<{ originalBudget: number; crAdditions: number; revised: number }>({
     queryKey: ["dashboard-cr-impact"],
@@ -259,9 +271,9 @@ export default function Dashboard() {
     },
   });
 
-  const atRiskProjects = healthReport?.projects?.filter(
+  const atRiskProjects = visibleHealthProjects.filter(
     (p) => p.health === "At Risk" || p.health === "Off Track",
-  ) ?? [];
+  );
   const overdueInvoices = invoices?.filter((inv) => inv.status === "Overdue") ?? [];
   const overdueTotal = overdueInvoices.reduce((sum, inv) => sum + inv.total, 0);
 
@@ -290,16 +302,20 @@ export default function Dashboard() {
       : []),
   ];
 
-  const onTrack = healthReport?.onTrack ?? 0;
-  const atRisk = healthReport?.atRisk ?? 0;
-  const offTrack = healthReport?.offTrack ?? 0;
+  const onTrack = myProjectsOnly
+    ? visibleHealthProjects.filter(p => p.health === "On Track").length
+    : (healthReport?.onTrack ?? 0);
+  const atRisk = myProjectsOnly
+    ? visibleHealthProjects.filter(p => p.health === "At Risk").length
+    : (healthReport?.atRisk ?? 0);
+  const offTrack = myProjectsOnly
+    ? visibleHealthProjects.filter(p => p.health === "Off Track").length
+    : (healthReport?.offTrack ?? 0);
   const portfolioTotal = onTrack + atRisk + offTrack;
   const pct = (n: number) => (portfolioTotal > 0 ? Math.round((n / portfolioTotal) * 100) : 0);
 
-  const offTrackProjects =
-    healthReport?.projects?.filter((p) => p.health === "Off Track").slice(0, 3) ?? [];
-  const atRiskOnly =
-    healthReport?.projects?.filter((p) => p.health === "At Risk").slice(0, 3) ?? [];
+  const offTrackProjects = visibleHealthProjects.filter((p) => p.health === "Off Track").slice(0, 3);
+  const atRiskOnly = visibleHealthProjects.filter((p) => p.health === "At Risk").slice(0, 3);
 
   const utilPct = summary?.teamUtilization ?? 0;
 
@@ -310,6 +326,14 @@ export default function Dashboard() {
           title="Dashboard"
           actions={
             <div className="flex items-center gap-2">
+              <Button
+                variant={myProjectsOnly ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setMyProjectsOnly(v => !v)}
+                title="Scope portfolio health to projects you own"
+              >
+                My Projects
+              </Button>
               <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
                 <SelectTrigger className="w-[180px]" data-testid="select-period">
                   <SelectValue />
@@ -383,7 +407,15 @@ export default function Dashboard() {
           <KpiTile
             title="Team Utilization"
             value={`${utilPct}%`}
-            caption={`Target 70-90% · across ${summary?.totalProjects ?? 0} projects`}
+            caption={
+              utilPct > 100
+                ? "Over capacity — target 70–90%"
+                : utilPct > 90
+                  ? "Over target — aim for 70–90%"
+                  : utilPct >= 70
+                    ? `On target · across ${summary?.totalProjects ?? 0} projects`
+                    : `Below target · ${summary?.totalProjects ?? 0} projects`
+            }
             icon={Users}
             status={isLoadingSummary ? "neutral" : utilizationStatus(utilPct)}
             href="/reports"

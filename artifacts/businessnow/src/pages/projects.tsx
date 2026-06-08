@@ -497,6 +497,17 @@ export default function Projects() {
               </>
             )}
           </CardContent>
+          {!showArchived && (
+            <div className="px-4 pb-3 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setShowArchived(true)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                View archived projects →
+              </button>
+            </div>
+          )}
         </Card>
         
         {showArchived && (

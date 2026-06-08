@@ -106,7 +106,7 @@ const WORKSPACE_SECTIONS: NavSection[] = [
 const WORKSPACE_NAV: NavItemDef[] = WORKSPACE_SECTIONS.flatMap(s => s.items);
 
 const ADMIN_NAV: NavItemDef[] = [
-  { href: "/command-center", label: "Command Center", icon: Gauge, requires: "settings.manageTeam" },
+  { href: "/command-center", label: "Operations", icon: Gauge, requires: "settings.manageTeam" },
   { href: "/finance", label: "Finance", icon: DollarSign },
   { href: "/reports", label: "Reports", icon: BarChart3, requires: "reports.viewStandard" },
   { href: "/admin", label: "Admin", icon: Settings, requires: "settings.manageTeam" },
@@ -127,10 +127,25 @@ function timeAgo(date: string) {
 }
 
 function notificationLink(n: { projectId?: number | null; type: string }): string | null {
-  if (n.projectId) return `/projects/${n.projectId}`;
-  if (n.type === "invoice_paid" || n.type === "invoice_overdue") return "/finance";
-  if (n.type === "timesheet_reminder") return "/time";
-  return null;
+  switch (n.type) {
+    case "invoice_paid":
+    case "invoice_overdue":
+      return "/finance";
+    case "timesheet_reminder":
+    case "timesheet_rejected":
+      return "/time/timesheet";
+    case "timesheet_escalation":
+      return "/time/approvals";
+    case "leave_allocation_conflict":
+      return n.projectId ? `/projects/${n.projectId}?tab=team` : "/resources";
+    case "overrun_alert":
+      return n.projectId ? `/projects/${n.projectId}?tab=tasks` : "/projects";
+    case "resource_request":
+      return "/resources";
+    default:
+      if (n.projectId) return `/projects/${n.projectId}`;
+      return null;
+  }
 }
 
 /* ------------------------------------------------------------------ */
