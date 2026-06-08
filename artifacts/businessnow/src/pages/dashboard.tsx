@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
+import { CreateProjectWizard } from "@/components/create-project-wizard";
 import {
   useGetDashboardSummary,
   useGetDashboardActivity,
@@ -233,6 +234,7 @@ export default function Dashboard() {
   const [period, setPeriod] = useState<Period>("month");
   const { toast } = useToast();
   const { currentUser } = useCurrentUser();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   async function handleSaveView() {
     try {
@@ -349,13 +351,12 @@ export default function Dashboard() {
               <Button variant="outline" size="sm" onClick={handleSaveView} title="Save dashboard view">
                 <Bookmark className="h-3.5 w-3.5 mr-1.5" /> Save View
               </Button>
-              <Link href="/projects">
-                <Button>New Project</Button>
-              </Link>
+              <Button onClick={() => setIsCreateOpen(true)}>New Project</Button>
             </div>
           }
         />
 
+        <CreateProjectWizard open={isCreateOpen} onOpenChange={setIsCreateOpen} />
         <OnboardingChecklist />
 
         <ThisWeekTimeWidget />

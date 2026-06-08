@@ -28,7 +28,7 @@ const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 const STATUS_FILTERS = ["All", "Not Started", "In Progress", "At Risk", "Completed"] as const;
 type StatusFilter = typeof STATUS_FILTERS[number];
-const HEALTH_FILTERS = ["All Health", "On Track", "At Risk", "Off Track"] as const;
+const HEALTH_FILTERS = ["All", "On Track", "At Risk", "Off Track"] as const;
 type HealthFilter = typeof HEALTH_FILTERS[number];
 
 function InternalExternalBadge({ value }: { value: string | null }) {
@@ -52,7 +52,7 @@ export default function Projects() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
-  const [healthFilter, setHealthFilter] = useState<HealthFilter>("All Health");
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("All");
   const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const qc = useQueryClient();
@@ -172,15 +172,15 @@ export default function Projects() {
 
   const baseFiltered = (projects?.filter(p => !p.isAdminProject) ?? [])
     .filter(p => statusFilter === "All" || p.status === statusFilter)
-    .filter(p => healthFilter === "All Health" || p.health === healthFilter)
+    .filter(p => healthFilter === "All" || p.health === healthFilter)
     .filter(p => !searchText || p.name.toLowerCase().includes(searchText.toLowerCase()));
   const visibleProjects = baseFiltered;
 
-  const hasActiveFilters = statusFilter !== "All" || healthFilter !== "All Health" || !!searchText;
+  const hasActiveFilters = statusFilter !== "All" || healthFilter !== "All" || !!searchText;
 
   function clearFilters() {
     setStatusFilter("All");
-    setHealthFilter("All Health");
+    setHealthFilter("All");
     setSearchText("");
   }
 

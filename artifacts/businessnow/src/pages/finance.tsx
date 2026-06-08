@@ -54,7 +54,7 @@ export default function Finance() {
   const [filterAccountId, setFilterAccountId] = useState<number | undefined>();
   const [filterProjectId, setFilterProjectId] = useState<number | undefined>();
   const [invoiceSearch, setInvoiceSearch] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [scheduleSearch, setScheduleSearch] = useState("");
   const [isContractOpen, setIsContractOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<ContractRow | null>(null);
   const [deleteContractId, setDeleteContractId] = useState<number | null>(null);
@@ -399,8 +399,8 @@ export default function Finance() {
             <input
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 pl-9 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="Search across all tabs…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              value={scheduleSearch}
+              onChange={e => setScheduleSearch(e.target.value)}
             />
           </div>
         </div>
@@ -506,7 +506,7 @@ export default function Finance() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const search = searchQuery.toLowerCase();
+                  const search = scheduleSearch.toLowerCase();
                   const filtered = (invoices ?? []).filter(inv => {
                     if (filterProjectId && (inv as any).projectId !== filterProjectId) return false;
                     if (filterAccountId && (inv as any).accountId !== filterAccountId) return false;
@@ -593,7 +593,7 @@ export default function Finance() {
                                   })}
                                   {tabFiltered.length === 0 && (
                                     <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                      {searchQuery ? `No invoices match "${searchQuery}".` : "No invoices found."}
+                                      {scheduleSearch ? `No invoices match "${scheduleSearch}".` : "No invoices found."}
                                     </TableCell></TableRow>
                                   )}
                                 </TableBody>
@@ -646,8 +646,8 @@ export default function Finance() {
                     </TableHeader>
                     <TableBody>
                       {(schedules ?? []).filter(s => {
-                        if (!searchQuery) return true;
-                        const q = searchQuery.toLowerCase();
+                        if (!scheduleSearch) return true;
+                        const q = scheduleSearch.toLowerCase();
                         const pName = projects?.find(p => p.id === s.projectId)?.name?.toLowerCase() ?? "";
                         return s.name.toLowerCase().includes(q) || pName.includes(q);
                       }).map(s => (

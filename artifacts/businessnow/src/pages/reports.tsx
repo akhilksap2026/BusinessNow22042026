@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -1116,7 +1117,7 @@ function TimesheetSubmissionsReport() {
             </Select>
           </div>
           <label className="flex items-center gap-2 cursor-pointer h-8">
-            <input type="checkbox" checked={showHours} onChange={e => setShowHours(e.target.checked)} className="rounded" />
+            <Checkbox checked={showHours} onCheckedChange={(v) => setShowHours(v === true)} />
             <span className="text-sm">Show actual hours instead of icons</span>
           </label>
           <div className="space-y-1">
@@ -1171,7 +1172,7 @@ function TimesheetSubmissionsReport() {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Approved tracked hours feed into <a href="#" className="underline">People Performance</a> (utilisation, billable %) and <a href="#" className="underline">Operations Insights</a> (tracked vs planned).
+        Approved tracked hours feed into <strong>People Performance</strong> (utilisation, billable %) and <strong>Operations Insights</strong> (tracked vs planned).
       </p>
     </div>
   );

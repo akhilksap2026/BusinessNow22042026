@@ -104,10 +104,10 @@ export default function Login() {
 
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-8">Log in</h1>
 
-          <div className="space-y-5">
+          <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
             {/* User ID */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">User ID</Label>
+              <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sign in as</Label>
               <Select value={selectedUserId} onValueChange={handleUserChange} disabled={!users}>
                 <SelectTrigger className="h-11 border-zinc-300 dark:border-zinc-700 focus:ring-indigo-500 bg-white dark:bg-zinc-900">
                   <SelectValue placeholder={users ? "Select a user…" : "Loading users…"} />
@@ -167,13 +167,13 @@ export default function Login() {
 
             {/* Log In button */}
             <Button
+              type="submit"
               className="w-full h-11 bg-zinc-900 hover:bg-zinc-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-semibold tracking-wide mt-1"
               disabled={!selectedUser || submitting}
-              onClick={handleLogin}
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "LOG IN"}
             </Button>
-          </div>
+          </form>
 
           <p className="text-center text-xs text-zinc-400 mt-8">
             Demo workspace — passwords are pre-configured per user.

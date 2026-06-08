@@ -93,7 +93,7 @@ export default function TimeTracking() {
   const deleteTimeEntry = useDeleteTimeEntry();
   const createTimeEntry = useCreateTimeEntry();
   const [showLogTime, setShowLogTime] = useState(false);
-  const [logForm, setLogForm] = useState({ projectId: "", taskId: "__none", userId: "1", date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
+  const [logForm, setLogForm] = useState({ projectId: "", taskId: "__none", userId: String(currentUserId), date: new Date().toISOString().substring(0, 10), hours: "", description: "", billable: true, categoryId: "__none" });
 
   const { data: logFormTasks } = useListTasks(
     logForm.projectId ? { projectId: parseInt(logForm.projectId) } : undefined,
