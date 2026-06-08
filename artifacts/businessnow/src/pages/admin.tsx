@@ -1605,9 +1605,7 @@ export default function Admin() {
               <TabsTrigger value="timecategories" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Time Categories
               </TabsTrigger>
-              <TabsTrigger value="taskstatuses" className="flex items-center gap-2" data-testid="tab-task-statuses">
-                <ListTodo className="h-4 w-4" /> Task Statuses
-              </TabsTrigger>
+
               <TabsTrigger value="timesettings" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" /> Time Settings
               </TabsTrigger>
@@ -2054,10 +2052,6 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="taskstatuses" className="m-0 space-y-4" data-testid="content-task-statuses">
-            <TaskStatusesAdminPanel />
           </TabsContent>
 
           <TabsContent value="timesettings" className="m-0 space-y-4">
