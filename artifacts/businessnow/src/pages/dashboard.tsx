@@ -232,6 +232,7 @@ function ThisWeekTimeWidget() {
 export default function Dashboard() {
   const [period, setPeriod] = useState<Period>("month");
   const { toast } = useToast();
+  const { currentUser } = useCurrentUser();
 
   async function handleSaveView() {
     try {
