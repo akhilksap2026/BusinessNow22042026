@@ -71,6 +71,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -1582,43 +1583,66 @@ export default function Admin() {
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="mb-4">
-            <TabsList className="flex flex-wrap h-auto gap-y-1 p-1">
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <Users className="h-4 w-4" /> Users
-              </TabsTrigger>
-              <TabsTrigger value="templates" className="flex items-center gap-2">
-                <LayoutTemplate className="h-4 w-4" /> Project Templates
-              </TabsTrigger>
-              <TabsTrigger value="documenttemplates" className="flex items-center gap-2" data-testid="tab-document-templates">
-                <FileText className="h-4 w-4" /> Document Templates
-              </TabsTrigger>
-              <TabsTrigger value="skills" className="flex items-center gap-2">
-                <Cpu className="h-4 w-4" /> Skills Matrix
-              </TabsTrigger>
-              <TabsTrigger value="jobroles" className="flex items-center gap-2" onClick={fetchJobRoles}>
-                <Briefcase className="h-4 w-4" /> Job Roles
-              </TabsTrigger>
-              <TabsTrigger value="taxcodes" className="flex items-center gap-2">
-                <Percent className="h-4 w-4" /> Tax Codes
-              </TabsTrigger>
-              <TabsTrigger value="timecategories" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" /> Time Categories
-              </TabsTrigger>
-
-              <TabsTrigger value="timesettings" className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4" /> Time Settings
-              </TabsTrigger>
-              <TabsTrigger value="holidays" className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4" /> Holiday Calendars
-              </TabsTrigger>
-              {can(activeRole, "financials.viewRateCards") && (
-                <TabsTrigger value="ratecards" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" /> Rate Cards
-                </TabsTrigger>
-              )}
-            </TabsList>
-          </div>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+            <aside className="lg:w-64 lg:shrink-0">
+              <nav className="rounded-lg border bg-card p-2 space-y-3" aria-label="Admin settings">
+                {(() => {
+                  const adminGroups: { title: string; items: { value: string; label: string; icon: typeof Users; gated?: boolean; onSelect?: () => void }[] }[] = [
+                    { title: "People", items: [
+                      { value: "users", label: "Users", icon: Users },
+                      { value: "skills", label: "Skills Matrix", icon: Cpu },
+                      { value: "jobroles", label: "Job Roles", icon: Briefcase, onSelect: fetchJobRoles },
+                    ]},
+                    { title: "Projects", items: [
+                      { value: "templates", label: "Project Templates", icon: LayoutTemplate },
+                      { value: "documenttemplates", label: "Document Templates", icon: FileText },
+                    ]},
+                    { title: "Finance", items: [
+                      { value: "taxcodes", label: "Tax Codes", icon: Percent },
+                      { value: "ratecards", label: "Rate Cards", icon: CreditCard, gated: true },
+                    ]},
+                    { title: "Time", items: [
+                      { value: "timecategories", label: "Time Categories", icon: Clock },
+                      { value: "timesettings", label: "Time Settings", icon: Settings2 },
+                      { value: "holidays", label: "Holiday Calendars", icon: CalendarDays },
+                    ]},
+                  ];
+                  return adminGroups.map(group => {
+                    const items = group.items.filter(i => !i.gated || can(activeRole, "financials.viewRateCards"));
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={group.title}>
+                        <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">{group.title}</p>
+                        <div className="space-y-0.5">
+                          {items.map(item => {
+                            const Icon = item.icon;
+                            const active = activeTab === item.value;
+                            return (
+                              <div
+                                key={item.value}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => { setActiveTab(item.value); item.onSelect?.(); }}
+                                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTab(item.value); item.onSelect?.(); } }}
+                                className={cn(
+                                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                  active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                )}
+                                data-testid={`admin-nav-${item.value}`}
+                              >
+                                <Icon className="h-4 w-4 shrink-0" />
+                                <span className="flex-1 truncate">{item.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </nav>
+            </aside>
+            <div className="min-w-0 flex-1">
 
           <TabsContent value="users" className="m-0">
             <Card>
@@ -3002,6 +3026,8 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
+            </div>
+          </div>
         </Tabs>
       </div>
 

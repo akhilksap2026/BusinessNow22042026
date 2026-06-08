@@ -1,5 +1,5 @@
 import { authHeaders } from "@/lib/auth-headers";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader } from "@/components/page-header";
 import { useCurrentUser } from "@/contexts/current-user";
@@ -54,6 +54,13 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("All");
   const [showArchived, setShowArchived] = useState(false);
+
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get("health");
+    if (param && (HEALTH_FILTERS as readonly string[]).includes(param)) {
+      setHealthFilter(param as HealthFilter);
+    }
+  }, []);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const qc = useQueryClient();
   const { toast } = useToast();

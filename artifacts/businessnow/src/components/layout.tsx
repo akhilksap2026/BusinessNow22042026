@@ -757,18 +757,31 @@ export function Layout({ children }: { children: ReactNode }) {
                       </Tooltip>
                     ) : (
                       <>
-                        <button
-                          onClick={toggleTimeNav}
+                        <div
                           className={cn(
-                            "flex items-center gap-3 px-3 py-2 w-full rounded-md transition-colors cursor-pointer outline-none text-left",
-                            "focus-visible:ring-2 focus-visible:ring-ring",
+                            "flex items-center w-full rounded-md transition-colors",
                             isTimeActive ? "text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
                           )}
                         >
-                          <Clock className="h-4 w-4 shrink-0" />
-                          <span className="flex-1 text-sm">Time Tracking</span>
-                          <ChevronDown className={cn("h-3 w-3 transition-transform duration-150", effectiveTimeNavOpen && "rotate-180")} />
-                        </button>
+                          <Link href="/time/timesheet" className="flex-1 min-w-0">
+                            <div
+                              role="link"
+                              aria-current={isTimeActive ? "page" : undefined}
+                              className="flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <Clock className="h-4 w-4 shrink-0" />
+                              <span className="flex-1 text-sm">Time Tracking</span>
+                            </div>
+                          </Link>
+                          <button
+                            onClick={toggleTimeNav}
+                            aria-label="Toggle time tracking menu"
+                            aria-expanded={effectiveTimeNavOpen}
+                            className="px-2 py-2 rounded-md cursor-pointer outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <ChevronDown className={cn("h-3 w-3 transition-transform duration-150", effectiveTimeNavOpen && "rotate-180")} />
+                          </button>
+                        </div>
                         {effectiveTimeNavOpen && (
                           <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-3">
                             {TIME_SUB_ITEMS.map(sub => {

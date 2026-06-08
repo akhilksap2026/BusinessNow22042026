@@ -28,7 +28,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend,
   ResponsiveContainer, LineChart, Line, Cell, ReferenceLine,
 } from "recharts";
-import { Download, AlertTriangle, CheckCircle2, TrendingUp, Clock, Filter, Activity, Mail, FileSpreadsheet, Save } from "lucide-react";
+import { Download, AlertTriangle, CheckCircle2, TrendingUp, Clock, Filter, Activity, Mail, FileSpreadsheet, Save, Star, DollarSign, BarChart3, HeartPulse, Flame, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { authHeaders } from "@/lib/auth-headers";
 import { ComposedChart, Area } from "recharts";
@@ -1178,6 +1179,38 @@ function TimesheetSubmissionsReport() {
   );
 }
 
+type ReportNavItem = { value: string; label: string; icon: typeof TrendingUp };
+const REPORT_GROUPS: { title: string; items: ReportNavItem[] }[] = [
+  {
+    title: "Delivery",
+    items: [
+      { value: "performance", label: "Performance", icon: TrendingUp },
+      { value: "health", label: "Project Health", icon: HeartPulse },
+      { value: "burndown", label: "Burn-Down", icon: Flame },
+      { value: "operations", label: "Operations", icon: Activity },
+      { value: "interval-iq", label: "Interval IQ", icon: Clock },
+    ],
+  },
+  {
+    title: "Financial",
+    items: [
+      { value: "budget", label: "Budget vs Actuals", icon: DollarSign },
+      { value: "revenue", label: "Revenue", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "People",
+    items: [
+      { value: "utilization", label: "Utilization", icon: Activity },
+      { value: "utilization-grid", label: "Utilization Grid", icon: Activity },
+      { value: "capacity-planning", label: "Capacity Planning", icon: Users },
+      { value: "timesheet-submissions", label: "Timesheet Submissions", icon: CheckCircle2 },
+      { value: "skill-supply-demand", label: "Skill Supply vs Demand", icon: Filter },
+    ],
+  },
+];
+const REPORT_ITEMS = REPORT_GROUPS.flatMap(g => g.items);
+
 export default function Reports() {
   const { activeRole, isLoading: isRoleLoading } = useCurrentUser();
   const { data: utilization, isLoading: isLoadingUtilization } = useGetUtilizationReport();
@@ -1189,6 +1222,57 @@ export default function Reports() {
   const [utilizationYear, setUtilizationYear] = useState(currentYear);
   const [healthSearch, setHealthSearch] = useState("");
   const [healthStatusFilter, setHealthStatusFilter] = useState("all");
+
+  const [activeTab, setActiveTab] = useState("performance");
+  const [favourites, setFavourites] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem("reports.favourites");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  function toggleFavourite(value: string) {
+    setFavourites(prev => {
+      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
+      try { localStorage.setItem("reports.favourites", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+  const favouriteItems = REPORT_ITEMS.filter(i => favourites.includes(i.value));
+  const renderRailItem = (item: ReportNavItem) => {
+    const Icon = item.icon;
+    const active = activeTab === item.value;
+    const fav = favourites.includes(item.value);
+    return (
+      <div
+        key={item.value}
+        role="button"
+        tabIndex={0}
+        onClick={() => setActiveTab(item.value)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTab(item.value); } }}
+        className={cn(
+          "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+        data-testid={`report-nav-${item.value}`}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="flex-1 truncate">{item.label}</span>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); toggleFavourite(item.value); }}
+          className={cn(
+            "shrink-0 rounded p-0.5 transition-opacity",
+            fav ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+          )}
+          aria-label={fav ? "Remove from favourites" : "Add to favourites"}
+        >
+          <Star className={cn("h-3.5 w-3.5", fav ? "fill-amber-400 text-amber-400" : "")} />
+        </button>
+      </div>
+    );
+  };
 
   const revenueYears = [...new Set((revenue?.byMonth ?? []).map(m => m.month.substring(0, 4)))].sort().reverse();
   const utilizationYears = [...new Set((utilization?.byMonth ?? []).map(m => m.month.substring(0, 4)))].sort().reverse();
@@ -1203,23 +1287,25 @@ export default function Reports() {
       <div className="space-y-4">
         <PageHeader title="Reports" />
 
-        <Tabs defaultValue="performance" className="w-full">
-          <div className="overflow-x-auto scrollbar-none mb-4">
-            <TabsList className="w-max">
-              <TabsTrigger value="performance" className="flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Performance</TabsTrigger>
-              <TabsTrigger value="utilization-grid" className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Utilization Grid</TabsTrigger>
-              <TabsTrigger value="timesheet-submissions" className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Timesheet Submissions</TabsTrigger>
-              <TabsTrigger value="capacity-planning" className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Capacity Planning</TabsTrigger>
-              <TabsTrigger value="operations">Operations</TabsTrigger>
-              <TabsTrigger value="interval-iq" className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Interval IQ</TabsTrigger>
-              <TabsTrigger value="budget">Budget vs Actuals</TabsTrigger>
-              <TabsTrigger value="burndown">Burn-Down</TabsTrigger>
-              <TabsTrigger value="revenue">Revenue</TabsTrigger>
-              <TabsTrigger value="utilization">Utilization</TabsTrigger>
-              <TabsTrigger value="health">Project Health</TabsTrigger>
-              <TabsTrigger value="skill-supply-demand" className="flex items-center gap-1.5"><Filter className="h-3.5 w-3.5" /> Skill Supply vs Demand</TabsTrigger>
-            </TabsList>
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="w-full">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+            <aside className="lg:w-64 lg:shrink-0">
+              <nav className="rounded-lg border bg-card p-2 space-y-3" aria-label="Reports">
+                {favouriteItems.length > 0 && (
+                  <div>
+                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Favourites</p>
+                    <div className="space-y-0.5">{favouriteItems.map(renderRailItem)}</div>
+                  </div>
+                )}
+                {REPORT_GROUPS.map(group => (
+                  <div key={group.title}>
+                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">{group.title}</p>
+                    <div className="space-y-0.5">{group.items.map(renderRailItem)}</div>
+                  </div>
+                ))}
+              </nav>
+            </aside>
+            <div className="min-w-0 flex-1">
 
           <TabsContent value="performance" className="m-0">
             <ProjectPerformanceReport />
@@ -1428,6 +1514,8 @@ export default function Reports() {
           <TabsContent value="skill-supply-demand" className="m-0">
             <SkillSupplyDemandReport />
           </TabsContent>
+            </div>
+          </div>
         </Tabs>
       </div>
     </Layout>

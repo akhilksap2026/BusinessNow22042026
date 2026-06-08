@@ -18,6 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Briefcase, Calendar, Clock, DollarSign, Users, Target, Plus, Pencil, Trash2, FileText, BarChart2, Settings2, PackagePlus, LayoutList, Kanban, TrendingUp, LayoutTemplate, AlertTriangle, ShieldAlert, CheckCircle2, Send, ChevronDown, Filter, X as XIcon, Bell, Info, Receipt, Star } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApplyTemplateModal } from "@/components/apply-template-modal";
@@ -1247,36 +1248,63 @@ export default function ProjectDetail() {
                 </TooltipProvider>
               </TabsTrigger>
               <TabsTrigger value="financials">Financials</TabsTrigger>
-              <TabsTrigger value="changes" className="flex items-center gap-1.5">
-                <PackagePlus className="h-4 w-4" />
-                Change Requests
-                {((summary as any)?.badgeCounts?.changeRequests ?? 0) > 0 && (
-                  <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{(summary as any).badgeCounts.changeRequests}</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="documents" className="flex items-center gap-1.5">
-                <FileText className="h-4 w-4" />
-                Documents
-              </TabsTrigger>
-              <TabsTrigger value="gantt" className="flex items-center gap-1.5">
-                <BarChart2 className="h-4 w-4" />
-                Timeline
-              </TabsTrigger>
-              <TabsTrigger value="time" className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4" />
-                Time entry
-              </TabsTrigger>
-              <TabsTrigger value="updates" className="flex items-center gap-1.5">
-                <Bell className="h-4 w-4" />
-                Updates
-                {((summary as any)?.badgeCounts?.updates ?? 0) > 0 && (
-                  <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{(summary as any).badgeCounts.updates}</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="raid" className="flex items-center gap-1.5">
-                <ShieldAlert className="h-4 w-4" />
-                RAID
-              </TabsTrigger>
+              {(() => {
+                const changeRequestCount = (summary as any)?.badgeCounts?.changeRequests ?? 0;
+                const updatesCount = (summary as any)?.badgeCounts?.updates ?? 0;
+                const secondaryTabs = [
+                  { value: "changes", label: "Change Requests", icon: PackagePlus, badge: changeRequestCount },
+                  { value: "documents", label: "Documents", icon: FileText, badge: 0 },
+                  { value: "gantt", label: "Timeline", icon: BarChart2, badge: 0 },
+                  { value: "time", label: "Time entry", icon: Clock, badge: 0 },
+                  { value: "updates", label: "Updates", icon: Bell, badge: updatesCount },
+                  { value: "raid", label: "RAID", icon: ShieldAlert, badge: 0 },
+                ];
+                const active = secondaryTabs.find(t => t.value === activeTab);
+                const overflowBadge = secondaryTabs.reduce((sum, t) => sum + (active?.value === t.value ? 0 : t.badge), 0);
+                return (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        data-state={active ? "active" : "inactive"}
+                        className={cn(
+                          "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
+                        )}
+                        data-testid="tab-more"
+                      >
+                        {active ? (
+                          <>
+                            <active.icon className="h-4 w-4" />
+                            {active.label}
+                          </>
+                        ) : (
+                          "More"
+                        )}
+                        {overflowBadge > 0 && (
+                          <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{overflowBadge}</span>
+                        )}
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {secondaryTabs.map(t => (
+                        <DropdownMenuItem
+                          key={t.value}
+                          onClick={() => setActiveTab(t.value)}
+                          className={cn("gap-2", activeTab === t.value && "bg-accent")}
+                          data-testid={`more-tab-${t.value}`}
+                        >
+                          <t.icon className="h-4 w-4" />
+                          <span className="flex-1">{t.label}</span>
+                          {t.badge > 0 && (
+                            <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-xs px-1.5 py-0.5 leading-none">{t.badge}</span>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })()}
             </TabsList>
           </div>
           

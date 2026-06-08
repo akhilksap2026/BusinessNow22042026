@@ -21,6 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Briefcase,
   DollarSign,
   Clock,
@@ -33,6 +41,7 @@ import {
   BarChart2,
   Bookmark,
   Plus,
+  ChevronDown,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -53,6 +62,14 @@ function timeAgo(date: string) {
 }
 
 type Period = "week" | "month" | "quarter" | "ytd";
+
+type SavedView = {
+  id: number;
+  name: string;
+  entity: string;
+  widgetConfig?: { period?: string } | null;
+  isOwner?: boolean;
+};
 
 type KpiStatus = "success" | "warning" | "danger" | "neutral";
 
@@ -236,16 +253,35 @@ export default function Dashboard() {
   const { currentUser } = useCurrentUser();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
+  const { data: savedViews = [], refetch: refetchSavedViews } = useQuery<SavedView[]>({
+    queryKey: ["saved-views", "dashboard"],
+    queryFn: async () => {
+      const res = await fetch("/api/saved-views?entity=dashboard", { headers: authHeaders() });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   async function handleSaveView() {
     try {
-      await fetch("/api/saved-views", {
+      const res = await fetch("/api/saved-views", {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ name: `Dashboard · ${period}`, entity: "dashboard", widgetConfig: { period }, roleDefault: null }),
       });
+      if (!res.ok) throw new Error("save failed");
       toast({ title: "View saved", description: `Dashboard period "${period}" saved.` });
+      refetchSavedViews();
     } catch {
       toast({ title: "Failed to save view", variant: "destructive" });
+    }
+  }
+
+  function applySavedView(view: SavedView) {
+    const p = view.widgetConfig?.period;
+    if (p === "week" || p === "month" || p === "quarter" || p === "ytd") {
+      setPeriod(p);
+      toast({ title: "View applied", description: view.name });
     }
   }
 
@@ -348,9 +384,31 @@ export default function Dashboard() {
                   <SelectItem value="ytd">Year to Date</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={handleSaveView} title="Save dashboard view">
-                <Bookmark className="h-3.5 w-3.5 mr-1.5" /> Save View
-              </Button>
+              <div className="flex items-center">
+                <Button variant="outline" size="sm" onClick={handleSaveView} title="Save dashboard view" className="rounded-r-none border-r-0">
+                  <Bookmark className="h-3.5 w-3.5 mr-1.5" /> Save View
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="rounded-l-none px-2" title="Load a saved view">
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Saved Views</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {savedViews.length === 0 ? (
+                      <DropdownMenuItem disabled>No saved views yet</DropdownMenuItem>
+                    ) : (
+                      savedViews.map((v) => (
+                        <DropdownMenuItem key={v.id} onClick={() => applySavedView(v)}>
+                          {v.name}
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <Button onClick={() => setIsCreateOpen(true)}>New Project</Button>
             </div>
           }
@@ -450,22 +508,25 @@ export default function Dashboard() {
                 <>
                   <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                     {onTrack > 0 && (
-                      <div
-                        className="bg-emerald-500"
+                      <Link
+                        href="/projects?health=On%20Track"
+                        className="bg-emerald-500 transition-opacity hover:opacity-80"
                         style={{ width: `${pct(onTrack)}%` }}
                         title={`On Track: ${onTrack}`}
                       />
                     )}
                     {atRisk > 0 && (
-                      <div
-                        className="bg-amber-500"
+                      <Link
+                        href="/projects?health=At%20Risk"
+                        className="bg-amber-500 transition-opacity hover:opacity-80"
                         style={{ width: `${pct(atRisk)}%` }}
                         title={`At Risk: ${atRisk}`}
                       />
                     )}
                     {offTrack > 0 && (
-                      <div
-                        className="bg-red-500"
+                      <Link
+                        href="/projects?health=Off%20Track"
+                        className="bg-red-500 transition-opacity hover:opacity-80"
                         style={{ width: `${pct(offTrack)}%` }}
                         title={`Off Track: ${offTrack}`}
                       />
@@ -473,13 +534,14 @@ export default function Dashboard() {
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <HealthRow color="emerald" label="On Track" count={onTrack} pct={pct(onTrack)} />
+                    <HealthRow color="emerald" label="On Track" count={onTrack} pct={pct(onTrack)} href="/projects?health=On%20Track" />
                     <HealthRow
                       color="amber"
                       label="At Risk"
                       count={atRisk}
                       pct={pct(atRisk)}
                       names={atRiskOnly.map((p) => p.projectName)}
+                      href="/projects?health=At%20Risk"
                     />
                     <HealthRow
                       color="red"
@@ -487,6 +549,7 @@ export default function Dashboard() {
                       count={offTrack}
                       pct={pct(offTrack)}
                       names={offTrackProjects.map((p) => p.projectName)}
+                      href="/projects?health=Off%20Track"
                     />
                   </div>
                 </>
@@ -767,12 +830,14 @@ function HealthRow({
   count,
   pct,
   names,
+  href,
 }: {
   color: "emerald" | "amber" | "red";
   label: string;
   count: number;
   pct: number;
   names?: string[];
+  href?: string;
 }) {
   const dot =
     color === "emerald"
@@ -780,7 +845,7 @@ function HealthRow({
       : color === "amber"
         ? "bg-amber-500"
         : "bg-red-500";
-  return (
+  const body = (
     <div className="space-y-1">
       <div className="flex items-baseline gap-2">
         <span className={`h-2 w-2 rounded-full ${dot}`} />
@@ -792,5 +857,15 @@ function HealthRow({
         <p className="text-xs text-muted-foreground line-clamp-2 pl-4">{names.join(", ")}</p>
       )}
     </div>
+  );
+  if (!href) return body;
+  return (
+    <Link
+      href={href}
+      className="block rounded-md -m-1 p-1 transition-colors hover:bg-muted cursor-pointer"
+      title={`View ${label} projects`}
+    >
+      {body}
+    </Link>
   );
 }
