@@ -121,7 +121,7 @@ export async function getWeeklyTimesheetView(
     })
     .from(effortEntriesTable)
     .innerJoin(projectsTable, eq(projectsTable.id, effortEntriesTable.projectId))
-    .innerJoin(tasksTable,    eq(tasksTable.id,    effortEntriesTable.taskId))
+    .leftJoin(tasksTable,     eq(tasksTable.id,    effortEntriesTable.taskId))
     .where(
       and(
         eq(effortEntriesTable.resourceId, resourceId),
@@ -172,7 +172,7 @@ export async function getWeeklyTimesheetView(
       const proj = projectMap.get(row.projectId)!;
 
       if (!proj.tasks.has(row.taskId)) {
-        proj.tasks.set(row.taskId, { name: row.taskName, entries: [] });
+        proj.tasks.set(row.taskId, { name: row.taskName ?? "General", entries: [] });
       }
       proj.tasks.get(row.taskId)!.entries.push({
         entryId:         row.entryId,

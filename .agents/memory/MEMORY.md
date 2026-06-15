@@ -1,0 +1,1 @@
+- [Effort Entries System](effort-entries-system.md) — Two time-entry tables: seed only fills time_entries; Time Tracking UI reads effort_entries. Backfill SQL required after fresh seed.
