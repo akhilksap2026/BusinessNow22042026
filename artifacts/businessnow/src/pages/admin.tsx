@@ -1,5 +1,5 @@
 import { authHeaders } from "@/lib/auth-headers";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
@@ -79,7 +79,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText, DollarSign } from "lucide-react";
+import { Plus, Minus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText, DollarSign, Upload, Paperclip } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TemplateEditor } from "@/components/template-editor";
@@ -388,9 +388,32 @@ type DocTemplateRow = {
   updatedAt: string;
 };
 
+type DocEntry = {
+  uid: string;
+  name: string;
+  documentType: string;
+  description: string;
+  file: File | null;
+  fileName: string;
+  content: string;
+};
+
+function makeEntry(): DocEntry {
+  return { uid: Math.random().toString(36).slice(2), name: "", documentType: "rich_text", description: "", file: null, fileName: "", content: "" };
+}
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  rich_text: "Rich Text",
+  spreadsheet: "Spreadsheet",
+  pdf: "PDF",
+  link: "Link",
+  checklist: "Checklist",
+  presentation: "Presentation",
+};
+
 /**
  * Admin panel for managing reusable document templates.
- * Lists templates, supports create / edit / delete via /api/document-templates.
+ * Lists templates, supports create (multi-entry) / edit / delete via /api/document-templates.
  */
 function DocumentTemplatesPanel() {
   const { toast } = useToast();
@@ -406,42 +429,101 @@ function DocumentTemplatesPanel() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<DocTemplateRow | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", documentType: "rich_text", content: "" });
+  const [entries, setEntries] = useState<DocEntry[]>([makeEntry()]);
+  const [entryErrors, setEntryErrors] = useState<Record<string, Record<string, string>>>({});
+  const [isSaving, setIsSaving] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   function openCreate() {
     setEditing(null);
-    setForm({ name: "", description: "", documentType: "rich_text", content: "" });
-    setEditorOpen(true);
-  }
-  function openEdit(t: DocTemplateRow) {
-    setEditing(t);
-    setForm({ name: t.name, description: t.description ?? "", documentType: t.documentType, content: t.content ?? "" });
+    const e = makeEntry();
+    setEntries([e]);
+    setEntryErrors({});
     setEditorOpen(true);
   }
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const url = editing ? `/api/document-templates/${editing.id}` : "/api/document-templates";
-      const method = editing ? "PATCH" : "POST";
-      const r = await fetch(url, {
-        method,
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(form),
-      });
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(err.error ?? `Save failed (${r.status})`);
+  function openEdit(t: DocTemplateRow) {
+    setEditing(t);
+    setEntries([{ uid: "edit", name: t.name, documentType: t.documentType, description: t.description ?? "", file: null, fileName: "", content: t.content ?? "" }]);
+    setEntryErrors({});
+    setEditorOpen(true);
+  }
+
+  function addEntry() {
+    setEntries(prev => [...prev, makeEntry()]);
+  }
+
+  function removeEntry(uid: string) {
+    setEntries(prev => prev.filter(e => e.uid !== uid));
+    setEntryErrors(prev => { const n = { ...prev }; delete n[uid]; return n; });
+  }
+
+  function updateEntry(uid: string, field: keyof DocEntry, value: string) {
+    setEntries(prev => prev.map(e => e.uid === uid ? { ...e, [field]: value } : e));
+    if (entryErrors[uid]?.[field]) {
+      setEntryErrors(prev => ({ ...prev, [uid]: { ...prev[uid], [field]: "" } }));
+    }
+  }
+
+  const handleFileChange = useCallback((uid: string, file: File | null) => {
+    if (!file) return;
+    setEntries(prev => prev.map(e => e.uid === uid ? { ...e, file, fileName: file.name } : e));
+    const isText = file.type.startsWith("text/") || file.name.endsWith(".md") || file.name.endsWith(".txt") || file.name.endsWith(".csv");
+    if (isText) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string ?? "";
+        setEntries(prev => prev.map(e => e.uid === uid ? { ...e, content: text } : e));
+      };
+      reader.readAsText(file);
+    }
+  }, []);
+
+  function validate(): boolean {
+    const errors: Record<string, Record<string, string>> = {};
+    let valid = true;
+    for (const entry of entries) {
+      const e: Record<string, string> = {};
+      if (!entry.name.trim()) { e.name = "Document name is required"; valid = false; }
+      if (!entry.documentType) { e.documentType = "Document type is required"; valid = false; }
+      if (Object.keys(e).length) errors[entry.uid] = e;
+    }
+    setEntryErrors(errors);
+    return valid;
+  }
+
+  async function handleSave() {
+    if (!validate()) return;
+    setIsSaving(true);
+    try {
+      if (editing) {
+        const entry = entries[0];
+        const r = await fetch(`/api/document-templates/${editing.id}`, {
+          method: "PATCH",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ name: entry.name, description: entry.description, documentType: entry.documentType, content: entry.content }),
+        });
+        if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.error ?? `Save failed (${r.status})`); }
+      } else {
+        for (const entry of entries) {
+          const r = await fetch("/api/document-templates", {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ name: entry.name, description: entry.description, documentType: entry.documentType, content: entry.content }),
+          });
+          if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.error ?? `Save failed (${r.status})`); }
+        }
       }
-      return r.json();
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["document-templates"] });
-      toast({ title: editing ? "Template updated" : "Template created" });
+      toast({ title: editing ? "Template updated" : entries.length > 1 ? `${entries.length} templates created` : "Template created" });
       setEditorOpen(false);
-    },
-    onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
-  });
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -486,7 +568,7 @@ function DocumentTemplatesPanel() {
               {templates.map(t => (
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.name}</TableCell>
-                  <TableCell><Badge variant="outline">{t.documentType}</Badge></TableCell>
+                  <TableCell><Badge variant="outline">{DOC_TYPE_LABELS[t.documentType] ?? t.documentType}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-xl truncate">{t.description ?? "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(t)}>
@@ -503,60 +585,145 @@ function DocumentTemplatesPanel() {
         )}
       </CardContent>
 
-      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+      {/* Create / Edit dialog */}
+      <Dialog open={editorOpen} onOpenChange={open => { if (!open) setEditorOpen(false); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{editing ? "Edit Template" : "New Template"}</DialogTitle>
-            <DialogDescription>{editing ? "Update the reusable template." : "Create a reusable document template."}</DialogDescription>
+            <DialogDescription>{editing ? "Update the reusable template." : "Create one or more reusable document templates."}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Template Name *</Label>
-              <Input
-                placeholder="e.g. Project Charter"
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Description</Label>
-              <Input
-                placeholder="What is this template for?"
-                value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Document Type</Label>
-              <Select value={form.documentType} onValueChange={v => setForm(f => ({ ...f, documentType: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rich_text">Rich Text</SelectItem>
-                  <SelectItem value="spreadsheet">Spreadsheet</SelectItem>
-                  <SelectItem value="pdf">PDF</SelectItem>
-                  <SelectItem value="link">Link</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Default Content</Label>
-              <Textarea
-                rows={10}
-                placeholder="Default text/markdown that will be inserted when this template is used."
-                value={form.content}
-                onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-              />
-            </div>
+
+          <div className="flex-1 overflow-y-auto pr-1 space-y-4 py-1">
+            {entries.map((entry, idx) => {
+              const errs = entryErrors[entry.uid] ?? {};
+              return (
+                <div key={entry.uid} className="rounded-lg border bg-muted/30 p-4 space-y-3 relative">
+                  {/* Entry header */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {editing ? "Document" : `Document ${idx + 1}`}
+                    </p>
+                    {!editing && entries.length > 1 && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => removeEntry(entry.uid)}
+                        title="Remove this entry"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Document Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Document Name <span className="text-destructive">*</span></Label>
+                    <Input
+                      placeholder="e.g. Project Charter"
+                      value={entry.name}
+                      onChange={e => updateEntry(entry.uid, "name", e.target.value)}
+                      className={cn(errs.name && "border-destructive focus-visible:ring-destructive")}
+                    />
+                    {errs.name && <p className="text-xs text-destructive">{errs.name}</p>}
+                  </div>
+
+                  {/* Document Type */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Document Type <span className="text-destructive">*</span></Label>
+                    <Select value={entry.documentType} onValueChange={v => updateEntry(entry.uid, "documentType", v)}>
+                      <SelectTrigger className={cn(errs.documentType && "border-destructive")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(DOC_TYPE_LABELS).map(([v, label]) => (
+                          <SelectItem key={v} value={v}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errs.documentType && <p className="text-xs text-destructive">{errs.documentType}</p>}
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Description</Label>
+                    <Input
+                      placeholder="What is this template for?"
+                      value={entry.description}
+                      onChange={e => updateEntry(entry.uid, "description", e.target.value)}
+                    />
+                  </div>
+
+                  {/* File upload */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Upload File</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        className="hidden"
+                        ref={el => { fileInputRefs.current[entry.uid] = el; }}
+                        accept=".txt,.md,.csv,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                        onChange={e => handleFileChange(entry.uid, e.target.files?.[0] ?? null)}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 shrink-0"
+                        onClick={() => fileInputRefs.current[entry.uid]?.click()}
+                      >
+                        <Upload className="h-3.5 w-3.5" /> Browse
+                      </Button>
+                      {entry.fileName ? (
+                        <span className="flex items-center gap-1.5 text-sm text-foreground min-w-0">
+                          <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{entry.fileName}</span>
+                          <button
+                            className="ml-1 text-muted-foreground hover:text-destructive shrink-0"
+                            onClick={() => setEntries(prev => prev.map(e => e.uid === entry.uid ? { ...e, file: null, fileName: "", content: "" } : e))}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground truncate">No file chosen</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Supported: .txt, .md, .csv, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx</p>
+                  </div>
+
+                  {/* Default content (shown when no file or text file loaded) */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Default Content</Label>
+                    <Textarea
+                      rows={4}
+                      placeholder="Default text/markdown inserted when this template is used. Auto-filled for text-based uploads."
+                      value={entry.content}
+                      onChange={e => updateEntry(entry.uid, "content", e.target.value)}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Add entry button — only in create mode */}
+            {!editing && (
+              <Button type="button" variant="outline" size="sm" className="w-full gap-1.5 border-dashed" onClick={addEntry}>
+                <Plus className="h-3.5 w-3.5" /> Add Another Document
+              </Button>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditorOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>
-              {editing ? "Save Changes" : "Create Template"}
+
+          <DialogFooter className="shrink-0 pt-2 border-t mt-2">
+            <Button variant="outline" onClick={() => setEditorOpen(false)} disabled={isSaving}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Saving…" : editing ? "Save Changes" : entries.length > 1 ? `Create ${entries.length} Templates` : "Create Template"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Delete confirmation */}
       <Dialog open={!!confirmDeleteId} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
         <DialogContent>
           <DialogHeader>
