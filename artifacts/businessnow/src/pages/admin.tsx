@@ -742,6 +742,75 @@ function DocumentTemplatesPanel() {
   );
 }
 
+const ROLE_BADGE_STYLES: Record<string, string> = {
+  account_admin: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 border",
+  super_user:    "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 border",
+  collaborator:  "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 border",
+  customer:      "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border",
+};
+
+function UserConfigRow({
+  user,
+  isSystemRole,
+  canonical,
+  jobRoleValue,
+  allSkills,
+}: {
+  user: any;
+  isSystemRole: boolean;
+  canonical: string;
+  jobRoleValue: string;
+  allSkills: { id: number; name: string; categoryId: number }[];
+}) {
+  const { data: userSkills, isLoading: loadingSkills } = useGetUserSkills(user.id);
+
+  const resolvedRoleLabel = isSystemRole
+    ? (({ account_admin: "Account Admin", super_user: "Super User", collaborator: "Collaborator", customer: "Customer" } as Record<string,string>)[canonical] ?? canonical)
+    : (user.role ?? "—");
+
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8"><AvatarFallback className="text-xs">{user.initials}</AvatarFallback></Avatar>
+          <div>
+            <p className="text-sm font-medium leading-tight">{user.name}</p>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge className={cn("text-xs font-normal", isSystemRole ? (ROLE_BADGE_STYLES[canonical] ?? "") : "")} variant={isSystemRole ? undefined : "outline"}>
+          {resolvedRoleLabel}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        {jobRoleValue && jobRoleValue !== "—" ? (
+          <Badge variant="secondary" className="text-xs font-normal">{jobRoleValue}</Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell>
+        {loadingSkills ? (
+          <Skeleton className="h-5 w-24" />
+        ) : userSkills && userSkills.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {userSkills.map(us => {
+              const skill = allSkills.find(s => s.id === us.skillId);
+              return skill ? (
+                <Badge key={us.skillId} variant="outline" className="text-xs font-normal">{skill.name}</Badge>
+              ) : null;
+            })}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">No skills assigned</span>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function Admin() {
   const search = useSearch();
   const [activeTab, setActiveTab] = useState(() => new URLSearchParams(search).get("tab") ?? "users");
@@ -1923,133 +1992,45 @@ export default function Admin() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="configuration" className="mt-4 space-y-4">
+                <TabsContent value="configuration" className="mt-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-base">Manager Assignments</CardTitle>
-                      <CardDescription>Define reporting lines. Managers receive timesheet escalation alerts and approve time-off requests for their direct reports.</CardDescription>
+                      <CardTitle className="text-base">User Configuration</CardTitle>
+                      <CardDescription>Overview of each employee's access role, job role, and assigned skills.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {isLoadingUsers ? (
-                        <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                      {isLoadingUsers || isLoadingSkills ? (
+                        <div className="space-y-4">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
                       ) : (
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Team Member</TableHead>
-                              <TableHead>Department</TableHead>
-                              <TableHead>Reports To</TableHead>
+                              <TableHead>Name of the Employee</TableHead>
+                              <TableHead>Role</TableHead>
+                              <TableHead>Job Roles</TableHead>
+                              <TableHead>Skills</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {users?.map(user => {
-                              const currentManagerId = String((user as any).managerId ?? "");
+                              const canonical = resolveRole(user.role) as RoleValue;
+                              const isSystemRole = ["account_admin","super_user","collaborator","customer"].includes(canonical);
+                              const jobRoleValue = isSystemRole ? (user as any).jobTitle ?? "—" : (user.role ?? "—");
+                              const matchedJobRole = jobRoles.find(jr => jr.name.toLowerCase() === jobRoleValue.toLowerCase());
                               return (
-                                <TableRow key={user.id}>
-                                  <TableCell>
-                                    <div className="flex items-center gap-3">
-                                      <Avatar className="h-7 w-7"><AvatarFallback className="text-xs">{user.initials}</AvatarFallback></Avatar>
-                                      <div>
-                                        <p className="text-sm font-medium">{user.name}</p>
-                                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-sm text-muted-foreground">{user.department ?? "—"}</TableCell>
-                                  <TableCell>
-                                    {isAccountAdmin ? (
-                                      <Select
-                                        value={currentManagerId || "none"}
-                                        onValueChange={(v) => {
-                                          const managerId = v === "none" ? null : Number(v);
-                                          updateUser.mutate(
-                                            { id: user.id, requestBody: { managerId } as any },
-                                            {
-                                              onSuccess: () => {
-                                                queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-                                                toast({ title: "Manager updated" });
-                                              },
-                                              onError: () => toast({ title: "Failed to update manager", variant: "destructive" }),
-                                            }
-                                          );
-                                        }}
-                                      >
-                                        <SelectTrigger className="h-8 w-[200px] text-sm">
-                                          <SelectValue placeholder="No manager" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="none">No manager</SelectItem>
-                                          {users.filter(u => u.id !== user.id).map(u => (
-                                            <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    ) : (
-                                      <span className="text-sm text-muted-foreground">
-                                        {users.find(u => u.id === (user as any).managerId)?.name ?? "No manager"}
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
+                                <UserConfigRow
+                                  key={user.id}
+                                  user={user}
+                                  isSystemRole={isSystemRole}
+                                  canonical={canonical}
+                                  jobRoleValue={matchedJobRole ? matchedJobRole.name : jobRoleValue}
+                                  allSkills={skills ?? []}
+                                />
                               );
                             })}
                           </TableBody>
                         </Table>
                       )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Default Capacity Settings</CardTitle>
-                      <CardDescription>Standard weekly hours used for utilisation calculations across the platform.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div className="space-y-1.5">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Standard Week</p>
-                          <p className="text-2xl font-semibold">40 <span className="text-sm font-normal text-muted-foreground">hrs</span></p>
-                          <p className="text-xs text-muted-foreground">Mon – Fri, 8 hrs/day</p>
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Billing Threshold</p>
-                          <p className="text-2xl font-semibold">80 <span className="text-sm font-normal text-muted-foreground">%</span></p>
-                          <p className="text-xs text-muted-foreground">Target billable utilisation</p>
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Overrun Alert</p>
-                          <p className="text-2xl font-semibold">90 <span className="text-sm font-normal text-muted-foreground">%</span></p>
-                          <p className="text-xs text-muted-foreground">Effort overrun notification threshold</p>
-                        </div>
-                      </div>
-                      <p className="mt-4 text-xs text-muted-foreground">To adjust these values, go to <button className="underline underline-offset-2 hover:text-foreground transition-colors" onClick={() => setActiveTab("timesettings")}>Time Settings</button>.</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Access &amp; Security Defaults</CardTitle>
-                      <CardDescription>Platform-wide access policies applied to all users.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="divide-y">
-                        {[
-                          { label: "Self-approval block", description: "Users cannot approve their own timesheets, time-off, or change orders", enabled: true },
-                          { label: "Customer role isolation", description: "Customer-role accounts are blocked from all internal APIs (403)", enabled: true },
-                          { label: "Role-claim validation", description: "x-user-role header is validated against each user's assigned role set", enabled: true },
-                          { label: "Audit logging", description: "All create / update / delete / status-change events are written to the audit log", enabled: true },
-                        ].map(({ label, description, enabled }) => (
-                          <div key={label} className="flex items-center justify-between py-3">
-                            <div>
-                              <p className="text-sm font-medium">{label}</p>
-                              <p className="text-xs text-muted-foreground">{description}</p>
-                            </div>
-                            <Badge className={cn("text-xs shrink-0", enabled ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border" : "")}>
-                              {enabled ? "Enabled" : "Disabled"}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
