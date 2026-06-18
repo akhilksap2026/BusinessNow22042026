@@ -79,7 +79,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Minus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText, DollarSign, Upload, Paperclip } from "lucide-react";
+import { Plus, Minus, Trash2, LayoutTemplate, Users, Calendar, Layers, Star, Tag, Cpu, Percent, Clock, CalendarDays, Pencil, X, CreditCard, SlidersHorizontal, Activity, ChevronRight, ChevronDown, CheckCircle2, Building2, RotateCcw, MoreHorizontal, Settings2, Archive, Briefcase, ArrowUp, ArrowDown, Zap, Folder, ListTodo, FileText, DollarSign, Upload, Paperclip, Search } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TemplateEditor } from "@/components/template-editor";
@@ -106,6 +106,121 @@ const ROLE_LABELS: Record<RoleValue, string> = {
   collaborator:  "Collaborator",
   customer:      "Customer",
 };
+
+function MultiSelectField({ label, options, selectedIds, onChange, emptyText = "None configured" }: {
+  label: string;
+  options: { id: number; name: string }[];
+  selectedIds: number[];
+  onChange: (ids: number[]) => void;
+  emptyText?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  if (options.length === 0) return <p className="text-xs text-muted-foreground">{emptyText}</p>;
+
+  const filtered = options.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
+  const allSelected = filtered.length > 0 && filtered.every(o => selectedIds.includes(o.id));
+
+  function toggleItem(id: number) {
+    onChange(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
+  }
+  function toggleAll() {
+    const filteredIds = filtered.map(o => o.id);
+    if (allSelected) {
+      onChange(selectedIds.filter(id => !filteredIds.includes(id)));
+    } else {
+      const toAdd = filteredIds.filter(id => !selectedIds.includes(id));
+      onChange([...selectedIds, ...toAdd]);
+    }
+  }
+  function removeChip(id: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    onChange(selectedIds.filter(x => x !== id));
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div
+        className="min-h-9 w-full rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap gap-1 items-center cursor-pointer hover:border-ring transition-colors"
+        onClick={() => setOpen(v => !v)}
+      >
+        {selectedIds.length === 0 && <span className="text-sm text-muted-foreground px-1">Select {label.toLowerCase()}…</span>}
+        {selectedIds.map(id => {
+          const opt = options.find(o => o.id === id);
+          if (!opt) return null;
+          return (
+            <span key={id} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700 text-xs px-2 py-0.5">
+              {opt.name}
+              <button type="button" className="ml-0.5 hover:text-indigo-600 dark:hover:text-indigo-200" onClick={e => removeChip(id, e)}>
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          );
+        })}
+        <ChevronDown className="h-4 w-4 ml-auto text-muted-foreground shrink-0" />
+      </div>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg">
+          <div className="flex items-center gap-2 border-b px-2 py-1.5">
+            <input
+              type="checkbox"
+              className="accent-indigo-600 h-4 w-4 shrink-0"
+              checked={allSelected}
+              onChange={toggleAll}
+              title="Select all"
+            />
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                className="w-full rounded-sm border-0 bg-transparent pl-7 pr-2 py-0.5 text-sm outline-none placeholder:text-muted-foreground"
+                placeholder="Search…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onClick={e => e.stopPropagation()}
+                autoFocus
+              />
+            </div>
+            <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setSearch("")}>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="max-h-44 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <p className="text-xs text-muted-foreground px-3 py-2">No matches</p>
+            ) : filtered.map(o => {
+              const checked = selectedIds.includes(o.id);
+              return (
+                <div
+                  key={o.id}
+                  className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm select-none transition-colors ${checked ? "bg-indigo-50 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-200" : "hover:bg-muted"}`}
+                  onClick={() => toggleItem(o.id)}
+                >
+                  <input
+                    type="checkbox"
+                    className="accent-indigo-600 h-4 w-4 shrink-0 pointer-events-none"
+                    checked={checked}
+                    readOnly
+                  />
+                  <span className={checked ? "font-medium" : ""}>{o.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function UserSkillsDialog({ userId, userName, allSkills, onClose }: { userId: number; userName: string; allSkills: { id: number; name: string; categoryId: number }[]; onClose: () => void }) {
   const { data: userSkills, isLoading } = useGetUserSkills(userId);
@@ -4228,53 +4343,23 @@ export default function Admin() {
             </div>
             <div className="space-y-1">
               <Label>Job Roles</Label>
-              {jobRoles.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No job roles configured.</p>
-              ) : (
-                <div className="rounded-md border p-3 space-y-2 max-h-36 overflow-y-auto">
-                  {jobRoles.map(r => (
-                    <label key={r.id} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="accent-indigo-600"
-                        checked={userForm.jobRoleIds.includes(r.id)}
-                        onChange={e => setUserForm(f => ({
-                          ...f,
-                          jobRoleIds: e.target.checked
-                            ? [...f.jobRoleIds, r.id]
-                            : f.jobRoleIds.filter(id => id !== r.id),
-                        }))}
-                      />
-                      <span className="text-sm">{r.name}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+              <MultiSelectField
+                label="Job Roles"
+                options={jobRoles.map(r => ({ id: r.id, name: r.name }))}
+                selectedIds={userForm.jobRoleIds}
+                onChange={ids => setUserForm(f => ({ ...f, jobRoleIds: ids }))}
+                emptyText="No job roles configured."
+              />
             </div>
             <div className="space-y-1">
               <Label>Skills</Label>
-              {(skills ?? []).length === 0 ? (
-                <p className="text-xs text-muted-foreground">No skills configured.</p>
-              ) : (
-                <div className="rounded-md border p-3 space-y-2 max-h-36 overflow-y-auto">
-                  {(skills ?? []).map(s => (
-                    <label key={s.id} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="accent-indigo-600"
-                        checked={userForm.skillIds.includes(s.id)}
-                        onChange={e => setUserForm(f => ({
-                          ...f,
-                          skillIds: e.target.checked
-                            ? [...f.skillIds, s.id]
-                            : f.skillIds.filter(id => id !== s.id),
-                        }))}
-                      />
-                      <span className="text-sm">{s.name}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+              <MultiSelectField
+                label="Skills"
+                options={(skills ?? []).map(s => ({ id: s.id, name: s.name }))}
+                selectedIds={userForm.skillIds}
+                onChange={ids => setUserForm(f => ({ ...f, skillIds: ids }))}
+                emptyText="No skills configured."
+              />
             </div>
             <div className="space-y-1">
               <Label>Region</Label>
