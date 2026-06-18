@@ -64,7 +64,6 @@ import {
   useReorderTaskStatusDefinitions,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -749,109 +748,6 @@ const ROLE_BADGE_STYLES: Record<string, string> = {
   collaborator:  "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 border",
   customer:      "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border",
 };
-
-function MultiSelectCombobox({
-  items,
-  selectedIds,
-  onChange,
-  placeholder = "Select…",
-  searchPlaceholder = "Search…",
-}: {
-  items: { id: number; name: string }[];
-  selectedIds: number[];
-  onChange: (ids: number[]) => void;
-  placeholder?: string;
-  searchPlaceholder?: string;
-}) {
-  const [query, setQuery] = useState("");
-
-  const filtered = query.trim()
-    ? items.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
-    : items;
-
-  const allSelected = filtered.length > 0 && filtered.every(i => selectedIds.includes(i.id));
-
-  function toggleAll() {
-    if (allSelected) {
-      onChange(selectedIds.filter(id => !filtered.some(i => i.id === id)));
-    } else {
-      const toAdd = filtered.filter(i => !selectedIds.includes(i.id)).map(i => i.id);
-      onChange([...selectedIds, ...toAdd]);
-    }
-  }
-
-  function toggle(id: number) {
-    onChange(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
-  }
-
-  const selectedNames = items.filter(i => selectedIds.includes(i.id)).map(i => i.name);
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm hover:bg-accent/30 focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <span className={selectedNames.length === 0 ? "text-muted-foreground" : ""}>
-            {selectedNames.length === 0
-              ? placeholder
-              : selectedNames.length <= 2
-                ? selectedNames.join(", ")
-                : `${selectedNames.slice(0, 2).join(", ")} +${selectedNames.length - 2} more`}
-          </span>
-          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="p-0 w-[var(--radix-popover-trigger-width)]"
-        align="start"
-        onOpenAutoFocus={e => e.preventDefault()}
-      >
-        <div className="flex items-center gap-2 border-b px-2 py-2">
-          <input
-            type="checkbox"
-            className="accent-indigo-600 shrink-0"
-            checked={allSelected}
-            onChange={toggleAll}
-            title="Select all"
-          />
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder={searchPlaceholder}
-              className="w-full rounded border border-input bg-background py-1 pl-7 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="max-h-48 overflow-y-auto py-1">
-          {filtered.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-muted-foreground">No results.</p>
-          ) : (
-            filtered.map(item => (
-              <label key={item.id} className="flex cursor-pointer items-center gap-3 px-3 py-1.5 hover:bg-accent/50">
-                <input
-                  type="checkbox"
-                  className="accent-indigo-600"
-                  checked={selectedIds.includes(item.id)}
-                  onChange={() => toggle(item.id)}
-                />
-                <span className="text-sm">{item.name}</span>
-              </label>
-            ))
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 function UserConfigRow({
   user,
@@ -4335,13 +4231,24 @@ export default function Admin() {
               {jobRoles.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No job roles configured.</p>
               ) : (
-                <MultiSelectCombobox
-                  items={jobRoles}
-                  selectedIds={userForm.jobRoleIds}
-                  onChange={ids => setUserForm(f => ({ ...f, jobRoleIds: ids }))}
-                  placeholder="Select job roles…"
-                  searchPlaceholder="Search roles…"
-                />
+                <div className="rounded-md border p-3 space-y-2 max-h-36 overflow-y-auto">
+                  {jobRoles.map(r => (
+                    <label key={r.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-indigo-600"
+                        checked={userForm.jobRoleIds.includes(r.id)}
+                        onChange={e => setUserForm(f => ({
+                          ...f,
+                          jobRoleIds: e.target.checked
+                            ? [...f.jobRoleIds, r.id]
+                            : f.jobRoleIds.filter(id => id !== r.id),
+                        }))}
+                      />
+                      <span className="text-sm">{r.name}</span>
+                    </label>
+                  ))}
+                </div>
               )}
             </div>
             <div className="space-y-1">
@@ -4349,13 +4256,24 @@ export default function Admin() {
               {(skills ?? []).length === 0 ? (
                 <p className="text-xs text-muted-foreground">No skills configured.</p>
               ) : (
-                <MultiSelectCombobox
-                  items={(skills ?? []).map(s => ({ id: s.id, name: s.name }))}
-                  selectedIds={userForm.skillIds}
-                  onChange={ids => setUserForm(f => ({ ...f, skillIds: ids }))}
-                  placeholder="Select skills…"
-                  searchPlaceholder="Search skills…"
-                />
+                <div className="rounded-md border p-3 space-y-2 max-h-36 overflow-y-auto">
+                  {(skills ?? []).map(s => (
+                    <label key={s.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-indigo-600"
+                        checked={userForm.skillIds.includes(s.id)}
+                        onChange={e => setUserForm(f => ({
+                          ...f,
+                          skillIds: e.target.checked
+                            ? [...f.skillIds, s.id]
+                            : f.skillIds.filter(id => id !== s.id),
+                        }))}
+                      />
+                      <span className="text-sm">{s.name}</span>
+                    </label>
+                  ))}
+                </div>
               )}
             </div>
             <div className="space-y-1">
