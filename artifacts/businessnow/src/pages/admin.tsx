@@ -64,6 +64,7 @@ import {
   useReorderTaskStatusDefinitions,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -762,17 +763,7 @@ function MultiSelectCombobox({
   placeholder?: string;
   searchPlaceholder?: string;
 }) {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
 
   const filtered = query.trim()
     ? items.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
@@ -796,68 +787,69 @@ function MultiSelectCombobox({
   const selectedNames = items.filter(i => selectedIds.includes(i.id)).map(i => i.name);
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm hover:bg-accent/30 focus:outline-none focus:ring-2 focus:ring-ring"
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm hover:bg-accent/30 focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <span className={selectedNames.length === 0 ? "text-muted-foreground" : ""}>
+            {selectedNames.length === 0
+              ? placeholder
+              : selectedNames.length <= 2
+                ? selectedNames.join(", ")
+                : `${selectedNames.slice(0, 2).join(", ")} +${selectedNames.length - 2} more`}
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="p-0 w-[var(--radix-popover-trigger-width)]"
+        align="start"
+        onOpenAutoFocus={e => e.preventDefault()}
       >
-        <span className={selectedNames.length === 0 ? "text-muted-foreground" : ""}>
-          {selectedNames.length === 0
-            ? placeholder
-            : selectedNames.length <= 2
-              ? selectedNames.join(", ")
-              : `${selectedNames.slice(0, 2).join(", ")} +${selectedNames.length - 2} more`}
-        </span>
-        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
-      </button>
-
-      {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg">
-          <div className="flex items-center gap-2 border-b px-2 py-2">
+        <div className="flex items-center gap-2 border-b px-2 py-2">
+          <input
+            type="checkbox"
+            className="accent-indigo-600 shrink-0"
+            checked={allSelected}
+            onChange={toggleAll}
+            title="Select all"
+          />
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
-              type="checkbox"
-              className="accent-indigo-600 shrink-0"
-              checked={allSelected}
-              onChange={toggleAll}
-              title="Select all"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full rounded border border-input bg-background py-1 pl-7 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                autoFocus
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="w-full rounded border border-input bg-background py-1 pl-7 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              {query && (
-                <button type="button" onClick={() => setQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="max-h-48 overflow-y-auto py-1">
-            {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted-foreground">No results.</p>
-            ) : (
-              filtered.map(item => (
-                <label key={item.id} className="flex cursor-pointer items-center gap-3 px-3 py-1.5 hover:bg-accent/50">
-                  <input
-                    type="checkbox"
-                    className="accent-indigo-600"
-                    checked={selectedIds.includes(item.id)}
-                    onChange={() => toggle(item.id)}
-                  />
-                  <span className="text-sm">{item.name}</span>
-                </label>
-              ))
+            {query && (
+              <button type="button" onClick={() => setQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
             )}
           </div>
         </div>
-      )}
-    </div>
+        <div className="max-h-48 overflow-y-auto py-1">
+          {filtered.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-muted-foreground">No results.</p>
+          ) : (
+            filtered.map(item => (
+              <label key={item.id} className="flex cursor-pointer items-center gap-3 px-3 py-1.5 hover:bg-accent/50">
+                <input
+                  type="checkbox"
+                  className="accent-indigo-600"
+                  checked={selectedIds.includes(item.id)}
+                  onChange={() => toggle(item.id)}
+                />
+                <span className="text-sm">{item.name}</span>
+              </label>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
