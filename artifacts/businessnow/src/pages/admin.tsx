@@ -612,6 +612,7 @@ export default function Admin() {
     onError: () => toast({ title: "Failed to delete user", variant: "destructive" }),
   });
 
+  const [userSubTab, setUserSubTab] = useState("management");
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
   const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
@@ -1645,113 +1646,248 @@ export default function Admin() {
             <div className="min-w-0 flex-1">
 
           <TabsContent value="users" className="m-0">
-            <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>User Management</CardTitle>
-                      <CardDescription>Manage team members, roles, and permissions</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {canManageTeam && (
-                        <Button size="sm" onClick={openAddUser}><Plus className="h-4 w-4 mr-2" /> Add User</Button>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoadingUsers ? (
-                      <div className="space-y-4">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Department</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Cost Rate</TableHead>
-                            <TableHead className="w-[90px]"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {users?.map(user => (
-                            <TableRow key={user.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-8 w-8"><AvatarFallback>{user.initials}</AvatarFallback></Avatar>
-                                  {user.name}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                              <TableCell>
-                                {(() => {
-                                  const userCanonical = resolveRole(user.role) as RoleValue;
-                                  // Inline edit goes through PATCH /users/:id which is
-                                  // gated by requireAdmin, so we restrict the dropdown
-                                  // to account_admins to avoid a UI/backend 403 mismatch.
-                                  // (When the matrix is extended to PATCH in a later
-                                  // phase, this gate widens to `canManageTeam`.)
-                                  const canEdit = isAccountAdmin && allowedAssignments.includes(userCanonical);
-                                  if (!canEdit) {
-                                    return <Badge variant="outline" className="font-normal">{user.role}</Badge>;
-                                  }
-                                  return (
-                                    <Select
-                                      value={userCanonical}
-                                      onValueChange={(v) => changeRoleMut.mutate({ id: user.id, role: v as RoleValue })}
-                                    >
-                                      <SelectTrigger className="h-7 w-[140px] text-xs">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {(allowedAssignments as RoleValue[]).map(r => (
-                                          <SelectItem key={r} value={r} className="text-xs">{ROLE_LABELS[r]}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  );
-                                })()}
-                              </TableCell>
-                              <TableCell>{user.department}{(user as any).region ? <span className="text-muted-foreground ml-1 text-xs">· {(user as any).region}</span> : null}</TableCell>
-                              <TableCell>
-                                {(user as any).activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
-                                  : (user as any).activeStatus === "inactive" ? <Badge variant="secondary" className="text-xs text-muted-foreground">Inactive</Badge>
-                                  : <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border">Active</Badge>}
-                                {(user as any).isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
-                              </TableCell>
-                              <TableCell className="text-right">${user.costRate}/hr</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setSkillsUser({ id: user.id, name: user.name })}>
-                                    <Star className="h-3.5 w-3.5 mr-1" /> Skills
-                                  </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => openEditUser(user)}>
-                                        <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                                      </DropdownMenuItem>
-                                      {isAccountAdmin && (
-                                        <>
-                                          <DropdownMenuSeparator />
-                                          <DropdownMenuItem className="text-red-600" onClick={() => setUserDeleteId(user.id)}>
-                                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                                          </DropdownMenuItem>
-                                        </>
-                                      )}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </TableCell>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Users</h2>
+                  <p className="text-sm text-muted-foreground">Manage team members and their account configuration</p>
+                </div>
+                {userSubTab === "management" && canManageTeam && (
+                  <Button size="sm" onClick={openAddUser}><Plus className="h-4 w-4 mr-2" /> Add User</Button>
+                )}
+              </div>
+              <Tabs value={userSubTab} onValueChange={setUserSubTab}>
+                <TabsList className="h-9">
+                  <TabsTrigger value="management" className="text-sm">User Management</TabsTrigger>
+                  <TabsTrigger value="configuration" className="text-sm">User Configuration</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="management" className="mt-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      {isLoadingUsers ? (
+                        <div className="space-y-4">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>User</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Role</TableHead>
+                              <TableHead>Department</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Cost Rate</TableHead>
+                              <TableHead className="w-[90px]"></TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </Card>
+                          </TableHeader>
+                          <TableBody>
+                            {users?.map(user => (
+                              <TableRow key={user.id}>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-8 w-8"><AvatarFallback>{user.initials}</AvatarFallback></Avatar>
+                                    {user.name}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                                <TableCell>
+                                  {(() => {
+                                    const userCanonical = resolveRole(user.role) as RoleValue;
+                                    const canEdit = isAccountAdmin && allowedAssignments.includes(userCanonical);
+                                    if (!canEdit) {
+                                      return <Badge variant="outline" className="font-normal">{user.role}</Badge>;
+                                    }
+                                    return (
+                                      <Select
+                                        value={userCanonical}
+                                        onValueChange={(v) => changeRoleMut.mutate({ id: user.id, role: v as RoleValue })}
+                                      >
+                                        <SelectTrigger className="h-7 w-[140px] text-xs">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {(allowedAssignments as RoleValue[]).map(r => (
+                                            <SelectItem key={r} value={r} className="text-xs">{ROLE_LABELS[r]}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    );
+                                  })()}
+                                </TableCell>
+                                <TableCell>{user.department}{(user as any).region ? <span className="text-muted-foreground ml-1 text-xs">· {(user as any).region}</span> : null}</TableCell>
+                                <TableCell>
+                                  {(user as any).activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
+                                    : (user as any).activeStatus === "inactive" ? <Badge variant="secondary" className="text-xs text-muted-foreground">Inactive</Badge>
+                                    : <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border">Active</Badge>}
+                                  {(user as any).isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
+                                </TableCell>
+                                <TableCell className="text-right">${user.costRate}/hr</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setSkillsUser({ id: user.id, name: user.name })}>
+                                      <Star className="h-3.5 w-3.5 mr-1" /> Skills
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => openEditUser(user)}>
+                                          <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                                        </DropdownMenuItem>
+                                        {isAccountAdmin && (
+                                          <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-red-600" onClick={() => setUserDeleteId(user.id)}>
+                                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                                            </DropdownMenuItem>
+                                          </>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="configuration" className="mt-4 space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Manager Assignments</CardTitle>
+                      <CardDescription>Define reporting lines. Managers receive timesheet escalation alerts and approve time-off requests for their direct reports.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isLoadingUsers ? (
+                        <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Team Member</TableHead>
+                              <TableHead>Department</TableHead>
+                              <TableHead>Reports To</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {users?.map(user => {
+                              const currentManagerId = String((user as any).managerId ?? "");
+                              return (
+                                <TableRow key={user.id}>
+                                  <TableCell>
+                                    <div className="flex items-center gap-3">
+                                      <Avatar className="h-7 w-7"><AvatarFallback className="text-xs">{user.initials}</AvatarFallback></Avatar>
+                                      <div>
+                                        <p className="text-sm font-medium">{user.name}</p>
+                                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">{user.department ?? "—"}</TableCell>
+                                  <TableCell>
+                                    {isAccountAdmin ? (
+                                      <Select
+                                        value={currentManagerId || "none"}
+                                        onValueChange={(v) => {
+                                          const managerId = v === "none" ? null : Number(v);
+                                          updateUser.mutate(
+                                            { id: user.id, requestBody: { managerId } as any },
+                                            {
+                                              onSuccess: () => {
+                                                queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+                                                toast({ title: "Manager updated" });
+                                              },
+                                              onError: () => toast({ title: "Failed to update manager", variant: "destructive" }),
+                                            }
+                                          );
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-8 w-[200px] text-sm">
+                                          <SelectValue placeholder="No manager" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">No manager</SelectItem>
+                                          {users.filter(u => u.id !== user.id).map(u => (
+                                            <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">
+                                        {users.find(u => u.id === (user as any).managerId)?.name ?? "No manager"}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Default Capacity Settings</CardTitle>
+                      <CardDescription>Standard weekly hours used for utilisation calculations across the platform.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Standard Week</p>
+                          <p className="text-2xl font-semibold">40 <span className="text-sm font-normal text-muted-foreground">hrs</span></p>
+                          <p className="text-xs text-muted-foreground">Mon – Fri, 8 hrs/day</p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Billing Threshold</p>
+                          <p className="text-2xl font-semibold">80 <span className="text-sm font-normal text-muted-foreground">%</span></p>
+                          <p className="text-xs text-muted-foreground">Target billable utilisation</p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Overrun Alert</p>
+                          <p className="text-2xl font-semibold">90 <span className="text-sm font-normal text-muted-foreground">%</span></p>
+                          <p className="text-xs text-muted-foreground">Effort overrun notification threshold</p>
+                        </div>
+                      </div>
+                      <p className="mt-4 text-xs text-muted-foreground">To adjust these values, go to <button className="underline underline-offset-2 hover:text-foreground transition-colors" onClick={() => setActiveTab("timesettings")}>Time Settings</button>.</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Access &amp; Security Defaults</CardTitle>
+                      <CardDescription>Platform-wide access policies applied to all users.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="divide-y">
+                        {[
+                          { label: "Self-approval block", description: "Users cannot approve their own timesheets, time-off, or change orders", enabled: true },
+                          { label: "Customer role isolation", description: "Customer-role accounts are blocked from all internal APIs (403)", enabled: true },
+                          { label: "Role-claim validation", description: "x-user-role header is validated against each user's assigned role set", enabled: true },
+                          { label: "Audit logging", description: "All create / update / delete / status-change events are written to the audit log", enabled: true },
+                        ].map(({ label, description, enabled }) => (
+                          <div key={label} className="flex items-center justify-between py-3">
+                            <div>
+                              <p className="text-sm font-medium">{label}</p>
+                              <p className="text-xs text-muted-foreground">{description}</p>
+                            </div>
+                            <Badge className={cn("text-xs shrink-0", enabled ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border" : "")}>
+                              {enabled ? "Enabled" : "Disabled"}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
           </TabsContent>
 
           <TabsContent value="templates" className="m-0">
