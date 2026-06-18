@@ -852,7 +852,7 @@ export default function Admin() {
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
   const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
-  const [userForm, setUserForm] = useState({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "", resourceType: "employee" });
+  const [userForm, setUserForm] = useState({ name: "", email: "", designation: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", holidayCalendarId: "", resourceType: "employee", managerId: "", jobRoleIds: [] as number[], skillIds: [] as number[], startDate: "" });
 
   /* ── Invite + role-management context ─────────────────────────── */
   const { activeRole } = useCurrentUser();
@@ -904,25 +904,73 @@ export default function Admin() {
 
   function openAddUser() {
     setEditUser(null);
-    setUserForm({ name: "", email: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", activeStatus: "active", holidayCalendarId: "", resourceType: "employee" });
+    setUserForm({ name: "", email: "", designation: "", role: "", department: "", region: "", capacity: "40", costRate: "0", isInternal: "true", holidayCalendarId: "", resourceType: "employee", managerId: "", jobRoleIds: [], skillIds: [], startDate: "" });
     setUserDialogOpen(true);
   }
 
   function openEditUser(u: any) {
     setEditUser(u);
-    setUserForm({ name: u.name, email: u.email, role: u.role, department: u.department ?? "", region: u.region ?? "", capacity: String(u.capacity ?? 40), costRate: String(u.costRate ?? 0), isInternal: u.isInternal === false ? "false" : "true", activeStatus: u.activeStatus ?? "active", holidayCalendarId: u.holidayCalendarId ? String(u.holidayCalendarId) : "", resourceType: (u as any).resourceType ?? "employee" });
+    setUserForm({
+      name: u.name,
+      email: u.email,
+      designation: (u as any).designation ?? "",
+      role: u.role ?? "",
+      department: u.department ?? "",
+      region: u.region ?? "",
+      capacity: String(u.capacity ?? 40),
+      costRate: String(u.costRate ?? 0),
+      isInternal: u.isInternal === false ? "false" : "true",
+      holidayCalendarId: u.holidayCalendarId ? String(u.holidayCalendarId) : "",
+      resourceType: (u as any).resourceType ?? "employee",
+      managerId: (u as any).managerId ? String((u as any).managerId) : "",
+      jobRoleIds: [],
+      skillIds: [],
+      startDate: (u as any).startDate ? String((u as any).startDate).slice(0, 10) : "",
+    });
     setUserDialogOpen(true);
   }
 
   async function handleSaveUser() {
-    const payload = { name: userForm.name, email: userForm.email, role: userForm.role, department: userForm.department, region: userForm.region || undefined, capacity: Number(userForm.capacity), costRate: Number(userForm.costRate), isInternal: userForm.isInternal !== "false", activeStatus: userForm.activeStatus, holidayCalendarId: userForm.holidayCalendarId ? Number(userForm.holidayCalendarId) : null, resourceType: userForm.resourceType };
+    const selectedJobRoleNames = userForm.jobRoleIds.map(id => jobRoles.find(r => r.id === id)?.name ?? "").filter(Boolean);
+    const roleStr = selectedJobRoleNames.length > 0 ? selectedJobRoleNames.join(", ") : userForm.role;
+    const payload: any = {
+      name: userForm.name,
+      email: userForm.email,
+      role: roleStr,
+      department: userForm.department || undefined,
+      region: userForm.region || undefined,
+      capacity: Number(userForm.capacity),
+      costRate: Number(userForm.costRate),
+      isInternal: userForm.isInternal !== "false",
+      holidayCalendarId: userForm.holidayCalendarId ? Number(userForm.holidayCalendarId) : null,
+      resourceType: userForm.resourceType,
+      managerId: userForm.managerId ? Number(userForm.managerId) : null,
+      startDate: userForm.startDate || null,
+    };
     try {
+      let savedId: number;
       if (editUser) {
         await updateUser.mutateAsync({ id: editUser.id, data: payload });
+        savedId = editUser.id;
         toast({ title: "User updated" });
       } else {
-        await createUser.mutateAsync({ data: payload });
+        const created: any = await createUser.mutateAsync({ data: payload });
+        savedId = created?.id;
         toast({ title: "User added" });
+      }
+      // Sync skills: add newly selected, remove deselected
+      if (savedId) {
+        const BASE = import.meta.env.VITE_API_BASE ?? "";
+        const { authHeaders } = await import("@/lib/auth-headers");
+        const currentSkills: any[] = await fetch(`${BASE}/api/users/${savedId}/skills`, { headers: authHeaders({}) }).then(r => r.ok ? r.json() : []);
+        const currentIds = new Set<number>(currentSkills.map((s: any) => s.skillId));
+        const desiredIds = new Set<number>(userForm.skillIds);
+        const toAdd = userForm.skillIds.filter(id => !currentIds.has(id));
+        const toRemove = [...currentIds].filter(id => !desiredIds.has(id));
+        await Promise.all([
+          ...toAdd.map(skillId => fetch(`${BASE}/api/users/${savedId}/skills`, { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ skillId }) })),
+          ...toRemove.map(skillId => fetch(`${BASE}/api/users/${savedId}/skills/${skillId}`, { method: "DELETE", headers: authHeaders({}) })),
+        ]);
       }
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
       setUserDialogOpen(false);
@@ -4136,7 +4184,7 @@ export default function Admin() {
             <DialogTitle>{editUser ? "Edit User" : "Add User"}</DialogTitle>
             <DialogDescription>{editUser ? "Update team member details." : "Add a new team member to KSAP Technology."}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="max-h-[70vh] overflow-y-auto space-y-3 py-2 pr-1">
             <div className="space-y-1">
               <Label>Name</Label>
               <Input value={userForm.name} onChange={e => setUserForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" />
@@ -4145,24 +4193,88 @@ export default function Admin() {
               <Label>Email</Label>
               <Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} placeholder="name@ksap.tech" />
             </div>
+            <div className="space-y-1">
+              <Label>Designation</Label>
+              <Input value={userForm.designation} onChange={e => setUserForm(f => ({ ...f, designation: e.target.value }))} placeholder="e.g. Senior Consultant" />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Role</Label>
-                {jobRoles.length > 0 ? (
-                  <Select value={userForm.role} onValueChange={v => setUserForm(f => ({ ...f, role: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select role…" /></SelectTrigger>
-                    <SelectContent>
-                      {jobRoles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input value={userForm.role} onChange={e => setUserForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Consultant" />
-                )}
+                <Label>Department</Label>
+                <Select value={userForm.department || "__none"} onValueChange={v => setUserForm(f => ({ ...f, department: v === "__none" ? "" : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select department…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">None</SelectItem>
+                    <SelectItem value="Management">Management</SelectItem>
+                    <SelectItem value="Technical">Technical</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
-                <Label>Department</Label>
-                <Input value={userForm.department} onChange={e => setUserForm(f => ({ ...f, department: e.target.value }))} placeholder="e.g. Engineering" />
+                <Label>Start Date</Label>
+                <Input type="date" value={userForm.startDate} onChange={e => setUserForm(f => ({ ...f, startDate: e.target.value }))} />
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Reporting Manager</Label>
+              <Select value={userForm.managerId || "__none"} onValueChange={v => setUserForm(f => ({ ...f, managerId: v === "__none" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="No manager" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">No manager</SelectItem>
+                  {users?.filter(u => u.id !== editUser?.id).map(u => (
+                    <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Job Roles</Label>
+              {jobRoles.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No job roles configured.</p>
+              ) : (
+                <div className="rounded-md border p-3 space-y-2 max-h-36 overflow-y-auto">
+                  {jobRoles.map(r => (
+                    <label key={r.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-indigo-600"
+                        checked={userForm.jobRoleIds.includes(r.id)}
+                        onChange={e => setUserForm(f => ({
+                          ...f,
+                          jobRoleIds: e.target.checked
+                            ? [...f.jobRoleIds, r.id]
+                            : f.jobRoleIds.filter(id => id !== r.id),
+                        }))}
+                      />
+                      <span className="text-sm">{r.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label>Skills</Label>
+              {(skills ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">No skills configured.</p>
+              ) : (
+                <div className="rounded-md border p-3 space-y-2 max-h-36 overflow-y-auto">
+                  {(skills ?? []).map(s => (
+                    <label key={s.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-indigo-600"
+                        checked={userForm.skillIds.includes(s.id)}
+                        onChange={e => setUserForm(f => ({
+                          ...f,
+                          skillIds: e.target.checked
+                            ? [...f.skillIds, s.id]
+                            : f.skillIds.filter(id => id !== s.id),
+                        }))}
+                      />
+                      <span className="text-sm">{s.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-1">
               <Label>Region</Label>
@@ -4178,28 +4290,15 @@ export default function Admin() {
                 <Input type="number" value={userForm.costRate} onChange={e => setUserForm(f => ({ ...f, costRate: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Status</Label>
-                <Select value={userForm.activeStatus} onValueChange={v => setUserForm(f => ({ ...f, activeStatus: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="on_leave">On Leave</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Member Type</Label>
-                <Select value={userForm.isInternal} onValueChange={v => setUserForm(f => ({ ...f, isInternal: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Internal Employee</SelectItem>
-                    <SelectItem value="false">External / Client Contact</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-1">
+              <Label>Member Type</Label>
+              <Select value={userForm.isInternal} onValueChange={v => setUserForm(f => ({ ...f, isInternal: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Internal Employee</SelectItem>
+                  <SelectItem value="false">External / Client Contact</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Resource Type</Label>
