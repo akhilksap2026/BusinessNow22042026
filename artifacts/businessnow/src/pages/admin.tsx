@@ -1909,9 +1909,8 @@ export default function Admin() {
                             <TableRow>
                               <TableHead>User</TableHead>
                               <TableHead>Email</TableHead>
-                              <TableHead>Role</TableHead>
                               <TableHead>Department</TableHead>
-                              <TableHead>Status</TableHead>
+                              <TableHead>Reporting Manager</TableHead>
                               <TableHead className="text-right">Cost Rate</TableHead>
                               <TableHead className="w-[90px]"></TableHead>
                             </TableRow>
@@ -1926,36 +1925,32 @@ export default function Admin() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                                <TableCell className="text-sm">{user.department ?? "—"}{(user as any).region ? <span className="text-muted-foreground ml-1 text-xs">· {(user as any).region}</span> : null}</TableCell>
                                 <TableCell>
-                                  {(() => {
-                                    const userCanonical = resolveRole(user.role) as RoleValue;
-                                    const canEdit = isAccountAdmin && allowedAssignments.includes(userCanonical);
-                                    if (!canEdit) {
-                                      return <Badge variant="outline" className="font-normal">{user.role}</Badge>;
-                                    }
-                                    return (
-                                      <Select
-                                        value={userCanonical}
-                                        onValueChange={(v) => changeRoleMut.mutate({ id: user.id, role: v as RoleValue })}
-                                      >
-                                        <SelectTrigger className="h-7 w-[140px] text-xs">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {(allowedAssignments as RoleValue[]).map(r => (
-                                            <SelectItem key={r} value={r} className="text-xs">{ROLE_LABELS[r]}</SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    );
-                                  })()}
-                                </TableCell>
-                                <TableCell>{user.department}{(user as any).region ? <span className="text-muted-foreground ml-1 text-xs">· {(user as any).region}</span> : null}</TableCell>
-                                <TableCell>
-                                  {(user as any).activeStatus === "on_leave" ? <Badge variant="secondary" className="text-xs">On Leave</Badge>
-                                    : (user as any).activeStatus === "inactive" ? <Badge variant="secondary" className="text-xs text-muted-foreground">Inactive</Badge>
-                                    : <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 border">Active</Badge>}
-                                  {(user as any).isInternal === false && <Badge variant="outline" className="text-xs ml-1">External</Badge>}
+                                  <Select
+                                    value={String((user as any).managerId ?? "none")}
+                                    onValueChange={(v) => {
+                                      const managerId = v === "none" ? null : Number(v);
+                                      updateUser.mutate(
+                                        { id: user.id, requestBody: { managerId } as any },
+                                        {
+                                          onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() }); toast({ title: "Reporting manager updated" }); },
+                                          onError: () => toast({ title: "Failed to update manager", variant: "destructive" }),
+                                        }
+                                      );
+                                    }}
+                                    disabled={!isAccountAdmin}
+                                  >
+                                    <SelectTrigger className="h-7 w-[180px] text-xs">
+                                      <SelectValue placeholder="No manager" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none" className="text-xs">No manager</SelectItem>
+                                      {users?.filter(u => u.id !== user.id).map(u => (
+                                        <SelectItem key={u.id} value={String(u.id)} className="text-xs">{u.name}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </TableCell>
                                 <TableCell className="text-right">${user.costRate}/hr</TableCell>
                                 <TableCell>
