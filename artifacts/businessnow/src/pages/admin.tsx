@@ -2006,7 +2006,7 @@ export default function Admin() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Name of the Employee</TableHead>
-                              <TableHead>Role</TableHead>
+                              <TableHead>System Role</TableHead>
                               <TableHead>Job Roles</TableHead>
                               <TableHead>Skills</TableHead>
                             </TableRow>
