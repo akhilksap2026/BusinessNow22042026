@@ -1926,31 +1926,10 @@ export default function Admin() {
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">{user.email}</TableCell>
                                 <TableCell className="text-sm">{user.department ?? "—"}{(user as any).region ? <span className="text-muted-foreground ml-1 text-xs">· {(user as any).region}</span> : null}</TableCell>
-                                <TableCell>
-                                  <Select
-                                    value={String((user as any).managerId ?? "none")}
-                                    onValueChange={(v) => {
-                                      const managerId = v === "none" ? null : Number(v);
-                                      updateUser.mutate(
-                                        { id: user.id, requestBody: { managerId } as any },
-                                        {
-                                          onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() }); toast({ title: "Reporting manager updated" }); },
-                                          onError: () => toast({ title: "Failed to update manager", variant: "destructive" }),
-                                        }
-                                      );
-                                    }}
-                                    disabled={!isAccountAdmin}
-                                  >
-                                    <SelectTrigger className="h-7 w-[180px] text-xs">
-                                      <SelectValue placeholder="No manager" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="none" className="text-xs">No manager</SelectItem>
-                                      {users?.filter(u => u.id !== user.id).map(u => (
-                                        <SelectItem key={u.id} value={String(u.id)} className="text-xs">{u.name}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                <TableCell className="text-sm">
+                                  {(user as any).managerId
+                                    ? (users?.find(u => u.id === (user as any).managerId)?.name ?? "—")
+                                    : <span className="text-muted-foreground">—</span>}
                                 </TableCell>
                                 <TableCell className="text-right">${user.costRate}/hr</TableCell>
                                 <TableCell>
